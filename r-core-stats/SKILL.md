@@ -63,8 +63,10 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 ## Output conventions
 
 - Use `<working directory>/outputs/tmp` for scratch outputs (relative to the working directory where the script runs).
+- If the user does not explicitly pass `--out`, the default output directory **must** be `<working directory>/outputs/tmp`.
 - Each skill should accept `--out` and write all generated files there.
-- Each analysis writes `apa_report.md` (APA table + narrative) and appends `analysis_log.jsonl` when logging is enabled.
+- Each analysis appends `apa_report.md` (APA table + narrative) and appends `analysis_log.jsonl` when logging is enabled.
+- For `apa_report.md`, templates in `r-core-stats/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
 
 ## Subskills

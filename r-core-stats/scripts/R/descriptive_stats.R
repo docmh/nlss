@@ -274,7 +274,12 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(summary_df, digits)
   apa_text <- format_apa_text(summary_df, digits)
-  append_apa_report(apa_report_path, "Descriptive statistics", apa_table, apa_text)
+  analysis_flags <- list(
+    vars = vars,
+    group = if (!is.null(group_var) && group_var != "") group_var else "None",
+    digits = digits
+  )
+  append_apa_report(apa_report_path, "Descriptive statistics", apa_table, apa_text, analysis_flags = analysis_flags)
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")

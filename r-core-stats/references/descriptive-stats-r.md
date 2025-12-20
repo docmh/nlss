@@ -66,6 +66,10 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
+## APA 7 Template
+
+Use the Markdown template at `r-core-stats/assets/descriptive-stats-template.md` when assembling a descriptive statistics report. If the template exists, it must be used for `apa_report.md`.
+
 ## APA 7 Reporting Guidance
 
 - Use the narrative lines as the base: `Variable: M = x.xx, SD = x.xx, 95% CI [x.xx, x.xx], n = xx, missing = x (x.x%).`
