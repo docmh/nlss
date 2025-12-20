@@ -1,5 +1,5 @@
 ---
-name: statistic-skills
+name: r-core-stats
 description: Use when statistical analyses are requested or when Codex should route to a specific statistic skill in this repo.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux

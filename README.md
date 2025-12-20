@@ -15,7 +15,7 @@ No build step. Clone and run the scripts directly:
 
 ```bash
 git clone <repo-url>
-cd statistic-skills
+cd r-core-stats
 ```
 
 If you are on Windows, ensure `Rscript.exe` is on your PATH or set `RSCRIPT` to its full path.
@@ -27,15 +27,15 @@ Outputs go to `./outputs/tmp` by default when `--out` is omitted.
 ### Windows (PowerShell wrapper; WSL first, Windows fallback)
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File statistic-skills/scripts/run_rscript.ps1 `
-  statistic-skills/scripts/descriptive_stats.R `
+powershell -ExecutionPolicy Bypass -File r-core-stats/scripts/run_rscript.ps1 `
+  r-core-stats/scripts/descriptive_stats.R `
   --csv data.csv --vars age,score --out outputs\tmp
 ```
 
 ### WSL/Linux (Rscript directly)
 
 ```bash
-Rscript statistic-skills/scripts/descriptive_stats.R \
+Rscript r-core-stats/scripts/descriptive_stats.R \
   --csv data.csv --vars age,score --out outputs/tmp
 ```
 
@@ -45,23 +45,23 @@ Each subskill has a reference file describing inputs, flags, and outputs.
 
 | Subskill | Script | Purpose |
 | --- | --- | --- |
-| `descriptive-stats-r` | `statistic-skills/scripts/descriptive_stats.R` | Descriptive statistics with APA tables/text. |
-| `frequencies-r` | `statistic-skills/scripts/frequencies.R` | Frequency tables for categorical variables. |
-| `crosstabs-r` | `statistic-skills/scripts/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. |
-| `correlations-r` | `statistic-skills/scripts/correlations.R` | Correlations, partial correlations, diagnostics. |
+| `descriptive-stats-r` | `r-core-stats/scripts/descriptive_stats.R` | Descriptive statistics with APA tables/text. |
+| `frequencies-r` | `r-core-stats/scripts/frequencies.R` | Frequency tables for categorical variables. |
+| `crosstabs-r` | `r-core-stats/scripts/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. |
+| `correlations-r` | `r-core-stats/scripts/correlations.R` | Correlations, partial correlations, diagnostics. |
 
 Reference docs:
-- `statistic-skills/references/descriptive-stats-r.md`
-- `statistic-skills/references/frequencies-r.md`
-- `statistic-skills/references/crosstabs-r.md`
-- `statistic-skills/references/correlations-r.md`
+- `r-core-stats/references/descriptive-stats-r.md`
+- `r-core-stats/references/frequencies-r.md`
+- `r-core-stats/references/crosstabs-r.md`
+- `r-core-stats/references/correlations-r.md`
 
 ## Basic usage by module
 
 ### Descriptive statistics
 
 ```bash
-Rscript statistic-skills/scripts/descriptive_stats.R \
+Rscript r-core-stats/scripts/descriptive_stats.R \
   --csv data.csv --vars age,score --group condition
 ```
 
@@ -70,7 +70,7 @@ Outputs: `descriptive_summary.csv`, `apa_table.md`, `apa_text.txt`.
 ### Frequencies
 
 ```bash
-Rscript statistic-skills/scripts/frequencies.R \
+Rscript r-core-stats/scripts/frequencies.R \
   --csv data.csv --vars gender,condition --group condition
 ```
 
@@ -79,7 +79,7 @@ Outputs: `frequencies_summary.csv`, `apa_table.md`, `apa_text.txt`.
 ### Cross-tabulations
 
 ```bash
-Rscript statistic-skills/scripts/crosstabs.R \
+Rscript r-core-stats/scripts/crosstabs.R \
   --csv data.csv --row gender --col condition --group site
 ```
 
@@ -88,7 +88,7 @@ Outputs: `crosstabs_cells.csv`, `crosstabs_tests.csv`, `crosstabs_diagnostics.cs
 ### Correlations
 
 ```bash
-Rscript statistic-skills/scripts/correlations.R \
+Rscript r-core-stats/scripts/correlations.R \
   --csv data.csv --vars age,score,stress --method spearman
 ```
 
@@ -96,23 +96,23 @@ Outputs: `correlations_summary.csv`, `correlations_diagnostics.csv`, `apa_table.
 
 ## Using with Codex (Codes)
 
-Codex discovers this repo's skill via `AGENTS.md` and `statistic-skills/SKILL.md`. Open Codex in the repo root and ask for a statistical task; it should route to the correct subskill automatically.
+Codex discovers this repo's skill via `AGENTS.md` and `r-core-stats/SKILL.md`. Open Codex in the repo root and ask for a statistical task; it should route to the correct subskill automatically.
 
 Example prompt:
 
 ```
-Use statistic-skills to run correlations (Pearson) on data.csv for age, score, and stress.
+Use r-core-stats to run correlations (Pearson) on data.csv for age, score, and stress.
 Write outputs to outputs/tmp and summarize the APA text.
 ```
 
 ## Using with Claude Code
 
-Claude Code can use the same repo structure. Open the repo and tell Claude to use the statistic-skills subskill reference files and scripts.
+Claude Code can use the same repo structure. Open the repo and tell Claude to use the r-core-stats subskill reference files and scripts.
 
 Example prompt:
 
 ```
-Use the statistic-skills repo. Run descriptive_stats on data.csv for age and score.
+Use the r-core-stats repo. Run descriptive_stats on data.csv for age and score.
 Use outputs/tmp and report the APA narrative and table file names.
 ```
 
