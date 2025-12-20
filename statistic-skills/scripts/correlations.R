@@ -6,12 +6,14 @@ print_usage <- function() {
   cat("Usage:\n")
   cat("  Rscript correlations.R --csv data.csv [--vars var1,var2] [--group group_var]\n")
   cat("  Rscript correlations.R --csv data.csv --x var1,var2 --y var3,var4 [--group group_var]\n")
+  cat("  Rscript correlations.R --sav data.sav [--vars var1,var2] [--group group_var]\n")
   cat("  Rscript correlations.R --rds data.rds [--vars var1,var2]\n")
   cat("  Rscript correlations.R --rdata data.RData --df data_frame_name [--vars var1,var2]\n")
   cat("  Rscript correlations.R --interactive\n")
   cat("\n")
   cat("Options:\n")
   cat("  --csv PATH             CSV input file\n")
+  cat("  --sav PATH             SPSS .sav input file\n")
   cat("  --sep VALUE            CSV separator (default: ,)\n")
   cat("  --header TRUE/FALSE    CSV header (default: TRUE)\n")
   cat("  --rds PATH             RDS input file (data frame)\n")
@@ -77,11 +79,30 @@ get_default_out <- function() {
   "./outputs/tmp"
 }
 
+read_sav_data <- function(path) {
+  if (requireNamespace("haven", quietly = TRUE)) {
+    df <- haven::read_sav(path)
+    return(as.data.frame(df, stringsAsFactors = FALSE))
+  }
+  if (requireNamespace("foreign", quietly = TRUE)) {
+    df <- suppressWarnings(foreign::read.spss(path, to.data.frame = TRUE, use.value.labels = FALSE))
+    if (!is.data.frame(df)) df <- as.data.frame(df, stringsAsFactors = FALSE)
+    return(df)
+  }
+  stop("SPSS .sav support requires the 'haven' or 'foreign' package. Install one: install.packages('haven').")
+}
+
 load_dataframe <- function(opts) {
   if (!is.null(opts$csv)) {
     sep <- if (!is.null(opts$sep)) opts$sep else ","
     header <- parse_bool(opts$header, default = TRUE)
     df <- read.csv(opts$csv, sep = sep, header = header, stringsAsFactors = FALSE)
+    return(df)
+  }
+
+  if (!is.null(opts$sav)) {
+    df <- read_sav_data(opts$sav)
+    if (!is.data.frame(df)) stop("SAV does not contain a data frame.")
     return(df)
   }
 
@@ -101,12 +122,12 @@ load_dataframe <- function(opts) {
     return(df)
   }
 
-  stop("No input provided. Use --csv, --rds, --rdata, or --interactive.")
+  stop("No input provided. Use --csv, --sav, --rds, --rdata, or --interactive.")
 }
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- prompt("Input type (csv/rds/rdata)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
@@ -114,6 +135,8 @@ interactive_options <- function() {
     opts$csv <- prompt("CSV path")
     opts$sep <- prompt("Separator", ",")
     opts$header <- prompt("Header TRUE/FALSE", "TRUE")
+  } else if (input_type == "sav") {
+    opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
     opts$rds <- prompt("RDS path")
   } else if (input_type == "rdata") {
