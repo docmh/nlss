@@ -27,7 +27,7 @@ function Get-RscriptPath {
     return $null
 }
 
-function Is-PathLike {
+function Test-PathLike {
     param([string]$Value)
 
     if ($Value -match '^/mnt/[a-z]/' -or $Value -match '^/') {
@@ -70,24 +70,24 @@ function Convert-ToWslPath {
 
 function Convert-ArgsToWsl {
     param(
-        [string[]]$Args,
+        [string[]]$InputArgs,
         [string]$WslExe
     )
 
     $pathFlags = @("--csv", "--rds", "--rdata", "--out", "--file", "--input", "--data")
     $converted = @()
 
-    for ($i = 0; $i -lt $Args.Count; $i++) {
-        $arg = $Args[$i]
+    for ($i = 0; $i -lt $InputArgs.Count; $i++) {
+        $arg = $InputArgs[$i]
 
-        if ($pathFlags -contains $arg -and ($i + 1) -lt $Args.Count) {
+        if ($pathFlags -contains $arg -and ($i + 1) -lt $InputArgs.Count) {
             $converted += $arg
-            $converted += Convert-ToWslPath -Path $Args[$i + 1] -WslExe $WslExe
+            $converted += Convert-ToWslPath -Path $InputArgs[$i + 1] -WslExe $WslExe
             $i++
             continue
         }
 
-        if (Is-PathLike -Value $arg) {
+        if (Test-PathLike -Value $arg) {
             $converted += Convert-ToWslPath -Path $arg -WslExe $WslExe
             continue
         }
@@ -136,7 +136,7 @@ if (-not (Test-Path $target -PathType Leaf)) {
 
 if ($wslExe) {
     $wslTarget = Convert-ToWslPath -Path $target -WslExe $wslExe
-    $wslArgs = Convert-ArgsToWsl -Args $allArgs -WslExe $wslExe
+    $wslArgs = Convert-ArgsToWsl -InputArgs $allArgs -WslExe $wslExe
     & $wslExe "Rscript" $wslTarget @wslArgs
     if ($LASTEXITCODE -eq 0) {
         exit 0
