@@ -1,0 +1,2 @@
+plattform by modell_norm: chi-square(1, N = 150) = 24.31, p < .001; phi = 0.40. Expected counts: min = 11.80; 0.0% of cells < 5. Missing = 0 (0.0%).
+thinking_norm by modell_norm: chi-square(2, N = 150) = 10.95, p < .001; Cramer's V = 0.27. Expected counts: min = 5.90; 0.0% of cells < 5. Missing = 0 (0.0%).

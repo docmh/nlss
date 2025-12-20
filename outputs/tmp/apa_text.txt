@@ -1,0 +1,2 @@
+dauer_s with iterationen: Pearson's r = .37, 95% CI [.22, .50], p < .001, n = 149. Missing = 1 ( 0.7 %).
+Note. One-tailed tests. Missing values handled pairwise.

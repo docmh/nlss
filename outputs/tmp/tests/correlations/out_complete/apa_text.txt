@@ -1,0 +1,4 @@
+age with score: Pearson's r = .92, 95% CI [.78, .97], p < .001, n = 17. Missing = 3 ( 15.0 %).
+age with stress: Pearson's r = -.56, 95% CI [-.82, -.11], p = .019, n = 17. Missing = 3 ( 15.0 %).
+score with stress: Pearson's r = -.65, 95% CI [-.86, -.24], p = .005, n = 17. Missing = 3 ( 15.0 %).
+Note. Two-tailed tests. Missing values handled complete.

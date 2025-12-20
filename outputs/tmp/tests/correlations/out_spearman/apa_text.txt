@@ -1,0 +1,4 @@
+age with score: Spearman's rho = .89, p < .001, n = 18. Missing = 2 ( 10.0 %).
+age with stress: Spearman's rho = -.48, p = .046, n = 18. Missing = 2 ( 10.0 %).
+score with stress: Spearman's rho = -.58, p = .012, n = 18. Missing = 2 ( 10.0 %).
+Note. Two-tailed tests. Missing values handled pairwise.

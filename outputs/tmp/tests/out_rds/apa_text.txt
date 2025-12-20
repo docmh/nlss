@@ -1,0 +1,1 @@
+cat1 (n = 8): blue (n = 2, valid % = 28.57); green (n = 2, valid % = 28.57); red (n = 3, valid % = 28.57). Missing = 1 (12.50%).

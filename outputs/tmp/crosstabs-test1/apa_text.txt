@@ -1,0 +1,1 @@
+plattform by modell_norm: Fisher's exact test p < .001, odds ratio = 0.00, 95% CI [0.00, 0.15]. Expected counts: min = 11.80; 0.0% of cells < 5. Missing = 0 (0.0%).

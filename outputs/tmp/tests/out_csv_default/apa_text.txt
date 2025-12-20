@@ -1,0 +1,3 @@
+group (n = 8): A (n = 4, valid % = 57.14); B (n = 3, valid % = 57.14). Missing = 1 (12.50%).
+cat1 (n = 8): blue (n = 2, valid % = 28.57); green (n = 2, valid % = 28.57); red (n = 3, valid % = 28.57). Missing = 1 (12.50%).
+cat2 (n = 8): no (n = 3, valid % = 42.86); yes (n = 4, valid % = 42.86). Missing = 1 (12.50%).

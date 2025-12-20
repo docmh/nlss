@@ -1,0 +1,7 @@
+age with score: Pearson's r = .92, 95% CI [.79, .97], p < .001, n = 18. Missing = 2 ( 10.0 %).
+age with stress: Pearson's r = -.56, 95% CI [-.81, -.12], p = .017, n = 18. Missing = 2 ( 10.0 %).
+age with wellbeing: Pearson's r = .59, 95% CI [.16, .83], p = .013, n = 18. Missing = 2 ( 10.0 %).
+score with stress: Pearson's r = -.61, 95% CI [-.84, -.20], p = .011, n = 18. Missing = 2 ( 10.0 %).
+score with wellbeing: Pearson's r = .65, 95% CI [.26, .86], p = .007, n = 18. Missing = 2 ( 10.0 %).
+stress with wellbeing: Pearson's r = -.97, 95% CI [-.99, -.92], p < .001, n = 18. Missing = 2 ( 10.0 %).
+Note. Two-tailed tests. Missing values handled pairwise. p-values adjusted using FDR (BH).

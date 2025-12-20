@@ -1,0 +1,21 @@
+Descriptive statistics (base R)
+
+Usage:
+  Rscript descriptive_stats.R --csv data.csv [--vars var1,var2] [--group group_var]
+  Rscript descriptive_stats.R --rds data.rds [--vars var1,var2] [--group group_var]
+  Rscript descriptive_stats.R --rdata data.RData --df data_frame_name [--vars var1,var2] [--group group_var]
+  Rscript descriptive_stats.R --interactive
+
+Options:
+  --csv PATH           CSV input file
+  --sep VALUE          CSV separator (default: ,)
+  --header TRUE/FALSE  CSV header (default: TRUE)
+  --rds PATH           RDS input file (data frame)
+  --rdata PATH         RData input file
+  --df NAME            Data frame object name in RData
+  --vars LIST          Comma-separated variable names (default: all numeric)
+  --group NAME         Grouping variable name (optional)
+  --digits N           Rounding digits (default: 2)
+  --out DIR            Output directory (default: current directory)
+  --interactive        Prompt for inputs
+  --help               Show this help

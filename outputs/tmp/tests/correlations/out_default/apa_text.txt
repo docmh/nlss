@@ -1,0 +1,37 @@
+id with age: Pearson's r = .21, 95% CI [-.27, .61], p = .392, n = 19. Missing = 1 ( 5.0 %).
+id with score: Pearson's r = -.08, 95% CI [-.51, .39], p = .757, n = 19. Missing = 1 ( 5.0 %).
+id with stress: Pearson's r = .11, 95% CI [-.36, .54], p = .645, n = 19. Missing = 1 ( 5.0 %).
+id with wellbeing: Pearson's r = -.11, 95% CI [-.54, .36], p = .646, n = 19. Missing = 1 ( 5.0 %).
+id with performance: Pearson's r = -.02, 95% CI [-.47, .44], p = .928, n = 19. Missing = 1 ( 5.0 %).
+id with gender: Pearson's r = -.09, 95% CI [-.51, .37], p = .716, n = 20. Missing = 0 ( 0.0 %).
+id with education: Pearson's r = .02, 95% CI [-.42, .46], p = .918, n = 20. Missing = 0 ( 0.0 %).
+id with rank: Pearson's r = 1.00, p < .001, n = 20. Missing = 0 ( 0.0 %).
+age with score: Pearson's r = .92, 95% CI [.79, .97], p < .001, n = 18. Missing = 2 ( 10.0 %).
+age with stress: Pearson's r = -.56, 95% CI [-.81, -.12], p = .017, n = 18. Missing = 2 ( 10.0 %).
+age with wellbeing: Pearson's r = .59, 95% CI [.16, .83], p = .011, n = 18. Missing = 2 ( 10.0 %).
+age with performance: Pearson's r = .74, 95% CI [.41, .90], p < .001, n = 18. Missing = 2 ( 10.0 %).
+age with gender: Pearson's r = .37, 95% CI [-.10, .71], p = .118, n = 19. Missing = 1 ( 5.0 %).
+age with education: Pearson's r = .47, 95% CI [.02, .76], p = .043, n = 19. Missing = 1 ( 5.0 %).
+age with rank: Pearson's r = .21, 95% CI [-.27, .61], p = .392, n = 19. Missing = 1 ( 5.0 %).
+score with stress: Pearson's r = -.61, 95% CI [-.84, -.20], p = .007, n = 18. Missing = 2 ( 10.0 %).
+score with wellbeing: Pearson's r = .65, 95% CI [.26, .86], p = .004, n = 18. Missing = 2 ( 10.0 %).
+score with performance: Pearson's r = .79, 95% CI [.51, .92], p < .001, n = 18. Missing = 2 ( 10.0 %).
+score with gender: Pearson's r = .46, 95% CI [.01, .76], p = .046, n = 19. Missing = 1 ( 5.0 %).
+score with education: Pearson's r = .45, 95% CI [.00, .75], p = .051, n = 19. Missing = 1 ( 5.0 %).
+score with rank: Pearson's r = -.08, 95% CI [-.51, .39], p = .757, n = 19. Missing = 1 ( 5.0 %).
+stress with wellbeing: Pearson's r = -.97, 95% CI [-.99, -.92], p < .001, n = 18. Missing = 2 ( 10.0 %).
+stress with performance: Pearson's r = -.86, 95% CI [-.95, -.65], p < .001, n = 18. Missing = 2 ( 10.0 %).
+stress with gender: Pearson's r = -.39, 95% CI [-.72, .08], p = .098, n = 19. Missing = 1 ( 5.0 %).
+stress with education: Pearson's r = -.07, 95% CI [-.51, .39], p = .769, n = 19. Missing = 1 ( 5.0 %).
+stress with rank: Pearson's r = .11, 95% CI [-.36, .54], p = .645, n = 19. Missing = 1 ( 5.0 %).
+wellbeing with performance: Pearson's r = .91, 95% CI [.76, .96], p < .001, n = 18. Missing = 2 ( 10.0 %).
+wellbeing with gender: Pearson's r = .47, 95% CI [.02, .76], p = .043, n = 19. Missing = 1 ( 5.0 %).
+wellbeing with education: Pearson's r = .18, 95% CI [-.30, .58], p = .472, n = 19. Missing = 1 ( 5.0 %).
+wellbeing with rank: Pearson's r = -.11, 95% CI [-.54, .36], p = .646, n = 19. Missing = 1 ( 5.0 %).
+performance with gender: Pearson's r = .50, 95% CI [.05, .78], p = .031, n = 19. Missing = 1 ( 5.0 %).
+performance with education: Pearson's r = .38, 95% CI [-.09, .71], p = .113, n = 19. Missing = 1 ( 5.0 %).
+performance with rank: Pearson's r = -.02, 95% CI [-.47, .44], p = .928, n = 19. Missing = 1 ( 5.0 %).
+gender with education: Pearson's r = .57, 95% CI [.16, .81], p = .009, n = 20. Missing = 0 ( 0.0 %).
+gender with rank: Pearson's r = -.09, 95% CI [-.51, .37], p = .716, n = 20. Missing = 0 ( 0.0 %).
+education with rank: Pearson's r = .02, 95% CI [-.42, .46], p = .918, n = 20. Missing = 0 ( 0.0 %).
+Note. Two-tailed tests. Missing values handled pairwise.

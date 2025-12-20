@@ -1,0 +1,22 @@
+Frequencies (base R)
+
+Usage:
+  Rscript frequencies.R --csv data.csv [--vars var1,var2] [--group group_var]
+  Rscript frequencies.R --rds data.rds [--vars var1,var2] [--group group_var]
+  Rscript frequencies.R --rdata data.RData --df data_frame_name [--vars var1,var2] [--group group_var]
+  Rscript frequencies.R --interactive
+
+Options:
+  --csv PATH             CSV input file
+  --sep VALUE            CSV separator (default: ,)
+  --header TRUE/FALSE    CSV header (default: TRUE)
+  --rds PATH             RDS input file (data frame)
+  --rdata PATH           RData input file
+  --df NAME              Data frame object name in RData
+  --vars LIST            Comma-separated variable names (default: all non-numeric)
+  --group NAME           Grouping variable name (optional)
+  --include-numeric      Include numeric columns when --vars is omitted
+  --digits N             Rounding digits for percentages (default: 2)
+  --out DIR              Output directory (default: statistic-skills/outputs/tmp)
+  --interactive          Prompt for inputs
+  --help                 Show this help
