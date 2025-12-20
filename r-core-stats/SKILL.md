@@ -39,6 +39,27 @@ Example:
 Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables> --out <working directory>/outputs/tmp
 ```
 
+## Common inputs (data sources)
+
+All scripts accept one of the following input types:
+
+- `--csv <path>`: CSV file (use `--sep` and `--header` if needed).
+- `--sav <path>`: SPSS `.sav` file.
+- `--rds <path>`: RDS file containing a data frame.
+- `--rdata <path>`: RData file; also pass `--df <data_frame_name>` to select the data frame.
+- `--interactive`: Prompt for inputs if you want a guided run.
+
+## Common flags
+
+- `--out <dir>`: Output directory (default: `<working directory>/outputs/tmp`).
+- `--sep <char>`: CSV separator (default: `,`).
+- `--header TRUE/FALSE`: CSV header row (default: `TRUE`).
+- `--log TRUE/FALSE`: Append to `analysis_log.jsonl` (default: `TRUE`).
+- `--user-prompt <text>`: Store the original AI user prompt in the JSONL log (optional).
+- `--digits <n>`: Rounding for APA output where supported (module-specific).
+
+Module-specific analysis options (variables, grouping, method choices, etc.) are described in each subskill reference.
+
 ## Output conventions
 
 - Use `<working directory>/outputs/tmp` for scratch outputs (relative to the working directory where the script runs).

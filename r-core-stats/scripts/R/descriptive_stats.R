@@ -274,7 +274,7 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(summary_df, digits)
   apa_text <- format_apa_text(summary_df, digits)
-  writeLines(format_apa_report("Descriptive statistics", apa_table, apa_text), apa_report_path)
+  append_apa_report(apa_report_path, "Descriptive statistics", apa_table, apa_text)
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")

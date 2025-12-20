@@ -667,7 +667,7 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
   apa_text <- format_apa_text(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
-  writeLines(format_apa_report("Correlations", apa_table, apa_text), apa_report_path)
+  append_apa_report(apa_report_path, "Correlations", apa_table, apa_text)
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")

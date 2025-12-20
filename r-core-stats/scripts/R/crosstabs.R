@@ -656,7 +656,7 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(cells_df, digits, apa_percent)
   apa_text <- format_apa_text(tests_df, diagnostics_df, digits)
-  writeLines(format_apa_report("Cross-tabulations", apa_table, apa_text), apa_report_path)
+  append_apa_report(apa_report_path, "Cross-tabulations", apa_table, apa_text)
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")

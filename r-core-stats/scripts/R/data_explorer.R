@@ -473,7 +473,7 @@ main <- function() {
     format_apa_levels_table(levels_df, digits)
   )
   apa_text <- format_apa_text(overview_df, levels_df, digits)
-  writeLines(format_apa_report("Data exploration", apa_tables, apa_text), apa_report_path)
+  append_apa_report(apa_report_path, "Data exploration", apa_tables, apa_text)
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")

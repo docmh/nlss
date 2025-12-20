@@ -645,8 +645,7 @@ table_df <- if (nrow(log_df) == 0) {
 }
 
 apa_table <- make_markdown_table(table_df)
-apa_report <- format_apa_report("Data transformation", apa_table, apa_text)
-writeLines(apa_report, file.path(out_dir, "apa_report.md"))
+append_apa_report(file.path(out_dir, "apa_report.md"), "Data transformation", apa_table, apa_text)
 
 
 if (parse_bool(opts$log, default = TRUE)) {
