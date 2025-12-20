@@ -36,3 +36,4 @@ Rscript statistic-skills/<skill-name>/scripts/<script>.R --csv data.csv --vars a
 ## Skills
 
 - descriptive-stats-r: APA 7 style descriptive statistics using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts. (file: statistic-skills/descriptive-stats-r/SKILL.md)
+- frequencies-r: APA 7 style frequency tables for categorical variables using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts. (file: statistic-skills/frequencies-r/SKILL.md)
