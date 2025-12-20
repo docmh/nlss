@@ -11,13 +11,21 @@ Central guidance for all statistic skills in this repo, plus shared conventions 
 
 ## Shared wrapper: `run_rscript.ps1`
 
-The wrapper auto-locates `Rscript.exe` on Windows. Pass the `.R` script path as the first argument.
+On Windows, the wrapper prefers WSL (Ubuntu/Linux) and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File statistic-skills\run_rscript.ps1 statistic-skills\<skill-name>\scripts\<script>.R --csv data.csv --vars age,score --out statistic-skills\outputs\tmp
 ```
 
 If the script path is omitted, the wrapper falls back to the default configured inside the wrapper script.
+
+## WSL/Linux direct usage (optional)
+
+Inside WSL or Linux, run `Rscript` directly with the same arguments.
+
+```bash
+Rscript statistic-skills/<skill-name>/scripts/<script>.R --csv data.csv --vars age,score --out statistic-skills/outputs/tmp
+```
 
 ## Output conventions
 

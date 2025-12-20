@@ -20,9 +20,9 @@ Generate descriptive statistics in base R for psychology coursework or reports, 
 
 Run with `Rscript` and base R only.
 
-### Windows wrapper (no PATH required)
+### Windows wrapper (WSL first, Windows fallback)
 
-The shared wrapper lives at `../run_rscript.ps1` (relative to this skill folder). Pass the `.R` script path as the first argument (omit it only if you want the default descriptive stats script).
+The shared wrapper lives at `../run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument (omit it only if you want the default descriptive stats script).
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File ..\run_rscript.ps1 --csv data.csv --vars age,score --group condition
