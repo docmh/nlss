@@ -4,7 +4,8 @@ R-based statistics helpers that produce machine-readable outputs (CSV/TSV/JSON) 
 
 ## Requirements and system support
 
-- R 4.0+ (base R only; no extra packages required).
+- R 4.0+ (base R is enough for CSV/APA outputs).
+- Optional R packages: `jsonlite` is required to write `analysis_log.jsonl` (install with `install.packages("jsonlite")`).
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
 - Optional: WSL if you want the wrapper to run Linux Rscript first and fall back to Windows Rscript.
@@ -119,4 +120,3 @@ Use outputs/tmp and report the APA narrative and table file names.
 ## Where outputs go
 
 All scripts default to `./outputs/tmp` when `--out` is omitted. Keep this folder in the working directory you run the scripts from.
-

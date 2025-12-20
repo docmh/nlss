@@ -37,6 +37,8 @@ print_usage <- function() {
   cat("  --digits N             Rounding digits (default: 2)\n")
   cat("  --max-levels N         Max unique levels to list before truncating (default: 20)\n")
   cat("  --top-n N              When truncating, show top N levels (default: 10)\n")
+  cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
+  cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --out DIR              Output directory (default: ./outputs/tmp)\n")
   cat("  --interactive          Prompt for inputs\n")
   cat("  --help                 Show this help\n")
@@ -68,6 +70,8 @@ interactive_options <- function() {
   opts$digits <- prompt("Rounding digits", "2")
   opts$`max-levels` <- prompt("Max levels before truncating", "20")
   opts$`top-n` <- prompt("Top N levels when truncating", "10")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", "TRUE")
   opts$out <- prompt("Output directory", get_default_out())
   opts
 }
@@ -482,6 +486,19 @@ main <- function() {
   cat("- ", levels_path, "\n", sep = "")
   cat("- ", apa_table_path, "\n", sep = "")
   cat("- ", apa_text_path, "\n", sep = "")
+
+  if (parse_bool(opts$log, default = TRUE)) {
+    ctx <- get_run_context()
+    append_analysis_log(
+      out_dir,
+      module = "data_explorer",
+      prompt = ctx$prompt,
+      commands = ctx$commands,
+      results = list(overview_df = overview_df, levels_df = levels_df),
+      options = list(digits = digits, vars = vars, max_levels = max_levels, top_n = top_n),
+      user_prompt = get_user_prompt(opts)
+    )
+  }
 }
 
 main()

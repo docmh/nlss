@@ -45,6 +45,8 @@ print_usage <- function() {
   cat("  --conf-level VALUE     Confidence level for Fisher CI (default: 0.95)\n")
   cat("  --coerce TRUE/FALSE    Coerce non-numeric vars to numeric (default: FALSE)\n")
   cat("  --digits N             Rounding digits (default: 2)\n")
+  cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
+  cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --out DIR              Output directory (default: ./outputs/tmp)\n")
   cat("  --interactive          Prompt for inputs\n")
   cat("  --help                 Show this help\n")
@@ -84,6 +86,8 @@ interactive_options <- function() {
   opts$`conf-level` <- prompt("Confidence level", "0.95")
   opts$coerce <- prompt("Coerce non-numeric TRUE/FALSE", "FALSE")
   opts$digits <- prompt("Rounding digits", "2")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", "TRUE")
   opts$out <- prompt("Output directory", get_default_out())
   opts
 }
@@ -675,6 +679,32 @@ main <- function() {
   cat("- ", diagnostics_path, "\n", sep = "")
   cat("- ", apa_table_path, "\n", sep = "")
   cat("- ", apa_text_path, "\n", sep = "")
+
+  if (parse_bool(opts$log, default = TRUE)) {
+    ctx <- get_run_context()
+    append_analysis_log(
+      out_dir,
+      module = "correlations",
+      prompt = ctx$prompt,
+      commands = ctx$commands,
+      results = list(summary_df = summary_df, diagnostics_df = diagnostics_df),
+      options = list(
+        digits = digits,
+        conf_level = conf_level,
+        method = method,
+        missing = missing_method,
+        alternative = alternative,
+        p_adjust = adjust_method,
+        coerce = coerce_flag,
+        vars = vars,
+        x = x_vars,
+        y = y_vars,
+        controls = controls,
+        group = group_var
+      ),
+      user_prompt = get_user_prompt(opts)
+    )
+  }
 }
 
 main()

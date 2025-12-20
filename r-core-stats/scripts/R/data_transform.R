@@ -51,6 +51,8 @@ print_usage <- function() {
   cat("  --overwrite-vars          Allow overwriting existing variables\n")
   cat("  --confirm-overwrite       Confirm overwriting existing variables\n")
   cat("  --confirm-drop            Confirm dropping variables\n")
+  cat("  --user-prompt TEXT        Original AI user prompt for logging (optional)\n")
+  cat("  --log TRUE/FALSE          Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --out DIR                 Output directory (default: ./outputs/tmp)\n")
   cat("  --interactive             Prompt for inputs\n")
   cat("  --help                    Show this help\n")
@@ -99,6 +101,8 @@ interactive_options <- function() {
   opts$`overwrite-vars` <- prompt("Allow overwriting variables TRUE/FALSE", "FALSE")
   opts$`confirm-overwrite` <- prompt("Confirm overwriting variables TRUE/FALSE", "FALSE")
   opts$`confirm-drop` <- prompt("Confirm dropping variables TRUE/FALSE", "FALSE")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", "TRUE")
   opts$out <- prompt("Output directory", get_default_out())
   opts
 }
@@ -644,3 +648,26 @@ table_df <- if (nrow(log_df) == 0) {
 }
 
 writeLines(make_markdown_table(table_df), file.path(out_dir, "apa_table.md"))
+
+if (parse_bool(opts$log, default = TRUE)) {
+  ctx <- get_run_context()
+  append_analysis_log(
+    out_dir,
+    module = "data_transform",
+    prompt = ctx$prompt,
+    commands = ctx$commands,
+    results = list(transformed_df = df, transform_log_df = log_df),
+    options = list(
+      calc = opts$calc,
+      transform = opts$transform,
+      standardize = opts$standardize,
+      percentile_bins = opts$`percentile-bins`,
+      bins = opts$bins,
+      recode = opts$recode,
+      rename = opts$rename,
+      drop = opts$drop,
+      overwrite_vars = parse_bool(opts$`overwrite-vars`, FALSE)
+    ),
+    user_prompt = get_user_prompt(opts)
+  )
+}

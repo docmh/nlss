@@ -7,6 +7,60 @@ ensure_out_dir <- function(path) {
   path
 }
 
+get_run_context <- function() {
+  args <- commandArgs(trailingOnly = FALSE)
+  file_arg <- sub("^--file=", "", args[grep("^--file=", args)])
+  script_name <- if (length(file_arg) > 0 && nzchar(file_arg[1])) basename(file_arg[1]) else ""
+  trailing <- commandArgs(trailingOnly = TRUE)
+  commands <- c("Rscript", script_name, trailing)
+  commands <- commands[nzchar(commands)]
+  prompt <- paste(commands, collapse = " ")
+  list(prompt = prompt, commands = commands)
+}
+
+get_user_prompt <- function(opts = list()) {
+  val <- NULL
+  if (!is.null(opts$`user-prompt`)) {
+    val <- as.character(opts$`user-prompt`)
+  }
+  if (is.null(val) || val == "") {
+    env_val <- Sys.getenv("CODEX_USER_PROMPT", unset = "")
+    if (nzchar(env_val)) val <- env_val
+  }
+  if (is.null(val) || val == "") return(NULL)
+  val
+}
+
+append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
+  if (!requireNamespace("jsonlite", quietly = TRUE)) {
+    cat("Note: jsonlite not installed; skipping analysis_log.jsonl output.\n")
+    return(invisible(FALSE))
+  }
+
+  entry <- list(
+    timestamp_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    module = module,
+    user_prompt = user_prompt,
+    prompt = prompt,
+    commands = commands,
+    results = results,
+    options = options
+  )
+
+  json <- jsonlite::toJSON(
+    entry,
+    auto_unbox = TRUE,
+    null = "null",
+    na = "null",
+    dataframe = "rows",
+    digits = NA
+  )
+
+  log_path <- file.path(out_dir, "analysis_log.jsonl")
+  cat(json, file = log_path, sep = "\n", append = TRUE)
+  invisible(TRUE)
+}
+
 read_sav_data <- function(path) {
   if (requireNamespace("haven", quietly = TRUE)) {
     df <- haven::read_sav(path)

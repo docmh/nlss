@@ -49,6 +49,8 @@ print_usage <- function() {
   cat("  --expected TRUE/FALSE     Include expected counts (default: TRUE)\n")
   cat("  --residuals TRUE/FALSE    Include residuals (default: TRUE)\n")
   cat("  --digits N                Rounding digits (default: 2)\n")
+  cat("  --user-prompt TEXT        Original AI user prompt for logging (optional)\n")
+  cat("  --log TRUE/FALSE          Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --out DIR                 Output directory (default: ./outputs/tmp)\n")
   cat("  --interactive             Prompt for inputs\n")
   cat("  --help                    Show this help\n")
@@ -90,6 +92,8 @@ interactive_options <- function() {
   opts$expected <- prompt("Include expected counts TRUE/FALSE", "TRUE")
   opts$residuals <- prompt("Include residuals TRUE/FALSE", "TRUE")
   opts$digits <- prompt("Rounding digits", "2")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", "TRUE")
   opts$out <- prompt("Output directory", get_default_out())
   opts
 }
@@ -669,6 +673,34 @@ main <- function() {
   cat("- ", diagnostics_path, "\n", sep = "")
   cat("- ", apa_table_path, "\n", sep = "")
   cat("- ", apa_text_path, "\n", sep = "")
+
+  if (parse_bool(opts$log, default = TRUE)) {
+    ctx <- get_run_context()
+    append_analysis_log(
+      out_dir,
+      module = "crosstabs",
+      prompt = ctx$prompt,
+      commands = ctx$commands,
+      results = list(cells_df = cells_df, tests_df = tests_df, diagnostics_df = diagnostics_df),
+      options = list(
+        digits = digits,
+        rows = rows,
+        cols = cols,
+        group = group_var,
+        percent = percent_flags,
+        apa_percent = apa_percent,
+        chisq = options$chisq,
+        yates = options$yates,
+        fisher = options$fisher,
+        fisher_simulate = options$fisher_simulate,
+        fisher_b = options$fisher_b,
+        fisher_conf_level = options$fisher_conf_level,
+        include_expected = options$include_expected,
+        include_residuals = options$include_residuals
+      ),
+      user_prompt = get_user_prompt(opts)
+    )
+  }
 }
 
 main()
