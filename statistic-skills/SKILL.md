@@ -1,6 +1,13 @@
 ---
 name: statistic-skills
 description: Use when statistical analyses are requested or when Codex should route to a specific statistic skill in this repo.
+license: Apache-2.0
+metadata:
+  author: Prof. Dr. Mike Hammes, ISM International School of Management, Germany (mike.hammes@ism.de)
+  version: 0.1.0
+  created: 2025-12-20
+  backend: R
+  style: APA 7
 ---
 
 # Statistic Skills (Shared Workflow)
