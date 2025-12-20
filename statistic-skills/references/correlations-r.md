@@ -26,49 +26,49 @@ Run with `Rscript` and base R only.
 The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\run_rscript.ps1 scripts\correlations.R --csv data.csv --vars age,score --out .\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\correlations.R> --csv <path to CSV file> --vars age,score --out <working directory>\outputs\tmp
 ```
 
 ### CSV input
 
 ```bash
-Rscript scripts/correlations.R --csv data.csv --vars age,score,stress
+Rscript <path to scripts/correlations.R> --csv <path to CSV file> --vars age,score,stress
 ```
 
 ### Cross-correlation between sets
 
 ```bash
-Rscript scripts/correlations.R --csv data.csv --x age,stress --y wellbeing,performance
+Rscript <path to scripts/correlations.R> --csv <path to CSV file> --x age,stress --y wellbeing,performance
 ```
 
 ### Grouped correlations
 
 ```bash
-Rscript scripts/correlations.R --csv data.csv --vars age,score --group condition
+Rscript <path to scripts/correlations.R> --csv <path to CSV file> --vars age,score --group condition
 ```
 
 ### Partial correlations (controls)
 
 ```bash
-Rscript scripts/correlations.R --csv data.csv --vars age,score --controls gender,education
+Rscript <path to scripts/correlations.R> --csv <path to CSV file> --vars age,score --controls gender,education
 ```
 
 ### RDS input (data frame)
 
 ```bash
-Rscript scripts/correlations.R --rds data.rds --vars age,score
+Rscript <path to scripts/correlations.R> --rds <path to RDS file> --vars age,score
 ```
 
 ### RData input (data frame by name)
 
 ```bash
-Rscript scripts/correlations.R --rdata analysis.RData --df df --vars age,score
+Rscript <path to scripts/correlations.R> --rdata <path to RData file> --df <data frame name> --vars age,score
 ```
 
 ### Interactive prompts
 
 ```bash
-Rscript scripts/correlations.R --interactive
+Rscript <path to scripts/correlations.R> --interactive
 ```
 
 ### Options
@@ -84,7 +84,7 @@ Rscript scripts/correlations.R --interactive
 - `--conf-level` sets the Fisher z confidence level for Pearson/partial (default: 0.95).
 - `--coerce` coerces non-numeric columns to numeric (default: FALSE).
 - `--digits` controls rounding (default: 2).
-- `--out` sets the output directory (default: `./outputs/tmp`, relative to the working directory).
+- `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
 - `--interactive` prompts for inputs.
 
 ## Outputs

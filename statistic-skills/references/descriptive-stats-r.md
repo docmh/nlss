@@ -22,38 +22,34 @@ Run with `Rscript` and base R only.
 
 ### Windows wrapper (WSL first, Windows fallback)
 
-The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument (omit it only if you want the default descriptive stats script).
+The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\run_rscript.ps1 --csv data.csv --vars age,score --group condition
-```
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\run_rscript.ps1 scripts\descriptive_stats.R --csv data.csv --vars age,score
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\descriptive_stats.R> --csv <path to CSV file> --vars age,score --group condition --out <working directory>\outputs\tmp
 ```
 
 ### CSV input
 
 ```bash
-Rscript scripts/descriptive_stats.R --csv data.csv --vars age,score --group condition
+Rscript <path to scripts/descriptive_stats.R> --csv <path to CSV file> --vars age,score --group condition
 ```
 
 ### RDS input (data frame)
 
 ```bash
-Rscript scripts/descriptive_stats.R --rds data.rds --vars age,score
+Rscript <path to scripts/descriptive_stats.R> --rds <path to RDS file> --vars age,score
 ```
 
 ### RData input (data frame by name)
 
 ```bash
-Rscript scripts/descriptive_stats.R --rdata analysis.RData --df df --vars age,score
+Rscript <path to scripts/descriptive_stats.R> --rdata <path to RData file> --df <data frame name> --vars age,score
 ```
 
 ### Interactive prompts
 
 ```bash
-Rscript scripts/descriptive_stats.R --interactive
+Rscript <path to scripts/descriptive_stats.R> --interactive
 ```
 
 ### Options
@@ -61,7 +57,7 @@ Rscript scripts/descriptive_stats.R --interactive
 - `--vars` defaults to all numeric columns if omitted.
 - `--group` is optional and produces grouped summaries.
 - `--digits` controls rounding (default: 2).
-- `--out` sets the output directory (default: `./outputs/tmp`, relative to the working directory).
+- `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
 
 ## Outputs
 
