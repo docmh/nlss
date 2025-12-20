@@ -21,8 +21,10 @@ Central guidance for all statistic skills in this repo, plus shared conventions 
 
 On Windows, the wrapper prefers WSL (Ubuntu/Linux) and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
+Example:
+
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/<script>.R> --csv <path to CSV file> --vars age,score --out <working directory>\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/<script>.R> --csv <path to CSV file> --vars <variables> --out <working directory>\outputs\tmp
 ```
 
 If the script path is omitted, the wrapper falls back to the default configured inside the wrapper script.
@@ -31,8 +33,10 @@ If the script path is omitted, the wrapper falls back to the default configured 
 
 Inside WSL or Linux, run `Rscript` directly with the same arguments.
 
+Example:
+
 ```bash
-Rscript <path to scripts/<script>.R> --csv <path to CSV file> --vars age,score --out <working directory>/outputs/tmp
+Rscript <path to scripts/<script>.R> --csv <path to CSV file> --vars <variables> --out <working directory>/outputs/tmp
 ```
 
 ## Output conventions
