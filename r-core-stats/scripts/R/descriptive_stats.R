@@ -1,5 +1,20 @@
 #!/usr/bin/env Rscript
 
+bootstrap_dir <- {
+  cmd_args <- commandArgs(trailingOnly = FALSE)
+  file_arg <- sub("^--file=", "", cmd_args[grep("^--file=", cmd_args)])
+  if (length(file_arg) > 0 && nzchar(file_arg[1])) {
+    dirname(normalizePath(file_arg[1], winslash = "/", mustWork = FALSE))
+  } else {
+    getwd()
+  }
+}
+source(file.path(bootstrap_dir, "lib", "paths.R"))
+source_lib("cli.R")
+source_lib("io.R")
+source_lib("data_utils.R")
+source_lib("formatting.R")
+
 print_usage <- function() {
   cat("Descriptive statistics (base R)\n")
   cat("\n")
@@ -26,94 +41,6 @@ print_usage <- function() {
   cat("  --help               Show this help\n")
 }
 
-parse_args <- function(args) {
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-parse_bool <- function(value, default = FALSE) {
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-prompt <- function(label, default = NULL) {
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-get_default_out <- function() {
-  "./outputs/tmp"
-}
-
-read_sav_data <- function(path) {
-  if (requireNamespace("haven", quietly = TRUE)) {
-    df <- haven::read_sav(path)
-    return(as.data.frame(df, stringsAsFactors = FALSE))
-  }
-  if (requireNamespace("foreign", quietly = TRUE)) {
-    df <- suppressWarnings(foreign::read.spss(path, to.data.frame = TRUE, use.value.labels = FALSE))
-    if (!is.data.frame(df)) df <- as.data.frame(df, stringsAsFactors = FALSE)
-    return(df)
-  }
-  stop("SPSS .sav support requires the 'haven' or 'foreign' package. Install one: install.packages('haven').")
-}
-
-load_dataframe <- function(opts) {
-  if (!is.null(opts$csv)) {
-    sep <- if (!is.null(opts$sep)) opts$sep else ","
-    header <- parse_bool(opts$header, default = TRUE)
-    df <- read.csv(opts$csv, sep = sep, header = header, stringsAsFactors = FALSE)
-    return(df)
-  }
-
-  if (!is.null(opts$sav)) {
-    df <- read_sav_data(opts$sav)
-    if (!is.data.frame(df)) stop("SAV does not contain a data frame.")
-    return(df)
-  }
-
-  if (!is.null(opts$rds)) {
-    df <- readRDS(opts$rds)
-    if (!is.data.frame(df)) stop("RDS does not contain a data frame.")
-    return(df)
-  }
-
-  if (!is.null(opts$rdata)) {
-    env <- new.env()
-    load(opts$rdata, envir = env)
-    if (is.null(opts$df)) stop("--df is required when using --rdata")
-    if (!exists(opts$df, envir = env)) stop("Data frame not found in RData.")
-    df <- get(opts$df, envir = env)
-    if (!is.data.frame(df)) stop("RData object is not a data frame.")
-    return(df)
-  }
-
-  stop("No input provided. Use --csv, --sav, --rds, --rdata, or --interactive.")
-}
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
@@ -143,21 +70,6 @@ interactive_options <- function() {
   opts
 }
 
-select_variables <- function(df, vars, group_var = NULL) {
-  available <- names(df)
-  if (is.null(vars) || vars == "") {
-    numeric_cols <- available[sapply(df, is.numeric)]
-    if (!is.null(group_var)) numeric_cols <- setdiff(numeric_cols, group_var)
-    return(numeric_cols)
-  }
-  requested <- trimws(strsplit(vars, ",", fixed = TRUE)[[1]])
-  missing <- setdiff(requested, available)
-  if (length(missing) > 0) {
-    stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
-  }
-  if (!is.null(group_var)) requested <- setdiff(requested, group_var)
-  requested
-}
 
 calc_skewness <- function(x, mean_x, sd_x) {
   n <- length(x)
@@ -275,12 +187,6 @@ build_summary <- function(df, vars, group_var = NULL, digits = 2) {
   summary_df
 }
 
-round_numeric <- function(df, digits) {
-  out <- df
-  numeric_cols <- sapply(out, is.numeric)
-  out[numeric_cols] <- lapply(out[numeric_cols], function(x) round(x, digits))
-  out
-}
 
 format_apa_table <- function(df, digits) {
   display <- df
@@ -349,8 +255,7 @@ main <- function() {
   }
 
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else 2
-  out_dir <- if (!is.null(opts$out)) opts$out else get_default_out()
-  if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+  out_dir <- ensure_out_dir(if (!is.null(opts$out)) opts$out else get_default_out())
 
   df <- load_dataframe(opts)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL

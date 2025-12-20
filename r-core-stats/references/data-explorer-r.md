@@ -13,10 +13,10 @@ Create a data dictionary-style overview with variable names, inferred measuremen
 
 1. Identify the input type (CSV, RDS, RData data frame, or interactive).
 2. Optionally select variables; default is all columns.
-3. Run `scripts/data_explorer.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
+3. Run `scripts/R/data_explorer.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
 4. Use outputs (`variable_overview.csv`, `value_levels.csv`, `apa_table.md`, `apa_text.txt`) to craft the response.
 
-## Script: `scripts/data_explorer.R`
+## Script: `scripts/R/data_explorer.R`
 
 Run with `Rscript` and base R only.
 
@@ -25,31 +25,31 @@ Run with `Rscript` and base R only.
 The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\data_explorer.R> --csv <path to CSV file> --vars age,gender --out <working directory>\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\data_explorer.R> --csv <path to CSV file> --vars age,gender --out <working directory>\outputs\tmp
 ```
 
 ### CSV input
 
 ```bash
-Rscript <path to scripts/data_explorer.R> --csv <path to CSV file> --vars age,gender
+Rscript <path to scripts/R/data_explorer.R> --csv <path to CSV file> --vars age,gender
 ```
 
 ### RDS input (data frame)
 
 ```bash
-Rscript <path to scripts/data_explorer.R> --rds <path to RDS file> --vars age,gender
+Rscript <path to scripts/R/data_explorer.R> --rds <path to RDS file> --vars age,gender
 ```
 
 ### RData input (data frame by name)
 
 ```bash
-Rscript <path to scripts/data_explorer.R> --rdata <path to RData file> --df <data frame name> --vars age,gender
+Rscript <path to scripts/R/data_explorer.R> --rdata <path to RData file> --df <data frame name> --vars age,gender
 ```
 
 ### Interactive prompts
 
 ```bash
-Rscript <path to scripts/data_explorer.R> --interactive
+Rscript <path to scripts/R/data_explorer.R> --interactive
 ```
 
 ### Options

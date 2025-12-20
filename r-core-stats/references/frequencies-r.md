@@ -13,10 +13,10 @@ Generate frequency tables in base R for categorical variables and return APA 7-s
 
 1. Identify the input type (CSV, RDS, RData data frame, or interactive).
 2. Choose variables for frequency tables and an optional grouping variable.
-3. Run `scripts/frequencies.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
+3. Run `scripts/R/frequencies.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
 4. Use outputs (`frequencies_summary.csv`, `apa_table.md`, `apa_text.txt`) to craft the response.
 
-## Script: `scripts/frequencies.R`
+## Script: `scripts/R/frequencies.R`
 
 Run with `Rscript` and base R only.
 
@@ -25,35 +25,35 @@ Run with `Rscript` and base R only.
 The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\frequencies.R> --csv <path to CSV file> --vars gender,condition --group condition --out <working directory>\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\frequencies.R> --csv <path to CSV file> --vars gender,condition --group condition --out <working directory>\outputs\tmp
 ```
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\frequencies.R> --csv <path to CSV file> --vars gender --group condition
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\frequencies.R> --csv <path to CSV file> --vars gender --group condition
 ```
 
 ### CSV input
 
 ```bash
-Rscript <path to scripts/frequencies.R> --csv <path to CSV file> --vars gender,condition --out <working directory>/outputs/tmp
+Rscript <path to scripts/R/frequencies.R> --csv <path to CSV file> --vars gender,condition --out <working directory>/outputs/tmp
 ```
 
 ### RDS input (data frame)
 
 ```bash
-Rscript <path to scripts/frequencies.R> --rds <path to RDS file> --vars gender,condition
+Rscript <path to scripts/R/frequencies.R> --rds <path to RDS file> --vars gender,condition
 ```
 
 ### RData input (data frame by name)
 
 ```bash
-Rscript <path to scripts/frequencies.R> --rdata <path to RData file> --df <data frame name> --vars gender,condition
+Rscript <path to scripts/R/frequencies.R> --rdata <path to RData file> --df <data frame name> --vars gender,condition
 ```
 
 ### Interactive prompts
 
 ```bash
-Rscript <path to scripts/frequencies.R> --interactive
+Rscript <path to scripts/R/frequencies.R> --interactive
 ```
 
 ### Options

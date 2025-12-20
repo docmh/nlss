@@ -28,14 +28,14 @@ Outputs go to `./outputs/tmp` by default when `--out` is omitted.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File r-core-stats/scripts/run_rscript.ps1 `
-  r-core-stats/scripts/descriptive_stats.R `
+  r-core-stats/scripts/R/descriptive_stats.R `
   --csv data.csv --vars age,score --out outputs\tmp
 ```
 
 ### WSL/Linux (Rscript directly)
 
 ```bash
-Rscript r-core-stats/scripts/descriptive_stats.R \
+Rscript r-core-stats/scripts/R/descriptive_stats.R \
   --csv data.csv --vars age,score --out outputs/tmp
 ```
 
@@ -45,10 +45,10 @@ Each subskill has a reference file describing inputs, flags, and outputs.
 
 | Subskill | Script | Purpose |
 | --- | --- | --- |
-| `descriptive-stats-r` | `r-core-stats/scripts/descriptive_stats.R` | Descriptive statistics with APA tables/text. |
-| `frequencies-r` | `r-core-stats/scripts/frequencies.R` | Frequency tables for categorical variables. |
-| `crosstabs-r` | `r-core-stats/scripts/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. |
-| `correlations-r` | `r-core-stats/scripts/correlations.R` | Correlations, partial correlations, diagnostics. |
+| `descriptive-stats-r` | `r-core-stats/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. |
+| `frequencies-r` | `r-core-stats/scripts/R/frequencies.R` | Frequency tables for categorical variables. |
+| `crosstabs-r` | `r-core-stats/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. |
+| `correlations-r` | `r-core-stats/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics. |
 
 Reference docs:
 - `r-core-stats/references/descriptive-stats-r.md`
@@ -61,7 +61,7 @@ Reference docs:
 ### Descriptive statistics
 
 ```bash
-Rscript r-core-stats/scripts/descriptive_stats.R \
+Rscript r-core-stats/scripts/R/descriptive_stats.R \
   --csv data.csv --vars age,score --group condition
 ```
 
@@ -70,7 +70,7 @@ Outputs: `descriptive_summary.csv`, `apa_table.md`, `apa_text.txt`.
 ### Frequencies
 
 ```bash
-Rscript r-core-stats/scripts/frequencies.R \
+Rscript r-core-stats/scripts/R/frequencies.R \
   --csv data.csv --vars gender,condition --group condition
 ```
 
@@ -79,7 +79,7 @@ Outputs: `frequencies_summary.csv`, `apa_table.md`, `apa_text.txt`.
 ### Cross-tabulations
 
 ```bash
-Rscript r-core-stats/scripts/crosstabs.R \
+Rscript r-core-stats/scripts/R/crosstabs.R \
   --csv data.csv --row gender --col condition --group site
 ```
 
@@ -88,7 +88,7 @@ Outputs: `crosstabs_cells.csv`, `crosstabs_tests.csv`, `crosstabs_diagnostics.cs
 ### Correlations
 
 ```bash
-Rscript r-core-stats/scripts/correlations.R \
+Rscript r-core-stats/scripts/R/correlations.R \
   --csv data.csv --vars age,score,stress --method spearman
 ```
 

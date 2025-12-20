@@ -13,10 +13,10 @@ Generate cross-tabulations for two categorical variables, optional stratificatio
 
 1. Identify the input type (CSV, RDS, RData data frame, or interactive).
 2. Choose row and column variables, with optional grouping variable.
-3. Run `scripts/crosstabs.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
+3. Run `scripts/R/crosstabs.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
 4. Use outputs (`crosstabs_cells.csv`, `crosstabs_tests.csv`, `crosstabs_diagnostics.csv`, `apa_table.md`, `apa_text.txt`).
 
-## Script: `scripts/crosstabs.R`
+## Script: `scripts/R/crosstabs.R`
 
 Run with `Rscript` and base R only.
 
@@ -25,35 +25,35 @@ Run with `Rscript` and base R only.
 The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\crosstabs.R> --csv <path to CSV file> --row gender --col condition --out <working directory>\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\crosstabs.R> --csv <path to CSV file> --row gender --col condition --out <working directory>\outputs\tmp
 ```
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\crosstabs.R> --csv <path to CSV file> --rows gender,handedness --cols condition
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\crosstabs.R> --csv <path to CSV file> --rows gender,handedness --cols condition
 ```
 
 ### CSV input
 
 ```bash
-Rscript <path to scripts/crosstabs.R> --csv <path to CSV file> --row gender --col condition --out <working directory>/outputs/tmp
+Rscript <path to scripts/R/crosstabs.R> --csv <path to CSV file> --row gender --col condition --out <working directory>/outputs/tmp
 ```
 
 ### RDS input (data frame)
 
 ```bash
-Rscript <path to scripts/crosstabs.R> --rds <path to RDS file> --row gender --col condition
+Rscript <path to scripts/R/crosstabs.R> --rds <path to RDS file> --row gender --col condition
 ```
 
 ### RData input (data frame by name)
 
 ```bash
-Rscript <path to scripts/crosstabs.R> --rdata <path to RData file> --df <data frame name> --row gender --col condition
+Rscript <path to scripts/R/crosstabs.R> --rdata <path to RData file> --df <data frame name> --row gender --col condition
 ```
 
 ### Interactive prompts
 
 ```bash
-Rscript <path to scripts/crosstabs.R> --interactive
+Rscript <path to scripts/R/crosstabs.R> --interactive
 ```
 
 ### Options

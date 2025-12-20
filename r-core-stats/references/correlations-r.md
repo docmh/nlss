@@ -14,10 +14,10 @@ Compute correlations for numeric variables (pairwise or matrix), with optional g
 1. Identify the input type (CSV, RDS, RData data frame, or interactive).
 2. Choose variables: full matrix via `--vars` (or default numeric columns), or cross-correlation via `--x` and `--y`.
 3. Choose correlation method (Pearson/Spearman/Kendall), missing-data handling, and any control variables.
-4. Run `scripts/correlations.R` with the correct flags, or use the PowerShell wrapper on Windows.
+4. Run `scripts/R/correlations.R` with the correct flags, or use the PowerShell wrapper on Windows.
 5. Use outputs (`correlations_summary.csv`, `correlations_diagnostics.csv`, `apa_table.md`, `apa_text.txt`) to craft the response.
 
-## Script: `scripts/correlations.R`
+## Script: `scripts/R/correlations.R`
 
 Run with `Rscript` and base R only.
 
@@ -26,49 +26,49 @@ Run with `Rscript` and base R only.
 The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\correlations.R> --csv <path to CSV file> --vars age,score --out <working directory>\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\correlations.R> --csv <path to CSV file> --vars age,score --out <working directory>\outputs\tmp
 ```
 
 ### CSV input
 
 ```bash
-Rscript <path to scripts/correlations.R> --csv <path to CSV file> --vars age,score,stress
+Rscript <path to scripts/R/correlations.R> --csv <path to CSV file> --vars age,score,stress
 ```
 
 ### Cross-correlation between sets
 
 ```bash
-Rscript <path to scripts/correlations.R> --csv <path to CSV file> --x age,stress --y wellbeing,performance
+Rscript <path to scripts/R/correlations.R> --csv <path to CSV file> --x age,stress --y wellbeing,performance
 ```
 
 ### Grouped correlations
 
 ```bash
-Rscript <path to scripts/correlations.R> --csv <path to CSV file> --vars age,score --group condition
+Rscript <path to scripts/R/correlations.R> --csv <path to CSV file> --vars age,score --group condition
 ```
 
 ### Partial correlations (controls)
 
 ```bash
-Rscript <path to scripts/correlations.R> --csv <path to CSV file> --vars age,score --controls gender,education
+Rscript <path to scripts/R/correlations.R> --csv <path to CSV file> --vars age,score --controls gender,education
 ```
 
 ### RDS input (data frame)
 
 ```bash
-Rscript <path to scripts/correlations.R> --rds <path to RDS file> --vars age,score
+Rscript <path to scripts/R/correlations.R> --rds <path to RDS file> --vars age,score
 ```
 
 ### RData input (data frame by name)
 
 ```bash
-Rscript <path to scripts/correlations.R> --rdata <path to RData file> --df <data frame name> --vars age,score
+Rscript <path to scripts/R/correlations.R> --rdata <path to RData file> --df <data frame name> --vars age,score
 ```
 
 ### Interactive prompts
 
 ```bash
-Rscript <path to scripts/correlations.R> --interactive
+Rscript <path to scripts/R/correlations.R> --interactive
 ```
 
 ### Options

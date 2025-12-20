@@ -18,10 +18,10 @@ Create or modify variables in a data frame: derive new variables, transform or s
    - `--standardize` for z-scores into new variables.
    - `--recode` for value mapping.
    - `--rename` and `--drop` for column management.
-3. Run `scripts/data_transform.R` with appropriate flags or the Windows wrapper.
+3. Run `scripts/R/data_transform.R` with appropriate flags or the Windows wrapper.
 4. Use outputs (`transformed_data.csv`, `transform_log.csv`, `apa_table.md`, `apa_text.txt`) in your response.
 
-## Script: `scripts/data_transform.R`
+## Script: `scripts/R/data_transform.R`
 
 Run with `Rscript` and base R only.
 
@@ -30,61 +30,61 @@ Run with `Rscript` and base R only.
 The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\data_transform.R> --csv <path to CSV file> --calc "bmi=weight/(height^2)" --standardize age,score --out <working directory>\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\data_transform.R> --csv <path to CSV file> --calc "bmi=weight/(height^2)" --standardize age,score --out <working directory>\outputs\tmp
 ```
 
 ### CSV input
 
 ```bash
-Rscript <path to scripts/data_transform.R> --csv <path to CSV file> --calc "bmi=weight/(height^2)|ratio=var1/var2"
+Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --calc "bmi=weight/(height^2)|ratio=var1/var2"
 ```
 
 ### Standard transforms and standardization
 
 ```bash
-Rscript <path to scripts/data_transform.R> --csv <path to CSV file> --transform "income=log|stress=sqrt" --standardize age,score
+Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --transform "income=log|stress=sqrt" --standardize age,score
 ```
 
 ### Percentile bins (e.g., quartiles)
 
 ```bash
-Rscript <path to scripts/data_transform.R> --csv <path to CSV file> --percentile-bins "score=4|income=5"
+Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --percentile-bins "score=4|income=5"
 ```
 
 ### Custom bins
 
 ```bash
-Rscript <path to scripts/data_transform.R> --csv <path to CSV file> --bins "age=0,18,30,45,65|score=0,50,75,100"
+Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --bins "age=0,18,30,45,65|score=0,50,75,100"
 ```
 
 ### Recode values
 
 ```bash
-Rscript <path to scripts/data_transform.R> --csv <path to CSV file> --recode "gender=1:0,2:1|status=low:0,high:1"
+Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --recode "gender=1:0,2:1|status=low:0,high:1"
 ```
 
 ### Rename and drop columns
 
 ```bash
-Rscript <path to scripts/data_transform.R> --csv <path to CSV file> --rename old:new,old2:new2 --drop temp1,temp2 --confirm-drop
+Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --rename old:new,old2:new2 --drop temp1,temp2 --confirm-drop
 ```
 
 ### RDS input (data frame)
 
 ```bash
-Rscript <path to scripts/data_transform.R> --rds <path to RDS file> --calc "delta=post-pre"
+Rscript <path to scripts/R/data_transform.R> --rds <path to RDS file> --calc "delta=post-pre"
 ```
 
 ### RData input (data frame by name)
 
 ```bash
-Rscript <path to scripts/data_transform.R> --rdata <path to RData file> --df <data frame name> --standardize score
+Rscript <path to scripts/R/data_transform.R> --rdata <path to RData file> --df <data frame name> --standardize score
 ```
 
 ### Interactive prompts
 
 ```bash
-Rscript <path to scripts/data_transform.R> --interactive
+Rscript <path to scripts/R/data_transform.R> --interactive
 ```
 
 ## Options

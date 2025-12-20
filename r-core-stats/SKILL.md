@@ -24,7 +24,7 @@ On Windows, the wrapper prefers WSL (Ubuntu/Linux) and falls back to Windows `Rs
 Example:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/<subskill-name>.R> --csv <path to CSV file> --vars <variables> --out <working directory>\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables> --out <working directory>\outputs\tmp
 ```
 
 If the script path is omitted, the wrapper falls back to the default configured inside the wrapper script.
@@ -36,7 +36,7 @@ Inside WSL or Linux, run `Rscript` directly with the same arguments.
 Example:
 
 ```bash
-Rscript <path to scripts/<subskill-name>.R> --csv <path to CSV file> --vars <variables> --out <working directory>/outputs/tmp
+Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables> --out <working directory>/outputs/tmp
 ```
 
 ## Output conventions

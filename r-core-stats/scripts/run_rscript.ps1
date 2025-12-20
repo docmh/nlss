@@ -102,7 +102,7 @@ $wslExe = Get-WslExe
 $rscript = Get-RscriptPath
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$defaultScript = Join-Path $scriptDir "descriptive-stats-r\scripts\descriptive_stats.R"
+$defaultScript = Join-Path $scriptDir "R\descriptive_stats.R"
 
 $allArgs = @($args)
 $target = $defaultScript
