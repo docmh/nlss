@@ -47,33 +47,220 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- prompt("Input type (csv/sav/rds/rdata)", "csv")
+  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- prompt("CSV path")
-    opts$sep <- prompt("Separator", ",")
-    opts$header <- prompt("Header TRUE/FALSE", "TRUE")
+    opts$csv <- resolve_prompt("CSV path")
+    opts$sep <- resolve_prompt("Separator", ",")
+    opts$header <- resolve_prompt("Header TRUE/FALSE", "TRUE")
   } else if (input_type == "sav") {
-    opts$sav <- prompt("SAV path")
+    opts$sav <- resolve_prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- prompt("RDS path")
+    opts$rds <- resolve_prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- prompt("RData path")
-    opts$df <- prompt("Data frame object name")
+    opts$rdata <- resolve_prompt("RData path")
+    opts$df <- resolve_prompt("Data frame object name")
   } else {
     stop("Unsupported input type.")
   }
 
-  opts$vars <- prompt("Variables (comma-separated, blank for all)", "")
-  opts$digits <- prompt("Rounding digits", "2")
-  opts$`max-levels` <- prompt("Max levels before truncating", "20")
-  opts$`top-n` <- prompt("Top N levels when truncating", "10")
-  opts$`user-prompt` <- prompt("User prompt (optional)", "")
-  opts$log <- prompt("Write JSONL log TRUE/FALSE", "TRUE")
-  opts$out <- prompt("Output directory", get_default_out())
+  opts$vars <- resolve_prompt("Variables (comma-separated, blank for all)", "")
+  opts$digits <- resolve_prompt("Rounding digits", "2")
+  opts$`max-levels` <- resolve_prompt("Max levels before truncating", "20")
+  opts$`top-n` <- resolve_prompt("Top N levels when truncating", "10")
+  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
+  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", "TRUE")
+  opts$out <- resolve_prompt("Output directory", resolve_default_out())
   opts
+}
+
+resolve_prompt <- function(label, default = NULL) {
+  if (exists("prompt", mode = "function")) {
+    return(get("prompt", mode = "function")(label, default = default))
+  }
+  if (is.null(default)) {
+    answer <- readline(paste0(label, ": "))
+  } else {
+    answer <- readline(paste0(label, " [", default, "]: "))
+    if (answer == "") answer <- default
+  }
+  answer
+}
+
+resolve_default_out <- function() {
+  if (exists("get_default_out", mode = "function")) {
+    return(get("get_default_out", mode = "function")())
+  }
+  "./outputs/tmp"
+}
+
+resolve_parse_args <- function(args) {
+  if (exists("parse_args", mode = "function")) {
+    return(get("parse_args", mode = "function")(args))
+  }
+  opts <- list()
+  i <- 1
+  while (i <= length(args)) {
+    arg <- args[i]
+    if (grepl("^--", arg)) {
+      key <- sub("^--", "", arg)
+      if (grepl("=", key)) {
+        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
+        opts[[parts[1]]] <- parts[2]
+      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
+        opts[[key]] <- args[i + 1]
+        i <- i + 1
+      } else {
+        opts[[key]] <- TRUE
+      }
+    }
+    i <- i + 1
+  }
+  opts
+}
+
+resolve_parse_bool <- function(value, default = FALSE) {
+  if (exists("parse_bool", mode = "function")) {
+    return(get("parse_bool", mode = "function")(value, default = default))
+  }
+  if (is.null(value)) return(default)
+  if (is.logical(value)) return(value)
+  val <- tolower(as.character(value))
+  val %in% c("true", "t", "1", "yes", "y")
+}
+
+resolve_ensure_out_dir <- function(path) {
+  if (exists("ensure_out_dir", mode = "function")) {
+    return(get("ensure_out_dir", mode = "function")(path))
+  }
+  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
+  path
+}
+
+resolve_load_dataframe <- function(opts) {
+  if (exists("load_dataframe", mode = "function")) {
+    return(get("load_dataframe", mode = "function")(opts))
+  }
+  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
+}
+
+resolve_select_variables <- function(df, vars, group_var = NULL, default = "numeric", include_numeric = FALSE) {
+  if (exists("select_variables", mode = "function")) {
+    return(get("select_variables", mode = "function")(
+      df,
+      vars,
+      group_var = group_var,
+      default = default,
+      include_numeric = include_numeric
+    ))
+  }
+  available <- names(df)
+  if (is.null(vars) || vars == "") {
+    if (default == "all") {
+      selected <- available
+    } else if (default == "non-numeric") {
+      if (include_numeric) {
+        selected <- available
+      } else {
+        selected <- available[!sapply(df, is.numeric)]
+        if (length(selected) == 0) selected <- available
+      }
+    } else {
+      selected <- available[sapply(df, is.numeric)]
+    }
+    if (!is.null(group_var)) selected <- setdiff(selected, group_var)
+    return(selected)
+  }
+  requested <- trimws(strsplit(vars, ",", fixed = TRUE)[[1]])
+  missing <- setdiff(requested, available)
+  if (length(missing) > 0) {
+    stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
+  }
+  if (!is.null(group_var)) requested <- setdiff(requested, group_var)
+  requested
+}
+
+resolve_get_levels <- function(vec) {
+  if (exists("get_levels", mode = "function")) {
+    return(get("get_levels", mode = "function")(vec))
+  }
+  if (is.factor(vec)) {
+    return(as.character(levels(vec)))
+  }
+  values <- unique(vec[!is.na(vec)])
+  if (length(values) == 0) return(character(0))
+  if (is.numeric(values)) {
+    return(as.character(sort(values)))
+  }
+  as.character(sort(values))
+}
+
+resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL) {
+  if (exists("append_apa_report", mode = "function")) {
+    return(get("append_apa_report", mode = "function")(
+      path,
+      analysis_label,
+      apa_table,
+      apa_text,
+      analysis_flags = analysis_flags,
+      template_path = template_path
+    ))
+  }
+  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+}
+
+resolve_get_run_context <- function() {
+  if (exists("get_run_context", mode = "function")) {
+    return(get("get_run_context", mode = "function")())
+  }
+  trailing <- commandArgs(trailingOnly = TRUE)
+  commands <- c("Rscript", trailing)
+  commands <- commands[nzchar(commands)]
+  prompt <- paste(commands, collapse = " ")
+  list(prompt = prompt, commands = commands)
+}
+
+resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
+  if (exists("append_analysis_log", mode = "function")) {
+    return(get("append_analysis_log", mode = "function")(
+      out_dir,
+      module,
+      prompt,
+      commands,
+      results,
+      options = options,
+      user_prompt = user_prompt
+    ))
+  }
+  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
+  invisible(FALSE)
+}
+
+resolve_get_user_prompt <- function(opts) {
+  if (exists("get_user_prompt", mode = "function")) {
+    return(get("get_user_prompt", mode = "function")(opts))
+  }
+  NULL
+}
+
+resolve_round_numeric <- function(df, digits) {
+  if (exists("round_numeric", mode = "function")) {
+    return(get("round_numeric", mode = "function")(df, digits))
+  }
+  out <- df
+  numeric_cols <- sapply(out, is.numeric)
+  out[numeric_cols] <- lapply(out[numeric_cols], function(x) round(x, digits))
+  out
+}
+
+resolve_format_percent <- function(value, digits) {
+  if (exists("format_percent", mode = "function")) {
+    return(get("format_percent", mode = "function")(value, digits))
+  }
+  if (is.na(value)) return("")
+  format(round(value, digits), nsmall = digits, trim = TRUE)
 }
 
 
@@ -173,7 +360,7 @@ build_levels_table <- function(vec, variable, max_levels, top_n) {
     return(list(levels_df = NULL, levels_truncated = FALSE, levels_note = note))
   }
 
-  level_values <- get_levels(vec)
+  level_values <- resolve_get_levels(vec)
   counts <- table(factor(values, levels = level_values), useNA = "no")
 
   levels_truncated <- FALSE
@@ -241,7 +428,7 @@ format_num <- function(value, digits) {
 }
 
 format_apa_overview_table <- function(df, digits) {
-  display <- round_numeric(df, digits)
+  display <- resolve_round_numeric(df, digits)
   headers <- c("Variable", "Class", "Scale", "n", "Missing %", "Unique", "M", "SD", "Min", "Max")
   md <- paste0("Table 1\nVariable overview\n\n| ", paste(headers, collapse = " | "), " |\n")
   md <- paste0(md, "| ", paste(rep("---", length(headers)), collapse = " | "), " |\n")
@@ -253,7 +440,7 @@ format_apa_overview_table <- function(df, digits) {
       row$class,
       row$measurement_level,
       ifelse(is.na(row$valid_n), "", as.character(row$valid_n)),
-      format_percent(row$missing_pct, digits),
+      resolve_format_percent(row$missing_pct, digits),
       ifelse(is.na(row$unique_n), "", as.character(row$unique_n)),
       ifelse(is.na(row$mean), "", format_num(row$mean, digits)),
       ifelse(is.na(row$sd), "", format_num(row$sd, digits)),
@@ -272,7 +459,7 @@ format_apa_levels_table <- function(df, digits) {
     return("Table 2\nValue levels\n\n(No level tables produced; see variable overview for unique counts.)\n")
   }
 
-  display <- round_numeric(df, digits)
+  display <- resolve_round_numeric(df, digits)
   headers <- c("Variable", "Level", "n", "%", "Valid %")
   md <- paste0("Table 2\nValue levels\n\n| ", paste(headers, collapse = " | "), " |\n")
   md <- paste0(md, "| ", paste(rep("---", length(headers)), collapse = " | "), " |\n")
@@ -287,8 +474,8 @@ format_apa_levels_table <- function(df, digits) {
         var,
         row$level,
         ifelse(is.na(row$n), "", as.character(row$n)),
-        format_percent(row$pct_total, digits),
-        format_percent(row$pct_valid, digits)
+        resolve_format_percent(row$pct_total, digits),
+        resolve_format_percent(row$pct_valid, digits)
       )
       md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
     }
@@ -300,7 +487,7 @@ format_apa_levels_table <- function(df, digits) {
         var,
         "Missing",
         as.character(missing_n),
-        format_percent(missing_pct, digits),
+        resolve_format_percent(missing_pct, digits),
         ""
       )
       md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
@@ -334,7 +521,7 @@ format_apa_text <- function(overview_df, levels_df, digits) {
       row$measurement_level,
       ifelse(is.na(valid_n), "NA", as.character(valid_n)),
       ifelse(is.na(missing_n), "NA", as.character(missing_n)),
-      ifelse(is.na(missing_pct), "NA", format_percent(missing_pct, digits)),
+      ifelse(is.na(missing_pct), "NA", resolve_format_percent(missing_pct, digits)),
       ifelse(is.na(unique_n), "NA", as.character(unique_n))
     )
 
@@ -360,7 +547,7 @@ format_apa_text <- function(overview_df, levels_df, digits) {
               "%s (n = %s, valid %% = %s)",
               lv$level,
               ifelse(is.na(lv$n), "NA", as.character(lv$n)),
-              ifelse(is.na(lv$pct_valid), "NA", format_percent(lv$pct_valid, digits))
+              ifelse(is.na(lv$pct_valid), "NA", resolve_format_percent(lv$pct_valid, digits))
             )
           )
         }
@@ -378,7 +565,7 @@ format_apa_text <- function(overview_df, levels_df, digits) {
 
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  opts <- parse_args(args)
+  opts <- resolve_parse_args(args)
 
   if (!is.null(opts$help)) {
     print_usage()
@@ -392,10 +579,10 @@ main <- function() {
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else 2
   max_levels <- if (!is.null(opts$`max-levels`)) as.integer(opts$`max-levels`) else 20
   top_n <- if (!is.null(opts$`top-n`)) as.integer(opts$`top-n`) else 10
-  out_dir <- ensure_out_dir(if (!is.null(opts$out)) opts$out else get_default_out())
+  out_dir <- resolve_ensure_out_dir(if (!is.null(opts$out)) opts$out else resolve_default_out())
 
-  df <- load_dataframe(opts)
-  vars <- select_variables(df, opts$vars, default = "all")
+  df <- resolve_load_dataframe(opts)
+  vars <- resolve_select_variables(df, opts$vars, default = "all")
   if (length(vars) == 0) stop("No variables available for exploration.")
 
   overview_rows <- list()
@@ -473,21 +660,21 @@ main <- function() {
     format_apa_levels_table(levels_df, digits)
   )
   apa_text <- format_apa_text(overview_df, levels_df, digits)
-  append_apa_report(apa_report_path, "Data exploration", apa_tables, apa_text)
+  resolve_append_apa_report(apa_report_path, "Data exploration", apa_tables, apa_text)
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
 
-  if (parse_bool(opts$log, default = TRUE)) {
-    ctx <- get_run_context()
-    append_analysis_log(
+  if (resolve_parse_bool(opts$log, default = TRUE)) {
+    ctx <- resolve_get_run_context()
+    resolve_append_analysis_log(
       out_dir,
       module = "data_explorer",
       prompt = ctx$prompt,
       commands = ctx$commands,
       results = list(overview_df = overview_df, levels_df = levels_df),
       options = list(digits = digits, vars = vars, max_levels = max_levels, top_n = top_n),
-      user_prompt = get_user_prompt(opts)
+      user_prompt = resolve_get_user_prompt(opts)
     )
   }
 }

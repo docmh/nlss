@@ -7,6 +7,16 @@ ensure_out_dir <- function(path) {
   path
 }
 
+resolve_parse_bool <- function(value, default = FALSE) {
+  if (exists("parse_bool", mode = "function")) {
+    return(get("parse_bool", mode = "function")(value, default = default))
+  }
+  if (is.null(value)) return(default)
+  if (is.logical(value)) return(value)
+  val <- tolower(as.character(value))
+  val %in% c("true", "t", "1", "yes", "y")
+}
+
 get_run_context <- function() {
   args <- commandArgs(trailingOnly = FALSE)
   file_arg <- sub("^--file=", "", args[grep("^--file=", args)])
@@ -77,7 +87,7 @@ read_sav_data <- function(path) {
 load_dataframe <- function(opts) {
   if (!is.null(opts$csv)) {
     sep <- if (!is.null(opts$sep)) opts$sep else ","
-    header <- parse_bool(opts$header, default = TRUE)
+    header <- resolve_parse_bool(opts$header, default = TRUE)
     df <- read.csv(opts$csv, sep = sep, header = header, stringsAsFactors = FALSE)
     return(df)
   }

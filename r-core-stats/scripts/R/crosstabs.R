@@ -59,43 +59,204 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- prompt("Input type (csv/sav/rds/rdata)", "csv")
+  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- prompt("CSV path")
-    opts$sep <- prompt("Separator", ",")
-    opts$header <- prompt("Header TRUE/FALSE", "TRUE")
+    opts$csv <- resolve_prompt("CSV path")
+    opts$sep <- resolve_prompt("Separator", ",")
+    opts$header <- resolve_prompt("Header TRUE/FALSE", "TRUE")
   } else if (input_type == "sav") {
-    opts$sav <- prompt("SAV path")
+    opts$sav <- resolve_prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- prompt("RDS path")
+    opts$rds <- resolve_prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- prompt("RData path")
-    opts$df <- prompt("Data frame object name")
+    opts$rdata <- resolve_prompt("RData path")
+    opts$df <- resolve_prompt("Data frame object name")
   } else {
     stop("Unsupported input type.")
   }
 
-  opts$row <- prompt("Row variable(s) (comma-separated)", "")
-  opts$col <- prompt("Column variable(s) (comma-separated)", "")
-  opts$group <- prompt("Grouping variable (blank for none)", "")
-  opts$percent <- prompt("Percentages to include (row/col/total/all)", "all")
-  opts$`apa-percent` <- prompt("APA percent (row/col/total/all/none)", "row")
-  opts$chisq <- prompt("Run chi-square TRUE/FALSE", "TRUE")
-  opts$yates <- prompt("Use Yates correction for 2x2 TRUE/FALSE", "FALSE")
-  opts$fisher <- prompt("Run Fisher's exact test TRUE/FALSE", "FALSE")
-  opts$`fisher-simulate` <- prompt("Fisher simulate TRUE/FALSE", "FALSE")
-  opts$`fisher-b` <- prompt("Fisher Monte Carlo replications", "2000")
-  opts$`fisher-conf-level` <- prompt("Fisher confidence level", "0.95")
-  opts$expected <- prompt("Include expected counts TRUE/FALSE", "TRUE")
-  opts$residuals <- prompt("Include residuals TRUE/FALSE", "TRUE")
-  opts$digits <- prompt("Rounding digits", "2")
-  opts$`user-prompt` <- prompt("User prompt (optional)", "")
-  opts$log <- prompt("Write JSONL log TRUE/FALSE", "TRUE")
-  opts$out <- prompt("Output directory", get_default_out())
+  opts$row <- resolve_prompt("Row variable(s) (comma-separated)", "")
+  opts$col <- resolve_prompt("Column variable(s) (comma-separated)", "")
+  opts$group <- resolve_prompt("Grouping variable (blank for none)", "")
+  opts$percent <- resolve_prompt("Percentages to include (row/col/total/all)", "all")
+  opts$`apa-percent` <- resolve_prompt("APA percent (row/col/total/all/none)", "row")
+  opts$chisq <- resolve_prompt("Run chi-square TRUE/FALSE", "TRUE")
+  opts$yates <- resolve_prompt("Use Yates correction for 2x2 TRUE/FALSE", "FALSE")
+  opts$fisher <- resolve_prompt("Run Fisher's exact test TRUE/FALSE", "FALSE")
+  opts$`fisher-simulate` <- resolve_prompt("Fisher simulate TRUE/FALSE", "FALSE")
+  opts$`fisher-b` <- resolve_prompt("Fisher Monte Carlo replications", "2000")
+  opts$`fisher-conf-level` <- resolve_prompt("Fisher confidence level", "0.95")
+  opts$expected <- resolve_prompt("Include expected counts TRUE/FALSE", "TRUE")
+  opts$residuals <- resolve_prompt("Include residuals TRUE/FALSE", "TRUE")
+  opts$digits <- resolve_prompt("Rounding digits", "2")
+  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
+  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", "TRUE")
+  opts$out <- resolve_prompt("Output directory", resolve_default_out())
   opts
+}
+
+resolve_prompt <- function(label, default = NULL) {
+  if (exists("prompt", mode = "function")) {
+    return(get("prompt", mode = "function")(label, default = default))
+  }
+  if (is.null(default)) {
+    answer <- readline(paste0(label, ": "))
+  } else {
+    answer <- readline(paste0(label, " [", default, "]: "))
+    if (answer == "") answer <- default
+  }
+  answer
+}
+
+resolve_default_out <- function() {
+  if (exists("get_default_out", mode = "function")) {
+    return(get("get_default_out", mode = "function")())
+  }
+  "./outputs/tmp"
+}
+
+resolve_parse_args <- function(args) {
+  if (exists("parse_args", mode = "function")) {
+    return(get("parse_args", mode = "function")(args))
+  }
+  opts <- list()
+  i <- 1
+  while (i <= length(args)) {
+    arg <- args[i]
+    if (grepl("^--", arg)) {
+      key <- sub("^--", "", arg)
+      if (grepl("=", key)) {
+        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
+        opts[[parts[1]]] <- parts[2]
+      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
+        opts[[key]] <- args[i + 1]
+        i <- i + 1
+      } else {
+        opts[[key]] <- TRUE
+      }
+    }
+    i <- i + 1
+  }
+  opts
+}
+
+resolve_parse_bool <- function(value, default = FALSE) {
+  if (exists("parse_bool", mode = "function")) {
+    return(get("parse_bool", mode = "function")(value, default = default))
+  }
+  if (is.null(value)) return(default)
+  if (is.logical(value)) return(value)
+  val <- tolower(as.character(value))
+  val %in% c("true", "t", "1", "yes", "y")
+}
+
+resolve_parse_list <- function(value, sep = ",") {
+  if (exists("parse_list", mode = "function")) {
+    return(get("parse_list", mode = "function")(value, sep = sep))
+  }
+  if (is.null(value) || is.logical(value)) return(character(0))
+  value <- as.character(value)
+  if (value == "") return(character(0))
+  trimws(strsplit(value, sep, fixed = TRUE)[[1]])
+}
+
+resolve_ensure_out_dir <- function(path) {
+  if (exists("ensure_out_dir", mode = "function")) {
+    return(get("ensure_out_dir", mode = "function")(path))
+  }
+  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
+  path
+}
+
+resolve_load_dataframe <- function(opts) {
+  if (exists("load_dataframe", mode = "function")) {
+    return(get("load_dataframe", mode = "function")(opts))
+  }
+  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
+}
+
+resolve_get_levels <- function(vec) {
+  if (exists("get_levels", mode = "function")) {
+    return(get("get_levels", mode = "function")(vec))
+  }
+  if (is.factor(vec)) {
+    return(as.character(levels(vec)))
+  }
+  values <- unique(vec[!is.na(vec)])
+  if (length(values) == 0) return(character(0))
+  if (is.numeric(values)) {
+    return(as.character(sort(values)))
+  }
+  as.character(sort(values))
+}
+
+resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL) {
+  if (exists("append_apa_report", mode = "function")) {
+    return(get("append_apa_report", mode = "function")(
+      path,
+      analysis_label,
+      apa_table,
+      apa_text,
+      analysis_flags = analysis_flags,
+      template_path = template_path
+    ))
+  }
+  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+}
+
+resolve_get_run_context <- function() {
+  if (exists("get_run_context", mode = "function")) {
+    return(get("get_run_context", mode = "function")())
+  }
+  trailing <- commandArgs(trailingOnly = TRUE)
+  commands <- c("Rscript", trailing)
+  commands <- commands[nzchar(commands)]
+  prompt <- paste(commands, collapse = " ")
+  list(prompt = prompt, commands = commands)
+}
+
+resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
+  if (exists("append_analysis_log", mode = "function")) {
+    return(get("append_analysis_log", mode = "function")(
+      out_dir,
+      module,
+      prompt,
+      commands,
+      results,
+      options = options,
+      user_prompt = user_prompt
+    ))
+  }
+  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
+  invisible(FALSE)
+}
+
+resolve_get_user_prompt <- function(opts) {
+  if (exists("get_user_prompt", mode = "function")) {
+    return(get("get_user_prompt", mode = "function")(opts))
+  }
+  NULL
+}
+
+resolve_round_numeric <- function(df, digits) {
+  if (exists("round_numeric", mode = "function")) {
+    return(get("round_numeric", mode = "function")(df, digits))
+  }
+  out <- df
+  numeric_cols <- sapply(out, is.numeric)
+  out[numeric_cols] <- lapply(out[numeric_cols], function(x) round(x, digits))
+  out
+}
+
+resolve_format_percent <- function(value, digits) {
+  if (exists("format_percent", mode = "function")) {
+    return(get("format_percent", mode = "function")(value, digits))
+  }
+  if (is.na(value)) return("")
+  format(round(value, digits), nsmall = digits, trim = TRUE)
 }
 
 
@@ -151,8 +312,8 @@ build_table <- function(df, row_var, col_var, group_label, options) {
   missing_n <- total_n - valid_n
   missing_pct <- ifelse(total_n > 0, missing_n / total_n * 100, NA_real_)
 
-  row_levels <- get_levels(row_vec)
-  col_levels <- get_levels(col_vec)
+  row_levels <- resolve_get_levels(row_vec)
+  col_levels <- resolve_get_levels(col_vec)
 
   if (valid_n == 0 || length(row_levels) == 0 || length(col_levels) == 0) {
     cells <- data.frame(
@@ -397,7 +558,7 @@ get_percent_columns <- function(apa_percent) {
 }
 
 format_apa_table <- function(cells_df, digits, apa_percent) {
-  display <- round_numeric(cells_df, digits)
+  display <- resolve_round_numeric(cells_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
   use_group <- !all(display$group == "")
@@ -431,7 +592,7 @@ format_apa_table <- function(cells_df, digits, apa_percent) {
       )
       if (length(percent_cols) > 0) {
         for (col in percent_cols) {
-          row_vals <- c(row_vals, format_percent(row[[col]], digits))
+          row_vals <- c(row_vals, resolve_format_percent(row[[col]], digits))
         }
       }
       md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
@@ -450,8 +611,8 @@ format_apa_table <- function(cells_df, digits, apa_percent) {
 }
 
 format_apa_text <- function(tests_df, diagnostics_df, digits) {
-  tests <- round_numeric(tests_df, digits)
-  diagnostics <- round_numeric(diagnostics_df, digits)
+  tests <- resolve_round_numeric(tests_df, digits)
+  diagnostics <- resolve_round_numeric(diagnostics_df, digits)
 
   tests$group <- as.character(tests$group)
   diagnostics$group <- as.character(diagnostics$group)
@@ -574,7 +735,7 @@ format_apa_text <- function(tests_df, diagnostics_df, digits) {
 
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  opts <- parse_args(args)
+  opts <- resolve_parse_args(args)
 
   if (!is.null(opts$help)) {
     print_usage()
@@ -586,13 +747,13 @@ main <- function() {
   }
 
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else 2
-  out_dir <- ensure_out_dir(if (!is.null(opts$out)) opts$out else get_default_out())
+  out_dir <- resolve_ensure_out_dir(if (!is.null(opts$out)) opts$out else resolve_default_out())
 
-  df <- load_dataframe(opts)
+  df <- resolve_load_dataframe(opts)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
 
-  rows <- if (!is.null(opts$rows)) parse_list(opts$rows) else parse_list(opts$row)
-  cols <- if (!is.null(opts$cols)) parse_list(opts$cols) else parse_list(opts$col)
+  rows <- if (!is.null(opts$rows)) resolve_parse_list(opts$rows) else resolve_parse_list(opts$row)
+  cols <- if (!is.null(opts$cols)) resolve_parse_list(opts$cols) else resolve_parse_list(opts$col)
 
   if (length(rows) == 0 || length(cols) == 0) {
     stop("Provide --row/--rows and --col/--cols.")
@@ -608,14 +769,14 @@ main <- function() {
   apa_percent <- normalize_apa_percent(opts$`apa-percent`, default = "row")
 
   options <- list(
-    chisq = parse_bool(opts$chisq, default = TRUE),
-    yates = parse_bool(opts$yates, default = FALSE),
-    fisher = parse_bool(opts$fisher, default = FALSE),
-    fisher_simulate = parse_bool(opts$`fisher-simulate`, default = FALSE),
+    chisq = resolve_parse_bool(opts$chisq, default = TRUE),
+    yates = resolve_parse_bool(opts$yates, default = FALSE),
+    fisher = resolve_parse_bool(opts$fisher, default = FALSE),
+    fisher_simulate = resolve_parse_bool(opts$`fisher-simulate`, default = FALSE),
     fisher_b = if (!is.null(opts$`fisher-b`)) as.integer(opts$`fisher-b`) else 2000,
     fisher_conf_level = if (!is.null(opts$`fisher-conf-level`)) as.numeric(opts$`fisher-conf-level`) else 0.95,
-    include_expected = parse_bool(opts$expected, default = TRUE),
-    include_residuals = parse_bool(opts$residuals, default = TRUE)
+    include_expected = resolve_parse_bool(opts$expected, default = TRUE),
+    include_residuals = resolve_parse_bool(opts$residuals, default = TRUE)
   )
 
   cells_list <- list()
@@ -656,14 +817,14 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(cells_df, digits, apa_percent)
   apa_text <- format_apa_text(tests_df, diagnostics_df, digits)
-  append_apa_report(apa_report_path, "Cross-tabulations", apa_table, apa_text)
+  resolve_append_apa_report(apa_report_path, "Cross-tabulations", apa_table, apa_text)
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
 
-  if (parse_bool(opts$log, default = TRUE)) {
-    ctx <- get_run_context()
-    append_analysis_log(
+  if (resolve_parse_bool(opts$log, default = TRUE)) {
+    ctx <- resolve_get_run_context()
+    resolve_append_analysis_log(
       out_dir,
       module = "crosstabs",
       prompt = ctx$prompt,
@@ -685,7 +846,7 @@ main <- function() {
         include_expected = options$include_expected,
         include_residuals = options$include_residuals
       ),
-      user_prompt = get_user_prompt(opts)
+      user_prompt = resolve_get_user_prompt(opts)
     )
   }
 }
