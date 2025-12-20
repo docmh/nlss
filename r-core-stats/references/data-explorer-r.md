@@ -7,14 +7,14 @@ description: Explore a dataset and produce a variable overview with inferred sca
 
 ## Overview
 
-Create a data dictionary-style overview with variable names, inferred measurement levels, missingness, and value levels. Outputs include machine-readable CSV files plus APA-ready tables and narrative text.
+Create a data dictionary-style overview with variable names, inferred measurement levels, missingness, and value levels. Outputs include an APA-ready report and JSONL logging.
 
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, or interactive).
 2. Optionally select variables; default is all columns.
 3. Run `scripts/R/data_explorer.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
-4. Use outputs (`variable_overview.csv`, `value_levels.csv`, `apa_table.md`, `apa_text.txt`) to craft the response.
+4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/data_explorer.R`
 
@@ -59,13 +59,13 @@ Rscript <path to scripts/R/data_explorer.R> --interactive
 - `--top-n` controls how many levels to keep when truncating (default: 10).
 - `--digits` controls rounding (default: 2).
 - `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
+- `--log` toggles JSONL logging (default: TRUE).
+- `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Outputs
 
-- `variable_overview.csv`: Variable list with classes, inferred scale level, missingness, unique counts, and numeric summaries.
-- `value_levels.csv`: Frequency-style table of value levels for categorical variables and small integer-like numeric variables.
-- `apa_table.md`: APA 7-style tables (Table 1: variable overview; Table 2: value levels).
-- `apa_text.txt`: APA-style narrative text per variable.
+- `apa_report.md`: APA 7 report containing analysis type, tables, and narrative text.
+- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Reporting Guidance
 

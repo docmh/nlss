@@ -12,6 +12,7 @@ bootstrap_dir <- {
 source(file.path(bootstrap_dir, "lib", "paths.R"))
 source_lib("cli.R")
 source_lib("io.R")
+source_lib("formatting.R")
 
 print_usage <- function() {
   cat("Data transformation (base R)\n")
@@ -580,9 +581,7 @@ log_df <- if (length(log_rows) > 0) do.call(rbind, log_rows) else {
   data.frame(action = character(0), variable = character(0), new_variable = character(0), details = character(0), note = character(0), stringsAsFactors = FALSE)
 }
 
-write.csv(df, file.path(out_dir, "transformed_data.csv"), row.names = FALSE)
 saveRDS(df, file.path(out_dir, "transformed_data.rds"))
-write.csv(log_df, file.path(out_dir, "transform_log.csv"), row.names = FALSE)
 
 if (nrow(log_df) == 0) {
   apa_text <- "No transformations applied. Data exported unchanged."
@@ -625,8 +624,6 @@ if (nrow(log_df) == 0) {
   apa_text <- paste(sentences, collapse = " ")
 }
 
-writeLines(apa_text, file.path(out_dir, "apa_text.txt"))
-
 table_df <- if (nrow(log_df) == 0) {
   data.frame(
     Step = 1,
@@ -647,7 +644,10 @@ table_df <- if (nrow(log_df) == 0) {
   )
 }
 
-writeLines(make_markdown_table(table_df), file.path(out_dir, "apa_table.md"))
+apa_table <- make_markdown_table(table_df)
+apa_report <- format_apa_report("Data transformation", apa_table, apa_text)
+writeLines(apa_report, file.path(out_dir, "apa_report.md"))
+
 
 if (parse_bool(opts$log, default = TRUE)) {
   ctx <- get_run_context()

@@ -1,6 +1,6 @@
 # Statistic Skills
 
-R-based statistics helpers that produce machine-readable outputs (CSV/TSV/JSON) plus APA 7-ready tables and narrative text. The repo is organized as "subskills" with a shared workflow and consistent output locations.
+R-based statistics helpers that produce an APA 7-ready report plus machine-readable JSONL logs. The repo is organized as "subskills" with a shared workflow and consistent output locations.
 
 ## Requirements and system support
 
@@ -23,7 +23,7 @@ If you are on Windows, ensure `Rscript.exe` is on your PATH or set `RSCRIPT` to 
 
 ## Quick start
 
-Outputs go to `./outputs/tmp` by default when `--out` is omitted.
+Outputs go to `./outputs/tmp` by default when `--out` is omitted. Each run writes `apa_report.md` and, when logging is enabled, appends to `analysis_log.jsonl`.
 
 ### Windows (PowerShell wrapper; WSL first, Windows fallback)
 
@@ -66,7 +66,7 @@ Rscript r-core-stats/scripts/R/descriptive_stats.R \
   --csv data.csv --vars age,score --group condition
 ```
 
-Outputs: `descriptive_summary.csv`, `apa_table.md`, `apa_text.txt`.
+Outputs: `apa_report.md` (plus `analysis_log.jsonl` when logging is enabled).
 
 ### Frequencies
 
@@ -75,7 +75,7 @@ Rscript r-core-stats/scripts/R/frequencies.R \
   --csv data.csv --vars gender,condition --group condition
 ```
 
-Outputs: `frequencies_summary.csv`, `apa_table.md`, `apa_text.txt`.
+Outputs: `apa_report.md` (plus `analysis_log.jsonl` when logging is enabled).
 
 ### Cross-tabulations
 
@@ -84,7 +84,7 @@ Rscript r-core-stats/scripts/R/crosstabs.R \
   --csv data.csv --row gender --col condition --group site
 ```
 
-Outputs: `crosstabs_cells.csv`, `crosstabs_tests.csv`, `crosstabs_diagnostics.csv`, `apa_table.md`, `apa_text.txt`.
+Outputs: `apa_report.md` (plus `analysis_log.jsonl` when logging is enabled).
 
 ### Correlations
 
@@ -93,7 +93,7 @@ Rscript r-core-stats/scripts/R/correlations.R \
   --csv data.csv --vars age,score,stress --method spearman
 ```
 
-Outputs: `correlations_summary.csv`, `correlations_diagnostics.csv`, `apa_table.md`, `apa_text.txt`.
+Outputs: `apa_report.md` (plus `analysis_log.jsonl` when logging is enabled).
 
 ## Using with Codex (Codes)
 

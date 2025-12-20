@@ -466,26 +466,17 @@ main <- function() {
     )
   }
 
-  overview_path <- file.path(out_dir, "variable_overview.csv")
-  levels_path <- file.path(out_dir, "value_levels.csv")
-  apa_table_path <- file.path(out_dir, "apa_table.md")
-  apa_text_path <- file.path(out_dir, "apa_text.txt")
-
-  write.csv(round_numeric(overview_df, digits), overview_path, row.names = FALSE, na = "")
-  write.csv(round_numeric(levels_df, digits), levels_path, row.names = FALSE, na = "")
+  apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_tables <- paste(
     format_apa_overview_table(overview_df, digits),
     "\n",
     format_apa_levels_table(levels_df, digits)
   )
-  writeLines(apa_tables, apa_table_path)
-  writeLines(format_apa_text(overview_df, levels_df, digits), apa_text_path)
+  apa_text <- format_apa_text(overview_df, levels_df, digits)
+  writeLines(format_apa_report("Data exploration", apa_tables, apa_text), apa_report_path)
 
   cat("Wrote:\n")
-  cat("- ", overview_path, "\n", sep = "")
-  cat("- ", levels_path, "\n", sep = "")
-  cat("- ", apa_table_path, "\n", sep = "")
-  cat("- ", apa_text_path, "\n", sep = "")
+  cat("- ", apa_report_path, "\n", sep = "")
 
   if (parse_bool(opts$log, default = TRUE)) {
     ctx <- get_run_context()

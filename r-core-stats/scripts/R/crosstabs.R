@@ -653,26 +653,13 @@ main <- function() {
   tests_df <- do.call(rbind, tests_list)
   diagnostics_df <- do.call(rbind, diag_list)
 
-  cells_output_df <- apply_cell_filters(cells_df, percent_flags, options$include_expected, options$include_residuals)
-
-  cells_path <- file.path(out_dir, "crosstabs_cells.csv")
-  tests_path <- file.path(out_dir, "crosstabs_tests.csv")
-  diagnostics_path <- file.path(out_dir, "crosstabs_diagnostics.csv")
-  apa_table_path <- file.path(out_dir, "apa_table.md")
-  apa_text_path <- file.path(out_dir, "apa_text.txt")
-
-  write.csv(round_numeric(cells_output_df, digits), cells_path, row.names = FALSE, na = "")
-  write.csv(round_numeric(tests_df, digits), tests_path, row.names = FALSE, na = "")
-  write.csv(round_numeric(diagnostics_df, digits), diagnostics_path, row.names = FALSE, na = "")
-  writeLines(format_apa_table(cells_df, digits, apa_percent), apa_table_path)
-  writeLines(format_apa_text(tests_df, diagnostics_df, digits), apa_text_path)
+  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_table <- format_apa_table(cells_df, digits, apa_percent)
+  apa_text <- format_apa_text(tests_df, diagnostics_df, digits)
+  writeLines(format_apa_report("Cross-tabulations", apa_table, apa_text), apa_report_path)
 
   cat("Wrote:\n")
-  cat("- ", cells_path, "\n", sep = "")
-  cat("- ", tests_path, "\n", sep = "")
-  cat("- ", diagnostics_path, "\n", sep = "")
-  cat("- ", apa_table_path, "\n", sep = "")
-  cat("- ", apa_text_path, "\n", sep = "")
+  cat("- ", apa_report_path, "\n", sep = "")
 
   if (parse_bool(opts$log, default = TRUE)) {
     ctx <- get_run_context()

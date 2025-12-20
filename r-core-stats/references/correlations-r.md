@@ -7,7 +7,7 @@ description: Create APA 7 style correlation analyses using base R for CSV inputs
 
 ## Overview
 
-Compute correlations for numeric variables (pairwise or matrix), with optional grouping and partial correlations. Outputs include machine-readable CSVs, APA-ready table text, and diagnostics (normality checks).
+Compute correlations for numeric variables (pairwise or matrix), with optional grouping and partial correlations. Outputs include an APA-ready report and JSONL logging with diagnostics.
 
 ## Core Workflow
 
@@ -15,7 +15,7 @@ Compute correlations for numeric variables (pairwise or matrix), with optional g
 2. Choose variables: full matrix via `--vars` (or default numeric columns), or cross-correlation via `--x` and `--y`.
 3. Choose correlation method (Pearson/Spearman/Kendall), missing-data handling, and any control variables.
 4. Run `scripts/R/correlations.R` with the correct flags, or use the PowerShell wrapper on Windows.
-5. Use outputs (`correlations_summary.csv`, `correlations_diagnostics.csv`, `apa_table.md`, `apa_text.txt`) to craft the response.
+5. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/correlations.R`
 
@@ -86,13 +86,13 @@ Rscript <path to scripts/R/correlations.R> --interactive
 - `--digits` controls rounding (default: 2).
 - `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
 - `--interactive` prompts for inputs.
+- `--log` toggles JSONL logging (default: TRUE).
+- `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Outputs
 
-- `correlations_summary.csv`: Long-format pairwise correlations with method, n, p-values, CIs, missingness, and adjustment info.
-- `correlations_diagnostics.csv`: Per-variable diagnostics (missingness, skewness/kurtosis, Shapiro-Wilk).
-- `apa_table.md`: APA 7-style correlation table (per group, if grouped).
-- `apa_text.txt`: APA-style narrative text with r/rho/tau, p, n, CI, and missingness.
+- `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
+- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Reporting Guidance
 

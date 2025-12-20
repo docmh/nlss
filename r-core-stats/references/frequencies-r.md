@@ -7,14 +7,14 @@ description: Create APA 7 style frequency tables using base R for CSV inputs, R 
 
 ## Overview
 
-Generate frequency tables in base R for categorical variables and return APA 7-style tables and narrative text. Factor levels are preserved; non-factor variables are sorted by their unique values. Missing values are reported separately and excluded from valid percentages.
+Generate frequency tables in base R for categorical variables and return an APA 7-style report (table + narrative). Factor levels are preserved; non-factor variables are sorted by their unique values. Missing values are reported separately and excluded from valid percentages.
 
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, or interactive).
 2. Choose variables for frequency tables and an optional grouping variable.
 3. Run `scripts/R/frequencies.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
-4. Use outputs (`frequencies_summary.csv`, `apa_table.md`, `apa_text.txt`) to craft the response.
+4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/frequencies.R`
 
@@ -62,12 +62,13 @@ Rscript <path to scripts/R/frequencies.R> --interactive
 - `--group` is optional and produces grouped frequency tables (one grouping variable).
 - `--digits` controls rounding for percentages (default: 2).
 - `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
+- `--log` toggles JSONL logging (default: TRUE).
+- `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Outputs
 
-- `frequencies_summary.csv`: Long-format frequency table with counts and percentages per level, plus missingness per variable/group.
-- `apa_table.md`: APA 7-style table with counts, percent of total, and valid percent.
-- `apa_text.txt`: APA-style narrative text per variable (and group) including missingness.
+- `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
+- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Reporting Guidance
 

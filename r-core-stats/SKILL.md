@@ -43,7 +43,8 @@ Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <v
 
 - Use `<working directory>/outputs/tmp` for scratch outputs (relative to the working directory where the script runs).
 - Each skill should accept `--out` and write all generated files there.
-- Keep outputs as plain text, Markdown, or CSV so Codex can summarize them.
+- Each analysis writes `apa_report.md` (APA table + narrative) and appends `analysis_log.jsonl` when logging is enabled.
+- Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
 
 ## Subskills
 

@@ -278,20 +278,13 @@ main <- function() {
   if (length(vars) == 0) stop("No variables available for frequency analysis.")
 
   summary_df <- build_summary(df, vars, group_var)
-  rounded_df <- round_numeric(summary_df, digits)
-
-  summary_path <- file.path(out_dir, "frequencies_summary.csv")
-  apa_table_path <- file.path(out_dir, "apa_table.md")
-  apa_text_path <- file.path(out_dir, "apa_text.txt")
-
-  write.csv(rounded_df, summary_path, row.names = FALSE, na = "")
-  writeLines(format_apa_table(summary_df, digits), apa_table_path)
-  writeLines(format_apa_text(summary_df, digits), apa_text_path)
+  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_table <- format_apa_table(summary_df, digits)
+  apa_text <- format_apa_text(summary_df, digits)
+  writeLines(format_apa_report("Frequencies", apa_table, apa_text), apa_report_path)
 
   cat("Wrote:\n")
-  cat("- ", summary_path, "\n", sep = "")
-  cat("- ", apa_table_path, "\n", sep = "")
-  cat("- ", apa_text_path, "\n", sep = "")
+  cat("- ", apa_report_path, "\n", sep = "")
 
   if (parse_bool(opts$log, default = TRUE)) {
     ctx <- get_run_context()

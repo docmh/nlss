@@ -7,14 +7,14 @@ description: Create APA 7 style descriptive statistics using base R for CSV inpu
 
 ## Overview
 
-Generate descriptive statistics in base R for psychology coursework or reports, and return APA 7-style tables and narrative text.
+Generate descriptive statistics in base R for psychology coursework or reports, and return an APA 7-style report (table + narrative).
 
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, or interactive).
 2. Choose numeric variables and optional grouping variable.
 3. Run `scripts/R/descriptive_stats.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
-4. Use outputs (`descriptive_summary.csv`, `apa_table.md`, `apa_text.txt`) to craft the response.
+4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/descriptive_stats.R`
 
@@ -58,12 +58,13 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 - `--group` is optional and produces grouped summaries.
 - `--digits` controls rounding (default: 2).
 - `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
+- `--log` toggles JSONL logging (default: TRUE).
+- `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Outputs
 
-- `descriptive_summary.csv`: Full statistics per variable (and group, if used), including missingness, CI, skewness, and kurtosis.
-- `apa_table.md`: APA 7-style table with M, SD, Min, Max, and n.
-- `apa_text.txt`: APA-style narrative text per variable (and group).
+- `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
+- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Reporting Guidance
 

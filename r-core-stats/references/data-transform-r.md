@@ -7,7 +7,7 @@ description: Transform and manage data frames using base R, including calculated
 
 ## Overview
 
-Create or modify variables in a data frame: derive new variables, transform or standardize numeric variables, recode values, rename columns, or drop columns. Outputs include the transformed dataset plus APA-ready change logs.
+Create or modify variables in a data frame: derive new variables, transform or standardize numeric variables, recode values, rename columns, or drop columns. Outputs include the transformed dataset plus an APA-ready change report.
 
 ## Core Workflow
 
@@ -19,7 +19,7 @@ Create or modify variables in a data frame: derive new variables, transform or s
    - `--recode` for value mapping.
    - `--rename` and `--drop` for column management.
 3. Run `scripts/R/data_transform.R` with appropriate flags or the Windows wrapper.
-4. Use outputs (`transformed_data.csv`, `transform_log.csv`, `apa_table.md`, `apa_text.txt`) in your response.
+4. Use outputs (`transformed_data.rds`, `apa_report.md`, `analysis_log.jsonl`) in your response.
 
 ## Script: `scripts/R/data_transform.R`
 
@@ -105,6 +105,8 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 - `--confirm-overwrite` or `--interactive` is required when overwriting existing variables.
 - `--confirm-drop` or `--interactive` is required when dropping variables.
 - `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
+- `--log` toggles JSONL logging (default: TRUE).
+- `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Safety confirmations
 
@@ -114,11 +116,9 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 
 ## Outputs
 
-- `transformed_data.csv`: Updated dataset in CSV format.
 - `transformed_data.rds`: Updated dataset in RDS format.
-- `transform_log.csv`: Machine-readable log of applied transformations.
-- `apa_table.md`: APA 7-style Markdown table of transformations.
-- `apa_text.txt`: APA-ready narrative summary.
+- `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
+- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Reporting Guidance
 
