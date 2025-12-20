@@ -94,6 +94,14 @@ Rscript <path to scripts/R/correlations.R> --interactive
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
+## APA 7 Templates
+
+Use the Markdown templates in `r-core-stats/assets/correlations` when assembling correlation reports. If the template exists, it must be used for `apa_report.md`.
+
+- Use `r-core-stats/assets/correlations/default-template.md` for correlation matrices created from `--vars` (or default numeric columns).
+- Use `r-core-stats/assets/correlations/cross-correlation-template.md` for cross-correlations created from `--x` and `--y`.
+- For partial correlations, keep the same template as the matrix or cross-correlation output and include the control variables in the analysis flags and note.
+
 ## APA 7 Reporting Guidance
 
 - Report method-specific coefficients (Pearson's r, Spearman's rho, Kendall's tau) with p-values and sample size.

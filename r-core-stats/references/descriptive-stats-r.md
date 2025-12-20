@@ -68,7 +68,7 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 
 ## APA 7 Template
 
-Use the Markdown template at `r-core-stats/assets/descriptive-stats-template.md` when assembling a descriptive statistics report. If the template exists, it must be used for `apa_report.md`.
+Use the Markdown template at `r-core-stats/assets/descriptive-stats/default-template.md` when assembling a descriptive statistics report. If the template exists, it must be used for `apa_report.md`.
 
 ## APA 7 Reporting Guidance
 

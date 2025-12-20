@@ -22,6 +22,8 @@ humanize_flag_name <- function(name) {
     "p-adjust" = "P-value adjustment",
     "conf-level" = "Confidence level",
     "coerce" = "Coerce non-numeric",
+    "x" = "X variables",
+    "y" = "Y variables",
     "include-numeric" = "Include numeric variables",
     "percent" = "Percentages",
     "include-expected" = "Include expected counts",
@@ -82,7 +84,11 @@ get_assets_dir <- function() {
 get_template_path <- function(analysis_label) {
   label <- tolower(trimws(analysis_label))
   if (label == "descriptive statistics") {
-    path <- file.path(get_assets_dir(), "descriptive-stats-template.md")
+    path <- file.path(get_assets_dir(), "descriptive-stats", "default-template.md")
+    if (file.exists(path)) return(path)
+  }
+  if (label == "correlations") {
+    path <- file.path(get_assets_dir(), "correlations", "default-template.md")
     if (file.exists(path)) return(path)
   }
   NULL
@@ -162,18 +168,21 @@ format_descriptive_report <- function(template_path, analysis_flags, table_numbe
   report <- template
   report <- gsub("<analysis flags in human readable form>", flags_text, report, fixed = TRUE)
   report <- gsub("<running number>", as.character(table_number), report, fixed = TRUE)
-  report <- gsub(
+  table_placeholders <- c(
     "<actual table with columns: Variable, Group (if used), n, Missing n, Missing %, M, SD, Min, Max, 95% CI>",
-    table_body,
-    report,
-    fixed = TRUE
+    "<actual table with columns: Variable 1, Variable 2, r/rho/tau, 95% CI (if reported), p, n, Group (if used)>",
+    "<actual table with columns: X Variable, Y Variable, r/rho/tau, 95% CI (if reported), p, n, Group (if used)>"
   )
-  report <- gsub(
+  for (placeholder in table_placeholders) {
+    report <- gsub(placeholder, table_body, report, fixed = TRUE)
+  }
+  note_placeholders <- c(
     "<optional note about missingness, rounding, grouping, or CI method>",
-    note_body,
-    report,
-    fixed = TRUE
+    "<optional note about method, missing-data handling, p-value adjustment, controls, or CI>"
   )
+  for (placeholder in note_placeholders) {
+    report <- gsub(placeholder, note_body, report, fixed = TRUE)
+  }
   report <- gsub("<APA 7 narrative text>", apa_text, report, fixed = TRUE)
   report
 }

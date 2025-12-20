@@ -664,10 +664,39 @@ main <- function() {
     }
   }
 
+  use_cross_template <- length(x_vars) > 0 && length(y_vars) > 0
+  template_path <- if (use_cross_template) {
+    file.path(get_assets_dir(), "correlations", "cross-correlation-template.md")
+  } else {
+    file.path(get_assets_dir(), "correlations", "default-template.md")
+  }
+
+  analysis_flags <- list(
+    vars = if (length(x_vars) == 0 || length(y_vars) == 0) vars else NULL,
+    x = if (length(x_vars) > 0) x_vars else NULL,
+    y = if (length(y_vars) > 0) y_vars else NULL,
+    group = if (!is.null(group_var) && group_var != "") group_var else "None",
+    method = method,
+    missing = missing_method,
+    alternative = alternative,
+    controls = if (length(controls) > 0) controls else "None",
+    "p-adjust" = adjust_method,
+    "conf-level" = conf_level,
+    coerce = coerce_flag,
+    digits = digits
+  )
+
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
   apa_text <- format_apa_text(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
-  append_apa_report(apa_report_path, "Correlations", apa_table, apa_text)
+  append_apa_report(
+    apa_report_path,
+    "Correlations",
+    apa_table,
+    apa_text,
+    analysis_flags = analysis_flags,
+    template_path = template_path
+  )
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
