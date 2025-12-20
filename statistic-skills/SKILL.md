@@ -51,3 +51,4 @@ Rscript <path to scripts/<subskill-name>.R> --csv <path to CSV file> --vars <var
 - [frequencies-r](references/frequencies-r.md): APA 7 style frequency tables for categorical variables using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
 - [crosstabs-r](references/crosstabs-r.md): APA 7 style cross-tabulations with chi-square or Fisher tests and association measures using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
 - [correlations-r](references/correlations-r.md): APA 7 style correlation analyses (Pearson/Spearman/Kendall), cross-correlations, partial correlations, and p-value adjustments using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
+- [data-explorer-r](references/data-explorer-r.md): Data dictionary style exploration with inferred scale levels, missingness, and value level tables using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.

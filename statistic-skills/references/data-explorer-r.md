@@ -1,0 +1,74 @@
+---
+name: data-explorer-r
+description: Explore a dataset and produce a variable overview with inferred scale levels plus value level tables, using base R for CSV inputs, R data frames (via RDS or RData), or interactive prompts. Use when Codex needs to inspect variable names, types, scale levels, and value levels before analysis.
+---
+
+# Data Explorer (Base R, APA 7)
+
+## Overview
+
+Create a data dictionary-style overview with variable names, inferred measurement levels, missingness, and value levels. Outputs include machine-readable CSV files plus APA-ready tables and narrative text.
+
+## Core Workflow
+
+1. Identify the input type (CSV, RDS, RData data frame, or interactive).
+2. Optionally select variables; default is all columns.
+3. Run `scripts/data_explorer.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
+4. Use outputs (`variable_overview.csv`, `value_levels.csv`, `apa_table.md`, `apa_text.txt`) to craft the response.
+
+## Script: `scripts/data_explorer.R`
+
+Run with `Rscript` and base R only.
+
+### Windows wrapper (WSL first, Windows fallback)
+
+The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\data_explorer.R> --csv <path to CSV file> --vars age,gender --out <working directory>\outputs\tmp
+```
+
+### CSV input
+
+```bash
+Rscript <path to scripts/data_explorer.R> --csv <path to CSV file> --vars age,gender
+```
+
+### RDS input (data frame)
+
+```bash
+Rscript <path to scripts/data_explorer.R> --rds <path to RDS file> --vars age,gender
+```
+
+### RData input (data frame by name)
+
+```bash
+Rscript <path to scripts/data_explorer.R> --rdata <path to RData file> --df <data frame name> --vars age,gender
+```
+
+### Interactive prompts
+
+```bash
+Rscript <path to scripts/data_explorer.R> --interactive
+```
+
+### Options
+
+- `--vars` defaults to all columns if omitted.
+- `--max-levels` controls when level tables are truncated (default: 20). Categorical variables with more levels are summarized with top `--top-n` levels and an "Other (remaining)" row.
+- `--top-n` controls how many levels to keep when truncating (default: 10).
+- `--digits` controls rounding (default: 2).
+- `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
+
+## Outputs
+
+- `variable_overview.csv`: Variable list with classes, inferred scale level, missingness, unique counts, and numeric summaries.
+- `value_levels.csv`: Frequency-style table of value levels for categorical variables and small integer-like numeric variables.
+- `apa_table.md`: APA 7-style tables (Table 1: variable overview; Table 2: value levels).
+- `apa_text.txt`: APA-style narrative text per variable.
+
+## APA 7 Reporting Guidance
+
+- Treat the measurement level as a heuristic; the script uses `interval/ratio` for numeric variables and cannot distinguish interval from ratio scales automatically.
+- Use `Table 1` for a concise overview of variable types, missingness, and numeric summaries.
+- Use `Table 2` to report value levels and valid percentages for categorical variables; mention when levels are truncated.
