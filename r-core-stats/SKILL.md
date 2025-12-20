@@ -51,7 +51,7 @@ All scripts accept one of the following input types:
 
 ## Common flags
 
-- `--out <dir>`: Output directory (default: `<working directory>/outputs/tmp`).
+- `--out <dir>`: Output directory (if not explicitly stated, the default **must** be: `<working directory>/outputs/tmp`).
 - `--sep <char>`: CSV separator (default: `,`).
 - `--header TRUE/FALSE`: CSV header row (default: `TRUE`).
 - `--log TRUE/FALSE`: Append to `analysis_log.jsonl` (default: `TRUE`).
@@ -64,7 +64,6 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 
 - Use `<working directory>/outputs/tmp` for scratch outputs (relative to the working directory where the script runs).
 - If the user does not explicitly pass `--out`, the default output directory **must** be `<working directory>/outputs/tmp`.
-- Each skill should accept `--out` and write all generated files there.
 - Each analysis appends `apa_report.md` (APA table + narrative) and appends `analysis_log.jsonl` when logging is enabled.
 - For `apa_report.md`, templates in `r-core-stats/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
