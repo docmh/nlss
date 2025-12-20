@@ -38,3 +38,4 @@ Rscript statistic-skills/<skill-name>/scripts/<script>.R --csv data.csv --vars a
 - descriptive-stats-r: APA 7 style descriptive statistics using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts. (file: statistic-skills/descriptive-stats-r/SKILL.md)
 - frequencies-r: APA 7 style frequency tables for categorical variables using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts. (file: statistic-skills/frequencies-r/SKILL.md)
 - crosstabs-r: APA 7 style cross-tabulations with chi-square or Fisher tests and association measures using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts. (file: statistic-skills/crosstabs-r/SKILL.md)
+- correlations-r: APA 7 style correlation analyses (Pearson/Spearman/Kendall), cross-correlations, partial correlations, and p-value adjustments using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts. (file: statistic-skills/correlations-r/SKILL.md)
