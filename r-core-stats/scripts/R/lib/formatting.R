@@ -78,7 +78,12 @@ format_analysis_flags <- function(flags) {
 }
 
 get_assets_dir <- function() {
-  file.path(get_script_dir(), "..", "..", "assets")
+  script_dir <- if (exists("get_script_dir", mode = "function")) {
+    get("get_script_dir", mode = "function")()
+  } else {
+    getwd()
+  }
+  file.path(script_dir, "..", "..", "assets")
 }
 
 get_template_path <- function(analysis_label) {
@@ -113,7 +118,7 @@ get_next_table_number <- function(path) {
 renumber_tables <- function(text, start_number) {
   matches <- gregexpr("Table\\s+[0-9]+", text, perl = TRUE)
   if (matches[[1]][1] == -1) return(list(text = text, count = 0))
-  replacements <- sprintf("Table %d", seq_len(length(matches[[1]])) + start_number - 1)
+  replacements <- sprintf("Table %d", seq_along(matches[[1]]) + start_number - 1)
   regmatches(text, matches) <- list(replacements)
   list(text = text, count = length(replacements))
 }

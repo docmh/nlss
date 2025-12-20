@@ -88,8 +88,133 @@ interactive_options <- function() {
   opts$digits <- prompt("Rounding digits", "2")
   opts$`user-prompt` <- prompt("User prompt (optional)", "")
   opts$log <- prompt("Write JSONL log TRUE/FALSE", "TRUE")
-  opts$out <- prompt("Output directory", get_default_out())
+  opts$out <- prompt("Output directory", resolve_default_out())
   opts
+}
+
+resolve_default_out <- function() {
+  if (exists("get_default_out", mode = "function")) {
+    return(get("get_default_out", mode = "function")())
+  }
+  "./outputs/tmp"
+}
+
+resolve_parse_bool <- function(value, default = FALSE) {
+  if (exists("parse_bool", mode = "function")) {
+    return(get("parse_bool", mode = "function")(value, default = default))
+  }
+  if (is.null(value)) return(default)
+  if (is.logical(value)) return(value)
+  val <- tolower(as.character(value))
+  val %in% c("true", "t", "1", "yes", "y")
+}
+
+resolve_parse_args <- function(args) {
+  if (exists("parse_args", mode = "function")) {
+    return(get("parse_args", mode = "function")(args))
+  }
+  opts <- list()
+  i <- 1
+  while (i <= length(args)) {
+    arg <- args[i]
+    if (grepl("^--", arg)) {
+      key <- sub("^--", "", arg)
+      if (grepl("=", key)) {
+        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
+        opts[[parts[1]]] <- parts[2]
+      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
+        opts[[key]] <- args[i + 1]
+        i <- i + 1
+      } else {
+        opts[[key]] <- TRUE
+      }
+    }
+    i <- i + 1
+  }
+  opts
+}
+
+resolve_load_dataframe <- function(opts) {
+  if (exists("load_dataframe", mode = "function")) {
+    return(get("load_dataframe", mode = "function")(opts))
+  }
+  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
+}
+
+resolve_parse_list <- function(value, sep = ",") {
+  if (exists("parse_list", mode = "function")) {
+    return(get("parse_list", mode = "function")(value, sep = sep))
+  }
+  if (is.null(value) || is.logical(value)) return(character(0))
+  value <- as.character(value)
+  if (value == "") return(character(0))
+  trimws(strsplit(value, sep, fixed = TRUE)[[1]])
+}
+
+resolve_ensure_out_dir <- function(path) {
+  if (exists("ensure_out_dir", mode = "function")) {
+    return(get("ensure_out_dir", mode = "function")(path))
+  }
+  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
+  path
+}
+
+resolve_get_assets_dir <- function() {
+  if (exists("get_assets_dir", mode = "function")) {
+    return(get("get_assets_dir", mode = "function")())
+  }
+  if (exists("bootstrap_dir", inherits = TRUE)) {
+    return(file.path(get("bootstrap_dir", inherits = TRUE), "..", "..", "assets"))
+  }
+  file.path(getwd(), "r-core-stats", "assets")
+}
+
+resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL) {
+  if (exists("append_apa_report", mode = "function")) {
+    return(get("append_apa_report", mode = "function")(
+      path,
+      analysis_label,
+      apa_table,
+      apa_text,
+      analysis_flags = analysis_flags,
+      template_path = template_path
+    ))
+  }
+  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+}
+
+resolve_get_run_context <- function() {
+  if (exists("get_run_context", mode = "function")) {
+    return(get("get_run_context", mode = "function")())
+  }
+  trailing <- commandArgs(trailingOnly = TRUE)
+  commands <- c("Rscript", trailing)
+  commands <- commands[nzchar(commands)]
+  prompt <- paste(commands, collapse = " ")
+  list(prompt = prompt, commands = commands)
+}
+
+resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
+  if (exists("append_analysis_log", mode = "function")) {
+    return(get("append_analysis_log", mode = "function")(
+      out_dir,
+      module,
+      prompt,
+      commands,
+      results,
+      options = options,
+      user_prompt = user_prompt
+    ))
+  }
+  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
+  invisible(FALSE)
+}
+
+resolve_get_user_prompt <- function(opts) {
+  if (exists("get_user_prompt", mode = "function")) {
+    return(get("get_user_prompt", mode = "function")(opts))
+  }
+  NULL
 }
 
 
@@ -535,7 +660,7 @@ format_apa_text <- function(summary_df, digits, conf_level, adjust_method, missi
 
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  opts <- parse_args(args)
+  opts <- resolve_parse_args(args)
 
   if (!is.null(opts$help)) {
     print_usage()
@@ -552,17 +677,17 @@ main <- function() {
   missing_method <- normalize_missing(opts$missing, default = "pairwise")
   alternative <- normalize_alternative(opts$alternative, default = "two.sided")
   adjust_method <- normalize_adjust(opts$`p-adjust`, default = "none")
-  coerce_flag <- parse_bool(opts$coerce, default = FALSE)
+  coerce_flag <- resolve_parse_bool(opts$coerce, default = FALSE)
 
-  out_dir <- ensure_out_dir(if (!is.null(opts$out)) opts$out else get_default_out())
+  out_dir <- resolve_ensure_out_dir(if (!is.null(opts$out)) opts$out else resolve_default_out())
 
-  df <- load_dataframe(opts)
+  df <- resolve_load_dataframe(opts)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
 
-  vars <- parse_list(opts$vars)
-  x_vars <- parse_list(opts$x)
-  y_vars <- parse_list(opts$y)
-  controls <- parse_list(opts$controls)
+  vars <- resolve_parse_list(opts$vars)
+  x_vars <- resolve_parse_list(opts$x)
+  y_vars <- resolve_parse_list(opts$y)
+  controls <- resolve_parse_list(opts$controls)
   if (!is.null(group_var)) controls <- setdiff(controls, group_var)
 
   if (length(x_vars) == 0 && length(y_vars) == 0 && length(vars) == 0) {
@@ -665,10 +790,11 @@ main <- function() {
   }
 
   use_cross_template <- length(x_vars) > 0 && length(y_vars) > 0
+  assets_dir <- resolve_get_assets_dir()
   template_path <- if (use_cross_template) {
-    file.path(get_assets_dir(), "correlations", "cross-correlation-template.md")
+    file.path(assets_dir, "correlations", "cross-correlation-template.md")
   } else {
-    file.path(get_assets_dir(), "correlations", "default-template.md")
+    file.path(assets_dir, "correlations", "default-template.md")
   }
 
   analysis_flags <- list(
@@ -689,7 +815,7 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
   apa_text <- format_apa_text(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
-  append_apa_report(
+  resolve_append_apa_report(
     apa_report_path,
     "Correlations",
     apa_table,
@@ -701,9 +827,9 @@ main <- function() {
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
 
-  if (parse_bool(opts$log, default = TRUE)) {
-    ctx <- get_run_context()
-    append_analysis_log(
+  if (resolve_parse_bool(opts$log, default = TRUE)) {
+    ctx <- resolve_get_run_context()
+    resolve_append_analysis_log(
       out_dir,
       module = "correlations",
       prompt = ctx$prompt,
@@ -723,7 +849,7 @@ main <- function() {
         controls = controls,
         group = group_var
       ),
-      user_prompt = get_user_prompt(opts)
+      user_prompt = resolve_get_user_prompt(opts)
     )
   }
 }
