@@ -1,5 +1,0 @@
-.gitignore
-.lintr
-outputs/*
-*.csv
-AGENTS.md
