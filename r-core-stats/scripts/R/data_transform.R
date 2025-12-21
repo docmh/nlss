@@ -254,6 +254,49 @@ resolve_get_user_prompt <- function(opts) {
   NULL
 }
 
+resolve_get_template_meta <- function(path) {
+  if (exists("get_template_meta", mode = "function")) {
+    return(get("get_template_meta", mode = "function")(path))
+  }
+  list()
+}
+
+resolve_get_template_path <- function(key, default_relative = NULL) {
+  if (exists("resolve_template_path", mode = "function")) {
+    return(get("resolve_template_path", mode = "function")(key, default_relative))
+  }
+  NULL
+}
+
+resolve_normalize_table_columns <- function(columns, default_specs) {
+  if (exists("normalize_table_columns", mode = "function")) {
+    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
+  }
+  default_specs
+}
+
+resolve_drop_empty_columns <- function(columns, rows) {
+  if (exists("drop_empty_columns", mode = "function")) {
+    return(get("drop_empty_columns", mode = "function")(columns, rows))
+  }
+  list(columns = columns, rows = rows)
+}
+
+resolve_render_markdown_table <- function(headers, rows) {
+  if (exists("render_markdown_table", mode = "function")) {
+    return(get("render_markdown_table", mode = "function")(headers, rows))
+  }
+  ""
+}
+
+resolve_as_cell_text <- function(value) {
+  if (exists("as_cell_text", mode = "function")) {
+    return(get("as_cell_text", mode = "function")(value))
+  }
+  if (is.null(value) || length(value) == 0 || is.na(value)) return("")
+  as.character(value)
+}
+
 split_commas <- function(value) {
   if (is.null(value) || is.logical(value)) return(character(0))
   value <- as.character(value)
@@ -499,6 +542,199 @@ make_markdown_table <- function(df) {
   sep <- paste0("| ", paste(rep("---", ncol(df)), collapse = " | "), " |")
   rows <- apply(df, 1, function(row) paste0("| ", paste(row, collapse = " | "), " |"))
   c(header, sep, rows)
+}
+
+get_action_label <- function(action) {
+  labels <- c(
+    calc = "Calculated",
+    transform = "Transformed",
+    standardize = "Standardized",
+    recode = "Recoded",
+    percentile_bin = "Percentile-binned",
+    bin = "Binned",
+    rename = "Renamed",
+    drop = "Dropped",
+    none = "None"
+  )
+  if (!is.null(action) && action %in% names(labels)) return(unname(labels[[action]]))
+  action
+}
+
+collapse_unique <- function(values) {
+  if (length(values) == 0) return("")
+  vals <- as.character(values)
+  vals <- vals[!is.na(vals)]
+  vals <- vals[nzchar(vals)]
+  if (length(vals) == 0) return("")
+  paste(unique(vals), collapse = ", ")
+}
+
+build_action_codes <- function(actions) {
+  if (length(actions) == 0) return("")
+  codes <- vapply(actions, function(action) {
+    paste0(action, " = ", get_action_label(action))
+  }, character(1))
+  paste(codes, collapse = "; ")
+}
+
+build_transform_table_body <- function(log_df, table_spec = NULL) {
+  default_columns <- list(
+    list(key = "step", label = "Step"),
+    list(key = "action", label = "Action"),
+    list(key = "variable", label = "Variable"),
+    list(key = "new_variable", label = "New Variable"),
+    list(key = "details", label = "Details"),
+    list(key = "note", label = "Note", drop_if_empty = TRUE)
+  )
+  columns <- resolve_normalize_table_columns(
+    if (!is.null(table_spec$columns)) table_spec$columns else NULL,
+    default_columns
+  )
+
+  rows <- list()
+  if (nrow(log_df) == 0) {
+    rows <- list(list(
+      step = "1",
+      action = "None",
+      action_code = "none",
+      variable = "",
+      new_variable = "",
+      details = "No transformations applied.",
+      note = ""
+    ))
+  } else {
+    for (i in seq_len(nrow(log_df))) {
+      action_code <- as.character(log_df$action[i])
+      rows[[length(rows) + 1]] <- list(
+        step = as.character(i),
+        action = get_action_label(action_code),
+        action_code = action_code,
+        variable = as.character(log_df$variable[i]),
+        new_variable = as.character(log_df$new_variable[i]),
+        details = as.character(log_df$details[i]),
+        note = as.character(log_df$note[i])
+      )
+    }
+  }
+
+  table_rows <- list()
+  for (row in rows) {
+    row_vals <- character(0)
+    for (col in columns) {
+      key <- col$key
+      val <- ""
+      if (key %in% names(row)) {
+        val <- row[[key]]
+      } else if (key == "action") {
+        val <- row$action
+      } else if (key == "action_code") {
+        val <- row$action_code
+      }
+      row_vals <- c(row_vals, resolve_as_cell_text(val))
+    }
+    table_rows[[length(table_rows) + 1]] <- row_vals
+  }
+
+  filtered <- resolve_drop_empty_columns(columns, table_rows)
+  columns <- filtered$columns
+  table_rows <- filtered$rows
+  headers <- vapply(columns, function(col) {
+    if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
+  }, character(1))
+  list(
+    body = resolve_render_markdown_table(headers, table_rows),
+    columns = vapply(columns, function(col) col$key, character(1))
+  )
+}
+
+build_transform_summary_tokens <- function(log_df) {
+  steps_total <- nrow(log_df)
+  actions_present <- if (steps_total > 0) unique(as.character(log_df$action)) else character(0)
+  actions_present <- actions_present[nzchar(actions_present)]
+  actions_labels <- if (length(actions_present) > 0) vapply(actions_present, get_action_label, character(1)) else character(0)
+  rename_pairs <- character(0)
+  if (steps_total > 0) {
+    rename_pairs <- paste0(
+      log_df$variable[log_df$action == "rename"],
+      " -> ",
+      log_df$new_variable[log_df$action == "rename"]
+    )
+  }
+
+  list(
+    steps_total = as.character(steps_total),
+    actions_present = collapse_unique(actions_labels),
+    action_codes = build_action_codes(actions_present),
+    calc_vars = collapse_unique(log_df$new_variable[log_df$action == "calc"]),
+    transform_vars = collapse_unique(log_df$new_variable[log_df$action == "transform"]),
+    standardize_vars = collapse_unique(log_df$new_variable[log_df$action == "standardize"]),
+    recode_vars = collapse_unique(log_df$new_variable[log_df$action == "recode"]),
+    percentile_bin_vars = collapse_unique(log_df$new_variable[log_df$action == "percentile_bin"]),
+    bin_vars = collapse_unique(log_df$new_variable[log_df$action == "bin"]),
+    rename_pairs = collapse_unique(rename_pairs),
+    drop_vars = collapse_unique(log_df$variable[log_df$action == "drop"])
+  )
+}
+
+build_transform_note_tokens <- function(log_df, summary_tokens) {
+  if (nrow(log_df) == 0) {
+    return(list(
+      note_default = "No transformations applied.",
+      action_codes = "",
+      note_details = ""
+    ))
+  }
+  note_parts <- character(0)
+  if (!is.null(summary_tokens$actions_present) && nzchar(summary_tokens$actions_present)) {
+    note_parts <- c(note_parts, paste0("Actions: ", summary_tokens$actions_present, "."))
+  }
+  has_notes <- any(nzchar(as.character(log_df$note)))
+  note_details <- if (has_notes) "Notes indicate coercion or bin adjustments." else ""
+  if (nzchar(note_details)) note_parts <- c(note_parts, note_details)
+  list(
+    note_default = paste(note_parts, collapse = " "),
+    action_codes = summary_tokens$action_codes,
+    note_details = note_details
+  )
+}
+
+build_transform_narrative_rows <- function(log_df) {
+  rows <- list()
+  if (nrow(log_df) == 0) {
+    rows[[1]] <- list(full_sentence = "No transformations applied.")
+    return(rows)
+  }
+  for (i in seq_len(nrow(log_df))) {
+    action_code <- as.character(log_df$action[i])
+    action_label <- get_action_label(action_code)
+    variable <- as.character(log_df$variable[i])
+    new_variable <- as.character(log_df$new_variable[i])
+    details <- as.character(log_df$details[i])
+    note <- as.character(log_df$note[i])
+
+    target_part <- ""
+    if (nzchar(new_variable) && new_variable != variable) {
+      target_part <- paste0(" -> ", new_variable)
+    }
+    detail_part <- ""
+    if (nzchar(details) && !(action_code %in% c("rename", "drop") && details %in% c("rename", "dropped"))) {
+      detail_part <- paste0(" (", details, ")")
+    }
+    note_part <- if (nzchar(note)) paste0(" Note: ", note, ".") else ""
+    base <- paste0(action_label, " ", variable, target_part, detail_part, ".")
+    full_sentence <- paste0("Step ", i, ": ", base, note_part)
+    rows[[length(rows) + 1]] <- list(
+      step = as.character(i),
+      action = action_code,
+      action_label = action_label,
+      variable = variable,
+      new_variable = new_variable,
+      details = details,
+      note = note,
+      full_sentence = trimws(full_sentence)
+    )
+  }
+  rows
 }
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -777,7 +1013,7 @@ if (nrow(log_df) == 0) {
 table_df <- if (nrow(log_df) == 0) {
   data.frame(
     Step = 1,
-    Action = "none",
+    Action = "None",
     Variable = "",
     New_Variable = "",
     Details = "No transformations applied.",
@@ -786,7 +1022,7 @@ table_df <- if (nrow(log_df) == 0) {
 } else {
   data.frame(
     Step = seq_len(nrow(log_df)),
-    Action = log_df$action,
+    Action = vapply(log_df$action, get_action_label, character(1)),
     Variable = log_df$variable,
     New_Variable = log_df$new_variable,
     Details = log_df$details,
@@ -795,7 +1031,44 @@ table_df <- if (nrow(log_df) == 0) {
 }
 
 apa_table <- make_markdown_table(table_df)
-resolve_append_apa_report(file.path(out_dir, "apa_report.md"), "Data transformation", apa_table, apa_text)
+summary_tokens <- build_transform_summary_tokens(log_df)
+note_tokens <- build_transform_note_tokens(log_df, summary_tokens)
+template_path <- resolve_get_template_path("data_transform.default", "data-transform/default-template.md")
+template_meta <- resolve_get_template_meta(template_path)
+table_result <- build_transform_table_body(log_df, template_meta$table)
+narrative_rows <- build_transform_narrative_rows(log_df)
+template_context <- list(
+  tokens = c(
+    list(
+      table_body = table_result$body,
+      narrative_default = apa_text
+    ),
+    summary_tokens,
+    note_tokens
+  ),
+  narrative_rows = narrative_rows
+)
+analysis_flags <- list(
+  calc = opts$calc,
+  transform = opts$transform,
+  standardize = opts$standardize,
+  "percentile-bins" = opts$`percentile-bins`,
+  bins = opts$bins,
+  recode = opts$recode,
+  rename = opts$rename,
+  drop = opts$drop,
+  coerce = resolve_dt_bool(opts$coerce, "coerce", FALSE),
+  "overwrite-vars" = resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE)
+)
+resolve_append_apa_report(
+  file.path(out_dir, "apa_report.md"),
+  "Data transformation",
+  apa_table,
+  apa_text,
+  analysis_flags = analysis_flags,
+  template_path = template_path,
+  template_context = template_context
+)
 
 log_default <- resolve_config_value("defaults.log", TRUE)
 if (resolve_parse_bool(opts$log, default = log_default)) {

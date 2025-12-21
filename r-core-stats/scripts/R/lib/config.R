@@ -100,6 +100,9 @@ get_builtin_config <- function() {
       data_explorer = list(
         default = "data-explorer/default-template.md"
       ),
+      data_transform = list(
+        default = "data-transform/default-template.md"
+      ),
       correlations = list(
         default = "correlations/default-template.md",
         cross = "correlations/cross-correlation-template.md"

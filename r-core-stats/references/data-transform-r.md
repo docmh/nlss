@@ -125,7 +125,41 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 
 ## APA 7 Templates
 
-This module currently uses the built-in APA report format (no YAML template mapping in `templates.*`). To customize the APA layout, add a template under `r-core-stats/assets` and wire it through the template system.
+Use the Markdown template at `r-core-stats/assets/data-transform/default-template.md` when assembling data transformation reports. If the template exists, `data_transform.R` uses it for `apa_report.md`.
+
+### YAML template controls
+
+- The template path can be overridden via `templates.data_transform.default` in `r-core-stats/scripts/config.yml`.
+- Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
+  - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
+  - `note.template`: overrides the note text (defaults to `{{note_default}}`).
+  - `narrative.template` or `narrative.row_template`: overrides the narrative text.
+
+### Table column keys
+
+Available column keys for `table.columns` include:
+
+`step`, `action`, `action_code`, `variable`, `new_variable`, `details`, `note`.
+
+Use `drop_if_empty: true` to remove a column if all values are blank (for example, `note`).
+
+### Note tokens
+
+Available note tokens include:
+
+`note_default`, `action_codes`, `note_details`.
+
+### Summary tokens
+
+Summary tokens available for custom templates include:
+
+`steps_total`, `actions_present`, `calc_vars`, `transform_vars`, `standardize_vars`, `recode_vars`, `percentile_bin_vars`, `bin_vars`, `rename_pairs`, `drop_vars`, `action_codes`.
+
+### Narrative tokens
+
+Use `narrative.row_template` for per-step lines. Available row tokens include:
+
+`step`, `action`, `action_label`, `variable`, `new_variable`, `details`, `note`, `full_sentence`.
 
 ## APA 7 Reporting Guidance
 

@@ -46,7 +46,8 @@ humanize_flag_name <- function(name) {
   label <- gsub("[-_]", " ", as.character(name))
   words <- strsplit(label, " ", fixed = TRUE)[[1]]
   words <- words[words != ""]
-  words <- paste0(toupper(substr(words, 1, 1)), substr(words, 2))
+  if (length(words) == 0) return(label)
+  words <- paste0(toupper(substr(words, 1, 1)), substr(words, 2, nchar(words)))
   paste(words, collapse = " ")
 }
 
@@ -132,6 +133,10 @@ get_template_path <- function(analysis_label) {
   }
   if (label == "data exploration" || label == "data explorer") {
     path <- resolve_template_path("data_explorer.default", "data-explorer/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label == "data transformation" || label == "data transform") {
+    path <- resolve_template_path("data_transform.default", "data-transform/default-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
   }
   if (label == "correlations") {

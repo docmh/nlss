@@ -54,6 +54,8 @@ templates:
     grouped: "frequencies/grouped-template.md"
   data_explorer:
     default: "data-explorer/default-template.md"
+  data_transform:
+    default: "data-transform/default-template.md"
   correlations:
     default: "correlations/default-template.md"
     cross: "correlations/cross-correlation-template.md"
