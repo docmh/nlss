@@ -66,6 +66,15 @@ get_builtin_config <- function() {
         conf_level = 0.95,
         coerce = FALSE
       ),
+      scale = list(
+        vars_default = "numeric",
+        missing = "pairwise",
+        score = "sum",
+        omega = TRUE,
+        coerce = FALSE,
+        reverse_min = NULL,
+        reverse_max = NULL
+      ),
       crosstabs = list(
         percent = "all",
         apa_percent = "row",
@@ -110,6 +119,9 @@ get_builtin_config <- function() {
       crosstabs = list(
         default = "crosstabs/default-template.md",
         grouped = "crosstabs/grouped-template.md"
+      ),
+      scale = list(
+        default = "scale/default-template.md"
       )
     )
   )

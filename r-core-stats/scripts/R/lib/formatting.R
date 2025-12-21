@@ -22,6 +22,11 @@ humanize_flag_name <- function(name) {
     "p-adjust" = "P-value adjustment",
     "conf-level" = "Confidence level",
     "coerce" = "Coerce non-numeric",
+    "reverse" = "Reverse-scored items",
+    "reverse-min" = "Reverse min",
+    "reverse-max" = "Reverse max",
+    "score" = "Scale score",
+    "omega" = "Omega total",
     "x" = "X variables",
     "y" = "Y variables",
     "include-numeric" = "Include numeric variables",
@@ -141,6 +146,10 @@ get_template_path <- function(analysis_label) {
   }
   if (label == "correlations") {
     path <- resolve_template_path("correlations.default", "correlations/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label == "scale analysis" || label == "scale") {
+    path <- resolve_template_path("scale.default", "scale/default-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
   }
   if (label == "cross-tabulations") {

@@ -26,6 +26,14 @@ modules:
     p_adjust: "none"
     conf_level: 0.95
     coerce: false
+  scale:
+    vars_default: "numeric"
+    missing: "pairwise"
+    score: "sum"
+    omega: true
+    coerce: false
+    reverse_min: null
+    reverse_max: null
   crosstabs:
     percent: "all"
     apa_percent: "row"
@@ -62,3 +70,5 @@ templates:
   crosstabs:
     default: "crosstabs/default-template.md"
     grouped: "crosstabs/grouped-template.md"
+  scale:
+    default: "scale/default-template.md"
