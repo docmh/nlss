@@ -49,7 +49,29 @@ humanize_flag_name <- function(name) {
     "mu" = "Test value (mu)",
     "var-equal" = "Equal variances",
     "bootstrap" = "Bootstrap",
-    "bootstrap-samples" = "Bootstrap samples"
+    "bootstrap-samples" = "Bootstrap samples",
+    "analysis" = "Analysis",
+    "mode" = "Mode",
+    "dv" = "Dependent variable",
+    "between" = "Between-subjects factors",
+    "within" = "Within-subjects variables",
+    "subject-id" = "Subject ID",
+    "ivs" = "Predictors",
+    "blocks" = "Blocks",
+    "normality" = "Normality test",
+    "homogeneity" = "Homogeneity test",
+    "linearity" = "Linearity",
+    "homoscedasticity" = "Homoscedasticity",
+    "durbin-watson" = "Durbin-Watson",
+    "outliers" = "Outliers",
+    "influence" = "Influence",
+    "alpha" = "Alpha",
+    "vif" = "VIF",
+    "vif-warn" = "VIF warning threshold",
+    "vif-high" = "VIF high threshold",
+    "outlier-z" = "Outlier z threshold",
+    "cook-multiplier" = "Cook's D multiplier",
+    "max-shapiro-n" = "Max Shapiro n"
   )
   if (!is.null(name) && name %in% names(mapping)) return(unname(mapping[[name]]))
   label <- gsub("[-_]", " ", as.character(name))

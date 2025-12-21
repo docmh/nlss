@@ -105,6 +105,24 @@ get_builtin_config <- function() {
         conf_level = 0.95,
         bootstrap = FALSE,
         bootstrap_samples = 1000
+      ),
+      assumptions = list(
+        analysis = "auto",
+        vars_default = "numeric",
+        normality = "shapiro",
+        homogeneity = "levene",
+        linearity = TRUE,
+        homoscedasticity = TRUE,
+        vif = TRUE,
+        durbin_watson = TRUE,
+        outliers = TRUE,
+        influence = TRUE,
+        alpha = 0.05,
+        vif_warn = 5,
+        vif_high = 10,
+        outlier_z = 3,
+        cook_multiplier = 4,
+        max_shapiro_n = 5000
       )
     ),
     templates = list(
@@ -134,6 +152,11 @@ get_builtin_config <- function() {
       ),
       t_test = list(
         default = "t-test/default-template.md"
+      ),
+      assumptions = list(
+        ttest = "assumptions/ttest-template.md",
+        anova = "assumptions/anova-template.md",
+        regression = "assumptions/regression-template.md"
       )
     )
   )

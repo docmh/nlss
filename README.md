@@ -61,6 +61,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `scale` | `core-stats/scripts/R/scale.R` | Item analysis and reliability (alpha/omega) for scales. | Yes (`scale/default-template.md`) |
 | `data-explorer` | `core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Yes (`data-explorer/default-template.md`) |
 | `data-transform` | `core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Yes (`data-transform/default-template.md`) |
+| `assumptions` | `core-stats/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, and regression. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`) |
 | `t-test` | `core-stats/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
 
 Reference docs:
@@ -71,6 +72,7 @@ Reference docs:
 - `core-stats/references/scale.md`
 - `core-stats/references/data-explorer.md`
 - `core-stats/references/data-transform.md`
+- `core-stats/references/assumptions.md`
 - `core-stats/references/t-test.md`
 
 ## Basic usage by module
@@ -126,6 +128,13 @@ Rscript core-stats/scripts/R/data_transform.R \
   --csv data.csv --standardize age,score
 ```
 
+### Assumptions checks
+
+```bash
+Rscript core-stats/scripts/R/assumptions.R \
+  --csv data.csv --analysis ttest --vars score --group condition
+```
+
 ### t-tests
 
 ```bash
@@ -149,7 +158,7 @@ Defaults live in `core-stats/scripts/config.yml` and are loaded via `core-stats/
 
 ## APA template logic (YAML)
 
-Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, and data transformation).
+Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, data transformation, assumptions, and t-tests).
 
 Key YAML fields:
 
