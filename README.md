@@ -54,20 +54,20 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 
 | Subskill | Script | Purpose | APA template |
 | --- | --- | --- | --- |
-| `descriptive-stats-r` | `r-core-stats/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. | Yes (`descriptive-stats/default-template.md`) |
-| `frequencies-r` | `r-core-stats/scripts/R/frequencies.R` | Frequency tables for categorical variables. | Built-in (no template file) |
-| `crosstabs-r` | `r-core-stats/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
-| `correlations-r` | `r-core-stats/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`) |
-| `data-explorer-r` | `r-core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Built-in (no template file) |
-| `data-transform-r` | `r-core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Built-in (no template file) |
+| `descriptive-stats` | `r-core-stats/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. | Yes (`descriptive-stats/default-template.md`) |
+| `frequencies` | `r-core-stats/scripts/R/frequencies.R` | Frequency tables for categorical variables. | Built-in (no template file) |
+| `crosstabs` | `r-core-stats/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
+| `correlations` | `r-core-stats/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`) |
+| `data-explorer` | `r-core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Built-in (no template file) |
+| `data-transform` | `r-core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Built-in (no template file) |
 
 Reference docs:
-- `r-core-stats/references/descriptive-stats-r.md`
-- `r-core-stats/references/frequencies-r.md`
-- `r-core-stats/references/crosstabs-r.md`
-- `r-core-stats/references/correlations-r.md`
-- `r-core-stats/references/data-explorer-r.md`
-- `r-core-stats/references/data-transform-r.md`
+- `r-core-stats/references/descriptive-stats.md`
+- `r-core-stats/references/frequencies.md`
+- `r-core-stats/references/crosstabs.md`
+- `r-core-stats/references/correlations.md`
+- `r-core-stats/references/data-explorer.md`
+- `r-core-stats/references/data-transform.md`
 
 ## Basic usage by module
 

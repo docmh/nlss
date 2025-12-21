@@ -90,10 +90,10 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 ## Subskills
 
-- [descriptive-stats-r](references/descriptive-stats-r.md): APA 7 style descriptive statistics using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
-- [frequencies-r](references/frequencies-r.md): APA 7 style frequency tables for categorical variables using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
-- [crosstabs-r](references/crosstabs-r.md): APA 7 style cross-tabulations with chi-square or Fisher tests and association measures using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
-- [correlations-r](references/correlations-r.md): APA 7 style correlation analyses (Pearson/Spearman/Kendall), cross-correlations, partial correlations, and p-value adjustments using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
-- [scale-r](references/scale-r.md): APA 7 style scale item analysis and reliability (alpha/omega) using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
-- [data-explorer-r](references/data-explorer-r.md): Data dictionary style exploration with inferred scale levels, missingness, and value level tables using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
-- [data-transform-r](references/data-transform-r.md): Base R data transformations for derived variables, transforms/standardization, recoding, renaming, and dropping columns with APA-ready change logs.
+- [descriptive-stats](references/descriptive-stats.md): APA 7 style descriptive statistics using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
+- [frequencies](references/frequencies.md): APA 7 style frequency tables for categorical variables using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
+- [crosstabs](references/crosstabs.md): APA 7 style cross-tabulations with chi-square or Fisher tests and association measures using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
+- [correlations](references/correlations.md): APA 7 style correlation analyses (Pearson/Spearman/Kendall), cross-correlations, partial correlations, and p-value adjustments using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
+- [scale](references/scale.md): APA 7 style scale item analysis and reliability (alpha/omega) using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
+- [data-explorer](references/data-explorer.md): Data dictionary style exploration with inferred scale levels, missingness, and value level tables using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.
+- [data-transform](references/data-transform.md): Base R data transformations for derived variables, transforms/standardization, recoding, renaming, and dropping columns with APA-ready change logs.
