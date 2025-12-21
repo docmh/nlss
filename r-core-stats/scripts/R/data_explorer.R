@@ -278,6 +278,56 @@ resolve_format_percent <- function(value, digits) {
   format(round(value, digits), nsmall = digits, trim = TRUE)
 }
 
+resolve_get_template_meta <- function(path) {
+  if (exists("get_template_meta", mode = "function")) {
+    return(get("get_template_meta", mode = "function")(path))
+  }
+  list()
+}
+
+resolve_get_template_path <- function(key, default_relative = NULL) {
+  if (exists("resolve_template_path", mode = "function")) {
+    return(get("resolve_template_path", mode = "function")(key, default_relative))
+  }
+  NULL
+}
+
+resolve_normalize_table_columns <- function(columns, default_specs) {
+  if (exists("normalize_table_columns", mode = "function")) {
+    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
+  }
+  default_specs
+}
+
+resolve_drop_empty_columns <- function(columns, rows) {
+  if (exists("drop_empty_columns", mode = "function")) {
+    return(get("drop_empty_columns", mode = "function")(columns, rows))
+  }
+  list(columns = columns, rows = rows)
+}
+
+resolve_render_markdown_table <- function(headers, rows) {
+  if (exists("render_markdown_table", mode = "function")) {
+    return(get("render_markdown_table", mode = "function")(headers, rows))
+  }
+  ""
+}
+
+resolve_as_cell_text <- function(value) {
+  if (exists("as_cell_text", mode = "function")) {
+    return(get("as_cell_text", mode = "function")(value))
+  }
+  if (is.null(value) || length(value) == 0 || is.na(value)) return("")
+  as.character(value)
+}
+
+resolve_get_next_table_number <- function(path) {
+  if (exists("get_next_table_number", mode = "function")) {
+    return(get("get_next_table_number", mode = "function")(path))
+  }
+  1
+}
+
 
 is_integer_like <- function(x) {
   if (!is.numeric(x)) return(FALSE)
@@ -440,6 +490,329 @@ build_levels_table <- function(vec, variable, max_levels, top_n) {
 format_num <- function(value, digits) {
   if (is.na(value)) return("NA")
   format(round(value, digits), nsmall = digits, trim = TRUE)
+}
+
+format_table_num <- function(value, digits) {
+  if (is.na(value)) return("")
+  format(round(value, digits), nsmall = digits, trim = TRUE)
+}
+
+format_logical_cell <- function(value) {
+  if (is.na(value)) return("")
+  ifelse(isTRUE(value), "Yes", "No")
+}
+
+build_overview_table_body <- function(df, digits, table_spec = NULL) {
+  display <- resolve_round_numeric(df, digits)
+  default_columns <- list(
+    list(key = "variable", label = "Variable"),
+    list(key = "class", label = "Class"),
+    list(key = "measurement_level", label = "Scale"),
+    list(key = "valid_n", label = "n"),
+    list(key = "missing_pct", label = "Missing %"),
+    list(key = "unique_n", label = "Unique"),
+    list(key = "mean", label = "M"),
+    list(key = "sd", label = "SD"),
+    list(key = "min", label = "Min"),
+    list(key = "max", label = "Max")
+  )
+  columns <- resolve_normalize_table_columns(
+    if (!is.null(table_spec$columns)) table_spec$columns else NULL,
+    default_columns
+  )
+  rows <- list()
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, , drop = FALSE]
+    row_vals <- character(0)
+    for (col in columns) {
+      key <- col$key
+      val <- ""
+      if (key %in% names(row)) {
+        cell <- row[[key]][1]
+        if (key %in% c("variable", "class", "storage", "measurement_level", "measurement_note", "example_values", "levels_note")) {
+          val <- resolve_as_cell_text(cell)
+        } else if (key %in% c("total_n", "valid_n", "missing_n", "unique_n")) {
+          val <- ifelse(is.na(cell), "", as.character(cell))
+        } else if (key == "missing_pct") {
+          val <- resolve_format_percent(cell, digits)
+        } else if (key %in% c("mean", "sd", "min", "max", "median", "q1", "q3")) {
+          val <- format_table_num(cell, digits)
+        } else if (key %in% c("levels_included", "levels_truncated")) {
+          if (is.logical(cell)) {
+            val <- format_logical_cell(cell)
+          } else {
+            val <- resolve_as_cell_text(cell)
+          }
+        } else if (is.numeric(cell)) {
+          val <- format_table_num(cell, digits)
+        } else if (is.logical(cell)) {
+          val <- format_logical_cell(cell)
+        } else {
+          val <- resolve_as_cell_text(cell)
+        }
+      }
+      row_vals <- c(row_vals, val)
+    }
+    rows[[length(rows) + 1]] <- row_vals
+  }
+  filtered <- resolve_drop_empty_columns(columns, rows)
+  columns <- filtered$columns
+  rows <- filtered$rows
+  headers <- vapply(columns, function(col) {
+    if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
+  }, character(1))
+  list(
+    body = resolve_render_markdown_table(headers, rows),
+    columns = vapply(columns, function(col) col$key, character(1))
+  )
+}
+
+build_levels_table_body <- function(df, digits, table_spec = NULL) {
+  if (nrow(df) == 0) {
+    return(list(
+      body = "(No level tables produced; see variable overview for unique counts.)",
+      columns = character(0)
+    ))
+  }
+  display <- resolve_round_numeric(df, digits)
+  default_columns <- list(
+    list(key = "variable", label = "Variable"),
+    list(key = "level", label = "Level"),
+    list(key = "n", label = "n"),
+    list(key = "pct_total", label = "%"),
+    list(key = "pct_valid", label = "Valid %")
+  )
+  columns <- resolve_normalize_table_columns(
+    if (!is.null(table_spec$columns)) table_spec$columns else NULL,
+    default_columns
+  )
+  rows <- list()
+  combo_df <- unique(display[, "variable", drop = FALSE])
+  for (idx in seq_len(nrow(combo_df))) {
+    var <- combo_df$variable[idx]
+    subset <- display[display$variable == var, , drop = FALSE]
+    total_n <- subset$total_n[1]
+    missing_n <- subset$missing_n[1]
+    missing_pct <- subset$missing_pct[1]
+    for (i in seq_len(nrow(subset))) {
+      row <- subset[i, , drop = FALSE]
+      row_vals <- character(0)
+      for (col in columns) {
+        key <- col$key
+        val <- ""
+        if (key %in% c("variable", "level")) {
+          val <- resolve_as_cell_text(row[[key]][1])
+        } else if (key %in% c("n", "total_n", "missing_n")) {
+          val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
+        } else if (key %in% c("pct_total", "pct_valid", "missing_pct")) {
+          val <- resolve_format_percent(row[[key]][1], digits)
+        } else if (key %in% names(row)) {
+          cell <- row[[key]][1]
+          if (is.numeric(cell)) {
+            val <- format_table_num(cell, digits)
+          } else if (is.logical(cell)) {
+            val <- format_logical_cell(cell)
+          } else {
+            val <- resolve_as_cell_text(cell)
+          }
+        }
+        row_vals <- c(row_vals, val)
+      }
+      rows[[length(rows) + 1]] <- row_vals
+    }
+    if (!is.na(missing_n) && missing_n > 0) {
+      row_vals <- character(0)
+      for (col in columns) {
+        key <- col$key
+        val <- ""
+        if (key == "variable") {
+          val <- resolve_as_cell_text(var)
+        } else if (key == "level") {
+          val <- "Missing"
+        } else if (key == "n") {
+          val <- as.character(missing_n)
+        } else if (key == "pct_total") {
+          val <- resolve_format_percent(missing_pct, digits)
+        } else if (key == "pct_valid") {
+          val <- ""
+        } else if (key == "total_n") {
+          val <- ifelse(is.na(total_n), "", as.character(total_n))
+        } else if (key == "missing_n") {
+          val <- ifelse(is.na(missing_n), "", as.character(missing_n))
+        } else if (key == "missing_pct") {
+          val <- resolve_format_percent(missing_pct, digits)
+        }
+        row_vals <- c(row_vals, val)
+      }
+      rows[[length(rows) + 1]] <- row_vals
+    }
+  }
+  filtered <- resolve_drop_empty_columns(columns, rows)
+  columns <- filtered$columns
+  rows <- filtered$rows
+  headers <- vapply(columns, function(col) {
+    if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
+  }, character(1))
+  list(
+    body = resolve_render_markdown_table(headers, rows),
+    columns = vapply(columns, function(col) col$key, character(1))
+  )
+}
+
+build_overview_note_tokens <- function() {
+  note_default <- "Scale levels are heuristic; interval/ratio cannot be distinguished automatically."
+  list(
+    overview_note_default = note_default,
+    overview_note_body = note_default
+  )
+}
+
+build_levels_note_tokens <- function(levels_df, overview_df, column_keys, top_n) {
+  if (nrow(levels_df) == 0) {
+    note_default <- "None."
+    return(list(
+      levels_note_default = note_default,
+      levels_note_body = note_default,
+      pct_total_note = "",
+      pct_valid_note = "",
+      missing_note = "",
+      truncation_note = ""
+    ))
+  }
+  pct_total_note <- ""
+  pct_valid_note <- ""
+  if ("pct_total" %in% column_keys) {
+    pct_total_note <- "% = percent of total."
+  }
+  if ("pct_valid" %in% column_keys) {
+    pct_valid_note <- "Valid % excludes missing values."
+  }
+  missing_note <- "Missing values are listed separately."
+  truncation_note <- ""
+  if (any(overview_df$levels_truncated, na.rm = TRUE)) {
+    truncation_note <- paste0(
+      "Levels truncated to top ",
+      top_n,
+      "; remaining levels combined as Other (remaining)."
+    )
+  }
+  note_parts <- c(pct_total_note, pct_valid_note, missing_note, truncation_note)
+  note_default <- paste(note_parts[nzchar(note_parts)], collapse = " ")
+  list(
+    levels_note_default = note_default,
+    levels_note_body = note_default,
+    pct_total_note = pct_total_note,
+    pct_valid_note = pct_valid_note,
+    missing_note = missing_note,
+    truncation_note = truncation_note
+  )
+}
+
+build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
+  rows <- list()
+  for (i in seq_len(nrow(overview_df))) {
+    row <- overview_df[i, , drop = FALSE]
+    label <- resolve_as_cell_text(row$variable)
+    total_n <- row$total_n
+    valid_n <- row$valid_n
+    missing_n <- row$missing_n
+    missing_pct <- row$missing_pct
+    unique_n <- row$unique_n
+
+    total_n_str <- ifelse(is.na(total_n), "NA", as.character(total_n))
+    valid_n_str <- ifelse(is.na(valid_n), "NA", as.character(valid_n))
+    missing_n_str <- ifelse(is.na(missing_n), "NA", as.character(missing_n))
+    missing_pct_str <- ifelse(is.na(missing_pct), "NA", resolve_format_percent(missing_pct, digits))
+    unique_n_str <- ifelse(is.na(unique_n), "NA", as.character(unique_n))
+
+    mean_str <- ifelse(is.na(row$mean), "NA", format_num(row$mean, digits))
+    sd_str <- ifelse(is.na(row$sd), "NA", format_num(row$sd, digits))
+    min_str <- ifelse(is.na(row$min), "NA", format_num(row$min, digits))
+    max_str <- ifelse(is.na(row$max), "NA", format_num(row$max, digits))
+    median_str <- ifelse(is.na(row$median), "NA", format_num(row$median, digits))
+    q1_str <- ifelse(is.na(row$q1), "NA", format_num(row$q1, digits))
+    q3_str <- ifelse(is.na(row$q3), "NA", format_num(row$q3, digits))
+
+    missing_text <- paste0("Missing = ", missing_n_str, " (", missing_pct_str, "%)")
+    levels_text <- ""
+    if (nrow(levels_df) > 0) {
+      subset <- levels_df[levels_df$variable == row$variable[1], , drop = FALSE]
+      if (nrow(subset) > 0) {
+        level_parts <- character(0)
+        for (j in seq_len(nrow(subset))) {
+          lv <- subset[j, , drop = FALSE]
+          level_parts <- c(
+            level_parts,
+            sprintf(
+              "%s (n = %s, valid %% = %s)",
+              lv$level[1],
+              ifelse(is.na(lv$n), "NA", as.character(lv$n)),
+              ifelse(is.na(lv$pct_valid), "NA", resolve_format_percent(lv$pct_valid, digits))
+            )
+          )
+        }
+        levels_text <- paste(level_parts, collapse = "; ")
+      }
+    }
+
+    if (is.na(total_n) || total_n == 0) {
+      line <- sprintf("%s: no observations available.", label)
+    } else {
+      line <- sprintf(
+        "%s (%s, scale: %s): n = %s, missing = %s (%s%%), unique values = %s.",
+        label,
+        resolve_as_cell_text(row$class),
+        resolve_as_cell_text(row$measurement_level),
+        valid_n_str,
+        missing_n_str,
+        missing_pct_str,
+        unique_n_str
+      )
+      if (!is.na(row$mean)) {
+        line <- paste0(
+          line,
+          " M = ", mean_str,
+          ", SD = ", sd_str,
+          ", Min = ", min_str,
+          ", Max = ", max_str,
+          "."
+        )
+      }
+      if (nzchar(levels_text)) {
+        line <- paste0(line, " Levels: ", levels_text, ".")
+        if (isTRUE(row$levels_truncated[1])) {
+          line <- paste0(line, " Remaining levels combined as Other.")
+        }
+      }
+    }
+
+    rows[[length(rows) + 1]] <- list(
+      label = label,
+      variable = resolve_as_cell_text(row$variable),
+      class = resolve_as_cell_text(row$class),
+      storage = resolve_as_cell_text(row$storage),
+      measurement_level = resolve_as_cell_text(row$measurement_level),
+      measurement_note = resolve_as_cell_text(row$measurement_note),
+      total_n = total_n_str,
+      valid_n = valid_n_str,
+      missing_n = missing_n_str,
+      missing_pct = missing_pct_str,
+      unique_n = unique_n_str,
+      example_values = resolve_as_cell_text(row$example_values),
+      mean = mean_str,
+      sd = sd_str,
+      min = min_str,
+      max = max_str,
+      median = median_str,
+      q1 = q1_str,
+      q3 = q3_str,
+      levels_text = levels_text,
+      missing_text = missing_text,
+      levels_truncated = format_logical_cell(row$levels_truncated[1]),
+      full_sentence = line
+    )
+  }
+  rows
 }
 
 format_apa_overview_table <- function(df, digits) {
@@ -680,7 +1053,50 @@ main <- function() {
     format_apa_levels_table(levels_df, digits)
   )
   apa_text <- format_apa_text(overview_df, levels_df, digits)
-  resolve_append_apa_report(apa_report_path, "Data exploration", apa_tables, apa_text)
+  template_path <- resolve_get_template_path("data_explorer.default", "data-explorer/default-template.md")
+  template_meta <- resolve_get_template_meta(template_path)
+  overview_spec <- template_meta$table
+  if (is.null(overview_spec) && !is.null(template_meta$tables$overview)) {
+    overview_spec <- template_meta$tables$overview
+  }
+  levels_spec <- template_meta$levels_table
+  if (is.null(levels_spec) && !is.null(template_meta$tables$levels)) {
+    levels_spec <- template_meta$tables$levels
+  }
+  overview_table <- build_overview_table_body(overview_df, digits, overview_spec)
+  levels_table <- build_levels_table_body(levels_df, digits, levels_spec)
+  overview_note_tokens <- build_overview_note_tokens()
+  levels_note_tokens <- build_levels_note_tokens(levels_df, overview_df, levels_table$columns, top_n)
+  narrative_rows <- build_explorer_narrative_rows(overview_df, levels_df, digits)
+  table_start <- as.integer(resolve_get_next_table_number(apa_report_path))
+  template_context <- list(
+    tokens = c(
+      list(
+        overview_table_body = overview_table$body,
+        levels_table_body = levels_table$body,
+        table_number_next = as.character(table_start + 1),
+        narrative_default = apa_text
+      ),
+      overview_note_tokens,
+      levels_note_tokens
+    ),
+    narrative_rows = narrative_rows
+  )
+  analysis_flags <- list(
+    vars = vars,
+    `max-levels` = max_levels,
+    `top-n` = top_n,
+    digits = digits
+  )
+  resolve_append_apa_report(
+    apa_report_path,
+    "Data exploration",
+    apa_tables,
+    apa_text,
+    analysis_flags = analysis_flags,
+    template_path = template_path,
+    template_context = template_context
+  )
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")

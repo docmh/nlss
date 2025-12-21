@@ -97,6 +97,9 @@ get_builtin_config <- function() {
         default = "frequencies/default-template.md",
         grouped = "frequencies/grouped-template.md"
       ),
+      data_explorer = list(
+        default = "data-explorer/default-template.md"
+      ),
       correlations = list(
         default = "correlations/default-template.md",
         cross = "correlations/cross-correlation-template.md"

@@ -130,6 +130,10 @@ get_template_path <- function(analysis_label) {
     path <- resolve_template_path("frequencies.default", "frequencies/default-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
   }
+  if (label == "data exploration" || label == "data explorer") {
+    path <- resolve_template_path("data_explorer.default", "data-explorer/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
   if (label == "correlations") {
     path <- resolve_template_path("correlations.default", "correlations/default-template.md")
     if (!is.null(path) && file.exists(path)) return(path)

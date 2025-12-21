@@ -69,9 +69,47 @@ Rscript <path to scripts/R/data_explorer.R> --interactive
 - `apa_report.md`: APA 7 report containing analysis type, tables, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
-## APA 7 Templates
+## APA 7 Template (YAML)
 
-This module currently uses the built-in APA report format (no YAML template mapping in `templates.*`). To customize the APA layout, add a template under `r-core-stats/assets` and wire it through the template system.
+Use the Markdown template at `r-core-stats/assets/data-explorer/default-template.md` when assembling a data exploration report. If the template exists, `data_explorer.R` uses it for `apa_report.md`.
+
+- The template path can be overridden via `templates.data_explorer.default` in `r-core-stats/scripts/config.yml`.
+- Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
+  - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`) for the overview table.
+  - `levels_table.columns`: ordered column definitions for the levels table.
+  - `narrative.template` or `narrative.row_template`: overrides the narrative text.
+
+### Table column keys
+
+Overview table keys include:
+
+`variable`, `class`, `storage`, `measurement_level`, `measurement_note`, `total_n`, `valid_n`, `missing_n`, `missing_pct`, `unique_n`, `example_values`, `mean`, `sd`, `min`, `max`, `median`, `q1`, `q3`, `levels_included`, `levels_truncated`, `levels_note`.
+
+Levels table keys include:
+
+`variable`, `level`, `n`, `pct_total`, `pct_valid`, `total_n`, `missing_n`, `missing_pct`.
+
+### Table tokens
+
+Table-level tokens include:
+
+`overview_table_body`, `levels_table_body`, `table_number_next`.
+
+### Note tokens
+
+Overview note tokens:
+
+`overview_note_default`, `overview_note_body`.
+
+Levels note tokens:
+
+`levels_note_default`, `levels_note_body`, `pct_total_note`, `pct_valid_note`, `missing_note`, `truncation_note`.
+
+### Narrative tokens
+
+Use `narrative.row_template` for per-variable lines. Available row tokens include:
+
+`label`, `variable`, `class`, `storage`, `measurement_level`, `measurement_note`, `total_n`, `valid_n`, `missing_n`, `missing_pct`, `unique_n`, `example_values`, `mean`, `sd`, `min`, `max`, `median`, `q1`, `q3`, `levels_text`, `missing_text`, `levels_truncated`, `full_sentence`.
 
 ## APA 7 Reporting Guidance
 
