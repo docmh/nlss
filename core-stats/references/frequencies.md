@@ -58,7 +58,7 @@ Rscript <path to scripts/R/frequencies.R> --interactive
 
 ### Options
 
-- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--vars` defaults to `modules.frequencies.vars_default` (typically non-numeric columns). Use `--include-numeric` to include numeric columns when `--vars` is omitted.
 - `--group` is optional and produces grouped frequency tables (one grouping variable).
@@ -75,12 +75,12 @@ Rscript <path to scripts/R/frequencies.R> --interactive
 
 ## APA 7 Templates
 
-Use the Markdown templates in `r-core-stats/assets/frequencies` when assembling frequency reports. If the template exists, `frequencies.R` uses it for `apa_report.md`.
+Use the Markdown templates in `core-stats/assets/frequencies` when assembling frequency reports. If the template exists, `frequencies.R` uses it for `apa_report.md`.
 When `--group` is provided, the grouped template is selected; otherwise the default template is used.
 
 ### YAML template controls
 
-- Template paths can be overridden via `templates.frequencies.default` and `templates.frequencies.grouped` in `r-core-stats/scripts/config.yml`.
+- Template paths can be overridden via `templates.frequencies.default` and `templates.frequencies.grouped` in `core-stats/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
   - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).

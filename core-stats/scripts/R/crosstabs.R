@@ -292,7 +292,7 @@ resolve_get_assets_dir <- function() {
   if (exists("bootstrap_dir", inherits = TRUE)) {
     return(file.path(get("bootstrap_dir", inherits = TRUE), "..", "..", "assets"))
   }
-  file.path(getwd(), "r-core-stats", "assets")
+  file.path(getwd(), "core-stats", "assets")
 }
 
 resolve_get_template_path <- function(key, default_relative = NULL) {

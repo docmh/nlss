@@ -54,7 +54,7 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 
 ### Options
 
-- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--vars` defaults to `modules.descriptive_stats.vars_default` (typically numeric columns) if omitted.
 - `--group` is optional and produces grouped summaries.
@@ -70,9 +70,9 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 
 ## APA 7 Template (YAML)
 
-Use the Markdown template at `r-core-stats/assets/descriptive-stats/default-template.md` when assembling a descriptive statistics report. If the template exists, it must be used for `apa_report.md`.
+Use the Markdown template at `core-stats/assets/descriptive-stats/default-template.md` when assembling a descriptive statistics report. If the template exists, it must be used for `apa_report.md`.
 
-- The template path can be overridden via `templates.descriptive_stats.default` in `r-core-stats/scripts/config.yml`.
+- The template path can be overridden via `templates.descriptive_stats.default` in `core-stats/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
   - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).

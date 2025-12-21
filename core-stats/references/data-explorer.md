@@ -54,7 +54,7 @@ Rscript <path to scripts/R/data_explorer.R> --interactive
 
 ### Options
 
-- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--vars` defaults to `modules.data_explorer.vars_default` (typically all columns) if omitted.
 - `--max-levels` controls when level tables are truncated (default: `modules.data_explorer.max_levels`). Categorical variables with more levels are summarized with top `--top-n` levels and an "Other (remaining)" row.
@@ -71,9 +71,9 @@ Rscript <path to scripts/R/data_explorer.R> --interactive
 
 ## APA 7 Template (YAML)
 
-Use the Markdown template at `r-core-stats/assets/data-explorer/default-template.md` when assembling a data exploration report. If the template exists, `data_explorer.R` uses it for `apa_report.md`.
+Use the Markdown template at `core-stats/assets/data-explorer/default-template.md` when assembling a data exploration report. If the template exists, `data_explorer.R` uses it for `apa_report.md`.
 
-- The template path can be overridden via `templates.data_explorer.default` in `r-core-stats/scripts/config.yml`.
+- The template path can be overridden via `templates.data_explorer.default` in `core-stats/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
   - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`) for the overview table.
   - `levels_table.columns`: ordered column definitions for the levels table.

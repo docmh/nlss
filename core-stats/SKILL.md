@@ -1,5 +1,5 @@
 ---
-name: r-core-stats
+name: core-stats
 description: Use when statistical analyses are requested or when Codex should route to a specific statistic skill in this repo.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
@@ -71,7 +71,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - Use `defaults.output_dir` from `scripts/config.yml` for scratch outputs (defaults to `<working directory>/outputs/tmp`, relative to the working directory where the script runs).
 - If the user does not explicitly pass `--out`, the default output directory **must** be `defaults.output_dir`.
 - Each analysis appends `apa_report.md` (APA table + narrative) and appends `analysis_log.jsonl` when logging is enabled.
-- For `apa_report.md`, templates in `r-core-stats/assets` must always be used when available.
+- For `apa_report.md`, templates in `core-stats/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
 
 ## APA Template System (YAML)

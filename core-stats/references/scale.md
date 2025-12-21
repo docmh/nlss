@@ -65,7 +65,7 @@ Rscript <path to scripts/R/scale.R> --interactive
 
 ### Options
 
-- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--vars` defaults to `modules.scale.vars_default` (typically numeric columns) if omitted.
 - `--group` is optional and produces grouped scale analyses.
@@ -83,13 +83,13 @@ Rscript <path to scripts/R/scale.R> --interactive
 
 - `apa_report.md`: APA 7 report containing the item analysis table and narrative reliability summary.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
-- When `--out` is omitted, outputs are written to `defaults.output_dir` from `r-core-stats/scripts/config.yml`.
+- When `--out` is omitted, outputs are written to `defaults.output_dir` from `core-stats/scripts/config.yml`.
 
 ## APA 7 Templates
 
-Use the Markdown template at `r-core-stats/assets/scale/default-template.md` when assembling scale reports. If the template exists, it must be used for `apa_report.md`.
+Use the Markdown template at `core-stats/assets/scale/default-template.md` when assembling scale reports. If the template exists, it must be used for `apa_report.md`.
 
-- Template paths can be overridden via `templates.scale.default` in `r-core-stats/scripts/config.yml`.
+- Template paths can be overridden via `templates.scale.default` in `core-stats/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
   - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).

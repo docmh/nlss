@@ -24,7 +24,7 @@ No build step. Clone and run the scripts directly:
 
 ```bash
 git clone <repo-url>
-cd r-core-stats
+cd core-stats
 ```
 
 If you are on Windows, ensure `Rscript.exe` is on your PATH or set `RSCRIPT` to its full path.
@@ -36,38 +36,38 @@ Outputs go to `./outputs/tmp` by default when `--out` is omitted. Each run write
 ### Windows (PowerShell wrapper; WSL first, Windows fallback)
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File r-core-stats/scripts/run_rscript.ps1 `
-  r-core-stats/scripts/R/descriptive_stats.R `
+powershell -ExecutionPolicy Bypass -File core-stats/scripts/run_rscript.ps1 `
+  core-stats/scripts/R/descriptive_stats.R `
   --csv data.csv --vars age,score --out outputs\tmp
 ```
 
 ### WSL/Linux (Rscript directly)
 
 ```bash
-Rscript r-core-stats/scripts/R/descriptive_stats.R \
+Rscript core-stats/scripts/R/descriptive_stats.R \
   --csv data.csv --vars age,score --out outputs/tmp
 ```
 
 ## Available modules (subskills)
 
-Each subskill has a reference file describing inputs, flags, and outputs. Template-driven modules can be customized via `r-core-stats/assets/<subskill>/` and `templates.*` in `r-core-stats/scripts/config.yml`.
+Each subskill has a reference file describing inputs, flags, and outputs. Template-driven modules can be customized via `core-stats/assets/<subskill>/` and `templates.*` in `core-stats/scripts/config.yml`.
 
 | Subskill | Script | Purpose | APA template |
 | --- | --- | --- | --- |
-| `descriptive-stats` | `r-core-stats/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. | Yes (`descriptive-stats/default-template.md`) |
-| `frequencies` | `r-core-stats/scripts/R/frequencies.R` | Frequency tables for categorical variables. | Built-in (no template file) |
-| `crosstabs` | `r-core-stats/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
-| `correlations` | `r-core-stats/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`) |
-| `data-explorer` | `r-core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Built-in (no template file) |
-| `data-transform` | `r-core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Built-in (no template file) |
+| `descriptive-stats` | `core-stats/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. | Yes (`descriptive-stats/default-template.md`) |
+| `frequencies` | `core-stats/scripts/R/frequencies.R` | Frequency tables for categorical variables. | Built-in (no template file) |
+| `crosstabs` | `core-stats/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
+| `correlations` | `core-stats/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`) |
+| `data-explorer` | `core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Built-in (no template file) |
+| `data-transform` | `core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Built-in (no template file) |
 
 Reference docs:
-- `r-core-stats/references/descriptive-stats.md`
-- `r-core-stats/references/frequencies.md`
-- `r-core-stats/references/crosstabs.md`
-- `r-core-stats/references/correlations.md`
-- `r-core-stats/references/data-explorer.md`
-- `r-core-stats/references/data-transform.md`
+- `core-stats/references/descriptive-stats.md`
+- `core-stats/references/frequencies.md`
+- `core-stats/references/crosstabs.md`
+- `core-stats/references/correlations.md`
+- `core-stats/references/data-explorer.md`
+- `core-stats/references/data-transform.md`
 
 ## Basic usage by module
 
@@ -76,42 +76,42 @@ Each run writes `apa_report.md` in the output directory and appends to `analysis
 ### Descriptive statistics
 
 ```bash
-Rscript r-core-stats/scripts/R/descriptive_stats.R \
+Rscript core-stats/scripts/R/descriptive_stats.R \
   --csv data.csv --vars age,score --group condition --out outputs/tmp
 ```
 
 ### Frequencies
 
 ```bash
-Rscript r-core-stats/scripts/R/frequencies.R \
+Rscript core-stats/scripts/R/frequencies.R \
   --csv data.csv --vars gender,condition --group condition --out outputs/tmp
 ```
 
 ### Cross-tabulations
 
 ```bash
-Rscript r-core-stats/scripts/R/crosstabs.R \
+Rscript core-stats/scripts/R/crosstabs.R \
   --csv data.csv --row gender --col condition --group site --out outputs/tmp
 ```
 
 ### Correlations
 
 ```bash
-Rscript r-core-stats/scripts/R/correlations.R \
+Rscript core-stats/scripts/R/correlations.R \
   --csv data.csv --vars age,score,stress --method spearman --out outputs/tmp
 ```
 
 ### Data exploration
 
 ```bash
-Rscript r-core-stats/scripts/R/data_explorer.R \
+Rscript core-stats/scripts/R/data_explorer.R \
   --csv data.csv --vars age,score --max-levels 15 --top-n 8 --out outputs/tmp
 ```
 
 ### Data transformation
 
 ```bash
-Rscript r-core-stats/scripts/R/data_transform.R \
+Rscript core-stats/scripts/R/data_transform.R \
   --csv data.csv --standardize age,score --out outputs/tmp
 ```
 
@@ -121,7 +121,7 @@ All scripts default to `./outputs/tmp` when `--out` is omitted. Keep this folder
 
 ## Configuration logic
 
-Defaults live in `r-core-stats/scripts/config.yml` and are loaded via `r-core-stats/scripts/R/lib/config.R`.
+Defaults live in `core-stats/scripts/config.yml` and are loaded via `core-stats/scripts/R/lib/config.R`.
 
 - `defaults.*` apply across all modules (for example `defaults.output_dir`).
 - `modules.<subskill>.*` holds per-module defaults (for example `modules.crosstabs.percent`).
@@ -131,7 +131,7 @@ Defaults live in `r-core-stats/scripts/config.yml` and are loaded via `r-core-st
 
 ## APA template logic (YAML)
 
-Templates are Markdown files under `r-core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, correlations, and crosstabs).
+Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, correlations, and crosstabs).
 
 Key YAML fields:
 
@@ -140,26 +140,26 @@ Key YAML fields:
 - `note.template`: controls `{{note_body}}` rendering (defaults to `{{note_default}}`).
 - `narrative.template` or `narrative.row_template`: controls `{{narrative}}` rendering; `row_template` repeats over `narrative_rows` and can be joined with `narrative.join`.
 
-Template paths can be overridden in `r-core-stats/scripts/config.yml` under `templates.<subskill>.<name>` (for example `templates.crosstabs.grouped`). Edit the template files or point to your own to change APA output without touching the R scripts.
+Template paths can be overridden in `core-stats/scripts/config.yml` under `templates.<subskill>.<name>` (for example `templates.crosstabs.grouped`). Edit the template files or point to your own to change APA output without touching the R scripts.
 
 ## Using with Codex (Codes)
 
-Codex discovers this repo's skill via `AGENTS.md` and `r-core-stats/SKILL.md`. Open Codex in the repo root and ask for a statistical task; it should route to the correct subskill automatically.
+Codex discovers this repo's skill via `AGENTS.md` and `core-stats/SKILL.md`. Open Codex in the repo root and ask for a statistical task; it should route to the correct subskill automatically.
 
 Example prompt:
 
 ```
-Use r-core-stats to run correlations (Pearson) on data.csv for age, score, and stress.
+Use core-stats to run correlations (Pearson) on data.csv for age, score, and stress.
 Write outputs to outputs/tmp and summarize the APA text.
 ```
 
 ## Using with Claude Code
 
-Claude Code can use the same repo structure. Open the repo and tell Claude to use the r-core-stats subskill reference files and scripts.
+Claude Code can use the same repo structure. Open the repo and tell Claude to use the core-stats subskill reference files and scripts.
 
 Example prompt:
 
 ```
-Use the r-core-stats repo. Run descriptive_stats on data.csv for age and score.
+Use the core-stats repo. Run descriptive_stats on data.csv for age and score.
 Use outputs/tmp and report the APA narrative and table file names.
 ```

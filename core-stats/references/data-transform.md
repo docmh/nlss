@@ -89,7 +89,7 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 
 ## Options
 
-- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--calc` defines new variables as `newvar=expression`, separated by `|`.
 - `--transform` uses `var=log|var2=sqrt|var3=scale` (supported: `log`, `log10`, `sqrt`, `exp`, `abs`, `center`, `scale`).
@@ -125,11 +125,11 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 
 ## APA 7 Templates
 
-Use the Markdown template at `r-core-stats/assets/data-transform/default-template.md` when assembling data transformation reports. If the template exists, `data_transform.R` uses it for `apa_report.md`.
+Use the Markdown template at `core-stats/assets/data-transform/default-template.md` when assembling data transformation reports. If the template exists, `data_transform.R` uses it for `apa_report.md`.
 
 ### YAML template controls
 
-- The template path can be overridden via `templates.data_transform.default` in `r-core-stats/scripts/config.yml`.
+- The template path can be overridden via `templates.data_transform.default` in `core-stats/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
   - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).

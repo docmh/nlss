@@ -73,7 +73,7 @@ Rscript <path to scripts/R/correlations.R> --interactive
 
 ### Options
 
-- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--vars` defaults to `modules.correlations.vars_default` (typically numeric columns) if omitted.
 - `--x` and `--y` compute cross-correlations between two sets.
@@ -98,15 +98,15 @@ Rscript <path to scripts/R/correlations.R> --interactive
 
 ## APA 7 Templates
 
-Use the Markdown templates in `r-core-stats/assets/correlations` when assembling correlation reports. If the template exists, it must be used for `apa_report.md`.
+Use the Markdown templates in `core-stats/assets/correlations` when assembling correlation reports. If the template exists, it must be used for `apa_report.md`.
 
-- Use `r-core-stats/assets/correlations/default-template.md` for correlation matrices created from `--vars` (or default numeric columns).
-- Use `r-core-stats/assets/correlations/cross-correlation-template.md` for cross-correlations created from `--x` and `--y`.
+- Use `core-stats/assets/correlations/default-template.md` for correlation matrices created from `--vars` (or default numeric columns).
+- Use `core-stats/assets/correlations/cross-correlation-template.md` for cross-correlations created from `--x` and `--y`.
 - For partial correlations, keep the same template as the matrix or cross-correlation output and include the control variables in the analysis flags and note.
   
 ### YAML template controls
 
-- Template paths can be overridden via `templates.correlations.default` and `templates.correlations.cross` in `r-core-stats/scripts/config.yml`.
+- Template paths can be overridden via `templates.correlations.default` and `templates.correlations.cross` in `core-stats/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
   - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).

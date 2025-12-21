@@ -58,7 +58,7 @@ Rscript <path to scripts/R/crosstabs.R> --interactive
 
 ### Options
 
-- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--row` or `--rows`: Row variable(s). `--rows` accepts a comma-separated list.
 - `--col` or `--cols`: Column variable(s). `--cols` accepts a comma-separated list.
@@ -86,11 +86,11 @@ Rscript <path to scripts/R/crosstabs.R> --interactive
 
 ## APA 7 Templates
 
-Use the Markdown templates in `r-core-stats/assets/crosstabs` when assembling cross-tabulation reports. If the template exists, `crosstabs.R` uses it for `apa_report.md`.
+Use the Markdown templates in `core-stats/assets/crosstabs` when assembling cross-tabulation reports. If the template exists, `crosstabs.R` uses it for `apa_report.md`.
 
 ### YAML template controls
 
-- Template paths can be overridden via `templates.crosstabs.default` and `templates.crosstabs.grouped` in `r-core-stats/scripts/config.yml`.
+- Template paths can be overridden via `templates.crosstabs.default` and `templates.crosstabs.grouped` in `core-stats/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
   - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).
