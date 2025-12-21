@@ -455,9 +455,10 @@ calc_levene <- function(values, group) {
   if (nlevels(group) < 2) {
     return(list(stat = NA_real_, df1 = NA_real_, df2 = NA_real_, p = NA_real_, note = "Need at least two groups."))
   }
-  medians <- tapply(values, group, median, na.rm = TRUE)
-  dev <- abs(values - medians[as.character(group)])
-  fit <- tryCatch(lm(dev ~ group), error = function(e) NULL)
+  fit <- tryCatch(
+    lm(abs(values - tapply(values, group, median, na.rm = TRUE)[as.character(group)]) ~ group),
+    error = function(e) NULL
+  )
   if (is.null(fit)) {
     return(list(stat = NA_real_, df1 = NA_real_, df2 = NA_real_, p = NA_real_, note = "Levene test failed."))
   }
@@ -554,9 +555,7 @@ calc_vif <- function(model) {
   }
   vifs <- numeric(ncol(mm))
   for (j in seq_len(ncol(mm))) {
-    y <- mm[, j]
-    others <- mm[, -j, drop = FALSE]
-    fit <- tryCatch(lm(y ~ others), error = function(e) NULL)
+    fit <- tryCatch(lm(mm[, j] ~ mm[, -j, drop = FALSE]), error = function(e) NULL)
     if (is.null(fit)) {
       vifs[j] <- NA_real_
     } else {
@@ -1003,11 +1002,11 @@ run_anova_assumptions <- function(df, opts, settings) {
     }
 
     if (length(within_vars) >= 3) {
-      response <- as.matrix(data_subset[, within_vars, drop = FALSE])
+      response_formula <- paste0("cbind(", paste(within_vars, collapse = ", "), ")")
       formula <- if (length(between_vars) > 0) {
-        as.formula(paste("response ~", paste(between_vars, collapse = " + ")))
+        as.formula(paste(response_formula, "~", paste(between_vars, collapse = " + ")))
       } else {
-        response ~ 1
+        as.formula(paste(response_formula, "~ 1"))
       }
       fit <- tryCatch(lm(formula, data = data_subset), error = function(e) NULL)
       if (!is.null(fit)) {
