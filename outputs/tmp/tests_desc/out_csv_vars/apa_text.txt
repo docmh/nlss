@@ -1,6 +1,0 @@
-Group A, num1: M = 10.0, SD = 1.0, 95% CI [7.5, 12.5], n = 3, missing = 2 (40.0%).
-Group A, num2: M = 4.8, SD = 3.6, 95% CI [-1.0, 10.6], n = 4, missing = 1 (20.0%).
-Group B, num1: M = 10.0, SD = 2.8, 95% CI [-15.4, 35.4], n = 2, missing = 2 (50.0%).
-Group B, num2: M = 5.2, SD = 2.3, 95% CI [-0.5, 10.9], n = 3, missing = 1 (25.0%).
-Group NA, num1: M = 10.0, SD = NA, 95% CI [NA, NA], n = 1, missing = 0 (0.0%).
-Group NA, num2: M = 5.6, SD = NA, 95% CI [NA, NA], n = 1, missing = 0 (0.0%).

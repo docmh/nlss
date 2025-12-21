@@ -1,6 +1,0 @@
-Group A, cat1 (n = 5): blue (n = 2, valid % = 50.0); green (n = 1, valid % = 50.0); red (n = 1, valid % = 50.0). Missing = 1 (20.0%).
-Group A, cat2 (n = 5): no (n = 2, valid % = 66.7); yes (n = 1, valid % = 66.7). Missing = 2 (40.0%).
-Group B, cat1 (n = 4): red (n = 2, valid % = 100.0). Missing = 2 (50.0%).
-Group B, cat2 (n = 4): no (n = 1, valid % = 33.3); yes (n = 2, valid % = 33.3). Missing = 1 (25.0%).
-Group NA, cat1 (n = 1): green (n = 1, valid % = 100.0). Missing = 0 (0.0%).
-Group NA, cat2 (n = 1): yes (n = 1, valid % = 100.0). Missing = 0 (0.0%).

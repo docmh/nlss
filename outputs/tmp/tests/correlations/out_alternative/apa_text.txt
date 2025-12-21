@@ -1,2 +1,0 @@
-age with score: Pearson's r = .92, 95% CI [.79, .97], p < .001, n = 18. Missing = 2 ( 10.0 %).
-Note. One-tailed tests. Missing values handled pairwise.

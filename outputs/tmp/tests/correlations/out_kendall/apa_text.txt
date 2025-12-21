@@ -1,4 +1,0 @@
-age with score: Kendall's tau = .78, p < .001, n = 18. Missing = 2 ( 10.0 %).
-age with stress: Kendall's tau = -.37, p = .036, n = 18. Missing = 2 ( 10.0 %).
-score with stress: Kendall's tau = -.48, p = .006, n = 18. Missing = 2 ( 10.0 %).
-Note. Two-tailed tests. Missing values handled pairwise.

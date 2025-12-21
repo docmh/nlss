@@ -1,3 +1,0 @@
-Error in main() : 
-  Partial correlations are not supported for Kendall's tau.
-Execution halted

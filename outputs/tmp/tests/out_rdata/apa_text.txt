@@ -1,3 +1,0 @@
-Group A, cat2 (n = 5): no (n = 2, valid % = 66.67); yes (n = 1, valid % = 66.67). Missing = 2 (40.00%).
-Group B, cat2 (n = 4): no (n = 1, valid % = 33.33); yes (n = 2, valid % = 33.33). Missing = 1 (25.00%).
-Group NA, cat2 (n = 1): yes (n = 1, valid % = 100.00). Missing = 0 (0.00%).

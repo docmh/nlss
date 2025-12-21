@@ -1,7 +1,0 @@
-Group A , age with score: Pearson's r = .89, 95% CI [.55, .98], p = .001, n = 9. Missing = 0 ( 0.0 %).
-Group A , age with stress: Pearson's r = -.63, 95% CI [-.92, .14], p = .097, n = 8. Missing = 1 ( 11.1 %).
-Group A , score with stress: Pearson's r = -.79, 95% CI [-.96, -.19], p = .020, n = 8. Missing = 1 ( 11.1 %).
-Group B , age with score: Pearson's r = .93, 95% CI [.71, .99], p < .001, n = 9. Missing = 2 ( 18.2 %).
-Group B , age with stress: Pearson's r = -.58, 95% CI [-.89, .07], p = .076, n = 10. Missing = 1 ( 9.1 %).
-Group B , score with stress: Pearson's r = -.52, 95% CI [-.87, .16], p = .124, n = 10. Missing = 1 ( 9.1 %).
-Note. Two-tailed tests. Missing values handled pairwise.

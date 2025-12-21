@@ -1,5 +1,0 @@
-Group Lavendel, plattform by thinking_norm: no association test computed. Expected counts: min = 30.00; 0.0% of cells < 5. Missing = 0 (0.0%).
-Group Orchidee, plattform by thinking_norm: no association test computed. Expected counts: min = 30.00; 0.0% of cells < 5. Missing = 0 (0.0%).
-Group Rose, plattform by thinking_norm: no association test computed. Expected counts: min = 15.00; 0.0% of cells < 5. Missing = 0 (0.0%).
-Group Sonnenblume, plattform by thinking_norm: no association test computed. Expected counts: min = 30.00; 0.0% of cells < 5. Missing = 0 (0.0%).
-Group Tulpe, plattform by thinking_norm: no association test computed. Expected counts: min = 30.00; 0.0% of cells < 5. Missing = 0 (0.0%).

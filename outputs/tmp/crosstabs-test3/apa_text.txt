@@ -1,1 +1,0 @@
-plattform by thinking_norm: chi-square(2, N = 150) = 69.64, p < .001; Cramer's V = 0.68. Expected counts: min = 3.00; 16.7% of cells < 5. Missing = 0 (0.0%).

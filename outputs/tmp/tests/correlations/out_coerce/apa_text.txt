@@ -1,2 +1,0 @@
-numeric_str with score: Pearson's r = -.04, 95% CI [-.50, .43], p = .867, n = 18. Missing = 2 ( 10.0 %).
-Note. Two-tailed tests. Missing values handled pairwise.
