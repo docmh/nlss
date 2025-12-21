@@ -17,6 +17,12 @@ metadata:
 
 Central guidance for all statistic skills in this repo, plus shared conventions for running R scripts and placing outputs.
 
+## Configuration Defaults and Overrides
+
+All modules load defaults from `scripts/config.yml` (requires the R package `yaml`; otherwise built-in defaults in `scripts/R/lib/config.R` apply). Use the standard configuration unless the user specifies other parameter flags or the requested analysis implies them (for example, cross-correlations imply `--x` and `--y`, partial correlations imply `--controls`).
+
+CLI flags always override `scripts/config.yml` defaults at runtime.
+
 ## Shared wrapper: `scripts/run_rscript.ps1`
 
 On Windows, the wrapper prefers WSL (Ubuntu/Linux) and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
@@ -51,19 +57,19 @@ All scripts accept one of the following input types:
 
 ## Common flags
 
-- `--out <dir>`: Output directory (if not explicitly stated, the default **must** be: `<working directory>/outputs/tmp`).
-- `--sep <char>`: CSV separator (default: `,`).
-- `--header TRUE/FALSE`: CSV header row (default: `TRUE`).
-- `--log TRUE/FALSE`: Append to `analysis_log.jsonl` (default: `TRUE`).
+- `--out <dir>`: Output directory (default from `scripts/config.yml` -> `defaults.output_dir`, otherwise `<working directory>/outputs/tmp`).
+- `--sep <char>`: CSV separator (default from `scripts/config.yml` -> `defaults.csv.sep`).
+- `--header TRUE/FALSE`: CSV header row (default from `scripts/config.yml` -> `defaults.csv.header`).
+- `--log TRUE/FALSE`: Append to `analysis_log.jsonl` (default from `scripts/config.yml` -> `defaults.log`).
 - `--user-prompt <text>`: Store the original AI user prompt in the JSONL log (optional).
-- `--digits <n>`: Rounding for APA output where supported (module-specific).
+- `--digits <n>`: Rounding for APA output where supported (default from `scripts/config.yml` -> `defaults.digits`).
 
 Module-specific analysis options (variables, grouping, method choices, etc.) are described in each subskill reference.
 
 ## Output conventions
 
-- Use `<working directory>/outputs/tmp` for scratch outputs (relative to the working directory where the script runs).
-- If the user does not explicitly pass `--out`, the default output directory **must** be `<working directory>/outputs/tmp`.
+- Use `defaults.output_dir` from `scripts/config.yml` for scratch outputs (defaults to `<working directory>/outputs/tmp`, relative to the working directory where the script runs).
+- If the user does not explicitly pass `--out`, the default output directory **must** be `defaults.output_dir`.
 - Each analysis appends `apa_report.md` (APA table + narrative) and appends `analysis_log.jsonl` when logging is enabled.
 - For `apa_report.md`, templates in `r-core-stats/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.

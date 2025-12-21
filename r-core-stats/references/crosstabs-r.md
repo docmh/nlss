@@ -58,23 +58,25 @@ Rscript <path to scripts/R/crosstabs.R> --interactive
 
 ### Options
 
+- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--row` or `--rows`: Row variable(s). `--rows` accepts a comma-separated list.
 - `--col` or `--cols`: Column variable(s). `--cols` accepts a comma-separated list.
 - `--group`: Optional grouping variable (stratified cross-tabs).
-- `--percent`: Which percentages to include in the raw results (row, col, total, all). Default: `all`.
-- `--apa-percent`: Percentage column(s) for the APA table section (row, col, total, all, none). Default: `row`.
-- `--chisq`: Run chi-square test (default: TRUE).
-- `--yates`: Apply Yates continuity correction for 2x2 tables (default: FALSE).
-- `--fisher`: Run Fisher's exact test (default: FALSE).
-- `--fisher-simulate`: Use Monte Carlo simulation for Fisher's exact test (default: FALSE).
-- `--fisher-b`: Number of Monte Carlo replications for Fisher's exact test (default: 2000).
-- `--fisher-conf-level`: Confidence level for Fisher's exact test odds ratio (default: 0.95).
-- `--expected`: Include expected counts (default: TRUE).
-- `--residuals`: Include standardized/adjusted residuals (default: TRUE).
-- `--digits`: Rounding digits for outputs (default: 2).
-- `--out`: Output directory (default: `<working directory>/outputs/tmp`, hard-coded when omitted, relative to the working directory).
+- `--percent`: Which percentages to include in the raw results (row, col, total, all). Default: `modules.crosstabs.percent`.
+- `--apa-percent`: Percentage column(s) for the APA table section (row, col, total, all, none). Default: `modules.crosstabs.apa_percent`.
+- `--chisq`: Run chi-square test (default: `modules.crosstabs.chisq`).
+- `--yates`: Apply Yates continuity correction for 2x2 tables (default: `modules.crosstabs.yates`).
+- `--fisher`: Run Fisher's exact test (default: `modules.crosstabs.fisher`).
+- `--fisher-simulate`: Use Monte Carlo simulation for Fisher's exact test (default: `modules.crosstabs.fisher_simulate`).
+- `--fisher-b`: Number of Monte Carlo replications for Fisher's exact test (default: `modules.crosstabs.fisher_b`).
+- `--fisher-conf-level`: Confidence level for Fisher's exact test odds ratio (default: `modules.crosstabs.fisher_conf_level`).
+- `--expected`: Include expected counts (default: `modules.crosstabs.expected`).
+- `--residuals`: Include standardized/adjusted residuals (default: `modules.crosstabs.residuals`).
+- `--digits`: Rounding digits for outputs (default: `defaults.digits`).
+- `--out`: Output directory (default: `defaults.output_dir`).
 - `--interactive`: Prompt for inputs.
-- `--log`: Toggle JSONL logging (default: TRUE).
+- `--log`: Toggle JSONL logging (default: `defaults.log`).
 - `--user-prompt`: Store the original AI prompt in the JSONL log (optional).
 
 ## Outputs

@@ -89,23 +89,26 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 
 ## Options
 
+- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--calc` defines new variables as `newvar=expression`, separated by `|`.
 - `--transform` uses `var=log|var2=sqrt|var3=scale` (supported: `log`, `log10`, `sqrt`, `exp`, `abs`, `center`, `scale`).
-- `--standardize` z-standardizes numeric variables into new variables (default suffix `_z`).
+- `--standardize` z-standardizes numeric variables into new variables (default suffix: `modules.data_transform.standardize_suffix`).
 - `--percentile-bins` creates percentile bins (e.g., `var=4` for quartiles). Output bins are numeric 1..k.
 - `--bins` creates custom bins from numeric breakpoints (values outside the range become `NA`).
 - `--recode` maps values using `var=old:new,old2:new2` (use quotes for strings).
 - `--rename` maps `old:new` pairs (comma-separated).
 - `--drop` removes columns (comma-separated).
 - `--transform-into`, `--standardize-into`, `--percentile-into`, `--bins-into`, `--recode-into` override output names as `var=newname|var2=newname2`.
-- `--percentile-suffix` sets the percentile bin suffix (default `_pct`).
-- `--bins-suffix` sets the custom bin suffix (default `_bin`).
-- `--coerce` allows coercing non-numeric variables to numeric for transforms/standardization.
-- `--overwrite-vars` allows overwriting existing variables; use with `--confirm-overwrite`.
-- `--confirm-overwrite` or `--interactive` is required when overwriting existing variables.
-- `--confirm-drop` or `--interactive` is required when dropping variables.
-- `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
-- `--log` toggles JSONL logging (default: TRUE).
+- `--percentile-suffix` sets the percentile bin suffix (default: `modules.data_transform.percentile_suffix`).
+- `--bins-suffix` sets the custom bin suffix (default: `modules.data_transform.bins_suffix`).
+- `--recode-suffix` sets the recode suffix (default: `modules.data_transform.recode_suffix`).
+- `--coerce` allows coercing non-numeric variables to numeric for transforms/standardization (default: `modules.data_transform.coerce`).
+- `--overwrite-vars` allows overwriting existing variables (default: `modules.data_transform.overwrite_vars`); use with `--confirm-overwrite`.
+- `--confirm-overwrite` or `--interactive` is required when overwriting existing variables (default: `modules.data_transform.confirm_overwrite`).
+- `--confirm-drop` or `--interactive` is required when dropping variables (default: `modules.data_transform.confirm_drop`).
+- `--out` sets the output directory (default: `defaults.output_dir`).
+- `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Safety confirmations

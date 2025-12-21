@@ -11,6 +11,7 @@ bootstrap_dir <- {
 }
 source(file.path(bootstrap_dir, "lib", "paths.R"))
 source_lib("cli.R")
+source_lib("config.R")
 source_lib("io.R")
 source_lib("data_utils.R")
 source_lib("formatting.R")
@@ -53,8 +54,10 @@ interactive_options <- function() {
 
   if (input_type == "csv") {
     opts$csv <- resolve_prompt("CSV path")
-    opts$sep <- resolve_prompt("Separator", ",")
-    opts$header <- resolve_prompt("Header TRUE/FALSE", "TRUE")
+    sep_default <- resolve_config_value("defaults.csv.sep", ",")
+    header_default <- resolve_config_value("defaults.csv.header", TRUE)
+    opts$sep <- resolve_prompt("Separator", sep_default)
+    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
     opts$sav <- resolve_prompt("SAV path")
   } else if (input_type == "rds") {
@@ -67,11 +70,15 @@ interactive_options <- function() {
   }
 
   opts$vars <- resolve_prompt("Variables (comma-separated, blank for all)", "")
-  opts$digits <- resolve_prompt("Rounding digits", "2")
-  opts$`max-levels` <- resolve_prompt("Max levels before truncating", "20")
-  opts$`top-n` <- resolve_prompt("Top N levels when truncating", "10")
+  digits_default <- resolve_config_value("defaults.digits", 2)
+  max_levels_default <- resolve_config_value("modules.data_explorer.max_levels", 20)
+  top_n_default <- resolve_config_value("modules.data_explorer.top_n", 10)
+  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  opts$`max-levels` <- resolve_prompt("Max levels before truncating", as.character(max_levels_default))
+  opts$`top-n` <- resolve_prompt("Top N levels when truncating", as.character(top_n_default))
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", "TRUE")
+  log_default <- resolve_config_value("defaults.log", TRUE)
+  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts$out <- resolve_prompt("Output directory", resolve_default_out())
   opts
 }
@@ -94,6 +101,13 @@ resolve_default_out <- function() {
     return(get("get_default_out", mode = "function")())
   }
   "./outputs/tmp"
+}
+
+resolve_config_value <- function(path, default = NULL) {
+  if (exists("get_config_value", mode = "function")) {
+    return(get("get_config_value", mode = "function")(path, default = default))
+  }
+  default
 }
 
 resolve_parse_args <- function(args) {
@@ -576,13 +590,18 @@ main <- function() {
     opts <- modifyList(opts, interactive_options())
   }
 
-  digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else 2
-  max_levels <- if (!is.null(opts$`max-levels`)) as.integer(opts$`max-levels`) else 20
-  top_n <- if (!is.null(opts$`top-n`)) as.integer(opts$`top-n`) else 10
+  digits_default <- resolve_config_value("defaults.digits", 2)
+  log_default <- resolve_config_value("defaults.log", TRUE)
+  vars_default <- resolve_config_value("modules.data_explorer.vars_default", "all")
+  max_levels_default <- resolve_config_value("modules.data_explorer.max_levels", 20)
+  top_n_default <- resolve_config_value("modules.data_explorer.top_n", 10)
+  digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
+  max_levels <- if (!is.null(opts$`max-levels`)) as.integer(opts$`max-levels`) else max_levels_default
+  top_n <- if (!is.null(opts$`top-n`)) as.integer(opts$`top-n`) else top_n_default
   out_dir <- resolve_ensure_out_dir(if (!is.null(opts$out)) opts$out else resolve_default_out())
 
   df <- resolve_load_dataframe(opts)
-  vars <- resolve_select_variables(df, opts$vars, default = "all")
+  vars <- resolve_select_variables(df, opts$vars, default = vars_default)
   if (length(vars) == 0) stop("No variables available for exploration.")
 
   overview_rows <- list()
@@ -665,7 +684,7 @@ main <- function() {
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
 
-  if (resolve_parse_bool(opts$log, default = TRUE)) {
+  if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()
     resolve_append_analysis_log(
       out_dir,

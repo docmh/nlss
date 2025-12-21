@@ -11,6 +11,7 @@ bootstrap_dir <- {
 }
 source(file.path(bootstrap_dir, "lib", "paths.R"))
 source_lib("cli.R")
+source_lib("config.R")
 source_lib("io.R")
 source_lib("formatting.R")
 
@@ -61,8 +62,10 @@ interactive_options <- function() {
 
   if (input_type == "csv") {
     opts$csv <- prompt("CSV path")
-    opts$sep <- prompt("Separator", ",")
-    opts$header <- prompt("Header TRUE/FALSE", "TRUE")
+    sep_default <- resolve_config_value("defaults.csv.sep", ",")
+    header_default <- resolve_config_value("defaults.csv.header", TRUE)
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
     opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
@@ -78,16 +81,27 @@ interactive_options <- function() {
   opts$x <- prompt("X variables (comma-separated, blank for none)", "")
   opts$y <- prompt("Y variables (comma-separated, blank for none)", "")
   opts$group <- prompt("Grouping variable (blank for none)", "")
-  opts$method <- prompt("Method (pearson/spearman/kendall)", "pearson")
-  opts$missing <- prompt("Missing handling (pairwise/complete)", "pairwise")
-  opts$alternative <- prompt("Alternative (two.sided/greater/less)", "two.sided")
+  method_default <- resolve_config_value("modules.correlations.method", "pearson")
+  missing_default <- resolve_config_value("modules.correlations.missing", "pairwise")
+  alternative_default <- resolve_config_value("modules.correlations.alternative", "two.sided")
+  opts$method <- prompt("Method (pearson/spearman/kendall)", method_default)
+  opts$missing <- prompt("Missing handling (pairwise/complete)", missing_default)
+  opts$alternative <- prompt("Alternative (two.sided/greater/less)", alternative_default)
   opts$controls <- prompt("Control variables (comma-separated, blank for none)", "")
-  opts$`p-adjust` <- prompt("P-value adjustment (none/bonferroni/holm/hochberg/hommel/BH/BY/fdr)", "none")
-  opts$`conf-level` <- prompt("Confidence level", "0.95")
-  opts$coerce <- prompt("Coerce non-numeric TRUE/FALSE", "FALSE")
-  opts$digits <- prompt("Rounding digits", "2")
+  adjust_default <- resolve_config_value("modules.correlations.p_adjust", "none")
+  conf_default <- resolve_config_value("modules.correlations.conf_level", 0.95)
+  coerce_default <- resolve_config_value("modules.correlations.coerce", FALSE)
+  digits_default <- resolve_config_value("defaults.digits", 2)
+  opts$`p-adjust` <- prompt(
+    "P-value adjustment (none/bonferroni/holm/hochberg/hommel/BH/BY/fdr)",
+    adjust_default
+  )
+  opts$`conf-level` <- prompt("Confidence level", as.character(conf_default))
+  opts$coerce <- prompt("Coerce non-numeric TRUE/FALSE", ifelse(isTRUE(coerce_default), "TRUE", "FALSE"))
+  opts$digits <- prompt("Rounding digits", as.character(digits_default))
   opts$`user-prompt` <- prompt("User prompt (optional)", "")
-  opts$log <- prompt("Write JSONL log TRUE/FALSE", "TRUE")
+  log_default <- resolve_config_value("defaults.log", TRUE)
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts$out <- prompt("Output directory", resolve_default_out())
   opts
 }
@@ -97,6 +111,13 @@ resolve_default_out <- function() {
     return(get("get_default_out", mode = "function")())
   }
   "./outputs/tmp"
+}
+
+resolve_config_value <- function(path, default = NULL) {
+  if (exists("get_config_value", mode = "function")) {
+    return(get("get_config_value", mode = "function")(path, default = default))
+  }
+  default
 }
 
 resolve_parse_bool <- function(value, default = FALSE) {
@@ -671,13 +692,21 @@ main <- function() {
     opts <- modifyList(opts, interactive_options())
   }
 
-  digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else 2
-  conf_level <- if (!is.null(opts$`conf-level`)) as.numeric(opts$`conf-level`) else 0.95
-  method <- normalize_method(opts$method, default = "pearson")
-  missing_method <- normalize_missing(opts$missing, default = "pairwise")
-  alternative <- normalize_alternative(opts$alternative, default = "two.sided")
-  adjust_method <- normalize_adjust(opts$`p-adjust`, default = "none")
-  coerce_flag <- resolve_parse_bool(opts$coerce, default = FALSE)
+  digits_default <- resolve_config_value("defaults.digits", 2)
+  log_default <- resolve_config_value("defaults.log", TRUE)
+  conf_default <- resolve_config_value("modules.correlations.conf_level", 0.95)
+  method_default <- resolve_config_value("modules.correlations.method", "pearson")
+  missing_default <- resolve_config_value("modules.correlations.missing", "pairwise")
+  alternative_default <- resolve_config_value("modules.correlations.alternative", "two.sided")
+  adjust_default <- resolve_config_value("modules.correlations.p_adjust", "none")
+  coerce_default <- resolve_config_value("modules.correlations.coerce", FALSE)
+  digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
+  conf_level <- if (!is.null(opts$`conf-level`)) as.numeric(opts$`conf-level`) else conf_default
+  method <- normalize_method(opts$method, default = method_default)
+  missing_method <- normalize_missing(opts$missing, default = missing_default)
+  alternative <- normalize_alternative(opts$alternative, default = alternative_default)
+  adjust_method <- normalize_adjust(opts$`p-adjust`, default = adjust_default)
+  coerce_flag <- resolve_parse_bool(opts$coerce, default = coerce_default)
 
   out_dir <- resolve_ensure_out_dir(if (!is.null(opts$out)) opts$out else resolve_default_out())
 
@@ -827,7 +856,7 @@ main <- function() {
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
 
-  if (resolve_parse_bool(opts$log, default = TRUE)) {
+  if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()
     resolve_append_analysis_log(
       out_dir,

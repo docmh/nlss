@@ -54,12 +54,14 @@ Rscript <path to scripts/R/data_explorer.R> --interactive
 
 ### Options
 
-- `--vars` defaults to all columns if omitted.
-- `--max-levels` controls when level tables are truncated (default: 20). Categorical variables with more levels are summarized with top `--top-n` levels and an "Other (remaining)" row.
-- `--top-n` controls how many levels to keep when truncating (default: 10).
-- `--digits` controls rounding (default: 2).
-- `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
-- `--log` toggles JSONL logging (default: TRUE).
+- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
+- `--vars` defaults to `modules.data_explorer.vars_default` (typically all columns) if omitted.
+- `--max-levels` controls when level tables are truncated (default: `modules.data_explorer.max_levels`). Categorical variables with more levels are summarized with top `--top-n` levels and an "Other (remaining)" row.
+- `--top-n` controls how many levels to keep when truncating (default: `modules.data_explorer.top_n`).
+- `--digits` controls rounding (default: `defaults.digits`).
+- `--out` sets the output directory (default: `defaults.output_dir`).
+- `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Outputs

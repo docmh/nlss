@@ -11,6 +11,7 @@ bootstrap_dir <- {
 }
 source(file.path(bootstrap_dir, "lib", "paths.R"))
 source_lib("cli.R")
+source_lib("config.R")
 source_lib("io.R")
 source_lib("data_utils.R")
 source_lib("formatting.R")
@@ -65,8 +66,10 @@ interactive_options <- function() {
 
   if (input_type == "csv") {
     opts$csv <- resolve_prompt("CSV path")
-    opts$sep <- resolve_prompt("Separator", ",")
-    opts$header <- resolve_prompt("Header TRUE/FALSE", "TRUE")
+    sep_default <- resolve_config_value("defaults.csv.sep", ",")
+    header_default <- resolve_config_value("defaults.csv.header", TRUE)
+    opts$sep <- resolve_prompt("Separator", sep_default)
+    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
     opts$sav <- resolve_prompt("SAV path")
   } else if (input_type == "rds") {
@@ -81,19 +84,34 @@ interactive_options <- function() {
   opts$row <- resolve_prompt("Row variable(s) (comma-separated)", "")
   opts$col <- resolve_prompt("Column variable(s) (comma-separated)", "")
   opts$group <- resolve_prompt("Grouping variable (blank for none)", "")
-  opts$percent <- resolve_prompt("Percentages to include (row/col/total/all)", "all")
-  opts$`apa-percent` <- resolve_prompt("APA percent (row/col/total/all/none)", "row")
-  opts$chisq <- resolve_prompt("Run chi-square TRUE/FALSE", "TRUE")
-  opts$yates <- resolve_prompt("Use Yates correction for 2x2 TRUE/FALSE", "FALSE")
-  opts$fisher <- resolve_prompt("Run Fisher's exact test TRUE/FALSE", "FALSE")
-  opts$`fisher-simulate` <- resolve_prompt("Fisher simulate TRUE/FALSE", "FALSE")
-  opts$`fisher-b` <- resolve_prompt("Fisher Monte Carlo replications", "2000")
-  opts$`fisher-conf-level` <- resolve_prompt("Fisher confidence level", "0.95")
-  opts$expected <- resolve_prompt("Include expected counts TRUE/FALSE", "TRUE")
-  opts$residuals <- resolve_prompt("Include residuals TRUE/FALSE", "TRUE")
-  opts$digits <- resolve_prompt("Rounding digits", "2")
+  percent_default <- resolve_config_value("modules.crosstabs.percent", "all")
+  apa_percent_default <- resolve_config_value("modules.crosstabs.apa_percent", "row")
+  chisq_default <- resolve_config_value("modules.crosstabs.chisq", TRUE)
+  yates_default <- resolve_config_value("modules.crosstabs.yates", FALSE)
+  fisher_default <- resolve_config_value("modules.crosstabs.fisher", FALSE)
+  fisher_sim_default <- resolve_config_value("modules.crosstabs.fisher_simulate", FALSE)
+  fisher_b_default <- resolve_config_value("modules.crosstabs.fisher_b", 2000)
+  fisher_conf_default <- resolve_config_value("modules.crosstabs.fisher_conf_level", 0.95)
+  expected_default <- resolve_config_value("modules.crosstabs.expected", TRUE)
+  residuals_default <- resolve_config_value("modules.crosstabs.residuals", TRUE)
+  digits_default <- resolve_config_value("defaults.digits", 2)
+  opts$percent <- resolve_prompt("Percentages to include (row/col/total/all)", percent_default)
+  opts$`apa-percent` <- resolve_prompt("APA percent (row/col/total/all/none)", apa_percent_default)
+  opts$chisq <- resolve_prompt("Run chi-square TRUE/FALSE", ifelse(isTRUE(chisq_default), "TRUE", "FALSE"))
+  opts$yates <- resolve_prompt("Use Yates correction for 2x2 TRUE/FALSE", ifelse(isTRUE(yates_default), "TRUE", "FALSE"))
+  opts$fisher <- resolve_prompt("Run Fisher's exact test TRUE/FALSE", ifelse(isTRUE(fisher_default), "TRUE", "FALSE"))
+  opts$`fisher-simulate` <- resolve_prompt(
+    "Fisher simulate TRUE/FALSE",
+    ifelse(isTRUE(fisher_sim_default), "TRUE", "FALSE")
+  )
+  opts$`fisher-b` <- resolve_prompt("Fisher Monte Carlo replications", as.character(fisher_b_default))
+  opts$`fisher-conf-level` <- resolve_prompt("Fisher confidence level", as.character(fisher_conf_default))
+  opts$expected <- resolve_prompt("Include expected counts TRUE/FALSE", ifelse(isTRUE(expected_default), "TRUE", "FALSE"))
+  opts$residuals <- resolve_prompt("Include residuals TRUE/FALSE", ifelse(isTRUE(residuals_default), "TRUE", "FALSE"))
+  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", "TRUE")
+  log_default <- resolve_config_value("defaults.log", TRUE)
+  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts$out <- resolve_prompt("Output directory", resolve_default_out())
   opts
 }
@@ -116,6 +134,13 @@ resolve_default_out <- function() {
     return(get("get_default_out", mode = "function")())
   }
   "./outputs/tmp"
+}
+
+resolve_config_value <- function(path, default = NULL) {
+  if (exists("get_config_value", mode = "function")) {
+    return(get("get_config_value", mode = "function")(path, default = default))
+  }
+  default
 }
 
 resolve_parse_args <- function(args) {
@@ -746,7 +771,19 @@ main <- function() {
     opts <- modifyList(opts, interactive_options())
   }
 
-  digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else 2
+  digits_default <- resolve_config_value("defaults.digits", 2)
+  log_default <- resolve_config_value("defaults.log", TRUE)
+  percent_default <- resolve_config_value("modules.crosstabs.percent", "all")
+  apa_percent_default <- resolve_config_value("modules.crosstabs.apa_percent", "row")
+  chisq_default <- resolve_config_value("modules.crosstabs.chisq", TRUE)
+  yates_default <- resolve_config_value("modules.crosstabs.yates", FALSE)
+  fisher_default <- resolve_config_value("modules.crosstabs.fisher", FALSE)
+  fisher_sim_default <- resolve_config_value("modules.crosstabs.fisher_simulate", FALSE)
+  fisher_b_default <- resolve_config_value("modules.crosstabs.fisher_b", 2000)
+  fisher_conf_default <- resolve_config_value("modules.crosstabs.fisher_conf_level", 0.95)
+  expected_default <- resolve_config_value("modules.crosstabs.expected", TRUE)
+  residuals_default <- resolve_config_value("modules.crosstabs.residuals", TRUE)
+  digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
   out_dir <- resolve_ensure_out_dir(if (!is.null(opts$out)) opts$out else resolve_default_out())
 
   df <- resolve_load_dataframe(opts)
@@ -765,18 +802,18 @@ main <- function() {
     stop(paste("Unknown variables:", paste(missing_vars, collapse = ", ")))
   }
 
-  percent_flags <- parse_percent_flags(opts$percent, default = "all")
-  apa_percent <- normalize_apa_percent(opts$`apa-percent`, default = "row")
+  percent_flags <- parse_percent_flags(opts$percent, default = percent_default)
+  apa_percent <- normalize_apa_percent(opts$`apa-percent`, default = apa_percent_default)
 
   options <- list(
-    chisq = resolve_parse_bool(opts$chisq, default = TRUE),
-    yates = resolve_parse_bool(opts$yates, default = FALSE),
-    fisher = resolve_parse_bool(opts$fisher, default = FALSE),
-    fisher_simulate = resolve_parse_bool(opts$`fisher-simulate`, default = FALSE),
-    fisher_b = if (!is.null(opts$`fisher-b`)) as.integer(opts$`fisher-b`) else 2000,
-    fisher_conf_level = if (!is.null(opts$`fisher-conf-level`)) as.numeric(opts$`fisher-conf-level`) else 0.95,
-    include_expected = resolve_parse_bool(opts$expected, default = TRUE),
-    include_residuals = resolve_parse_bool(opts$residuals, default = TRUE)
+    chisq = resolve_parse_bool(opts$chisq, default = chisq_default),
+    yates = resolve_parse_bool(opts$yates, default = yates_default),
+    fisher = resolve_parse_bool(opts$fisher, default = fisher_default),
+    fisher_simulate = resolve_parse_bool(opts$`fisher-simulate`, default = fisher_sim_default),
+    fisher_b = if (!is.null(opts$`fisher-b`)) as.integer(opts$`fisher-b`) else fisher_b_default,
+    fisher_conf_level = if (!is.null(opts$`fisher-conf-level`)) as.numeric(opts$`fisher-conf-level`) else fisher_conf_default,
+    include_expected = resolve_parse_bool(opts$expected, default = expected_default),
+    include_residuals = resolve_parse_bool(opts$residuals, default = residuals_default)
   )
 
   cells_list <- list()
@@ -822,7 +859,7 @@ main <- function() {
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
 
-  if (resolve_parse_bool(opts$log, default = TRUE)) {
+  if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()
     resolve_append_analysis_log(
       out_dir,

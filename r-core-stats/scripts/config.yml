@@ -1,0 +1,48 @@
+version: 1
+defaults:
+  output_dir: "./outputs/tmp"
+  csv:
+    sep: ","
+    header: true
+  log: true
+  digits: 2
+  interactive: false
+modules:
+  descriptive_stats:
+    vars_default: "numeric"
+  frequencies:
+    vars_default: "non-numeric"
+    include_numeric: false
+  data_explorer:
+    vars_default: "all"
+    max_levels: 20
+    top_n: 10
+  correlations:
+    vars_default: "numeric"
+    method: "pearson"
+    missing: "pairwise"
+    alternative: "two.sided"
+    controls: null
+    p_adjust: "none"
+    conf_level: 0.95
+    coerce: false
+  crosstabs:
+    percent: "all"
+    apa_percent: "row"
+    chisq: true
+    yates: false
+    fisher: false
+    fisher_simulate: false
+    fisher_b: 2000
+    fisher_conf_level: 0.95
+    expected: true
+    residuals: true
+  data_transform:
+    standardize_suffix: "_z"
+    percentile_suffix: "_pct"
+    bins_suffix: "_bin"
+    recode_suffix: "_rec"
+    coerce: false
+    overwrite_vars: false
+    confirm_overwrite: false
+    confirm_drop: false

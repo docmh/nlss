@@ -1,5 +1,14 @@
+resolve_config_value <- function(path, default = NULL) {
+  if (exists("get_config_value", mode = "function")) {
+    return(get("get_config_value", mode = "function")(path, default = default))
+  }
+  default
+}
+
 get_default_out <- function() {
-  "./outputs/tmp"
+  default_out <- resolve_config_value("defaults.output_dir", "./outputs/tmp")
+  if (is.null(default_out) || !nzchar(default_out)) return("./outputs/tmp")
+  default_out
 }
 
 ensure_out_dir <- function(path) {
@@ -86,8 +95,10 @@ read_sav_data <- function(path) {
 
 load_dataframe <- function(opts) {
   if (!is.null(opts$csv)) {
-    sep <- if (!is.null(opts$sep)) opts$sep else ","
-    header <- resolve_parse_bool(opts$header, default = TRUE)
+    sep_default <- resolve_config_value("defaults.csv.sep", ",")
+    sep <- if (!is.null(opts$sep)) opts$sep else sep_default
+    header_default <- resolve_config_value("defaults.csv.header", TRUE)
+    header <- resolve_parse_bool(opts$header, default = header_default)
     df <- read.csv(opts$csv, sep = sep, header = header, stringsAsFactors = FALSE)
     return(df)
   }

@@ -73,20 +73,22 @@ Rscript <path to scripts/R/correlations.R> --interactive
 
 ### Options
 
-- `--vars` defaults to all numeric columns if omitted.
+- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
+- `--vars` defaults to `modules.correlations.vars_default` (typically numeric columns) if omitted.
 - `--x` and `--y` compute cross-correlations between two sets.
 - `--group` is optional and produces grouped correlations.
-- `--method` selects `pearson`, `spearman`, or `kendall` (default: `pearson`).
-- `--missing` selects `pairwise` or `complete` (default: `pairwise`).
-- `--alternative` selects `two.sided`, `greater`, or `less` (default: `two.sided`).
+- `--method` selects `pearson`, `spearman`, or `kendall` (default: `modules.correlations.method`).
+- `--missing` selects `pairwise` or `complete` (default: `modules.correlations.missing`).
+- `--alternative` selects `two.sided`, `greater`, or `less` (default: `modules.correlations.alternative`).
 - `--controls` enables partial correlations (not supported for Kendall).
-- `--p-adjust` adjusts p-values (`none`, `bonferroni`, `holm`, `hochberg`, `hommel`, `BH`, `BY`, `fdr`).
-- `--conf-level` sets the Fisher z confidence level for Pearson/partial (default: 0.95).
-- `--coerce` coerces non-numeric columns to numeric (default: FALSE).
-- `--digits` controls rounding (default: 2).
-- `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
+- `--p-adjust` adjusts p-values (`none`, `bonferroni`, `holm`, `hochberg`, `hommel`, `BH`, `BY`, `fdr`). Default: `modules.correlations.p_adjust`.
+- `--conf-level` sets the Fisher z confidence level for Pearson/partial (default: `modules.correlations.conf_level`).
+- `--coerce` coerces non-numeric columns to numeric (default: `modules.correlations.coerce`).
+- `--digits` controls rounding (default: `defaults.digits`).
+- `--out` sets the output directory (default: `defaults.output_dir`).
 - `--interactive` prompts for inputs.
-- `--log` toggles JSONL logging (default: TRUE).
+- `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Outputs

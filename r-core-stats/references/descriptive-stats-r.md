@@ -54,11 +54,13 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 
 ### Options
 
-- `--vars` defaults to all numeric columns if omitted.
+- Defaults are loaded from `r-core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
+- `--vars` defaults to `modules.descriptive_stats.vars_default` (typically numeric columns) if omitted.
 - `--group` is optional and produces grouped summaries.
-- `--digits` controls rounding (default: 2).
-- `--out` sets the output directory (default: `<working directory>/outputs/tmp`, relative to the working directory).
-- `--log` toggles JSONL logging (default: TRUE).
+- `--digits` controls rounding (default: `defaults.digits`).
+- `--out` sets the output directory (default: `defaults.output_dir`).
+- `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Outputs

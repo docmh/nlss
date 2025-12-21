@@ -11,6 +11,7 @@ bootstrap_dir <- {
 }
 source(file.path(bootstrap_dir, "lib", "paths.R"))
 source_lib("cli.R")
+source_lib("config.R")
 source_lib("io.R")
 source_lib("formatting.R")
 
@@ -68,8 +69,10 @@ interactive_options <- function() {
 
   if (input_type == "csv") {
     opts$csv <- resolve_prompt("CSV path")
-    opts$sep <- resolve_prompt("Separator", ",")
-    opts$header <- resolve_prompt("Header TRUE/FALSE", "TRUE")
+    sep_default <- resolve_config_value("defaults.csv.sep", ",")
+    header_default <- resolve_config_value("defaults.csv.header", TRUE)
+    opts$sep <- resolve_prompt("Separator", sep_default)
+    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
     opts$sav <- resolve_prompt("SAV path")
   } else if (input_type == "rds") {
@@ -85,25 +88,37 @@ interactive_options <- function() {
   opts$transform <- resolve_prompt("Transforms (var=log|var2=sqrt|var3=scale)", "")
   opts$`transform-into` <- resolve_prompt("Transform output names (var=newname|var2=newname2)", "")
   opts$standardize <- resolve_prompt("Standardize variables (comma-separated)", "")
-  opts$`standardize-suffix` <- resolve_prompt("Standardize suffix", "_z")
+  standardize_suffix_default <- resolve_config_value("modules.data_transform.standardize_suffix", "_z")
+  opts$`standardize-suffix` <- resolve_prompt("Standardize suffix", standardize_suffix_default)
   opts$`standardize-into` <- resolve_prompt("Standardize output names (var=newname|var2=newname2)", "")
   opts$`percentile-bins` <- resolve_prompt("Percentile bins (var=4|var2=5)", "")
-  opts$`percentile-suffix` <- resolve_prompt("Percentile bins suffix", "_pct")
+  percentile_suffix_default <- resolve_config_value("modules.data_transform.percentile_suffix", "_pct")
+  opts$`percentile-suffix` <- resolve_prompt("Percentile bins suffix", percentile_suffix_default)
   opts$`percentile-into` <- resolve_prompt("Percentile bin output names (var=newname|var2=newname2)", "")
   opts$bins <- resolve_prompt("Custom bins (var=0,10,20|var2=5,15,25)", "")
-  opts$`bins-suffix` <- resolve_prompt("Custom bins suffix", "_bin")
+  bins_suffix_default <- resolve_config_value("modules.data_transform.bins_suffix", "_bin")
+  opts$`bins-suffix` <- resolve_prompt("Custom bins suffix", bins_suffix_default)
   opts$`bins-into` <- resolve_prompt("Custom bin output names (var=newname|var2=newname2)", "")
   opts$recode <- resolve_prompt("Recodes (var=1:0,2:1|var2=low:0,high:1)", "")
-  opts$`recode-suffix` <- resolve_prompt("Recode suffix", "_rec")
+  recode_suffix_default <- resolve_config_value("modules.data_transform.recode_suffix", "_rec")
+  opts$`recode-suffix` <- resolve_prompt("Recode suffix", recode_suffix_default)
   opts$`recode-into` <- resolve_prompt("Recode output names (var=newname|var2=newname2)", "")
   opts$rename <- resolve_prompt("Rename variables (old:new,old2:new2)", "")
   opts$drop <- resolve_prompt("Drop variables (comma-separated)", "")
-  opts$coerce <- resolve_prompt("Coerce non-numeric vars for transforms TRUE/FALSE", "FALSE")
-  opts$`overwrite-vars` <- resolve_prompt("Allow overwriting variables TRUE/FALSE", "FALSE")
-  opts$`confirm-overwrite` <- resolve_prompt("Confirm overwriting variables TRUE/FALSE", "FALSE")
-  opts$`confirm-drop` <- resolve_prompt("Confirm dropping variables TRUE/FALSE", "FALSE")
+  coerce_default <- resolve_config_value("modules.data_transform.coerce", FALSE)
+  overwrite_default <- resolve_config_value("modules.data_transform.overwrite_vars", FALSE)
+  confirm_overwrite_default <- resolve_config_value("modules.data_transform.confirm_overwrite", FALSE)
+  confirm_drop_default <- resolve_config_value("modules.data_transform.confirm_drop", FALSE)
+  opts$coerce <- resolve_prompt("Coerce non-numeric vars for transforms TRUE/FALSE", ifelse(isTRUE(coerce_default), "TRUE", "FALSE"))
+  opts$`overwrite-vars` <- resolve_prompt("Allow overwriting variables TRUE/FALSE", ifelse(isTRUE(overwrite_default), "TRUE", "FALSE"))
+  opts$`confirm-overwrite` <- resolve_prompt(
+    "Confirm overwriting variables TRUE/FALSE",
+    ifelse(isTRUE(confirm_overwrite_default), "TRUE", "FALSE")
+  )
+  opts$`confirm-drop` <- resolve_prompt("Confirm dropping variables TRUE/FALSE", ifelse(isTRUE(confirm_drop_default), "TRUE", "FALSE"))
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", "TRUE")
+  log_default <- resolve_config_value("defaults.log", TRUE)
+  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts$out <- resolve_prompt("Output directory", resolve_default_out())
   opts
 }
@@ -126,6 +141,13 @@ resolve_default_out <- function() {
     return(get("get_default_out", mode = "function")())
   }
   "./outputs/tmp"
+}
+
+resolve_config_value <- function(path, default = NULL) {
+  if (exists("get_config_value", mode = "function")) {
+    return(get("get_config_value", mode = "function")(path, default = default))
+  }
+  default
 }
 
 resolve_parse_args <- function(args) {
@@ -161,6 +183,11 @@ resolve_parse_bool <- function(value, default = FALSE) {
   if (is.logical(value)) return(value)
   val <- tolower(as.character(value))
   val %in% c("true", "t", "1", "yes", "y")
+}
+
+resolve_dt_bool <- function(value, key, fallback = FALSE) {
+  default_val <- resolve_config_value(paste0("modules.data_transform.", key), fallback)
+  resolve_parse_bool(value, default = default_val)
 }
 
 resolve_ensure_out_dir <- function(path) {
@@ -406,13 +433,13 @@ confirm_action <- function(opts, message, confirm_flag) {
     if (!tolower(answer) %in% c("yes", "y")) stop("Operation cancelled.")
     return(TRUE)
   }
-  if (resolve_parse_bool(opts[[confirm_flag]], FALSE)) return(TRUE)
+  if (resolve_dt_bool(opts[[confirm_flag]], gsub("-", "_", confirm_flag), FALSE)) return(TRUE)
   stop(paste0(message, " Use --", confirm_flag, " or --interactive."))
 }
 
 ensure_target_name <- function(df, target, opts, action_label) {
   if (!(target %in% names(df))) return(TRUE)
-  if (!resolve_parse_bool(opts$`overwrite-vars`, FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
+  if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
     stop("Target variable already exists: ", target, ". Use --overwrite-vars to allow overwriting.")
   }
   confirm_action(opts, paste0(action_label, " will overwrite existing variable '", target, "'."), "confirm-overwrite")
@@ -421,7 +448,7 @@ ensure_target_name <- function(df, target, opts, action_label) {
 
 coerce_numeric <- function(vec, var, opts) {
   if (is.numeric(vec)) return(list(vec = vec, note = ""))
-  if (!resolve_parse_bool(opts$coerce, FALSE)) stop("Variable '", var, "' is not numeric. Use --coerce to convert.")
+  if (!resolve_dt_bool(opts$coerce, "coerce", FALSE)) stop("Variable '", var, "' is not numeric. Use --coerce to convert.")
   converted <- suppressWarnings(as.numeric(vec))
   introduced_na <- any(is.na(converted) & !is.na(vec))
   note <- if (introduced_na) "coerced with NAs introduced" else "coerced"
@@ -505,10 +532,14 @@ percentile_into <- if (!is.null(opts$`percentile-into`)) parse_into_map(opts$`pe
 bins_into <- if (!is.null(opts$`bins-into`)) parse_into_map(opts$`bins-into`) else list()
 recode_into <- if (!is.null(opts$`recode-into`)) parse_into_map(opts$`recode-into`) else list()
 
-standardize_suffix <- if (!is.null(opts$`standardize-suffix`)) opts$`standardize-suffix` else "_z"
-percentile_suffix <- if (!is.null(opts$`percentile-suffix`)) opts$`percentile-suffix` else "_pct"
-bins_suffix <- if (!is.null(opts$`bins-suffix`)) opts$`bins-suffix` else "_bin"
-recode_suffix <- if (!is.null(opts$`recode-suffix`)) opts$`recode-suffix` else "_rec"
+standardize_suffix_default <- resolve_config_value("modules.data_transform.standardize_suffix", "_z")
+percentile_suffix_default <- resolve_config_value("modules.data_transform.percentile_suffix", "_pct")
+bins_suffix_default <- resolve_config_value("modules.data_transform.bins_suffix", "_bin")
+recode_suffix_default <- resolve_config_value("modules.data_transform.recode_suffix", "_rec")
+standardize_suffix <- if (!is.null(opts$`standardize-suffix`)) opts$`standardize-suffix` else standardize_suffix_default
+percentile_suffix <- if (!is.null(opts$`percentile-suffix`)) opts$`percentile-suffix` else percentile_suffix_default
+bins_suffix <- if (!is.null(opts$`bins-suffix`)) opts$`bins-suffix` else bins_suffix_default
+recode_suffix <- if (!is.null(opts$`recode-suffix`)) opts$`recode-suffix` else recode_suffix_default
 
 log_rows <- list()
 add_log <- function(action, variable, new_variable, details, note = "") {
@@ -547,7 +578,7 @@ if (length(transform_rules) > 0) {
       paste0(fn, "_", var)
     }
     if (target == var) {
-      if (!resolve_parse_bool(opts$`overwrite-vars`, FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
+      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
         stop("Transform target matches source and overwrite is disabled for ", var)
       }
       confirm_action(opts, paste0("Transform will overwrite variable '", var, "'."), "confirm-overwrite")
@@ -571,7 +602,7 @@ if (length(standardize_vars) > 0) {
       paste0(var, standardize_suffix)
     }
     if (target == var) {
-      if (!resolve_parse_bool(opts$`overwrite-vars`, FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
+      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
         stop("Standardize target matches source and overwrite is disabled for ", var)
       }
       confirm_action(opts, paste0("Standardize will overwrite variable '", var, "'."), "confirm-overwrite")
@@ -594,7 +625,7 @@ if (length(recode_rules) > 0) {
       paste0(var, recode_suffix)
     }
     if (target == var) {
-      if (!resolve_parse_bool(opts$`overwrite-vars`, FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
+      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
         stop("Recode target matches source and overwrite is disabled for ", var)
       }
       confirm_action(opts, paste0("Recode will overwrite variable '", var, "'."), "confirm-overwrite")
@@ -616,7 +647,7 @@ if (length(percentile_rules) > 0) {
       paste0(var, percentile_suffix)
     }
     if (target == var) {
-      if (!resolve_parse_bool(opts$`overwrite-vars`, FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
+      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
         stop("Percentile bins target matches source and overwrite is disabled for ", var)
       }
       confirm_action(opts, paste0("Percentile bins will overwrite variable '", var, "'."), "confirm-overwrite")
@@ -646,7 +677,7 @@ if (length(bins_rules) > 0) {
       paste0(var, bins_suffix)
     }
     if (target == var) {
-      if (!resolve_parse_bool(opts$`overwrite-vars`, FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
+      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
         stop("Custom bins target matches source and overwrite is disabled for ", var)
       }
       confirm_action(opts, paste0("Custom bins will overwrite variable '", var, "'."), "confirm-overwrite")
@@ -671,7 +702,7 @@ if (length(rename_map) > 0) {
     if (!(old %in% names(df))) stop("Unknown variable for rename: ", old)
     if (old == new) next
     if (new %in% names(df)) {
-      if (!resolve_parse_bool(opts$`overwrite-vars`, FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
+      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
         stop("Rename target already exists: ", new, ". Use --overwrite-vars to allow.")
       }
       confirm_action(opts, paste0("Rename will overwrite variable '", new, "'."), "confirm-overwrite")
@@ -765,8 +796,8 @@ table_df <- if (nrow(log_df) == 0) {
 apa_table <- make_markdown_table(table_df)
 resolve_append_apa_report(file.path(out_dir, "apa_report.md"), "Data transformation", apa_table, apa_text)
 
-
-if (resolve_parse_bool(opts$log, default = TRUE)) {
+log_default <- resolve_config_value("defaults.log", TRUE)
+if (resolve_parse_bool(opts$log, default = log_default)) {
   ctx <- resolve_get_run_context()
   resolve_append_analysis_log(
     out_dir,
@@ -783,7 +814,7 @@ if (resolve_parse_bool(opts$log, default = TRUE)) {
       recode = opts$recode,
       rename = opts$rename,
       drop = opts$drop,
-      overwrite_vars = resolve_parse_bool(opts$`overwrite-vars`, FALSE)
+      overwrite_vars = resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE)
     ),
     user_prompt = resolve_get_user_prompt(opts)
   )
