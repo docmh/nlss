@@ -84,6 +84,14 @@ Rscript <path to scripts/R/crosstabs.R> --interactive
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
+## APA 7 Templates
+
+Use the Markdown templates in `r-core-stats/assets/crosstabs` when assembling cross-tabulation reports. If the template exists, `crosstabs.R` uses it for `apa_report.md`.
+
+- `r-core-stats/assets/crosstabs/default-template.md` is used when no grouping variable is supplied. The APA table is rendered in a long format with columns for Row variable, Column variable, Row level, Column level, n, and the selected percentages.
+- `r-core-stats/assets/crosstabs/grouped-template.md` is used when `--group` is provided. The APA table includes an additional Group column in the same long-format layout.
+- When multiple `--rows`/`--cols` combinations are requested, each pair appears in the same long-format table; the Row/Column variable columns indicate which pair each block of rows belongs to.
+
 ## APA 7 Reporting Guidance
 
 - Report chi-square (or Fisher's exact test) with df, N, p-value, and effect size (Cramer's V or phi for 2x2).

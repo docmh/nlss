@@ -284,6 +284,16 @@ resolve_format_percent <- function(value, digits) {
   format(round(value, digits), nsmall = digits, trim = TRUE)
 }
 
+resolve_get_assets_dir <- function() {
+  if (exists("get_assets_dir", mode = "function")) {
+    return(get("get_assets_dir", mode = "function")())
+  }
+  if (exists("bootstrap_dir", inherits = TRUE)) {
+    return(file.path(get("bootstrap_dir", inherits = TRUE), "..", "..", "assets"))
+  }
+  file.path(getwd(), "r-core-stats", "assets")
+}
+
 
 parse_percent_flags <- function(value, default = "all") {
   val <- if (!is.null(value) && value != "") value else default
@@ -582,15 +592,68 @@ get_percent_columns <- function(apa_percent) {
   character(0)
 }
 
-format_apa_table <- function(cells_df, digits, apa_percent) {
+format_apa_table <- function(cells_df, digits, apa_percent, layout = "sectioned", include_group = TRUE) {
   display <- resolve_round_numeric(cells_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
-  use_group <- !all(display$group == "")
 
-  combos <- unique(display[, c("row_var", "col_var", "group")])
+  layout <- tolower(layout)
+  if (!(layout %in% c("sectioned", "long"))) {
+    layout <- "sectioned"
+  }
+
   percent_cols <- get_percent_columns(apa_percent)
   percent_labels <- c(pct_row = "Row %", pct_col = "Column %", pct_total = "Total %")
+
+  if (layout == "long") {
+    include_group <- isTRUE(include_group) && !all(display$group == "")
+    combos <- unique(display[, c("row_var", "col_var")])
+    if (nrow(combos) == 1) {
+      header <- sprintf("Table 1\nCross-tabulation of %s by %s", combos$row_var[1], combos$col_var[1])
+    } else {
+      header <- "Table 1\nCross-tabulation results"
+    }
+
+    headers <- c("Row Variable", "Column Variable")
+    if (include_group) {
+      headers <- c(headers, "Group")
+    }
+    headers <- c(headers, "Row Level", "Column Level", "n", percent_labels[percent_cols])
+
+    md <- paste0(header, "\n\n| ", paste(headers, collapse = " | "), " |\n")
+    md <- paste0(md, "| ", paste(rep("---", length(headers)), collapse = " | "), " |\n")
+
+    for (i in seq_len(nrow(display))) {
+      row <- display[i, ]
+      row_vals <- c(row$row_var, row$col_var)
+      if (include_group) {
+        row_vals <- c(row_vals, row$group)
+      }
+      row_vals <- c(
+        row_vals,
+        row$row_level,
+        row$col_level,
+        ifelse(is.na(row$n), "", as.character(row$n))
+      )
+      if (length(percent_cols) > 0) {
+        for (col in percent_cols) {
+          row_vals <- c(row_vals, resolve_format_percent(row[[col]], digits))
+        }
+      }
+      md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
+    }
+
+    note_parts <- c("Note. Percentages are based on complete cases; missing values excluded.")
+    if (length(percent_cols) > 0) {
+      note_parts <- c(note_parts, paste("Reported:", paste(percent_labels[percent_cols], collapse = ", "), sep = " "))
+    }
+    md <- paste0(md, "\n", paste(note_parts, collapse = " "), "\n")
+
+    return(md)
+  }
+
+  use_group <- !all(display$group == "")
+  combos <- unique(display[, c("row_var", "col_var", "group")])
 
   sections <- character(0)
   for (idx in seq_len(nrow(combos))) {
@@ -851,10 +914,48 @@ main <- function() {
   tests_df <- do.call(rbind, tests_list)
   diagnostics_df <- do.call(rbind, diag_list)
 
+  percent_label <- if (!is.null(opts$percent) && opts$percent != "") opts$percent else percent_default
+  use_group_template <- !is.null(group_var)
+  assets_dir <- resolve_get_assets_dir()
+  template_path <- if (use_group_template) {
+    file.path(assets_dir, "crosstabs", "grouped-template.md")
+  } else {
+    file.path(assets_dir, "crosstabs", "default-template.md")
+  }
+  analysis_flags <- list(
+    rows = rows,
+    cols = cols,
+    group = if (!is.null(group_var) && group_var != "") group_var else "None",
+    percent = percent_label,
+    "apa-percent" = apa_percent,
+    chisq = options$chisq,
+    yates = if (options$chisq) options$yates else NULL,
+    fisher = options$fisher,
+    "fisher-simulate" = if (options$fisher) options$fisher_simulate else NULL,
+    "fisher-b" = if (options$fisher && options$fisher_simulate) options$fisher_b else NULL,
+    "fisher-conf-level" = if (options$fisher) options$fisher_conf_level else NULL,
+    "include-expected" = options$include_expected,
+    "include-residuals" = options$include_residuals,
+    digits = digits
+  )
+
   apa_report_path <- file.path(out_dir, "apa_report.md")
-  apa_table <- format_apa_table(cells_df, digits, apa_percent)
+  apa_table <- format_apa_table(
+    cells_df,
+    digits,
+    apa_percent,
+    layout = "long",
+    include_group = use_group_template
+  )
   apa_text <- format_apa_text(tests_df, diagnostics_df, digits)
-  resolve_append_apa_report(apa_report_path, "Cross-tabulations", apa_table, apa_text)
+  resolve_append_apa_report(
+    apa_report_path,
+    "Cross-tabulations",
+    apa_table,
+    apa_text,
+    analysis_flags = analysis_flags,
+    template_path = template_path
+  )
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")

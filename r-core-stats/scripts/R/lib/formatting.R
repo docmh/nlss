@@ -29,7 +29,18 @@ humanize_flag_name <- function(name) {
     "include-expected" = "Include expected counts",
     "include-residuals" = "Include residuals",
     "max-levels" = "Max levels",
-    "top-n" = "Top levels"
+    "top-n" = "Top levels",
+    "rows" = "Row variables",
+    "cols" = "Column variables",
+    "row" = "Row variable",
+    "col" = "Column variable",
+    "apa-percent" = "APA percent",
+    "chisq" = "Chi-square test",
+    "yates" = "Yates correction",
+    "fisher" = "Fisher's exact test",
+    "fisher-simulate" = "Fisher simulation",
+    "fisher-b" = "Fisher replications",
+    "fisher-conf-level" = "Fisher confidence level"
   )
   if (!is.null(name) && name %in% names(mapping)) return(unname(mapping[[name]]))
   label <- gsub("[-_]", " ", as.character(name))
@@ -94,6 +105,10 @@ get_template_path <- function(analysis_label) {
   }
   if (label == "correlations") {
     path <- file.path(get_assets_dir(), "correlations", "default-template.md")
+    if (file.exists(path)) return(path)
+  }
+  if (label == "cross-tabulations") {
+    path <- file.path(get_assets_dir(), "crosstabs", "default-template.md")
     if (file.exists(path)) return(path)
   }
   NULL
@@ -176,14 +191,17 @@ format_descriptive_report <- function(template_path, analysis_flags, table_numbe
   table_placeholders <- c(
     "<actual table with columns: Variable, Group (if used), n, Missing n, Missing %, M, SD, Min, Max, 95% CI>",
     "<actual table with columns: Variable 1, Variable 2, r/rho/tau, 95% CI (if reported), p, n, Group (if used)>",
-    "<actual table with columns: X Variable, Y Variable, r/rho/tau, 95% CI (if reported), p, n, Group (if used)>"
+    "<actual table with columns: X Variable, Y Variable, r/rho/tau, 95% CI (if reported), p, n, Group (if used)>",
+    "<actual table with columns: Row variable, Column variable, Row level, Column level, n, Row %, Column %, Total %>",
+    "<actual table with columns: Group, Row variable, Column variable, Row level, Column level, n, Row %, Column %, Total %>"
   )
   for (placeholder in table_placeholders) {
     report <- gsub(placeholder, table_body, report, fixed = TRUE)
   }
   note_placeholders <- c(
     "<optional note about missingness, rounding, grouping, or CI method>",
-    "<optional note about method, missing-data handling, p-value adjustment, controls, or CI>"
+    "<optional note about method, missing-data handling, p-value adjustment, controls, or CI>",
+    "<optional note about missingness, percentages, or grouping>"
   )
   for (placeholder in note_placeholders) {
     report <- gsub(placeholder, note_body, report, fixed = TRUE)
