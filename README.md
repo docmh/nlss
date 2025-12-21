@@ -1,14 +1,22 @@
-# Statistic Skills
+# R-Core-Stats
 
 R-based statistics helpers that produce an APA 7-ready report plus machine-readable JSONL logs. The repo is organized as "subskills" with a shared workflow and consistent output locations.
 
 ## Requirements and system support
 
 - R 4.0+ (base R is enough for CSV/APA outputs).
-- Optional R packages: `jsonlite` is required to write `analysis_log.jsonl` (install with `install.packages("jsonlite")`).
+- Required R packages: `yaml` (configuration + templates) and `jsonlite` (analysis logging).
+- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support.
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
 - Optional: WSL if you want the wrapper to run Linux Rscript first and fall back to Windows Rscript.
+
+Install the R dependencies:
+
+```r
+install.packages(c("yaml", "jsonlite", "haven"))
+# install.packages("foreign") # legacy fallback if haven is not available
+```
 
 ## Install
 
@@ -42,58 +50,97 @@ Rscript r-core-stats/scripts/R/descriptive_stats.R \
 
 ## Available modules (subskills)
 
-Each subskill has a reference file describing inputs, flags, and outputs.
+Each subskill has a reference file describing inputs, flags, and outputs. Template-driven modules can be customized via `r-core-stats/assets/<subskill>/` and `templates.*` in `r-core-stats/scripts/config.yml`.
 
-| Subskill | Script | Purpose |
-| --- | --- | --- |
-| `descriptive-stats-r` | `r-core-stats/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. |
-| `frequencies-r` | `r-core-stats/scripts/R/frequencies.R` | Frequency tables for categorical variables. |
-| `crosstabs-r` | `r-core-stats/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. |
-| `correlations-r` | `r-core-stats/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics. |
+| Subskill | Script | Purpose | APA template |
+| --- | --- | --- | --- |
+| `descriptive-stats-r` | `r-core-stats/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. | Yes (`descriptive-stats/default-template.md`) |
+| `frequencies-r` | `r-core-stats/scripts/R/frequencies.R` | Frequency tables for categorical variables. | Built-in (no template file) |
+| `crosstabs-r` | `r-core-stats/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
+| `correlations-r` | `r-core-stats/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`) |
+| `data-explorer-r` | `r-core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Built-in (no template file) |
+| `data-transform-r` | `r-core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Built-in (no template file) |
 
 Reference docs:
 - `r-core-stats/references/descriptive-stats-r.md`
 - `r-core-stats/references/frequencies-r.md`
 - `r-core-stats/references/crosstabs-r.md`
 - `r-core-stats/references/correlations-r.md`
+- `r-core-stats/references/data-explorer-r.md`
+- `r-core-stats/references/data-transform-r.md`
 
 ## Basic usage by module
+
+Each run writes `apa_report.md` in the output directory and appends to `analysis_log.jsonl` when logging is enabled.
 
 ### Descriptive statistics
 
 ```bash
 Rscript r-core-stats/scripts/R/descriptive_stats.R \
-  --csv data.csv --vars age,score --group condition
+  --csv data.csv --vars age,score --group condition --out outputs/tmp
 ```
-
-Outputs: `apa_report.md` (plus `analysis_log.jsonl` when logging is enabled).
 
 ### Frequencies
 
 ```bash
 Rscript r-core-stats/scripts/R/frequencies.R \
-  --csv data.csv --vars gender,condition --group condition
+  --csv data.csv --vars gender,condition --group condition --out outputs/tmp
 ```
-
-Outputs: `apa_report.md` (plus `analysis_log.jsonl` when logging is enabled).
 
 ### Cross-tabulations
 
 ```bash
 Rscript r-core-stats/scripts/R/crosstabs.R \
-  --csv data.csv --row gender --col condition --group site
+  --csv data.csv --row gender --col condition --group site --out outputs/tmp
 ```
-
-Outputs: `apa_report.md` (plus `analysis_log.jsonl` when logging is enabled).
 
 ### Correlations
 
 ```bash
 Rscript r-core-stats/scripts/R/correlations.R \
-  --csv data.csv --vars age,score,stress --method spearman
+  --csv data.csv --vars age,score,stress --method spearman --out outputs/tmp
 ```
 
-Outputs: `apa_report.md` (plus `analysis_log.jsonl` when logging is enabled).
+### Data exploration
+
+```bash
+Rscript r-core-stats/scripts/R/data_explorer.R \
+  --csv data.csv --vars age,score --max-levels 15 --top-n 8 --out outputs/tmp
+```
+
+### Data transformation
+
+```bash
+Rscript r-core-stats/scripts/R/data_transform.R \
+  --csv data.csv --standardize age,score --out outputs/tmp
+```
+
+## Where outputs go
+
+All scripts default to `./outputs/tmp` when `--out` is omitted. Keep this folder in the working directory you run the scripts from.
+
+## Configuration logic
+
+Defaults live in `r-core-stats/scripts/config.yml` and are loaded via `r-core-stats/scripts/R/lib/config.R`.
+
+- `defaults.*` apply across all modules (for example `defaults.output_dir`).
+- `modules.<subskill>.*` holds per-module defaults (for example `modules.crosstabs.percent`).
+- `templates.<subskill>.*` controls the template file used for APA outputs (see next section).
+- CLI flags always override config values at runtime (for example `--out`, `--digits`, module-specific flags).
+- When `config.yml` is missing or unreadable, built-in defaults in `config.R` are used.
+
+## APA template logic (YAML)
+
+Templates are Markdown files under `r-core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, correlations, and crosstabs).
+
+Key YAML fields:
+
+- `tokens`: static strings you can reference as `{{token}}` in the template body.
+- `table.columns`: ordered column specs with `key`, `label`, and optional `drop_if_empty`.
+- `note.template`: controls `{{note_body}}` rendering (defaults to `{{note_default}}`).
+- `narrative.template` or `narrative.row_template`: controls `{{narrative}}` rendering; `row_template` repeats over `narrative_rows` and can be joined with `narrative.join`.
+
+Template paths can be overridden in `r-core-stats/scripts/config.yml` under `templates.<subskill>.<name>` (for example `templates.crosstabs.grouped`). Edit the template files or point to your own to change APA output without touching the R scripts.
 
 ## Using with Codex (Codes)
 
@@ -116,7 +163,3 @@ Example prompt:
 Use the r-core-stats repo. Run descriptive_stats on data.csv for age and score.
 Use outputs/tmp and report the APA narrative and table file names.
 ```
-
-## Where outputs go
-
-All scripts default to `./outputs/tmp` when `--out` is omitted. Keep this folder in the working directory you run the scripts from.
