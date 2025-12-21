@@ -1,6 +1,6 @@
 version: 1
 defaults:
-  output_dir: "./outputs/tmp"
+  output_dir: "./core-stats-out"
   csv:
     sep: ","
     header: true

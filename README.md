@@ -31,21 +31,21 @@ If you are on Windows, ensure `Rscript.exe` is on your PATH or set `RSCRIPT` to 
 
 ## Quick start
 
-Outputs go to `./outputs/tmp` by default when `--out` is omitted. Each run writes `apa_report.md` and, when logging is enabled, appends to `analysis_log.jsonl`.
+Outputs always go to `defaults.output_dir` from `core-stats/scripts/config.yml` and are not user-overridable. Each run writes `apa_report.md` and, when logging is enabled, appends to `analysis_log.jsonl`.
 
 ### Windows (PowerShell wrapper; WSL first, Windows fallback)
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File core-stats/scripts/run_rscript.ps1 `
   core-stats/scripts/R/descriptive_stats.R `
-  --csv data.csv --vars age,score --out outputs\tmp
+  --csv data.csv --vars age,score
 ```
 
 ### WSL/Linux (Rscript directly)
 
 ```bash
 Rscript core-stats/scripts/R/descriptive_stats.R \
-  --csv data.csv --vars age,score --out outputs/tmp
+  --csv data.csv --vars age,score
 ```
 
 ## Available modules (subskills)
@@ -79,54 +79,54 @@ Each run writes `apa_report.md` in the output directory and appends to `analysis
 
 ```bash
 Rscript core-stats/scripts/R/descriptive_stats.R \
-  --csv data.csv --vars age,score --group condition --out outputs/tmp
+  --csv data.csv --vars age,score --group condition
 ```
 
 ### Frequencies
 
 ```bash
 Rscript core-stats/scripts/R/frequencies.R \
-  --csv data.csv --vars gender,condition --group condition --out outputs/tmp
+  --csv data.csv --vars gender,condition --group condition
 ```
 
 ### Cross-tabulations
 
 ```bash
 Rscript core-stats/scripts/R/crosstabs.R \
-  --csv data.csv --row gender --col condition --group site --out outputs/tmp
+  --csv data.csv --row gender --col condition --group site
 ```
 
 ### Correlations
 
 ```bash
 Rscript core-stats/scripts/R/correlations.R \
-  --csv data.csv --vars age,score,stress --method spearman --out outputs/tmp
+  --csv data.csv --vars age,score,stress --method spearman
 ```
 
 ### Scale analysis
 
 ```bash
 Rscript core-stats/scripts/R/scale.R \
-  --csv data.csv --vars item1,item2,item3 --group condition --out outputs/tmp
+  --csv data.csv --vars item1,item2,item3 --group condition
 ```
 
 ### Data exploration
 
 ```bash
 Rscript core-stats/scripts/R/data_explorer.R \
-  --csv data.csv --vars age,score --max-levels 15 --top-n 8 --out outputs/tmp
+  --csv data.csv --vars age,score --max-levels 15 --top-n 8
 ```
 
 ### Data transformation
 
 ```bash
 Rscript core-stats/scripts/R/data_transform.R \
-  --csv data.csv --standardize age,score --out outputs/tmp
+  --csv data.csv --standardize age,score
 ```
 
 ## Where outputs go
 
-All scripts default to `./outputs/tmp` when `--out` is omitted. Keep this folder in the working directory you run the scripts from.
+All scripts write to `defaults.output_dir` from `core-stats/scripts/config.yml` and do not accept a custom output directory.
 
 ## Configuration logic
 
@@ -135,7 +135,7 @@ Defaults live in `core-stats/scripts/config.yml` and are loaded via `core-stats/
 - `defaults.*` apply across all modules (for example `defaults.output_dir`).
 - `modules.<subskill>.*` holds per-module defaults (for example `modules.crosstabs.percent`).
 - `templates.<subskill>.*` controls the template file used for APA outputs (see next section).
-- CLI flags always override config values at runtime (for example `--out`, `--digits`, module-specific flags).
+- CLI flags always override config values at runtime (for example `--digits`, module-specific flags).
 - When `config.yml` is missing or unreadable, built-in defaults in `config.R` are used.
 
 ## APA template logic (YAML)

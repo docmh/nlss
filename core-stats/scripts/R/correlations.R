@@ -48,7 +48,6 @@ print_usage <- function() {
   cat("  --digits N             Rounding digits (default: 2)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
-  cat("  --out DIR              Output directory (default: ./outputs/tmp)\n")
   cat("  --interactive          Prompt for inputs\n")
   cat("  --help                 Show this help\n")
 }
@@ -102,7 +101,6 @@ interactive_options <- function() {
   opts$`user-prompt` <- prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
-  opts$out <- prompt("Output directory", resolve_default_out())
   opts
 }
 
@@ -942,7 +940,7 @@ main <- function() {
   adjust_method <- normalize_adjust(opts$`p-adjust`, default = adjust_default)
   coerce_flag <- resolve_parse_bool(opts$coerce, default = coerce_default)
 
-  out_dir <- resolve_ensure_out_dir(if (!is.null(opts$out)) opts$out else resolve_default_out())
+  out_dir <- resolve_ensure_out_dir(resolve_default_out())
 
   df <- resolve_load_dataframe(opts)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL

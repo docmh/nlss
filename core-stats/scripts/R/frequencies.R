@@ -40,7 +40,6 @@ print_usage <- function() {
   cat("  --digits N             Rounding digits for percentages (default: 2)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
-  cat("  --out DIR              Output directory (default: ./outputs/tmp)\n")
   cat("  --interactive          Prompt for inputs\n")
   cat("  --help                 Show this help\n")
 }
@@ -81,7 +80,6 @@ interactive_options <- function() {
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
-  opts$out <- resolve_prompt("Output directory", resolve_default_out())
   opts
 }
 
@@ -719,7 +717,7 @@ main <- function() {
   vars_default <- resolve_config_value("modules.frequencies.vars_default", "non-numeric")
   include_numeric_default <- resolve_config_value("modules.frequencies.include_numeric", FALSE)
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  out_dir <- resolve_ensure_out_dir(if (!is.null(opts$out)) opts$out else resolve_default_out())
+  out_dir <- resolve_ensure_out_dir(resolve_default_out())
 
   df <- resolve_load_dataframe(opts)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL

@@ -30,7 +30,7 @@ Run with `Rscript` and base R only.
 The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\data_transform.R> --csv <path to CSV file> --calc "bmi=weight/(height^2)" --standardize age,score --out <working directory>\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\data_transform.R> --csv <path to CSV file> --calc "bmi=weight/(height^2)" --standardize age,score
 ```
 
 ### CSV input
@@ -107,7 +107,6 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 - `--overwrite-vars` allows overwriting existing variables (default: `modules.data_transform.overwrite_vars`); use with `--confirm-overwrite`.
 - `--confirm-overwrite` or `--interactive` is required when overwriting existing variables (default: `modules.data_transform.confirm_overwrite`).
 - `--confirm-drop` or `--interactive` is required when dropping variables (default: `modules.data_transform.confirm_drop`).
-- `--out` sets the output directory (default: `defaults.output_dir`).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -118,6 +117,8 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 - Use `--confirm-drop` to delete variables. Input files are not modified; outputs are written to the output directory.
 
 ## Outputs
+
+- Outputs are always written to `defaults.output_dir` from `core-stats/scripts/config.yml` (not user-overridable).
 
 - `transformed_data.rds`: Updated dataset in RDS format.
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.

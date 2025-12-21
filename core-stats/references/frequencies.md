@@ -25,17 +25,13 @@ Run with `Rscript` and base R only.
 The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\frequencies.R> --csv <path to CSV file> --vars gender,condition --group condition --out <working directory>\outputs\tmp
-```
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\frequencies.R> --csv <path to CSV file> --vars gender --group condition
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\frequencies.R> --csv <path to CSV file> --vars gender,condition --group condition
 ```
 
 ### CSV input
 
 ```bash
-Rscript <path to scripts/R/frequencies.R> --csv <path to CSV file> --vars gender,condition --out <working directory>/outputs/tmp
+Rscript <path to scripts/R/frequencies.R> --csv <path to CSV file> --vars gender,condition --group condition
 ```
 
 ### RDS input (data frame)
@@ -64,11 +60,12 @@ Rscript <path to scripts/R/frequencies.R> --interactive
 - `--group` is optional and produces grouped frequency tables (one grouping variable).
 - `--digits` controls rounding for percentages (default: `defaults.digits`).
 - `--include-numeric` defaults to `modules.frequencies.include_numeric`.
-- `--out` sets the output directory (default: `defaults.output_dir`).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Outputs
+
+- Outputs are always written to `defaults.output_dir` from `core-stats/scripts/config.yml` (not user-overridable).
 
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).

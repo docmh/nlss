@@ -30,7 +30,7 @@ On Windows, the wrapper prefers WSL (Ubuntu/Linux) and falls back to Windows `Rs
 Example:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables> --out <working directory>\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables>
 ```
 
 If the script path is omitted, the wrapper falls back to the default configured inside the wrapper script.
@@ -42,7 +42,7 @@ Inside WSL or Linux, run `Rscript` directly with the same arguments.
 Example:
 
 ```bash
-Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables> --out <working directory>/outputs/tmp
+Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables>
 ```
 
 ## Common inputs (data sources)
@@ -57,7 +57,6 @@ All scripts accept one of the following input types:
 
 ## Common flags
 
-- `--out <dir>`: Output directory (default from `scripts/config.yml` -> `defaults.output_dir`, otherwise `<working directory>/outputs/tmp`).
 - `--sep <char>`: CSV separator (default from `scripts/config.yml` -> `defaults.csv.sep`).
 - `--header TRUE/FALSE`: CSV header row (default from `scripts/config.yml` -> `defaults.csv.header`).
 - `--log TRUE/FALSE`: Append to `analysis_log.jsonl` (default from `scripts/config.yml` -> `defaults.log`).
@@ -69,7 +68,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 ## Output conventions
 
 - Use `defaults.output_dir` from `scripts/config.yml` for scratch outputs (defaults to `<working directory>/outputs/tmp`, relative to the working directory where the script runs).
-- If the user does not explicitly pass `--out`, the default output directory **must** be `defaults.output_dir`.
+- The output directory is fixed to `defaults.output_dir` and is not user-overridable.
 - Each analysis appends `apa_report.md` (APA table + narrative) and appends `analysis_log.jsonl` when logging is enabled.
 - For `apa_report.md`, templates in `core-stats/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.

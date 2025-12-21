@@ -23,8 +23,10 @@ Run with `Rscript` and base R only.
 
 ### Windows wrapper (WSL first, Windows fallback)
 
+The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
+
 ```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\scale.R> --csv <path to CSV file> --vars item1,item2,item3 --out <working directory>\outputs\tmp
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\scale.R> --csv <path to CSV file> --vars item1,item2,item3
 ```
 
 ### CSV input
@@ -75,15 +77,15 @@ Rscript <path to scripts/R/scale.R> --interactive
 - `--omega` toggles omega total estimation (default: `modules.scale.omega`).
 - `--coerce` coerces non-numeric columns to numeric (default: `modules.scale.coerce`).
 - `--digits` controls rounding (default: `defaults.digits`).
-- `--out` sets the output directory (default: `defaults.output_dir`).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Outputs
 
+- Outputs are always written to `defaults.output_dir` from `core-stats/scripts/config.yml` (not user-overridable).
+
 - `apa_report.md`: APA 7 report containing the item analysis table and narrative reliability summary.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
-- When `--out` is omitted, outputs are written to `defaults.output_dir` from `core-stats/scripts/config.yml`.
 
 ## APA 7 Templates
 

@@ -21,7 +21,7 @@ print_usage <- function() {
   cat("Usage:\n")
   cat("  Rscript data_transform.R --csv data.csv [--calc \"newvar=expr\"] [--transform \"var=log\"] [--standardize var1,var2]\n")
   cat("  Rscript data_transform.R --sav data.sav [--recode \"var=1:0,2:1\"] [--rename old:new] [--drop var1,var2]\n")
-  cat("  Rscript data_transform.R --rds data.rds [--out ./outputs/tmp]\n")
+  cat("  Rscript data_transform.R --rds data.rds\n")
   cat("  Rscript data_transform.R --rdata data.RData --df data_frame_name [--interactive]\n")
   cat("\n")
   cat("Options:\n")
@@ -55,7 +55,6 @@ print_usage <- function() {
   cat("  --confirm-drop            Confirm dropping variables\n")
   cat("  --user-prompt TEXT        Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE          Write analysis_log.jsonl (default: TRUE)\n")
-  cat("  --out DIR                 Output directory (default: ./outputs/tmp)\n")
   cat("  --interactive             Prompt for inputs\n")
   cat("  --help                    Show this help\n")
 }
@@ -119,7 +118,6 @@ interactive_options <- function() {
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
-  opts$out <- resolve_prompt("Output directory", resolve_default_out())
   opts
 }
 
@@ -752,7 +750,7 @@ if (!is.null(opts$interactive)) {
 
 df <- resolve_load_dataframe(opts)
 
-out_dir <- resolve_ensure_out_dir(if (!is.null(opts$out)) opts$out else resolve_default_out())
+  out_dir <- resolve_ensure_out_dir(resolve_default_out())
 
 calc_rules <- if (!is.null(opts$calc)) parse_calc_rules(opts$calc) else list()
 transform_rules <- if (!is.null(opts$transform)) parse_transform_rules(opts$transform) else list()
