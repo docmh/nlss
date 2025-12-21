@@ -49,6 +49,9 @@ modules:
 templates:
   descriptive_stats:
     default: "descriptive-stats/default-template.md"
+  frequencies:
+    default: "frequencies/default-template.md"
+    grouped: "frequencies/grouped-template.md"
   correlations:
     default: "correlations/default-template.md"
     cross: "correlations/cross-correlation-template.md"

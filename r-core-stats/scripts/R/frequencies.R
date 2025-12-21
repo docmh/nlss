@@ -280,6 +280,49 @@ resolve_format_percent <- function(value, digits) {
   format(round(value, digits), nsmall = digits, trim = TRUE)
 }
 
+resolve_get_template_meta <- function(path) {
+  if (exists("get_template_meta", mode = "function")) {
+    return(get("get_template_meta", mode = "function")(path))
+  }
+  list()
+}
+
+resolve_get_template_path <- function(key, default_relative = NULL) {
+  if (exists("resolve_template_path", mode = "function")) {
+    return(get("resolve_template_path", mode = "function")(key, default_relative))
+  }
+  NULL
+}
+
+resolve_normalize_table_columns <- function(columns, default_specs) {
+  if (exists("normalize_table_columns", mode = "function")) {
+    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
+  }
+  default_specs
+}
+
+resolve_drop_empty_columns <- function(columns, rows) {
+  if (exists("drop_empty_columns", mode = "function")) {
+    return(get("drop_empty_columns", mode = "function")(columns, rows))
+  }
+  list(columns = columns, rows = rows)
+}
+
+resolve_render_markdown_table <- function(headers, rows) {
+  if (exists("render_markdown_table", mode = "function")) {
+    return(get("render_markdown_table", mode = "function")(headers, rows))
+  }
+  ""
+}
+
+resolve_as_cell_text <- function(value) {
+  if (exists("as_cell_text", mode = "function")) {
+    return(get("as_cell_text", mode = "function")(value))
+  }
+  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
+  as.character(value)
+}
+
 
 build_freq_rows <- function(vec, variable, group_label) {
   total_n <- length(vec)
@@ -304,13 +347,23 @@ build_freq_rows <- function(vec, variable, group_label) {
   }
 
   counts <- table(factor(vec, levels = levels), useNA = "no")
+  pct_total <- if (total_n > 0) {
+    as.numeric(counts) / total_n * 100
+  } else {
+    rep(NA_real_, length(counts))
+  }
+  pct_valid <- if (valid_n > 0) {
+    as.numeric(counts) / valid_n * 100
+  } else {
+    rep(NA_real_, length(counts))
+  }
   data.frame(
     variable = variable,
     group = group_label,
     level = names(counts),
     n = as.integer(counts),
-    pct_total = ifelse(total_n > 0, as.numeric(counts) / total_n * 100, NA_real_),
-    pct_valid = ifelse(valid_n > 0, as.numeric(counts) / valid_n * 100, NA_real_),
+    pct_total = pct_total,
+    pct_valid = pct_valid,
     total_n = total_n,
     missing_n = missing_n,
     missing_pct = missing_pct,
@@ -455,6 +508,199 @@ format_apa_text <- function(df, digits) {
   paste(lines, collapse = "\n")
 }
 
+format_num <- function(value, digits) {
+  if (is.na(value)) return("")
+  format(round(value, digits), nsmall = digits, trim = TRUE)
+}
+
+build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) {
+  display <- resolve_round_numeric(summary_df, digits)
+  display$group <- as.character(display$group)
+  display$group[is.na(display$group)] <- "NA"
+
+  default_columns <- list(
+    list(key = "variable", label = "Variable"),
+    list(key = "group", label = "Group", drop_if_empty = TRUE),
+    list(key = "level", label = "Level"),
+    list(key = "n", label = "n"),
+    list(key = "pct_total", label = "%"),
+    list(key = "pct_valid", label = "Valid %", drop_if_empty = TRUE)
+  )
+  columns <- resolve_normalize_table_columns(
+    if (!is.null(table_spec$columns)) table_spec$columns else NULL,
+    default_columns
+  )
+
+  rows <- list()
+  combo_df <- unique(display[, c("variable", "group")])
+  for (idx in seq_len(nrow(combo_df))) {
+    var <- combo_df$variable[idx]
+    grp <- combo_df$group[idx]
+    subset <- display[display$variable == var & display$group == grp, , drop = FALSE]
+    total_n <- subset$total_n[1]
+    missing_n <- subset$missing_n[1]
+    missing_pct <- subset$missing_pct[1]
+
+    for (i in seq_len(nrow(subset))) {
+      row <- subset[i, , drop = FALSE]
+      row_vals <- character(0)
+      for (col in columns) {
+        key <- col$key
+        val <- ""
+        if (key %in% c("variable", "group", "level")) {
+          val <- resolve_as_cell_text(row[[key]][1])
+        } else if (key %in% c("n", "total_n", "missing_n")) {
+          val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
+        } else if (key %in% c("pct_total", "pct_valid", "missing_pct")) {
+          val <- resolve_format_percent(row[[key]][1], digits)
+        } else if (key %in% names(row)) {
+          cell <- row[[key]][1]
+          if (is.numeric(cell)) {
+            val <- format_num(cell, digits)
+          } else {
+            val <- resolve_as_cell_text(cell)
+          }
+        }
+        row_vals <- c(row_vals, val)
+      }
+      rows[[length(rows) + 1]] <- row_vals
+    }
+
+    if (!is.na(missing_n) && missing_n > 0) {
+      row_vals <- character(0)
+      for (col in columns) {
+        key <- col$key
+        val <- ""
+        if (key == "variable") {
+          val <- resolve_as_cell_text(var)
+        } else if (key == "group") {
+          val <- resolve_as_cell_text(grp)
+        } else if (key == "level") {
+          val <- "Missing"
+        } else if (key == "n") {
+          val <- as.character(missing_n)
+        } else if (key == "pct_total") {
+          val <- resolve_format_percent(missing_pct, digits)
+        } else if (key == "pct_valid") {
+          val <- ""
+        } else if (key == "total_n") {
+          val <- ifelse(is.na(total_n), "", as.character(total_n))
+        } else if (key == "missing_n") {
+          val <- ifelse(is.na(missing_n), "", as.character(missing_n))
+        } else if (key == "missing_pct") {
+          val <- resolve_format_percent(missing_pct, digits)
+        }
+        row_vals <- c(row_vals, val)
+      }
+      rows[[length(rows) + 1]] <- row_vals
+    }
+  }
+
+  filtered <- resolve_drop_empty_columns(columns, rows)
+  columns <- filtered$columns
+  rows <- filtered$rows
+  headers <- vapply(columns, function(col) {
+    if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
+  }, character(1))
+  list(
+    body = resolve_render_markdown_table(headers, rows),
+    columns = vapply(columns, function(col) col$key, character(1))
+  )
+}
+
+build_frequencies_note_tokens <- function(column_keys) {
+  pct_total_note <- ""
+  pct_valid_note <- ""
+  if ("pct_total" %in% column_keys) {
+    pct_total_note <- "% = percent of total."
+  }
+  if ("pct_valid" %in% column_keys) {
+    pct_valid_note <- "Valid % excludes missing values."
+  }
+  missing_note <- "Missing values are listed separately."
+  note_parts <- c(pct_total_note, pct_valid_note, missing_note)
+  list(
+    pct_total_note = pct_total_note,
+    pct_valid_note = pct_valid_note,
+    missing_note = missing_note,
+    note_default = paste(note_parts[nzchar(note_parts)], collapse = " ")
+  )
+}
+
+build_frequencies_narrative_rows <- function(summary_df, digits) {
+  display <- resolve_round_numeric(summary_df, digits)
+  display$group <- as.character(display$group)
+  display$group[is.na(display$group)] <- "NA"
+  rows <- list()
+  combo_df <- unique(display[, c("variable", "group")])
+  for (idx in seq_len(nrow(combo_df))) {
+    var <- combo_df$variable[idx]
+    grp <- combo_df$group[idx]
+    subset <- display[display$variable == var & display$group == grp, , drop = FALSE]
+    total_n <- subset$total_n[1]
+    missing_n <- subset$missing_n[1]
+    missing_pct <- subset$missing_pct[1]
+    valid_n <- ifelse(is.na(total_n) || is.na(missing_n), NA, total_n - missing_n)
+    label <- if (grp == "") var else paste0("Group ", grp, ", ", var)
+
+    total_n_str <- ifelse(is.na(total_n), "NA", as.character(total_n))
+    missing_n_str <- ifelse(is.na(missing_n), "NA", as.character(missing_n))
+    missing_pct_str <- ifelse(is.na(missing_pct), "NA", resolve_format_percent(missing_pct, digits))
+    valid_n_str <- ifelse(is.na(valid_n), "NA", as.character(valid_n))
+    missing_text <- paste0("Missing = ", missing_n_str, " (", missing_pct_str, "%)")
+
+    levels_text <- ""
+    if (is.na(total_n) || total_n == 0) {
+      line <- sprintf("%s: no observations available.", label)
+    } else if (nrow(subset) == 1 && subset$level[1] == "(no valid data)") {
+      levels_text <- "no valid observations"
+      line <- sprintf(
+        "%s (n = %s): no valid observations. Missing = %s (%s%%).",
+        label,
+        total_n_str,
+        missing_n_str,
+        missing_pct_str
+      )
+    } else {
+      level_parts <- character(0)
+      for (i in seq_len(nrow(subset))) {
+        row <- subset[i, , drop = FALSE]
+        level_parts <- c(
+          level_parts,
+          sprintf(
+            "%s (n = %s, valid %% = %s)",
+            row$level[1],
+            ifelse(is.na(row$n), "NA", as.character(row$n)),
+            ifelse(is.na(row$pct_valid), "NA", resolve_format_percent(row$pct_valid, digits))
+          )
+        )
+      }
+      levels_text <- paste(level_parts, collapse = "; ")
+      line <- sprintf(
+        "%s (n = %s): %s. %s.",
+        label,
+        total_n_str,
+        levels_text,
+        missing_text
+      )
+    }
+
+    rows[[length(rows) + 1]] <- list(
+      label = label,
+      variable = var,
+      group = grp,
+      total_n = total_n_str,
+      valid_n = valid_n_str,
+      missing_n = missing_n_str,
+      missing_pct = missing_pct_str,
+      missing_text = missing_text,
+      levels_text = levels_text,
+      full_sentence = line
+    )
+  }
+  rows
+}
+
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   opts <- resolve_parse_args(args)
@@ -495,7 +741,41 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(summary_df, digits)
   apa_text <- format_apa_text(summary_df, digits)
-  resolve_append_apa_report(apa_report_path, "Frequencies", apa_table, apa_text)
+  use_group_template <- !is.null(group_var)
+  template_path <- if (use_group_template) {
+    resolve_get_template_path("frequencies.grouped", "frequencies/grouped-template.md")
+  } else {
+    resolve_get_template_path("frequencies.default", "frequencies/default-template.md")
+  }
+  template_meta <- resolve_get_template_meta(template_path)
+  table_result <- build_frequencies_table_body(summary_df, digits, template_meta$table)
+  note_tokens <- build_frequencies_note_tokens(table_result$columns)
+  narrative_rows <- build_frequencies_narrative_rows(summary_df, digits)
+  template_context <- list(
+    tokens = c(
+      list(
+        table_body = table_result$body,
+        narrative_default = apa_text
+      ),
+      note_tokens
+    ),
+    narrative_rows = narrative_rows
+  )
+  analysis_flags <- list(
+    vars = vars,
+    group = if (!is.null(group_var) && group_var != "") group_var else "None",
+    "include-numeric" = include_numeric,
+    digits = digits
+  )
+  resolve_append_apa_report(
+    apa_report_path,
+    "Frequencies",
+    apa_table,
+    apa_text,
+    analysis_flags = analysis_flags,
+    template_path = template_path,
+    template_context = template_context
+  )
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")

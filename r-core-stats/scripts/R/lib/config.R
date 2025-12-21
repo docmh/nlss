@@ -93,6 +93,10 @@ get_builtin_config <- function() {
       descriptive_stats = list(
         default = "descriptive-stats/default-template.md"
       ),
+      frequencies = list(
+        default = "frequencies/default-template.md",
+        grouped = "frequencies/grouped-template.md"
+      ),
       correlations = list(
         default = "correlations/default-template.md",
         cross = "correlations/cross-correlation-template.md"

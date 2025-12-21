@@ -75,7 +75,36 @@ Rscript <path to scripts/R/frequencies.R> --interactive
 
 ## APA 7 Templates
 
-This module currently uses the built-in APA report format (no YAML template mapping in `templates.*`). To customize the APA layout, add a template under `r-core-stats/assets` and wire it through the template system.
+Use the Markdown templates in `r-core-stats/assets/frequencies` when assembling frequency reports. If the template exists, `frequencies.R` uses it for `apa_report.md`.
+When `--group` is provided, the grouped template is selected; otherwise the default template is used.
+
+### YAML template controls
+
+- Template paths can be overridden via `templates.frequencies.default` and `templates.frequencies.grouped` in `r-core-stats/scripts/config.yml`.
+- Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
+  - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
+  - `note.template`: overrides the note text (defaults to `{{note_default}}`).
+  - `narrative.template` or `narrative.row_template`: overrides the narrative text.
+
+### Table column keys
+
+Available column keys for `table.columns` include:
+
+`variable`, `group`, `level`, `n`, `pct_total`, `pct_valid`, `total_n`, `missing_n`, `missing_pct`.
+
+Use `drop_if_empty: true` to remove a column if all values are blank (for example, `group`).
+
+### Note tokens
+
+Available note tokens include:
+
+`note_default`, `pct_total_note`, `pct_valid_note`, `missing_note`.
+
+### Narrative tokens
+
+Use `narrative.row_template` for per-row lines. Available row tokens include:
+
+`label`, `variable`, `group`, `total_n`, `valid_n`, `missing_n`, `missing_pct`, `missing_text`, `levels_text`, `full_sentence`.
 
 ## APA 7 Reporting Guidance
 
