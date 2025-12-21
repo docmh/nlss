@@ -60,7 +60,7 @@ All scripts accept one of the following input types:
 - `--sep <char>`: CSV separator (default from `scripts/config.yml` -> `defaults.csv.sep`).
 - `--header TRUE/FALSE`: CSV header row (default from `scripts/config.yml` -> `defaults.csv.header`).
 - `--log TRUE/FALSE`: Append to `analysis_log.jsonl` (default from `scripts/config.yml` -> `defaults.log`).
-- `--user-prompt <text>`: Store the original AI user prompt in the JSONL log (optional).
+- `--user-prompt <text>`: Store the original AI user prompt in the JSONL log (required: always pass the last user message when an analysis is requested).
 - `--digits <n>`: Rounding for APA output where supported (default from `scripts/config.yml` -> `defaults.digits`).
 
 Module-specific analysis options (variables, grouping, method choices, etc.) are described in each subskill reference.
