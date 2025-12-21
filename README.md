@@ -61,6 +61,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `scale` | `core-stats/scripts/R/scale.R` | Item analysis and reliability (alpha/omega) for scales. | Yes (`scale/default-template.md`) |
 | `data-explorer` | `core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Yes (`data-explorer/default-template.md`) |
 | `data-transform` | `core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Yes (`data-transform/default-template.md`) |
+| `t-test` | `core-stats/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
 
 Reference docs:
 - `core-stats/references/descriptive-stats.md`
@@ -70,6 +71,7 @@ Reference docs:
 - `core-stats/references/scale.md`
 - `core-stats/references/data-explorer.md`
 - `core-stats/references/data-transform.md`
+- `core-stats/references/t-test.md`
 
 ## Basic usage by module
 
@@ -122,6 +124,13 @@ Rscript core-stats/scripts/R/data_explorer.R \
 ```bash
 Rscript core-stats/scripts/R/data_transform.R \
   --csv data.csv --standardize age,score
+```
+
+### t-tests
+
+```bash
+Rscript core-stats/scripts/R/t_test.R \
+  --csv data.csv --vars score --group condition
 ```
 
 ## Where outputs go

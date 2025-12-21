@@ -45,7 +45,11 @@ humanize_flag_name <- function(name) {
     "fisher" = "Fisher's exact test",
     "fisher-simulate" = "Fisher simulation",
     "fisher-b" = "Fisher replications",
-    "fisher-conf-level" = "Fisher confidence level"
+    "fisher-conf-level" = "Fisher confidence level",
+    "mu" = "Test value (mu)",
+    "var-equal" = "Equal variances",
+    "bootstrap" = "Bootstrap",
+    "bootstrap-samples" = "Bootstrap samples"
   )
   if (!is.null(name) && name %in% names(mapping)) return(unname(mapping[[name]]))
   label <- gsub("[-_]", " ", as.character(name))

@@ -96,6 +96,15 @@ get_builtin_config <- function() {
         overwrite_vars = FALSE,
         confirm_overwrite = FALSE,
         confirm_drop = FALSE
+      ),
+      t_test = list(
+        vars_default = "numeric",
+        mu = 0.0,
+        alternative = "two.sided",
+        var_equal = FALSE,
+        conf_level = 0.95,
+        bootstrap = FALSE,
+        bootstrap_samples = 1000
       )
     ),
     templates = list(
@@ -122,6 +131,9 @@ get_builtin_config <- function() {
       ),
       scale = list(
         default = "scale/default-template.md"
+      ),
+      t_test = list(
+        default = "t-test/default-template.md"
       )
     )
   )
