@@ -74,6 +74,20 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - For `apa_report.md`, templates in `r-core-stats/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
 
+## APA Template System (YAML)
+
+APA templates are Markdown files with optional YAML front matter and `{{token}}` placeholders. They can control table columns, notes, and narrative text.
+
+- Template selection is configurable in `scripts/config.yml` under `templates.*` (e.g., `templates.descriptive_stats.default`, `templates.crosstabs.grouped`, `templates.correlations.cross`).
+- YAML front matter supports:
+  - `tokens`: static or derived tokens that can be referenced in the template body.
+  - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
+  - `note.template`: overrides the note text; defaults to `{{note_default}}` if omitted.
+  - `narrative.template` or `narrative.row_template`: overrides narrative text. `row_template` renders one line per result row; it can be combined with `narrative.join` and `narrative.drop_empty`.
+- Base tokens available in all templates: `analysis_label`, `analysis_flags`, `table_number`, `table_body`, `note_body`, `note_default`, `narrative`, `narrative_default`.
+- Module-specific tokens (e.g., correlation CI labels or cross-tab test fragments) are documented in each subskill reference.
+- Modules without template mappings fall back to the built-in APA report format (no YAML template).
+
 ## Subskills
 
 - [descriptive-stats-r](references/descriptive-stats-r.md): APA 7 style descriptive statistics using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts.

@@ -88,6 +88,19 @@ get_builtin_config <- function() {
         confirm_overwrite = FALSE,
         confirm_drop = FALSE
       )
+    ),
+    templates = list(
+      descriptive_stats = list(
+        default = "descriptive-stats/default-template.md"
+      ),
+      correlations = list(
+        default = "correlations/default-template.md",
+        cross = "correlations/cross-correlation-template.md"
+      ),
+      crosstabs = list(
+        default = "crosstabs/default-template.md",
+        grouped = "crosstabs/grouped-template.md"
+      )
     )
   )
 }

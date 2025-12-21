@@ -218,7 +218,7 @@ resolve_get_levels <- function(vec) {
   as.character(sort(values))
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL) {
+resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
   if (exists("append_apa_report", mode = "function")) {
     return(get("append_apa_report", mode = "function")(
       path,
@@ -226,7 +226,8 @@ resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text,
       apa_table,
       apa_text,
       analysis_flags = analysis_flags,
-      template_path = template_path
+      template_path = template_path,
+      template_context = template_context
     ))
   }
   stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
@@ -292,6 +293,50 @@ resolve_get_assets_dir <- function() {
     return(file.path(get("bootstrap_dir", inherits = TRUE), "..", "..", "assets"))
   }
   file.path(getwd(), "r-core-stats", "assets")
+}
+
+resolve_get_template_path <- function(key, default_relative = NULL) {
+  if (exists("resolve_template_path", mode = "function")) {
+    return(get("resolve_template_path", mode = "function")(key, default_relative))
+  }
+  if (is.null(default_relative) || !nzchar(default_relative)) return(NULL)
+  file.path(resolve_get_assets_dir(), default_relative)
+}
+
+resolve_get_template_meta <- function(path) {
+  if (exists("get_template_meta", mode = "function")) {
+    return(get("get_template_meta", mode = "function")(path))
+  }
+  list()
+}
+
+resolve_normalize_table_columns <- function(columns, default_specs) {
+  if (exists("normalize_table_columns", mode = "function")) {
+    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
+  }
+  default_specs
+}
+
+resolve_drop_empty_columns <- function(columns, rows) {
+  if (exists("drop_empty_columns", mode = "function")) {
+    return(get("drop_empty_columns", mode = "function")(columns, rows))
+  }
+  list(columns = columns, rows = rows)
+}
+
+resolve_render_markdown_table <- function(headers, rows) {
+  if (exists("render_markdown_table", mode = "function")) {
+    return(get("render_markdown_table", mode = "function")(headers, rows))
+  }
+  ""
+}
+
+resolve_as_cell_text <- function(value) {
+  if (exists("as_cell_text", mode = "function")) {
+    return(get("as_cell_text", mode = "function")(value))
+  }
+  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
+  as.character(value)
 }
 
 
@@ -821,6 +866,227 @@ format_apa_text <- function(tests_df, diagnostics_df, digits) {
   paste(lines, collapse = "\n")
 }
 
+format_num_cell <- function(value, digits) {
+  if (is.na(value)) return("")
+  format_num(value, digits)
+}
+
+build_crosstabs_table_body <- function(cells_df, digits, table_spec = NULL) {
+  display <- resolve_round_numeric(cells_df, digits)
+  display$group <- as.character(display$group)
+  display$group[is.na(display$group)] <- "NA"
+
+  default_columns <- list(
+    list(key = "row_var", label = "Row Variable"),
+    list(key = "col_var", label = "Column Variable"),
+    list(key = "group", label = "Group", drop_if_empty = TRUE),
+    list(key = "row_level", label = "Row Level"),
+    list(key = "col_level", label = "Column Level"),
+    list(key = "n", label = "n"),
+    list(key = "pct_row", label = "Row %", drop_if_empty = TRUE),
+    list(key = "pct_col", label = "Column %", drop_if_empty = TRUE),
+    list(key = "pct_total", label = "Total %", drop_if_empty = TRUE)
+  )
+  columns <- resolve_normalize_table_columns(
+    if (!is.null(table_spec$columns)) table_spec$columns else NULL,
+    default_columns
+  )
+  rows <- list()
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, , drop = FALSE]
+    row_vals <- character(0)
+    for (col in columns) {
+      key <- col$key
+      val <- ""
+      if (key %in% c("row_var", "col_var", "group", "row_level", "col_level")) {
+        val <- resolve_as_cell_text(row[[key]][1])
+      } else if (key == "n") {
+        val <- ifelse(is.na(row$n), "", as.character(row$n))
+      } else if (key %in% c("pct_row", "pct_col", "pct_total")) {
+        val <- resolve_format_percent(row[[key]][1], digits)
+      } else if (key %in% c("expected", "std_resid", "adj_resid")) {
+        val <- format_num_cell(row[[key]][1], digits)
+      } else if (key %in% names(row)) {
+        cell <- row[[key]][1]
+        if (is.numeric(cell)) {
+          val <- format_num_cell(cell, digits)
+        } else {
+          val <- resolve_as_cell_text(cell)
+        }
+      }
+      row_vals <- c(row_vals, val)
+    }
+    rows[[length(rows) + 1]] <- row_vals
+  }
+  filtered <- resolve_drop_empty_columns(columns, rows)
+  columns <- filtered$columns
+  rows <- filtered$rows
+  headers <- vapply(columns, function(col) {
+    if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
+  }, character(1))
+  list(
+    body = resolve_render_markdown_table(headers, rows),
+    columns = vapply(columns, function(col) col$key, character(1))
+  )
+}
+
+build_crosstabs_note_tokens <- function(column_keys) {
+  percent_label_map <- c(pct_row = "Row %", pct_col = "Column %", pct_total = "Total %")
+  percent_labels <- percent_label_map[names(percent_label_map) %in% column_keys]
+  percent_labels_text <- paste(percent_labels, collapse = ", ")
+  missing_note <- "Percentages are based on complete cases; missing values excluded."
+  note_parts <- c(missing_note)
+  if (nzchar(percent_labels_text)) {
+    note_parts <- c(note_parts, paste("Reported:", percent_labels_text))
+  }
+  list(
+    percent_labels = percent_labels_text,
+    missing_note = missing_note,
+    note_default = paste(note_parts, collapse = " ")
+  )
+}
+
+build_crosstabs_narrative_rows <- function(tests_df, diagnostics_df, digits) {
+  tests <- resolve_round_numeric(tests_df, digits)
+  diagnostics <- resolve_round_numeric(diagnostics_df, digits)
+  tests$group <- as.character(tests$group)
+  diagnostics$group <- as.character(diagnostics$group)
+  tests$group[is.na(tests$group)] <- "NA"
+  diagnostics$group[is.na(diagnostics$group)] <- "NA"
+
+  combos <- unique(tests[, c("row_var", "col_var", "group")])
+  rows <- list()
+
+  for (idx in seq_len(nrow(combos))) {
+    row_var <- combos$row_var[idx]
+    col_var <- combos$col_var[idx]
+    group <- combos$group[idx]
+    row <- tests[tests$row_var == row_var & tests$col_var == col_var & tests$group == group, , drop = FALSE]
+    diag_row <- diagnostics[diagnostics$row_var == row_var & diagnostics$col_var == col_var & diagnostics$group == group, , drop = FALSE]
+
+    label <- if (group == "") {
+      sprintf("%s by %s", row_var, col_var)
+    } else {
+      sprintf("Group %s, %s by %s", group, row_var, col_var)
+    }
+
+    valid_n <- row$valid_n[1]
+    missing_n <- row$missing_n[1]
+    missing_pct <- row$missing_pct[1]
+    missing_text <- sprintf(
+      "Missing = %s (%s%%)",
+      ifelse(is.na(missing_n), "NA", as.character(missing_n)),
+      ifelse(is.na(missing_pct), "NA", format_num(missing_pct, 1))
+    )
+
+    if (is.na(valid_n) || valid_n == 0) {
+      line <- sprintf(
+        "%s: no valid observations. Missing = %s (%s%%).",
+        label,
+        ifelse(is.na(missing_n), "NA", as.character(missing_n)),
+        ifelse(is.na(missing_pct), "NA", format_num(missing_pct, 1))
+      )
+      rows[[length(rows) + 1]] <- list(
+        label = label,
+        row_var = row_var,
+        col_var = col_var,
+        group = group,
+        valid_n = ifelse(is.na(valid_n), "NA", as.character(valid_n)),
+        missing_n = ifelse(is.na(missing_n), "NA", as.character(missing_n)),
+        missing_pct = ifelse(is.na(missing_pct), "NA", format_num(missing_pct, 1)),
+        missing_text = missing_text,
+        full_sentence = line
+      )
+      next
+    }
+
+    chisq_text <- ""
+    effect_text <- ""
+    if (!is.na(row$chi_square[1])) {
+      chisq_text <- sprintf(
+        "chi-square(%s, N = %s) = %s, p %s",
+        ifelse(is.na(row$chi_df[1]), "NA", as.character(row$chi_df[1])),
+        as.character(valid_n),
+        format_num(row$chi_square[1], digits),
+        format_p(row$chi_p[1])
+      )
+      if (!is.na(row$phi[1])) {
+        effect_text <- sprintf("phi = %s", format_num(row$phi[1], digits))
+      } else if (!is.na(row$cramers_v[1])) {
+        effect_text <- sprintf("Cramer's V = %s", format_num(row$cramers_v[1], digits))
+      }
+    }
+
+    fisher_text <- ""
+    if (!is.na(row$fisher_p[1])) {
+      fisher_text <- sprintf("Fisher's exact test p %s", format_p(row$fisher_p[1]))
+      if (!is.na(row$fisher_odds_ratio[1])) {
+        fisher_text <- paste0(
+          fisher_text,
+          ", odds ratio = ",
+          format_num(row$fisher_odds_ratio[1], digits)
+        )
+        if (!is.na(row$fisher_ci_low[1]) && !is.na(row$fisher_ci_high[1])) {
+          fisher_text <- paste0(
+            fisher_text,
+            ", 95% CI [",
+            format_num(row$fisher_ci_low[1], digits),
+            ", ",
+            format_num(row$fisher_ci_high[1], digits),
+            "]"
+          )
+        }
+      }
+    }
+
+    tests_parts <- c(chisq_text, effect_text, fisher_text)
+    tests_parts <- tests_parts[nzchar(tests_parts)]
+    tests_text <- paste(tests_parts, collapse = "; ")
+
+    expected_text <- ""
+    if (nrow(diag_row) > 0 && !is.na(diag_row$min_expected[1])) {
+      expected_text <- sprintf(
+        "Expected counts: min = %s; %s%% of cells < 5",
+        format_num(diag_row$min_expected[1], digits),
+        format_num(diag_row$pct_expected_lt_5[1], 1)
+      )
+    }
+
+    if (length(tests_parts) == 0) {
+      line <- paste0(label, ": no association test computed")
+      if (expected_text != "") {
+        line <- paste0(line, ". ", expected_text)
+      }
+      line <- paste0(line, ". ", missing_text, ".")
+    } else {
+      line <- paste0(label, ": ", tests_text)
+      if (expected_text != "") {
+        line <- paste0(line, ". ", expected_text)
+      }
+      line <- paste0(line, ". ", missing_text, ".")
+    }
+
+    rows[[length(rows) + 1]] <- list(
+      label = label,
+      row_var = row_var,
+      col_var = col_var,
+      group = group,
+      valid_n = ifelse(is.na(valid_n), "NA", as.character(valid_n)),
+      missing_n = ifelse(is.na(missing_n), "NA", as.character(missing_n)),
+      missing_pct = ifelse(is.na(missing_pct), "NA", format_num(missing_pct, 1)),
+      chisq_text = chisq_text,
+      effect_text = effect_text,
+      fisher_text = fisher_text,
+      tests_text = tests_text,
+      expected_text = expected_text,
+      missing_text = missing_text,
+      full_sentence = line
+    )
+  }
+
+  rows
+}
+
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   opts <- resolve_parse_args(args)
@@ -916,11 +1182,10 @@ main <- function() {
 
   percent_label <- if (!is.null(opts$percent) && opts$percent != "") opts$percent else percent_default
   use_group_template <- !is.null(group_var)
-  assets_dir <- resolve_get_assets_dir()
   template_path <- if (use_group_template) {
-    file.path(assets_dir, "crosstabs", "grouped-template.md")
+    resolve_get_template_path("crosstabs.grouped", "crosstabs/grouped-template.md")
   } else {
-    file.path(assets_dir, "crosstabs", "default-template.md")
+    resolve_get_template_path("crosstabs.default", "crosstabs/default-template.md")
   }
   analysis_flags <- list(
     rows = rows,
@@ -948,13 +1213,28 @@ main <- function() {
     include_group = use_group_template
   )
   apa_text <- format_apa_text(tests_df, diagnostics_df, digits)
+  template_meta <- resolve_get_template_meta(template_path)
+  table_result <- build_crosstabs_table_body(cells_df, digits, template_meta$table)
+  note_tokens <- build_crosstabs_note_tokens(table_result$columns)
+  narrative_rows <- build_crosstabs_narrative_rows(tests_df, diagnostics_df, digits)
+  template_context <- list(
+    tokens = c(
+      list(
+        table_body = table_result$body,
+        narrative_default = apa_text
+      ),
+      note_tokens
+    ),
+    narrative_rows = narrative_rows
+  )
   resolve_append_apa_report(
     apa_report_path,
     "Cross-tabulations",
     apa_table,
     apa_text,
     analysis_flags = analysis_flags,
-    template_path = template_path
+    template_path = template_path,
+    template_context = template_context
   )
 
   cat("Wrote:\n")

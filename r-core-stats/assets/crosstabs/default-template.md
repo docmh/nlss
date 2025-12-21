@@ -1,19 +1,51 @@
-# Cross-Tabulations
+---
+tokens:
+  title: "Cross-Tabulations"
+  table_title: "Cross-tabulation results."
+  note_prefix: "*Note.*"
+  narrative_heading: "**Narrative**"
+table:
+  columns:
+    - key: "row_var"
+      label: "Row Variable"
+    - key: "col_var"
+      label: "Column Variable"
+    - key: "row_level"
+      label: "Row Level"
+    - key: "col_level"
+      label: "Column Level"
+    - key: "n"
+      label: "n"
+    - key: "pct_row"
+      label: "Row %"
+      drop_if_empty: true
+    - key: "pct_col"
+      label: "Column %"
+      drop_if_empty: true
+    - key: "pct_total"
+      label: "Total %"
+      drop_if_empty: true
+note:
+  template: "{{note_default}}"
+narrative:
+  template: "{{narrative_default}}"
+---
+# {{title}}
 
 Analysis:
 
-<analysis flags in human readable form>
+{{analysis_flags}}
 
-**Table <running number>**
+**Table {{table_number}}**
 
-Cross-tabulation results.
+{{table_title}}
 
-<actual table with columns: Row variable, Column variable, Row level, Column level, n, Row %, Column %, Total %>
+{{table_body}}
 
-*Note.* <optional note about missingness, percentages, or grouping>
+{{note_prefix}} {{note_body}}
 
-**Narrative**
+{{narrative_heading}}
 
-<APA 7 narrative text>
+{{narrative}}
 
 ---

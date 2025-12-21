@@ -46,3 +46,12 @@ modules:
     overwrite_vars: false
     confirm_overwrite: false
     confirm_drop: false
+templates:
+  descriptive_stats:
+    default: "descriptive-stats/default-template.md"
+  correlations:
+    default: "correlations/default-template.md"
+    cross: "correlations/cross-correlation-template.md"
+  crosstabs:
+    default: "crosstabs/default-template.md"
+    grouped: "crosstabs/grouped-template.md"

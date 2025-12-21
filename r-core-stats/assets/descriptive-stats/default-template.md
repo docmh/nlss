@@ -1,19 +1,47 @@
-# Descriptive Statistics
+---
+tokens:
+  title: "Descriptive Statistics"
+  table_title: "Descriptive analyses."
+  note_prefix: "*Note.*"
+  narrative_heading: "**Narrative**"
+table:
+  columns:
+    - key: "variable"
+      label: "Variable"
+    - key: "group"
+      label: "Group"
+      drop_if_empty: true
+    - key: "n"
+      label: "n"
+    - key: "mean"
+      label: "M"
+    - key: "sd"
+      label: "SD"
+    - key: "min"
+      label: "Min"
+    - key: "max"
+      label: "Max"
+note:
+  template: "{{note_default}}"
+narrative:
+  template: "{{narrative_default}}"
+---
+# {{title}}
 
 Analysis:
 
-<analysis flags in human readable form>
+{{analysis_flags}}
 
-**Table <running number>**
+**Table {{table_number}}**
 
-Descriptive Analyses.
+{{table_title}}
 
-<actual table with columns: Variable, Group (if used), n, Missing n, Missing %, M, SD, Min, Max, 95% CI>
+{{table_body}}
 
-*Note.* <optional note about missingness, rounding, grouping, or CI method>
+{{note_prefix}} {{note_body}}
 
-**Narrative**
+{{narrative_heading}}
 
-<APA 7 narrative text>
+{{narrative}}
 
 ---

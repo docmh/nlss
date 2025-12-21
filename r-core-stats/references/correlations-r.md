@@ -103,6 +103,34 @@ Use the Markdown templates in `r-core-stats/assets/correlations` when assembling
 - Use `r-core-stats/assets/correlations/default-template.md` for correlation matrices created from `--vars` (or default numeric columns).
 - Use `r-core-stats/assets/correlations/cross-correlation-template.md` for cross-correlations created from `--x` and `--y`.
 - For partial correlations, keep the same template as the matrix or cross-correlation output and include the control variables in the analysis flags and note.
+  
+### YAML template controls
+
+- Template paths can be overridden via `templates.correlations.default` and `templates.correlations.cross` in `r-core-stats/scripts/config.yml`.
+- Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
+  - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
+  - `note.template`: overrides the note text (defaults to `{{note_default}}`).
+  - `narrative.template` or `narrative.row_template`: overrides the narrative text.
+
+### Table column keys
+
+Available column keys for `table.columns` include:
+
+`group`, `var1`, `var2`, `r`, `ci`, `p`, `p_adj`, `n`.
+
+Use `drop_if_empty: true` to remove a column if all values are blank (e.g., `group`, `p_adj`, `ci`).
+
+### Note tokens
+
+Available note tokens include:
+
+`note_default`, `ci_label`, `tail_note`, `missing_note`, `partial_note`, `p_adjust_note`, `ci_note`.
+
+### Narrative tokens
+
+Use `narrative.row_template` for per-row lines. Available row tokens include:
+
+`label`, `group`, `var1`, `var2`, `stat_text`, `r`, `ci`, `ci_text`, `p`, `n`, `missing_n`, `missing_pct`, `missing_text`, `full_sentence`.
 
 ## APA 7 Reporting Guidance
 

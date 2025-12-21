@@ -190,7 +190,58 @@ resolve_get_assets_dir <- function() {
   file.path(getwd(), "r-core-stats", "assets")
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL) {
+resolve_get_template_path <- function(key, default_relative = NULL) {
+  if (exists("resolve_template_path", mode = "function")) {
+    return(get("resolve_template_path", mode = "function")(key, default_relative))
+  }
+  if (is.null(default_relative) || !nzchar(default_relative)) return(NULL)
+  file.path(resolve_get_assets_dir(), default_relative)
+}
+
+resolve_get_template_meta <- function(path) {
+  if (exists("get_template_meta", mode = "function")) {
+    return(get("get_template_meta", mode = "function")(path))
+  }
+  list()
+}
+
+resolve_normalize_table_columns <- function(columns, default_specs) {
+  if (exists("normalize_table_columns", mode = "function")) {
+    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
+  }
+  default_specs
+}
+
+resolve_drop_empty_columns <- function(columns, rows) {
+  if (exists("drop_empty_columns", mode = "function")) {
+    return(get("drop_empty_columns", mode = "function")(columns, rows))
+  }
+  list(columns = columns, rows = rows)
+}
+
+resolve_render_markdown_table <- function(headers, rows) {
+  if (exists("render_markdown_table", mode = "function")) {
+    return(get("render_markdown_table", mode = "function")(headers, rows))
+  }
+  ""
+}
+
+resolve_as_cell_text <- function(value) {
+  if (exists("as_cell_text", mode = "function")) {
+    return(get("as_cell_text", mode = "function")(value))
+  }
+  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
+  as.character(value)
+}
+
+resolve_render_template_tokens <- function(text, tokens) {
+  if (exists("render_template_tokens", mode = "function")) {
+    return(get("render_template_tokens", mode = "function")(text, tokens))
+  }
+  text
+}
+
+resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
   if (exists("append_apa_report", mode = "function")) {
     return(get("append_apa_report", mode = "function")(
       path,
@@ -198,7 +249,8 @@ resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text,
       apa_table,
       apa_text,
       analysis_flags = analysis_flags,
-      template_path = template_path
+      template_path = template_path,
+      template_context = template_context
     ))
   }
   stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
@@ -679,6 +731,188 @@ format_apa_text <- function(summary_df, digits, conf_level, adjust_method, missi
   paste(c(lines, paste(note_parts, collapse = " ")), collapse = "\n")
 }
 
+format_ci_cell <- function(low, high, digits) {
+  if (is.na(low) || is.na(high)) return("")
+  format_ci(low, high, digits)
+}
+
+format_p_cell <- function(value) {
+  if (is.na(value)) return("")
+  format_p(value)
+}
+
+format_r_cell <- function(value, digits) {
+  if (is.na(value)) return("")
+  format_r(value, digits)
+}
+
+build_correlations_table_body <- function(summary_df, digits, conf_level, adjust_method, table_spec = NULL) {
+  display <- summary_df
+  display$group <- as.character(display$group)
+  display$group[is.na(display$group)] <- "NA"
+
+  ci_label <- paste0(round(conf_level * 100), "% CI")
+  default_columns <- list(
+    list(key = "group", label = "Group", drop_if_empty = TRUE),
+    list(key = "var1", label = "Variable 1"),
+    list(key = "var2", label = "Variable 2"),
+    list(key = "r", label = "r"),
+    list(key = "ci", label = ci_label, drop_if_empty = TRUE),
+    list(key = "p", label = "p"),
+    list(key = "p_adj", label = "p_adj", drop_if_empty = TRUE),
+    list(key = "n", label = "n")
+  )
+  columns <- resolve_normalize_table_columns(
+    if (!is.null(table_spec$columns)) table_spec$columns else NULL,
+    default_columns
+  )
+
+  rows <- list()
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, , drop = FALSE]
+    row_vals <- character(0)
+    for (col in columns) {
+      key <- col$key
+      val <- ""
+      if (key == "group") {
+        val <- resolve_as_cell_text(row$group)
+      } else if (key == "var1") {
+        val <- resolve_as_cell_text(row$var1)
+      } else if (key == "var2") {
+        val <- resolve_as_cell_text(row$var2)
+      } else if (key == "r") {
+        val <- format_r_cell(row$r, digits)
+      } else if (key == "ci") {
+        val <- format_ci_cell(row$ci_low, row$ci_high, digits)
+      } else if (key == "p") {
+        val <- format_p_cell(row$p_value)
+      } else if (key == "p_adj") {
+        val <- format_p_cell(row$p_adjusted)
+      } else if (key == "n") {
+        val <- ifelse(is.na(row$n), "", as.character(row$n))
+      } else if (key %in% names(row)) {
+        cell <- row[[key]][1]
+        if (is.numeric(cell)) {
+          val <- format_num(cell, digits)
+        } else {
+          val <- resolve_as_cell_text(cell)
+        }
+      }
+      row_vals <- c(row_vals, val)
+    }
+    rows[[length(rows) + 1]] <- row_vals
+  }
+  filtered <- resolve_drop_empty_columns(columns, rows)
+  columns <- filtered$columns
+  rows <- filtered$rows
+  label_tokens <- list(ci_label = ci_label)
+  headers <- vapply(columns, function(col) {
+    label <- if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
+    resolve_render_template_tokens(label, label_tokens)
+  }, character(1))
+  resolve_render_markdown_table(headers, rows)
+}
+
+build_correlations_note_tokens <- function(summary_df, conf_level, adjust_method, missing_method, alternative) {
+  display <- summary_df
+  partial <- nrow(display) > 0 && any(display$partial)
+  controls <- unique(display$controls[display$controls != ""])
+  ci_label <- paste0(round(conf_level * 100), "% CI")
+  tail_note <- if (alternative != "two.sided") "One-tailed tests." else "Two-tailed tests."
+  missing_note <- paste0("Missing values handled ", missing_method, ".")
+  partial_note <- ""
+  if (partial && length(controls) > 0) {
+    partial_note <- paste0("Partial correlations control for ", paste(controls, collapse = "; "), ".")
+  }
+  p_adjust_note <- ""
+  if (adjust_method != "none") {
+    p_adjust_note <- paste0("p-values adjusted using ", adjust_label(adjust_method), ".")
+  }
+  ci_note <- ""
+  if (nrow(display) > 0 && any(!is.na(display$ci_low))) {
+    ci_note <- paste(ci_label, "computed via Fisher's z.")
+  }
+  parts <- c(tail_note, missing_note, partial_note, p_adjust_note, ci_note)
+  note_default <- paste(parts[nzchar(parts)], collapse = " ")
+  list(
+    ci_label = ci_label,
+    tail_note = tail_note,
+    missing_note = missing_note,
+    partial_note = partial_note,
+    p_adjust_note = p_adjust_note,
+    ci_note = ci_note,
+    note_default = note_default
+  )
+}
+
+build_correlations_narrative_rows <- function(summary_df, digits, conf_level, adjust_method) {
+  display <- summary_df
+  display$group <- as.character(display$group)
+  display$group[is.na(display$group)] <- "NA"
+  rows <- list()
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, , drop = FALSE]
+    label <- if (row$group == "") {
+      paste(row$var1, "with", row$var2)
+    } else {
+      paste("Group", row$group, ",", row$var1, "with", row$var2)
+    }
+
+    missing_pct_str <- ifelse(is.na(row$missing_pct), "NA", format_num(row$missing_pct, 1))
+    missing_n_str <- ifelse(is.na(row$missing_n), "NA", as.character(row$missing_n))
+    missing_text <- paste("Missing =", missing_n_str, "(", missing_pct_str, "%)", sep = " ")
+
+    n_str <- ifelse(is.na(row$n), "NA", as.character(row$n))
+    stat_text <- method_text(row$method, row$partial)
+    r_text <- format_r_cell(row$r, digits)
+    ci_text <- ""
+    ci_only <- ""
+    if (!is.na(row$ci_low) && !is.na(row$ci_high)) {
+      ci_only <- format_ci(row$ci_low, row$ci_high, digits)
+      ci_text <- paste0(", ", round(conf_level * 100), "% CI ", ci_only)
+    }
+
+    p_val <- if (adjust_method != "none" && !is.na(row$p_adjusted)) row$p_adjusted else row$p_value
+    p_text <- format_p_cell(p_val)
+
+    if (is.na(row$r) || is.na(row$n) || row$n < 3) {
+      line <- sprintf(
+        "%s: correlation could not be computed (n = %s). %s.",
+        label,
+        n_str,
+        missing_text
+      )
+    } else {
+      line <- paste0(
+        label, ": ",
+        stat_text, " = ", r_text,
+        ci_text,
+        ", p ", p_text,
+        ", n = ", n_str,
+        ". ", missing_text, "."
+      )
+    }
+
+    rows[[length(rows) + 1]] <- list(
+      label = label,
+      group = resolve_as_cell_text(row$group),
+      var1 = resolve_as_cell_text(row$var1),
+      var2 = resolve_as_cell_text(row$var2),
+      stat_text = stat_text,
+      r = r_text,
+      ci = ci_only,
+      ci_text = ci_text,
+      p = p_text,
+      n = n_str,
+      missing_n = missing_n_str,
+      missing_pct = missing_pct_str,
+      missing_text = missing_text,
+      full_sentence = line
+    )
+  }
+  rows
+}
+
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   opts <- resolve_parse_args(args)
@@ -819,11 +1053,10 @@ main <- function() {
   }
 
   use_cross_template <- length(x_vars) > 0 && length(y_vars) > 0
-  assets_dir <- resolve_get_assets_dir()
   template_path <- if (use_cross_template) {
-    file.path(assets_dir, "correlations", "cross-correlation-template.md")
+    resolve_get_template_path("correlations.cross", "correlations/cross-correlation-template.md")
   } else {
-    file.path(assets_dir, "correlations", "default-template.md")
+    resolve_get_template_path("correlations.default", "correlations/default-template.md")
   }
 
   analysis_flags <- list(
@@ -844,13 +1077,28 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
   apa_text <- format_apa_text(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
+  template_meta <- resolve_get_template_meta(template_path)
+  table_body <- build_correlations_table_body(summary_df, digits, conf_level, adjust_method, template_meta$table)
+  note_tokens <- build_correlations_note_tokens(summary_df, conf_level, adjust_method, missing_method, alternative)
+  narrative_rows <- build_correlations_narrative_rows(summary_df, digits, conf_level, adjust_method)
+  template_context <- list(
+    tokens = c(
+      list(
+        table_body = table_body,
+        narrative_default = apa_text
+      ),
+      note_tokens
+    ),
+    narrative_rows = narrative_rows
+  )
   resolve_append_apa_report(
     apa_report_path,
     "Correlations",
     apa_table,
     apa_text,
     analysis_flags = analysis_flags,
-    template_path = template_path
+    template_path = template_path,
+    template_context = template_context
   )
 
   cat("Wrote:\n")

@@ -1,19 +1,51 @@
-# Cross-Correlations
+---
+tokens:
+  title: "Cross-Correlations"
+  table_title: "Cross-correlations between X and Y variable sets."
+  note_prefix: "*Note.*"
+  narrative_heading: "**Narrative**"
+table:
+  columns:
+    - key: "group"
+      label: "Group"
+      drop_if_empty: true
+    - key: "var1"
+      label: "Variable 1"
+    - key: "var2"
+      label: "Variable 2"
+    - key: "r"
+      label: "r"
+    - key: "ci"
+      label: "{{ci_label}}"
+      drop_if_empty: true
+    - key: "p"
+      label: "p"
+    - key: "p_adj"
+      label: "p_adj"
+      drop_if_empty: true
+    - key: "n"
+      label: "n"
+note:
+  template: "{{note_default}}"
+narrative:
+  template: "{{narrative_default}}"
+---
+# {{title}}
 
 Analysis:
 
-<analysis flags in human readable form>
+{{analysis_flags}}
 
-**Table <running number>**
+**Table {{table_number}}**
 
-Cross-correlations between X and Y variable sets.
+{{table_title}}
 
-<actual table with columns: X Variable, Y Variable, r/rho/tau, 95% CI (if reported), p, n, Group (if used)>
+{{table_body}}
 
-*Note.* <optional note about method, missing-data handling, p-value adjustment, controls, or CI>
+{{note_prefix}} {{note_body}}
 
-**Narrative**
+{{narrative_heading}}
 
-<APA 7 narrative text>
+{{narrative}}
 
 ---

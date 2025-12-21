@@ -123,6 +123,10 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
+## APA 7 Templates
+
+This module currently uses the built-in APA report format (no YAML template mapping in `templates.*`). To customize the APA layout, add a template under `r-core-stats/assets` and wire it through the template system.
+
 ## APA 7 Reporting Guidance
 
 - Report derived variables and transformation types, noting any standardization or recoding.

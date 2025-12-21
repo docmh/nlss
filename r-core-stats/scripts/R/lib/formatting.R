@@ -97,21 +97,255 @@ get_assets_dir <- function() {
   file.path(script_dir, "..", "..", "assets")
 }
 
+is_absolute_path <- function(path) {
+  grepl("^(~|/|[A-Za-z]:)", path)
+}
+
+resolve_template_path <- function(key, default_relative = NULL) {
+  configured <- NULL
+  if (exists("resolve_config_value", mode = "function")) {
+    configured <- get("resolve_config_value", mode = "function")(paste0("templates.", key), NULL)
+  }
+  if (isFALSE(configured)) return(NULL)
+  candidate <- configured
+  if (is.null(candidate) || !nzchar(candidate)) candidate <- default_relative
+  if (is.null(candidate) || !nzchar(candidate)) return(NULL)
+  resolved <- if (is_absolute_path(candidate)) path.expand(candidate) else file.path(get_assets_dir(), candidate)
+  if (!is.null(configured) && nzchar(configured) && !file.exists(resolved)) {
+    if (!is.null(default_relative) && nzchar(default_relative)) {
+      fallback <- file.path(get_assets_dir(), default_relative)
+      if (file.exists(fallback)) return(fallback)
+    }
+  }
+  resolved
+}
+
 get_template_path <- function(analysis_label) {
   label <- tolower(trimws(analysis_label))
   if (label == "descriptive statistics") {
-    path <- file.path(get_assets_dir(), "descriptive-stats", "default-template.md")
-    if (file.exists(path)) return(path)
+    path <- resolve_template_path("descriptive_stats.default", "descriptive-stats/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
   }
   if (label == "correlations") {
-    path <- file.path(get_assets_dir(), "correlations", "default-template.md")
-    if (file.exists(path)) return(path)
+    path <- resolve_template_path("correlations.default", "correlations/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
   }
   if (label == "cross-tabulations") {
-    path <- file.path(get_assets_dir(), "crosstabs", "default-template.md")
-    if (file.exists(path)) return(path)
+    path <- resolve_template_path("crosstabs.default", "crosstabs/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
   }
   NULL
+}
+
+escape_regex <- function(text) {
+  gsub("([][{}()^$.|*+?\\\\])", "\\\\\\1", text)
+}
+
+escape_replacement <- function(text) {
+  text <- gsub("\\\\", "\\\\\\\\", text)
+  gsub("\\$", "\\\\\\$", text)
+}
+
+parse_yaml_text <- function(text) {
+  if (!nzchar(trimws(text))) return(list())
+  if (!requireNamespace("yaml", quietly = TRUE)) {
+    stop("Template front matter requires the 'yaml' package.")
+  }
+  meta <- yaml::yaml.load(text)
+  if (is.null(meta)) return(list())
+  meta
+}
+
+parse_template_file <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  if (length(lines) == 0) return(list(meta = list(), body = ""))
+  if (trimws(lines[1]) != "---") {
+    return(list(meta = list(), body = paste(lines, collapse = "\n")))
+  }
+  end_idx <- which(trimws(lines[-1]) %in% c("---", "..."))
+  if (length(end_idx) == 0) {
+    stop("Template front matter not closed in: ", path)
+  }
+  end_line <- end_idx[1] + 1
+  yaml_text <- paste(lines[2:(end_line - 1)], collapse = "\n")
+  body_lines <- if (end_line < length(lines)) lines[(end_line + 1):length(lines)] else character(0)
+  meta <- parse_yaml_text(yaml_text)
+  list(meta = meta, body = paste(body_lines, collapse = "\n"))
+}
+
+get_template_meta <- function(path) {
+  if (is.null(path) || !file.exists(path)) return(list())
+  data <- parse_template_file(path)
+  if (!is.list(data$meta)) return(list())
+  data$meta
+}
+
+normalize_token_map <- function(tokens) {
+  if (is.null(tokens)) return(list())
+  if (!is.list(tokens)) return(list())
+  out <- list()
+  for (name in names(tokens)) {
+    value <- tokens[[name]]
+    if (is.null(value)) next
+    if (is.character(value)) {
+      if (length(value) == 0) next
+      out[[name]] <- paste(value, collapse = "\n")
+    } else if (is.numeric(value) || is.logical(value)) {
+      out[[name]] <- paste(as.character(value), collapse = ", ")
+    } else {
+      out[[name]] <- as.character(value)
+    }
+  }
+  out
+}
+
+render_template_tokens <- function(text, tokens) {
+  rendered <- text
+  if (length(tokens) == 0) return(rendered)
+  for (name in names(tokens)) {
+    value <- tokens[[name]]
+    if (is.null(value)) next
+    value <- as.character(value)
+    pattern <- paste0("\\{\\{\\s*", escape_regex(name), "\\s*\\}\\}")
+    rendered <- gsub(pattern, escape_replacement(value), rendered, perl = TRUE)
+  }
+  rendered
+}
+
+as_cell_text <- function(value) {
+  if (length(value) == 0 || is.null(value)) return("")
+  if (is.na(value)) return("")
+  as.character(value)
+}
+
+find_default_column_spec <- function(default_specs, key) {
+  if (length(default_specs) == 0) return(NULL)
+  for (spec in default_specs) {
+    if (!is.null(spec$key) && spec$key == key) return(spec)
+  }
+  NULL
+}
+
+normalize_table_columns <- function(columns, default_specs) {
+  if (is.null(columns) || length(columns) == 0) return(default_specs)
+  specs <- list()
+  if (is.character(columns)) {
+    columns <- as.list(columns)
+  }
+  for (col in columns) {
+    key <- NULL
+    label <- NULL
+    drop_if_empty <- NULL
+    if (is.character(col) && length(col) == 1) {
+      key <- col
+    } else if (is.list(col)) {
+      if (!is.null(col$key)) {
+        key <- col$key
+      } else if (length(col) == 1 && is.character(col[[1]])) {
+        key <- col[[1]]
+      }
+      if (!is.null(col$label)) label <- col$label
+      if (!is.null(col$drop_if_empty)) drop_if_empty <- col$drop_if_empty
+    }
+    if (is.null(key) || !nzchar(key)) next
+    default <- find_default_column_spec(default_specs, key)
+    if (is.null(label) || !nzchar(label)) {
+      label <- if (!is.null(default$label)) default$label else key
+    }
+    if (is.null(drop_if_empty)) {
+      drop_if_empty <- if (!is.null(default$drop_if_empty)) default$drop_if_empty else FALSE
+    }
+    specs[[length(specs) + 1]] <- list(
+      key = key,
+      label = label,
+      drop_if_empty = isTRUE(drop_if_empty)
+    )
+  }
+  specs
+}
+
+drop_empty_columns <- function(columns, rows) {
+  if (length(columns) == 0) return(list(columns = columns, rows = rows))
+  if (length(rows) == 0) return(list(columns = columns, rows = rows))
+  drop_flags <- logical(length(columns))
+  for (i in seq_along(columns)) {
+    if (!isTRUE(columns[[i]]$drop_if_empty)) next
+    values <- vapply(rows, function(row) {
+      if (length(row) < i) return("")
+      val <- row[[i]]
+      if (is.null(val) || is.na(val)) return("")
+      as.character(val)
+    }, character(1))
+    drop_flags[i] <- all(!nzchar(values))
+  }
+  if (any(drop_flags)) {
+    columns <- columns[!drop_flags]
+    rows <- lapply(rows, function(row) row[!drop_flags])
+  }
+  list(columns = columns, rows = rows)
+}
+
+render_markdown_table <- function(headers, rows) {
+  if (length(headers) == 0) return("")
+  md <- paste0("| ", paste(headers, collapse = " | "), " |\n")
+  md <- paste0(md, "| ", paste(rep("---", length(headers)), collapse = " | "), " |\n")
+  for (row in rows) {
+    row_vals <- row
+    if (length(row_vals) < length(headers)) {
+      row_vals <- c(row_vals, rep("", length(headers) - length(row_vals)))
+    }
+    md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
+  }
+  md
+}
+
+normalize_rows_tokens <- function(rows) {
+  if (is.null(rows)) return(list())
+  if (is.data.frame(rows)) {
+    rows <- lapply(seq_len(nrow(rows)), function(i) {
+      as.list(rows[i, , drop = FALSE])
+    })
+  }
+  if (!is.list(rows)) return(list())
+  out <- list()
+  for (row in rows) {
+    if (is.null(row)) next
+    if (is.data.frame(row)) {
+      row <- as.list(row[1, , drop = FALSE])
+    }
+    out[[length(out) + 1]] <- normalize_token_map(row)
+  }
+  out
+}
+
+render_narrative_rows <- function(row_template, rows, base_tokens, join = "\n", drop_empty = TRUE) {
+  if (is.null(row_template) || !nzchar(row_template)) return("")
+  rows_norm <- normalize_rows_tokens(rows)
+  if (length(rows_norm) == 0) return("")
+  lines <- character(0)
+  for (row in rows_norm) {
+    tokens <- base_tokens
+    if (length(row) > 0) {
+      tokens[names(row)] <- row
+    }
+    line <- render_template_tokens(row_template, tokens)
+    line <- trimws(line)
+    if (drop_empty && !nzchar(line)) next
+    lines <- c(lines, line)
+  }
+  paste(lines, collapse = join)
+}
+
+expand_template_tokens <- function(tokens, base_tokens) {
+  out <- list()
+  if (length(tokens) == 0) return(out)
+  for (name in names(tokens)) {
+    value <- tokens[[name]]
+    if (is.null(value)) next
+    value <- as.character(value)
+    out[[name]] <- render_template_tokens(value, base_tokens)
+  }
+  out
 }
 
 extract_table_numbers <- function(text) {
@@ -178,42 +412,72 @@ format_note_body <- function(note_text) {
   note_text
 }
 
-format_descriptive_report <- function(template_path, analysis_flags, table_number, apa_table, apa_text) {
-  template <- paste(readLines(template_path, warn = FALSE), collapse = "\n")
+format_template_report <- function(template_path, analysis_label, analysis_flags, table_number, apa_table, apa_text, template_context = NULL) {
+  template_data <- parse_template_file(template_path)
+  template <- template_data$body
+  meta <- template_data$meta
   flags_text <- format_analysis_flags(analysis_flags)
   if (!nzchar(flags_text)) flags_text <- "None."
   split <- split_table_note(apa_table)
   table_body <- strip_table_header(split$table)
   note_body <- format_note_body(split$note)
-  report <- template
-  report <- gsub("<analysis flags in human readable form>", flags_text, report, fixed = TRUE)
-  report <- gsub("<running number>", as.character(table_number), report, fixed = TRUE)
-  table_placeholders <- c(
-    "<actual table with columns: Variable, Group (if used), n, Missing n, Missing %, M, SD, Min, Max, 95% CI>",
-    "<actual table with columns: Variable 1, Variable 2, r/rho/tau, 95% CI (if reported), p, n, Group (if used)>",
-    "<actual table with columns: X Variable, Y Variable, r/rho/tau, 95% CI (if reported), p, n, Group (if used)>",
-    "<actual table with columns: Row variable, Column variable, Row level, Column level, n, Row %, Column %, Total %>",
-    "<actual table with columns: Group, Row variable, Column variable, Row level, Column level, n, Row %, Column %, Total %>"
+  narrative_default <- apa_text
+  base_tokens <- list(
+    analysis_label = analysis_label,
+    analysis_flags = flags_text,
+    table_number = as.character(table_number),
+    table_body = table_body,
+    note_body = note_body,
+    narrative = narrative_default,
+    note_default = note_body,
+    narrative_default = narrative_default
   )
-  for (placeholder in table_placeholders) {
-    report <- gsub(placeholder, table_body, report, fixed = TRUE)
+  ctx_tokens <- list()
+  narrative_rows <- NULL
+  if (is.list(template_context)) {
+    if (!is.null(template_context$tokens)) {
+      ctx_tokens <- normalize_token_map(template_context$tokens)
+    }
+    if (!is.null(template_context$narrative_rows)) {
+      narrative_rows <- template_context$narrative_rows
+    }
   }
-  note_placeholders <- c(
-    "<optional note about missingness, rounding, grouping, or CI method>",
-    "<optional note about method, missing-data handling, p-value adjustment, controls, or CI>",
-    "<optional note about missingness, percentages, or grouping>"
-  )
-  for (placeholder in note_placeholders) {
-    report <- gsub(placeholder, note_body, report, fixed = TRUE)
+  if (length(ctx_tokens) > 0) {
+    base_tokens[names(ctx_tokens)] <- ctx_tokens
   }
-  report <- gsub("<APA 7 narrative text>", apa_text, report, fixed = TRUE)
-  report
+  if (is.list(meta) && "note" %in% names(meta)) {
+    note_template <- meta$note$template
+    if (!is.null(note_template) && nzchar(note_template)) {
+      note_body <- render_template_tokens(note_template, base_tokens)
+      base_tokens$note_body <- note_body
+    }
+  }
+  if (is.list(meta) && "narrative" %in% names(meta)) {
+    row_template <- meta$narrative$row_template
+    if (!is.null(row_template) && nzchar(row_template)) {
+      join <- if (!is.null(meta$narrative$join)) as.character(meta$narrative$join) else "\n"
+      drop_empty <- if (!is.null(meta$narrative$drop_empty)) isTRUE(meta$narrative$drop_empty) else TRUE
+      narrative <- render_narrative_rows(row_template, narrative_rows, base_tokens, join = join, drop_empty = drop_empty)
+      if (nzchar(narrative)) {
+        base_tokens$narrative <- narrative
+      }
+    } else if (!is.null(meta$narrative$template) && nzchar(meta$narrative$template)) {
+      narrative <- render_template_tokens(meta$narrative$template, base_tokens)
+      base_tokens$narrative <- narrative
+    }
+  }
+  meta_tokens <- list()
+  if (is.list(meta) && "tokens" %in% names(meta)) {
+    meta_tokens <- normalize_token_map(meta$tokens)
+  }
+  meta_tokens <- expand_template_tokens(meta_tokens, base_tokens)
+  render_template_tokens(template, c(meta_tokens, base_tokens))
 }
 
-format_apa_report <- function(analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, table_start = 1) {
+format_apa_report <- function(analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, table_start = 1, template_context = NULL) {
   flags_text <- format_analysis_flags(analysis_flags)
   if (!is.null(template_path) && file.exists(template_path)) {
-    return(format_descriptive_report(template_path, analysis_flags, table_start, apa_table, apa_text))
+    return(format_template_report(template_path, analysis_label, analysis_flags, table_start, apa_table, apa_text, template_context = template_context))
   }
   analysis_block <- analysis_label
   if (nzchar(flags_text)) {
@@ -230,7 +494,7 @@ format_apa_report <- function(analysis_label, apa_table, apa_text, analysis_flag
   )
 }
 
-append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL) {
+append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
   table_start <- get_next_table_number(path)
   resolved_template <- template_path
   if (is.null(resolved_template)) {
@@ -246,7 +510,8 @@ append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysi
     apa_text,
     analysis_flags = analysis_flags,
     template_path = resolved_template,
-    table_start = table_start
+    table_start = table_start,
+    template_context = template_context
   )
   if (file.exists(path)) {
     info <- file.info(path)

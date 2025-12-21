@@ -68,9 +68,35 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
-## APA 7 Template
+## APA 7 Template (YAML)
 
 Use the Markdown template at `r-core-stats/assets/descriptive-stats/default-template.md` when assembling a descriptive statistics report. If the template exists, it must be used for `apa_report.md`.
+
+- The template path can be overridden via `templates.descriptive_stats.default` in `r-core-stats/scripts/config.yml`.
+- Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
+  - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
+  - `note.template`: overrides the note text (defaults to `{{note_default}}`).
+  - `narrative.template` or `narrative.row_template`: overrides the narrative text.
+
+### Table column keys
+
+Available column keys for `table.columns` include:
+
+`variable`, `group`, `n`, `missing_n`, `missing_pct`, `mean`, `sd`, `min`, `max`, `median`, `se`, `ci_low`, `ci_high`, `skewness`, `kurtosis`, `total_n`.
+
+Use `drop_if_empty: true` to remove a column if all values are blank.
+
+### Note tokens
+
+Available note tokens include:
+
+`note_default`, `note_abbrev`, `missing_note`.
+
+### Narrative tokens
+
+Use `narrative.row_template` for per-row lines. Available row tokens include:
+
+`label`, `variable`, `group`, `n`, `missing_n`, `missing_pct`, `mean`, `sd`, `min`, `max`, `ci_low`, `ci_high`, `full_sentence`.
 
 ## APA 7 Reporting Guidance
 

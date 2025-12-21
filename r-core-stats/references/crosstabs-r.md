@@ -88,9 +88,37 @@ Rscript <path to scripts/R/crosstabs.R> --interactive
 
 Use the Markdown templates in `r-core-stats/assets/crosstabs` when assembling cross-tabulation reports. If the template exists, `crosstabs.R` uses it for `apa_report.md`.
 
-- `r-core-stats/assets/crosstabs/default-template.md` is used when no grouping variable is supplied. The APA table is rendered in a long format with columns for Row variable, Column variable, Row level, Column level, n, and the selected percentages.
-- `r-core-stats/assets/crosstabs/grouped-template.md` is used when `--group` is provided. The APA table includes an additional Group column in the same long-format layout.
-- When multiple `--rows`/`--cols` combinations are requested, each pair appears in the same long-format table; the Row/Column variable columns indicate which pair each block of rows belongs to.
+### YAML template controls
+
+- Template paths can be overridden via `templates.crosstabs.default` and `templates.crosstabs.grouped` in `r-core-stats/scripts/config.yml`.
+- Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
+  - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
+  - `note.template`: overrides the note text (defaults to `{{note_default}}`).
+  - `narrative.template` or `narrative.row_template`: overrides the narrative text.
+
+### Table column keys
+
+Available column keys for `table.columns` include:
+
+`row_var`, `col_var`, `group`, `row_level`, `col_level`, `n`, `pct_row`, `pct_col`, `pct_total`, `expected`, `std_resid`, `adj_resid`.
+
+Use `drop_if_empty: true` to remove a column if all values are blank (e.g., `group`, `expected`, `std_resid`, `adj_resid`).
+
+### Note tokens
+
+Available note tokens include:
+
+`note_default`, `percent_labels`, `missing_note`.
+
+### Narrative tokens
+
+Use `narrative.row_template` for per-row lines. Available row tokens include:
+
+`label`, `row_var`, `col_var`, `group`, `valid_n`, `missing_n`, `missing_pct`, `chisq_text`, `effect_text`, `fisher_text`, `tests_text`, `expected_text`, `missing_text`, `full_sentence`.
+
+### Multiple row/column pairs
+
+When multiple `--rows`/`--cols` combinations are requested, all results are rendered in the same long-format table. Include `row_var` and `col_var` in `table.columns` if you want the table to identify which row/column pair each line belongs to.
 
 ## APA 7 Reporting Guidance
 

@@ -205,7 +205,7 @@ resolve_load_dataframe <- function(opts) {
   stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL) {
+resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
   if (exists("append_apa_report", mode = "function")) {
     return(get("append_apa_report", mode = "function")(
       path,
@@ -213,7 +213,8 @@ resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text,
       apa_table,
       apa_text,
       analysis_flags = analysis_flags,
-      template_path = template_path
+      template_path = template_path,
+      template_context = template_context
     ))
   }
   stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")

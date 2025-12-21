@@ -192,7 +192,7 @@ resolve_select_variables <- function(df, vars, group_var = NULL, default = "nume
   requested
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL) {
+resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
   if (exists("append_apa_report", mode = "function")) {
     return(get("append_apa_report", mode = "function")(
       path,
@@ -200,7 +200,8 @@ resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text,
       apa_table,
       apa_text,
       analysis_flags = analysis_flags,
-      template_path = template_path
+      template_path = template_path,
+      template_context = template_context
     ))
   }
   stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
@@ -248,6 +249,49 @@ resolve_round_numeric <- function(df, digits) {
   numeric_cols <- sapply(out, is.numeric)
   out[numeric_cols] <- lapply(out[numeric_cols], function(x) round(x, digits))
   out
+}
+
+resolve_get_template_meta <- function(path) {
+  if (exists("get_template_meta", mode = "function")) {
+    return(get("get_template_meta", mode = "function")(path))
+  }
+  list()
+}
+
+resolve_get_template_path <- function(key, default_relative = NULL) {
+  if (exists("resolve_template_path", mode = "function")) {
+    return(get("resolve_template_path", mode = "function")(key, default_relative))
+  }
+  NULL
+}
+
+resolve_normalize_table_columns <- function(columns, default_specs) {
+  if (exists("normalize_table_columns", mode = "function")) {
+    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
+  }
+  default_specs
+}
+
+resolve_drop_empty_columns <- function(columns, rows) {
+  if (exists("drop_empty_columns", mode = "function")) {
+    return(get("drop_empty_columns", mode = "function")(columns, rows))
+  }
+  list(columns = columns, rows = rows)
+}
+
+resolve_render_markdown_table <- function(headers, rows) {
+  if (exists("render_markdown_table", mode = "function")) {
+    return(get("render_markdown_table", mode = "function")(headers, rows))
+  }
+  ""
+}
+
+resolve_as_cell_text <- function(value) {
+  if (exists("as_cell_text", mode = "function")) {
+    return(get("as_cell_text", mode = "function")(value))
+  }
+  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
+  as.character(value)
 }
 
 
@@ -421,6 +465,127 @@ format_apa_text <- function(df, digits) {
   paste(lines, collapse = "\n")
 }
 
+format_num <- function(value, digits) {
+  if (is.na(value)) return("")
+  format(round(value, digits), nsmall = digits, trim = TRUE)
+}
+
+build_descriptive_table_body <- function(df, digits, table_spec = NULL) {
+  display <- resolve_round_numeric(df, digits)
+  display$group <- as.character(display$group)
+  display$group[is.na(display$group)] <- "NA"
+
+  default_columns <- list(
+    list(key = "variable", label = "Variable"),
+    list(key = "group", label = "Group", drop_if_empty = TRUE),
+    list(key = "n", label = "n"),
+    list(key = "mean", label = "M"),
+    list(key = "sd", label = "SD"),
+    list(key = "min", label = "Min"),
+    list(key = "max", label = "Max")
+  )
+  columns <- resolve_normalize_table_columns(
+    if (!is.null(table_spec$columns)) table_spec$columns else NULL,
+    default_columns
+  )
+  rows <- list()
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, , drop = FALSE]
+    row_vals <- character(0)
+    for (col in columns) {
+      key <- col$key
+      val <- ""
+      if (key %in% names(row)) {
+        cell <- row[[key]][1]
+        if (key %in% c("variable", "group")) {
+          val <- resolve_as_cell_text(cell)
+        } else if (key %in% c("n", "missing_n", "total_n")) {
+          val <- ifelse(is.na(cell), "", as.character(cell))
+        } else if (key == "missing_pct") {
+          val <- format_num(cell, digits)
+        } else if (is.numeric(cell)) {
+          val <- format_num(cell, digits)
+        } else {
+          val <- resolve_as_cell_text(cell)
+        }
+      }
+      row_vals <- c(row_vals, val)
+    }
+    rows[[length(rows) + 1]] <- row_vals
+  }
+  filtered <- resolve_drop_empty_columns(columns, rows)
+  columns <- filtered$columns
+  rows <- filtered$rows
+  headers <- vapply(columns, function(col) {
+    if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
+  }, character(1))
+  resolve_render_markdown_table(headers, rows)
+}
+
+build_descriptive_narrative_rows <- function(df, digits) {
+  display <- resolve_round_numeric(df, digits)
+  display$group <- as.character(display$group)
+  display$group[is.na(display$group)] <- "NA"
+  rows <- list()
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, , drop = FALSE]
+    label <- row$variable
+    if (row$group != "") {
+      label <- paste0("Group ", row$group, ", ", label)
+    }
+    missing_pct_str <- ifelse(
+      is.na(row$missing_pct),
+      "NA",
+      format(row$missing_pct, nsmall = 1, trim = TRUE)
+    )
+    mean_str <- ifelse(is.na(row$mean), "NA", format(row$mean, nsmall = digits, trim = TRUE))
+    sd_str <- ifelse(is.na(row$sd), "NA", format(row$sd, nsmall = digits, trim = TRUE))
+    ci_low_str <- ifelse(is.na(row$ci_low), "NA", format(row$ci_low, nsmall = digits, trim = TRUE))
+    ci_high_str <- ifelse(is.na(row$ci_high), "NA", format(row$ci_high, nsmall = digits, trim = TRUE))
+    n_str <- ifelse(is.na(row$n), "NA", as.character(row$n))
+    missing_n_str <- ifelse(is.na(row$missing_n), "NA", as.character(row$missing_n))
+
+    line <- sprintf(
+      "%s: M = %s, SD = %s, 95%% CI [%s, %s], n = %s, missing = %s (%s%%).",
+      label,
+      mean_str,
+      sd_str,
+      ci_low_str,
+      ci_high_str,
+      n_str,
+      missing_n_str,
+      missing_pct_str
+    )
+
+    rows[[length(rows) + 1]] <- list(
+      label = label,
+      variable = resolve_as_cell_text(row$variable),
+      group = resolve_as_cell_text(row$group),
+      n = n_str,
+      missing_n = missing_n_str,
+      missing_pct = missing_pct_str,
+      mean = mean_str,
+      sd = sd_str,
+      min = ifelse(is.na(row$min), "NA", format(row$min, nsmall = digits, trim = TRUE)),
+      max = ifelse(is.na(row$max), "NA", format(row$max, nsmall = digits, trim = TRUE)),
+      ci_low = ci_low_str,
+      ci_high = ci_high_str,
+      full_sentence = line
+    )
+  }
+  rows
+}
+
+build_descriptive_note_tokens <- function() {
+  abbrev_note <- "M = mean; SD = standard deviation."
+  missing_note <- "Missing values excluded per variable."
+  list(
+    note_abbrev = abbrev_note,
+    missing_note = missing_note,
+    note_default = paste(abbrev_note, missing_note)
+  )
+}
+
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   opts <- resolve_parse_args(args)
@@ -453,12 +618,35 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(summary_df, digits)
   apa_text <- format_apa_text(summary_df, digits)
+  template_path <- resolve_get_template_path("descriptive_stats.default", "descriptive-stats/default-template.md")
+  template_meta <- resolve_get_template_meta(template_path)
+  table_body <- build_descriptive_table_body(summary_df, digits, template_meta$table)
+  note_tokens <- build_descriptive_note_tokens()
+  narrative_rows <- build_descriptive_narrative_rows(summary_df, digits)
+  template_context <- list(
+    tokens = c(
+      list(
+        table_body = table_body,
+        narrative_default = apa_text
+      ),
+      note_tokens
+    ),
+    narrative_rows = narrative_rows
+  )
   analysis_flags <- list(
     vars = vars,
     group = if (!is.null(group_var) && group_var != "") group_var else "None",
     digits = digits
   )
-  resolve_append_apa_report(apa_report_path, "Descriptive statistics", apa_table, apa_text, analysis_flags = analysis_flags)
+  resolve_append_apa_report(
+    apa_report_path,
+    "Descriptive statistics",
+    apa_table,
+    apa_text,
+    analysis_flags = analysis_flags,
+    template_path = template_path,
+    template_context = template_context
+  )
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
