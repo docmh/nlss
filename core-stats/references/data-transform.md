@@ -1,6 +1,6 @@
 ---
 name: data-transform-r
-description: Transform and manage data frames using base R, including calculated variables, transforms/standardization, recoding, renaming, and dropping columns. Use when Codex needs to modify variables or create derived variables and produce updated datasets plus APA-ready change logs with confirmation before overwriting or deleting data.
+description: Create or modify variables (calculate, standardize, recode, rename, drop) with safe prompts, updated datasets, and APA-ready change logs.
 ---
 
 # Data Transformations (Base R, APA 7)

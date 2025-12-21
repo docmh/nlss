@@ -1,4 +1,4 @@
-# R-Core-Stats
+# Core-Stats
 
 R-based statistics helpers that produce an APA 7-ready report plus machine-readable JSONL logs. The repo is organized as "subskills" with a shared workflow and consistent output locations.
 
@@ -55,17 +55,19 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | Subskill | Script | Purpose | APA template |
 | --- | --- | --- | --- |
 | `descriptive-stats` | `core-stats/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. | Yes (`descriptive-stats/default-template.md`) |
-| `frequencies` | `core-stats/scripts/R/frequencies.R` | Frequency tables for categorical variables. | Built-in (no template file) |
+| `frequencies` | `core-stats/scripts/R/frequencies.R` | Frequency tables for categorical variables. | Yes (`frequencies/default-template.md`, `frequencies/grouped-template.md`) |
 | `crosstabs` | `core-stats/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
 | `correlations` | `core-stats/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`) |
-| `data-explorer` | `core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Built-in (no template file) |
-| `data-transform` | `core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Built-in (no template file) |
+| `scale` | `core-stats/scripts/R/scale.R` | Item analysis and reliability (alpha/omega) for scales. | Yes (`scale/default-template.md`) |
+| `data-explorer` | `core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Yes (`data-explorer/default-template.md`) |
+| `data-transform` | `core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Yes (`data-transform/default-template.md`) |
 
 Reference docs:
 - `core-stats/references/descriptive-stats.md`
 - `core-stats/references/frequencies.md`
 - `core-stats/references/crosstabs.md`
 - `core-stats/references/correlations.md`
+- `core-stats/references/scale.md`
 - `core-stats/references/data-explorer.md`
 - `core-stats/references/data-transform.md`
 
@@ -101,6 +103,13 @@ Rscript core-stats/scripts/R/correlations.R \
   --csv data.csv --vars age,score,stress --method spearman --out outputs/tmp
 ```
 
+### Scale analysis
+
+```bash
+Rscript core-stats/scripts/R/scale.R \
+  --csv data.csv --vars item1,item2,item3 --group condition --out outputs/tmp
+```
+
 ### Data exploration
 
 ```bash
@@ -131,7 +140,7 @@ Defaults live in `core-stats/scripts/config.yml` and are loaded via `core-stats/
 
 ## APA template logic (YAML)
 
-Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, correlations, and crosstabs).
+Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, and data transformation).
 
 Key YAML fields:
 

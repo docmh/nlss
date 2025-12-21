@@ -1,6 +1,6 @@
 ---
 name: data-explorer-r
-description: Explore a dataset and produce a variable overview with inferred scale levels plus value level tables, using base R for CSV inputs, R data frames (via RDS or RData), or interactive prompts. Use when Codex needs to inspect variable names, types, scale levels, and value levels before analysis.
+description: Data dictionary overview with variable names, types, inferred scale levels, missingness, and value counts to quickly assess datasets before analysis.
 ---
 
 # Data Explorer (Base R, APA 7)

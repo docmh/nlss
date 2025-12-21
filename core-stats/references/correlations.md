@@ -1,6 +1,6 @@
 ---
 name: correlations-r
-description: Create APA 7 style correlation analyses using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts. Use when Codex needs Pearson/Spearman/Kendall correlations, correlation matrices, cross-correlations between variable sets, partial correlations with controls, optional grouping, and APA-ready tables/text.
+description: Correlation matrices or pairwise analyses (Pearson/Spearman/Kendall), cross/partial correlations with controls, p-value adjustments, and optional grouping, producing APA tables/narratives.
 ---
 
 # Correlations (Base R, APA 7)

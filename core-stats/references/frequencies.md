@@ -1,6 +1,6 @@
 ---
 name: frequencies-r
-description: Create APA 7 style frequency tables using base R for CSV inputs, R data frames (via RDS or RData), or interactive prompts. Use when Codex needs to compute and report categorical frequencies or cross-tabs with optional grouping.
+description: Frequency tables for categorical variables with counts, percentages, and optional grouping, producing APA-ready tables and narratives.
 ---
 
 # Frequencies (Base R, APA 7)

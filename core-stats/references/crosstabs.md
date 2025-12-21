@@ -1,6 +1,6 @@
 ---
 name: crosstabs-r
-description: Create APA 7 style cross-tabulations (contingency tables) with chi-square or Fisher tests and effect sizes using base R for CSV inputs, R data frames (RDS/RData), or interactive prompts. Use when Codex needs cross-tabs, chi-square tests, or association measures like Cramer's V.
+description: Contingency tables for categorical variables with chi-square/Fisher tests, effect sizes (Cramer's V/phi), residuals, optional grouping, and APA-ready outputs.
 ---
 
 # Cross Tabulations (Base R, APA 7)

@@ -1,6 +1,6 @@
 ---
 name: descriptive-stats-r
-description: Create APA 7 style descriptive statistics using base R for CSV inputs, R data frames (via RDS or RData), or interactive prompts. Use when Codex needs to compute and report descriptive stats (means, SD, median, range, skewness/kurtosis, missingness, CIs) with APA 7 narrative and table output.
+description: Descriptive statistics for numeric variables (mean, SD, median, range, skewness/kurtosis, missingness, CI) with optional grouping and APA-ready tables/narratives.
 ---
 
 # Descriptive Stats (Base R, APA 7)

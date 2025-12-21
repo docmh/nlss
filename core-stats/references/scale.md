@@ -1,6 +1,6 @@
 ---
 name: scale-r
-description: Create APA 7 style item analysis and scale reliability summaries using base R for CSV inputs, R data frames (via RDS or RData), or interactive prompts. Use when Codex needs item statistics, item-total correlations, and internal consistency estimates (alpha/omega) for psychometric scales.
+description: Scale item analysis and reliability (alpha/omega), item-total correlations, reverse scoring, and grouped summaries with APA-ready outputs.
 ---
 
 # Scale Analysis (Base R, APA 7)
