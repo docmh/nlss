@@ -183,6 +183,13 @@ resolve_load_dataframe <- function(opts) {
   stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
 }
 
+resolve_write_parquet_data <- function(df, path) {
+  if (exists("write_parquet_data", mode = "function")) {
+    return(get("write_parquet_data", mode = "function")(df, path))
+  }
+  stop("Missing write_parquet_data. Ensure lib/io.R is sourced.")
+}
+
 resolve_select_variables <- function(df, vars, group_var = NULL, default = "all", include_numeric = FALSE) {
   if (exists("select_variables", mode = "function")) {
     return(get("select_variables", mode = "function")(
@@ -917,7 +924,7 @@ main <- function() {
 
   output_path <- file.path(out_dir, "missing_handled_data.rds")
   if (!is.null(workspace_parquet_path) && nzchar(workspace_parquet_path)) {
-    write_parquet_data(output_df, workspace_parquet_path)
+    resolve_write_parquet_data(output_df, workspace_parquet_path)
     output_path <- workspace_parquet_path
   } else {
     saveRDS(output_df, output_path)

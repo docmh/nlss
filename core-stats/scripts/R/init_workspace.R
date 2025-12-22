@@ -154,6 +154,13 @@ resolve_load_dataframe <- function(opts) {
   stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
 }
 
+resolve_build_workspace_copy_info <- function(label) {
+  if (exists("build_workspace_copy_info", mode = "function")) {
+    return(get("build_workspace_copy_info", mode = "function")(label))
+  }
+  stop("Missing build_workspace_copy_info. Ensure lib/io.R is sourced.")
+}
+
 resolve_get_template_path <- function(key, default_relative = NULL) {
   if (exists("resolve_template_path", mode = "function")) {
     return(get("resolve_template_path", mode = "function")(key, default_relative))
@@ -456,7 +463,7 @@ prepare_dataset_outputs <- function(specs, out_dir) {
     df <- load_dataset(spec)
     copy_path <- attr(df, "workspace_parquet_path")
     if (is.null(copy_path) || !nzchar(copy_path)) {
-      copy_info <- build_workspace_copy_info(label)
+      copy_info <- resolve_build_workspace_copy_info(label)
       copy_path <- copy_info$copy_path
     }
     summary_rows[[length(summary_rows) + 1]] <- data.frame(
