@@ -75,7 +75,7 @@ function Convert-ArgsToWsl {
         [string]$WslExe
     )
 
-    $pathFlags = @("--csv", "--rds", "--rdata", "--file", "--input", "--data")
+    $pathFlags = @("--csv", "--rds", "--rdata", "--file", "--input", "--data", "--parquet", "--sav")
     $converted = @()
 
     for ($i = 0; $i -lt $InputArgs.Count; $i++) {
