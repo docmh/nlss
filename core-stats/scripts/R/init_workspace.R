@@ -656,7 +656,9 @@ scratchpad_text <- resolve_render_template_tokens(
   )
 )
 scratchpad_path <- file.path(out_dir, "scratchpad.md")
-writeLines(scratchpad_text, scratchpad_path)
+scratchpad_con <- file(scratchpad_path, open = "w", encoding = "UTF-8")
+writeLines(scratchpad_text, scratchpad_con)
+close(scratchpad_con)
 
 template_path <- resolve_get_template_path(
   "init_workspace.default",

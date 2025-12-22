@@ -598,5 +598,7 @@ append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysi
       report <- paste0("\n\n---\n\n", report)
     }
   }
-  cat(report, file = path, append = TRUE, sep = "")
+  con <- file(path, open = "a", encoding = "UTF-8")
+  on.exit(close(con), add = TRUE)
+  cat(report, file = con, sep = "")
 }

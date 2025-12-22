@@ -39,7 +39,7 @@ function Test-PathLike {
     if ($Value -match '^[.]{1,2}[\\/]' -or $Value -match '[\\/]+') {
         return $true
     }
-    if ($Value -match '\.(csv|tsv|txt|md|rds|rdata|rda|sav|xlsx|R)$') {
+    if ($Value -match '\.(csv|tsv|txt|md|rds|rdata|rda|sav|xlsx|parquet|R)$') {
         return $true
     }
     return $false

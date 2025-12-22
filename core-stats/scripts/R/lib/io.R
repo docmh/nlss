@@ -76,7 +76,9 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
   )
 
   log_path <- file.path(out_dir, "analysis_log.jsonl")
-  cat(json, file = log_path, sep = "\n", append = TRUE)
+  con <- file(log_path, open = "a", encoding = "UTF-8")
+  on.exit(close(con), add = TRUE)
+  writeLines(json, con = con, sep = "\n")
   invisible(TRUE)
 }
 
