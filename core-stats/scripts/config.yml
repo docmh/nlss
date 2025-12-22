@@ -140,7 +140,7 @@ templates:
     anova: "assumptions/anova-template.md"
     regression: "assumptions/regression-template.md"
   missings:
-    default: "/mnt/c/Users/hamme/OneDrive/Software-Projekte/statistic-skills/outputs/tests/missings-output/custom-template.md"
+    default: "missings/default-template.md"
   init_workspace:
     default: "init-workspace/default-template.md"
     scratchpad: "scratchpad/default-template.md"
