@@ -106,6 +106,16 @@ get_builtin_config <- function() {
         bootstrap = FALSE,
         bootstrap_samples = 1000
       ),
+      anova = list(
+        type = "II",
+        effect_size = "partial_eta",
+        conf_level = 0.95,
+        posthoc = "tukey",
+        p_adjust = "holm",
+        sphericity = "auto",
+        bootstrap = FALSE,
+        bootstrap_samples = 1000
+      ),
       assumptions = list(
         analysis = "auto",
         vars_default = "numeric",
@@ -167,6 +177,10 @@ get_builtin_config <- function() {
       ),
       t_test = list(
         default = "t-test/default-template.md"
+      ),
+      anova = list(
+        default = "anova/default-template.md",
+        posthoc = "anova/posthoc-template.md"
       ),
       assumptions = list(
         ttest = "assumptions/ttest-template.md",

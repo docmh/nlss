@@ -50,6 +50,11 @@ humanize_flag_name <- function(name) {
     "var-equal" = "Equal variances",
     "bootstrap" = "Bootstrap",
     "bootstrap-samples" = "Bootstrap samples",
+    "type" = "Sum of squares type",
+    "effect-size" = "Effect size",
+    "posthoc" = "Post-hoc method",
+    "covariates" = "Covariates",
+    "sphericity" = "Sphericity test",
     "analysis" = "Analysis",
     "mode" = "Mode",
     "dv" = "Dependent variable",
@@ -188,6 +193,14 @@ get_template_path <- function(analysis_label) {
   }
   if (label == "cross-tabulations") {
     path <- resolve_template_path("crosstabs.default", "crosstabs/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label == "anova") {
+    path <- resolve_template_path("anova.default", "anova/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label %in% c("anova post-hoc", "anova posthoc", "anova post hoc")) {
+    path <- resolve_template_path("anova.posthoc", "anova/posthoc-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
   }
   NULL

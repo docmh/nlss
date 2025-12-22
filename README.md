@@ -6,7 +6,7 @@ R-based statistics helpers that produce an APA 7-ready report plus machine-reada
 
 - R 4.0+ (base R is enough for CSV/APA outputs).
 - Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), and `arrow` (parquet workspace copies).
-- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support.
+- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `car` for Type II/III ANOVA sums of squares.
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
 - Optional: WSL if you want the wrapper to run Linux Rscript first and fall back to Windows Rscript.
@@ -16,6 +16,7 @@ Install the R dependencies:
 ```r
 install.packages(c("yaml", "jsonlite", "arrow", "haven"))
 # install.packages("foreign") # legacy fallback if haven is not available
+# install.packages("car") # optional for Type II/III ANOVA sums of squares
 ```
 
 ## Install
@@ -72,6 +73,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `data-transform` | `core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Yes (`data-transform/default-template.md`) |
 | `missings` | `core-stats/scripts/R/missings.R` | Missing-data patterns, handling decisions, and transformed datasets. | Yes (`missings/default-template.md`) |
 | `assumptions` | `core-stats/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, and regression. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`) |
+| `anova` | `core-stats/scripts/R/anova.R` | Between-, within-, and mixed ANOVA with post-hoc comparisons. | Yes (`anova/default-template.md`, `anova/posthoc-template.md`) |
 | `t-test` | `core-stats/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
 | `init-workspace` | `core-stats/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
 
@@ -85,6 +87,7 @@ Reference docs:
 - `core-stats/references/data-transform.md`
 - `core-stats/references/missings.md`
 - `core-stats/references/assumptions.md`
+- `core-stats/references/anova.md`
 - `core-stats/references/t-test.md`
 - `core-stats/references/init-workspace.md`
 
@@ -155,6 +158,13 @@ Rscript core-stats/scripts/R/assumptions.R \
   --csv data.csv --analysis ttest --vars score --group condition
 ```
 
+### ANOVA
+
+```bash
+Rscript core-stats/scripts/R/anova.R \
+  --csv data.csv --dv outcome --between group
+```
+
 ### t-tests
 
 ```bash
@@ -186,7 +196,7 @@ Defaults live in `core-stats/scripts/config.yml` and are loaded via `core-stats/
 
 ## APA template logic (YAML)
 
-Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, data transformation, missingness handling, assumptions, and t-tests).
+Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, data transformation, missingness handling, assumptions, ANOVA, and t-tests).
 
 Key YAML fields:
 
