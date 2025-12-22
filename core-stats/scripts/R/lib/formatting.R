@@ -71,7 +71,15 @@ humanize_flag_name <- function(name) {
     "vif-high" = "VIF high threshold",
     "outlier-z" = "Outlier z threshold",
     "cook-multiplier" = "Cook's D multiplier",
-    "max-shapiro-n" = "Max Shapiro n"
+    "max-shapiro-n" = "Max Shapiro n",
+    "low-threshold" = "Low missingness threshold",
+    "moderate-threshold" = "Moderate missingness threshold",
+    "high-threshold" = "High missingness threshold",
+    "drop-threshold" = "Drop threshold",
+    "indicator-threshold" = "Indicator threshold",
+    "indicator-suffix" = "Indicator suffix",
+    "skew-threshold" = "Skewness threshold",
+    "max-patterns" = "Max patterns"
   )
   if (!is.null(name) && name %in% names(mapping)) return(unname(mapping[[name]]))
   label <- gsub("[-_]", " ", as.character(name))

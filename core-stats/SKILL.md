@@ -1,6 +1,6 @@
 ---
 name: core-stats
-description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, t-tests, assumption checks, scale reliability, data exploration, data transforms) from CSV/RDS/RData/SAV with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, t-tests, assumption checks, scale reliability, data exploration, missingness handling, data transforms) from CSV/RDS/RData/SAV with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -98,3 +98,4 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [data-transform](references/data-transform.md): Create/modify variables (compute, recode, standardize, rename, drop) with change logs and updated datasets.
 - [assumptions](references/assumptions.md): Assumption checks for t-tests, ANOVA, and regression (including diagnostics).
 - [t-test](references/t-test.md): One-sample, independent-samples, and paired-samples t-tests with APA outputs.
+- [missings](references/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.

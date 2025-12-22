@@ -1,6 +1,6 @@
 version: 1
 defaults:
-  output_dir: "./core-stats-out"
+  output_dir: "./outputs/tests"
   csv:
     sep: ","
     header: true
@@ -79,6 +79,17 @@ modules:
     outlier_z: 3
     cook_multiplier: 4
     max_shapiro_n: 5000
+  missings:
+    vars_default: "all"
+    method: "auto"
+    low_threshold: 0.05
+    moderate_threshold: 0.2
+    high_threshold: 0.4
+    drop_threshold: 0.6
+    indicator_threshold: 0.3
+    indicator_suffix: "_miss"
+    skew_threshold: 1
+    max_patterns: 10
 templates:
   descriptive_stats:
     default: "descriptive-stats/default-template.md"
@@ -103,3 +114,5 @@ templates:
     ttest: "assumptions/ttest-template.md"
     anova: "assumptions/anova-template.md"
     regression: "assumptions/regression-template.md"
+  missings:
+    default: "/mnt/c/Users/hamme/OneDrive/Software-Projekte/statistic-skills/outputs/tests/missings-output/custom-template.md"

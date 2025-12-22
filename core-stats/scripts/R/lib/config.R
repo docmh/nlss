@@ -123,6 +123,18 @@ get_builtin_config <- function() {
         outlier_z = 3,
         cook_multiplier = 4,
         max_shapiro_n = 5000
+      ),
+      missings = list(
+        vars_default = "all",
+        method = "auto",
+        low_threshold = 0.05,
+        moderate_threshold = 0.2,
+        high_threshold = 0.4,
+        drop_threshold = 0.6,
+        indicator_threshold = 0.3,
+        indicator_suffix = "_miss",
+        skew_threshold = 1,
+        max_patterns = 10
       )
     ),
     templates = list(
@@ -157,6 +169,9 @@ get_builtin_config <- function() {
         ttest = "assumptions/ttest-template.md",
         anova = "assumptions/anova-template.md",
         regression = "assumptions/regression-template.md"
+      ),
+      missings = list(
+        default = "missings/default-template.md"
       )
     )
   )
