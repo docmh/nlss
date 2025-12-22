@@ -80,6 +80,7 @@ Rscript <path to scripts/R/t_test.R> --interactive
 - `--digits` controls rounding (default: `defaults.digits`).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
+- `--expect-two-groups` prints an informational message and exits successfully when `--group` has != 2 levels (useful for negative checks).
 
 ## Inputs and handling
 
@@ -94,6 +95,7 @@ Rscript <path to scripts/R/t_test.R> --interactive
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 - Diagnostics (Shapiro-Wilk per sample and variance tests for independent samples) are included in the JSONL output.
+- Invalid input conditions (e.g., incompatible flags) are logged with `results.status = invalid_input`.
 
 ## APA 7 Templates
 

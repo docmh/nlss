@@ -57,7 +57,8 @@ function Convert-ToWslPath {
 
     $fullPath = $Path
     if (-not [System.IO.Path]::IsPathRooted($fullPath)) {
-        $fullPath = [System.IO.Path]::GetFullPath($fullPath, $PWD.Path)
+        $fullPath = [System.IO.Path]::Combine($PWD.Path, $fullPath)
+        $fullPath = [System.IO.Path]::GetFullPath($fullPath)
     }
 
     $converted = & $WslExe "wslpath" "-a" "-u" $fullPath 2>$null

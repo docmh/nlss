@@ -50,6 +50,7 @@ print_usage <- function() {
   cat("  --bootstrap-samples N  Bootstrap resamples (default: 1000)\n")
   cat("  --seed N               Random seed for bootstrap (optional)\n")
   cat("  --digits N             Rounding digits (default: 2)\n")
+  cat("  --expect-two-groups TRUE/FALSE  Informational output when group levels != 2 (default: FALSE)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive          Prompt for inputs\n")
@@ -322,6 +323,81 @@ resolve_get_user_prompt <- function(opts) {
     return(get("get_user_prompt", mode = "function")(opts))
   }
   NULL
+}
+
+emit_group_level_issue <- function(out_dir, opts, group_var, levels, expected = FALSE) {
+  level_count <- length(levels)
+  level_text <- if (level_count > 0) paste(as.character(levels), collapse = ", ") else "None"
+  message <- sprintf(
+    "Grouping variable '%s' has %d non-missing level(s); expected exactly two. Levels: %s.",
+    group_var,
+    level_count,
+    level_text
+  )
+
+  if (expected) {
+    cat("EXPECTED_NEGATIVE: t_test group levels\n")
+    cat(message, "\n")
+  }
+
+  log_default <- resolve_config_value("defaults.log", TRUE)
+  if (resolve_parse_bool(opts$log, default = log_default)) {
+    ctx <- resolve_get_run_context()
+    resolve_append_analysis_log(
+      out_dir,
+      module = "t_test",
+      prompt = ctx$prompt,
+      commands = ctx$commands,
+      results = list(
+        status = ifelse(expected, "expected_invalid_input", "invalid_input"),
+        message = message,
+        details = list(
+          group_var = group_var,
+          level_count = level_count,
+          levels = as.character(levels)
+        )
+      ),
+      options = list(
+        mode = "independent",
+        group = group_var,
+        vars = opts$vars,
+        expect_two_groups = expected
+      ),
+      user_prompt = resolve_get_user_prompt(opts)
+    )
+  }
+
+  if (expected) {
+    quit(status = 0)
+  }
+  stop(message)
+}
+
+emit_input_issue <- function(out_dir, opts, message, details = list(), status = "invalid_input") {
+  log_default <- resolve_config_value("defaults.log", TRUE)
+  if (resolve_parse_bool(opts$log, default = log_default)) {
+    ctx <- resolve_get_run_context()
+    resolve_append_analysis_log(
+      out_dir,
+      module = "t_test",
+      prompt = ctx$prompt,
+      commands = ctx$commands,
+      results = list(
+        status = status,
+        message = message,
+        details = details
+      ),
+      options = list(
+        mode = "paired",
+        vars = opts$vars,
+        x = opts$x,
+        y = opts$y,
+        group = opts$group
+      ),
+      user_prompt = resolve_get_user_prompt(opts)
+    )
+  }
+  stop(message)
 }
 
 normalize_alternative <- function(value, default = "two.sided") {
@@ -1003,11 +1079,19 @@ main <- function() {
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
   out_dir <- resolve_ensure_out_dir(resolve_default_out())
   df <- resolve_load_dataframe(opts)
+  expect_two_groups <- resolve_parse_bool(opts$`expect-two-groups`, default = FALSE)
 
   has_group <- !is.null(opts$group) && opts$group != ""
   has_x <- !is.null(opts$x) && opts$x != ""
   has_y <- !is.null(opts$y) && opts$y != ""
-  if (has_group && (has_x || has_y)) stop("Paired tests do not use --group.")
+  if (has_group && (has_x || has_y)) {
+    emit_input_issue(
+      out_dir,
+      opts,
+      "Paired tests do not use --group.",
+      details = list(group = opts$group, x = opts$x, y = opts$y)
+    )
+  }
 
   mode <- if (has_x || has_y) {
     "paired"
@@ -1028,17 +1112,50 @@ main <- function() {
   }
 
   if (mode == "paired") {
-    if (!(has_x && has_y)) stop("Paired t-tests require both --x and --y.")
+    if (!(has_x && has_y)) {
+      emit_input_issue(
+        out_dir,
+        opts,
+        "Paired t-tests require both --x and --y.",
+        details = list(x = opts$x, y = opts$y)
+      )
+    }
     x_vars <- resolve_parse_list(opts$x)
     y_vars <- resolve_parse_list(opts$y)
-    if (length(x_vars) == 0 || length(y_vars) == 0) stop("Paired t-tests require --x and --y variables.")
-    if (length(x_vars) != length(y_vars)) stop("--x and --y must have the same number of variables.")
+    if (length(x_vars) == 0 || length(y_vars) == 0) {
+      emit_input_issue(
+        out_dir,
+        opts,
+        "Paired t-tests require --x and --y variables.",
+        details = list(x = opts$x, y = opts$y)
+      )
+    }
+    if (length(x_vars) != length(y_vars)) {
+      emit_input_issue(
+        out_dir,
+        opts,
+        "--x and --y must have the same number of variables.",
+        details = list(x = x_vars, y = y_vars)
+      )
+    }
     missing <- setdiff(c(x_vars, y_vars), names(df))
-    if (length(missing) > 0) stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
+    if (length(missing) > 0) {
+      emit_input_issue(
+        out_dir,
+        opts,
+        paste("Unknown variables:", paste(missing, collapse = ", ")),
+        details = list(missing = missing)
+      )
+    }
     result <- build_summary_paired(df, x_vars, y_vars, alternative, conf_level, bootstrap, bootstrap_samples, seed)
   } else if (mode == "independent") {
     group_var <- opts$group
     if (!(group_var %in% names(df))) stop("Grouping variable not found in data frame.")
+    group_vals <- df[[group_var]]
+    levels <- unique(group_vals[!is.na(group_vals)])
+    if (length(levels) != 2) {
+      emit_group_level_issue(out_dir, opts, group_var, levels, expected = expect_two_groups)
+    }
     vars <- resolve_select_variables(df, opts$vars, group_var, default = vars_default)
     if (length(vars) == 0) stop("No numeric variables available for analysis.")
     result <- build_summary_independent(
@@ -1147,7 +1264,8 @@ main <- function() {
         conf_level = conf_level,
         bootstrap = bootstrap,
         bootstrap_samples = bootstrap_samples,
-        digits = digits
+        digits = digits,
+        expect_two_groups = expect_two_groups
       ),
       user_prompt = resolve_get_user_prompt(opts)
     )

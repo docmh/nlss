@@ -121,3 +121,7 @@ templates:
   init_workspace:
     default: "init-workspace/default-template.md"
     scratchpad: "scratchpad/default-template.md"
+tests:
+  output_dir: "./outputs/tests/workspace"
+  template_dir: "./outputs/tests/templates"
+  template_marker: "TEMPLATE_SMOKE_TEST"

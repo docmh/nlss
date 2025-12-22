@@ -402,7 +402,7 @@ build_dataset_specs <- function(opts, sep, header) {
   specs
 }
 
-derive_dataset_label <- function(spec) {
+derive_spec_label <- function(spec) {
   if (!is.null(spec$df) && nzchar(spec$df)) return(as.character(spec$df))
   base <- tools::file_path_sans_ext(basename(spec$path))
   if (!nzchar(base)) base <- "dataset"
@@ -447,7 +447,7 @@ prepare_dataset_outputs <- function(specs, out_dir) {
     return(list(summary_df = empty_df, labels = character(0)))
   }
 
-  labels <- vapply(specs, derive_dataset_label, character(1))
+  labels <- vapply(specs, derive_spec_label, character(1))
 
   summary_rows <- list()
   for (i in seq_along(specs)) {
