@@ -116,6 +116,16 @@ get_builtin_config <- function() {
         bootstrap = FALSE,
         bootstrap_samples = 1000
       ),
+      regression = list(
+        ivs_default = "numeric",
+        family = "gaussian",
+        link = "",
+        conf_level = 0.95,
+        center = "none",
+        standardize = "none",
+        bootstrap = FALSE,
+        bootstrap_samples = 1000
+      ),
       assumptions = list(
         analysis = "auto",
         vars_default = "numeric",
@@ -181,6 +191,9 @@ get_builtin_config <- function() {
       anova = list(
         default = "anova/default-template.md",
         posthoc = "anova/posthoc-template.md"
+      ),
+      regression = list(
+        default = "regression/default-template.md"
       ),
       assumptions = list(
         ttest = "assumptions/ttest-template.md",

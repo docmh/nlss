@@ -73,6 +73,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `data-transform` | `core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Yes (`data-transform/default-template.md`) |
 | `missings` | `core-stats/scripts/R/missings.R` | Missing-data patterns, handling decisions, and transformed datasets. | Yes (`missings/default-template.md`) |
 | `assumptions` | `core-stats/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, and regression. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`) |
+| `regression` | `core-stats/scripts/R/regression.R` | Multiple and hierarchical regression (OLS/GLM) with interactions and bootstrap CIs. | Yes (`regression/default-template.md`) |
 | `anova` | `core-stats/scripts/R/anova.R` | Between-, within-, and mixed ANOVA with post-hoc comparisons. | Yes (`anova/default-template.md`, `anova/posthoc-template.md`) |
 | `t-test` | `core-stats/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
 | `init-workspace` | `core-stats/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
@@ -87,6 +88,7 @@ Reference docs:
 - `core-stats/references/data-transform.md`
 - `core-stats/references/missings.md`
 - `core-stats/references/assumptions.md`
+- `core-stats/references/regression.md`
 - `core-stats/references/anova.md`
 - `core-stats/references/t-test.md`
 - `core-stats/references/init-workspace.md`
@@ -158,6 +160,13 @@ Rscript core-stats/scripts/R/assumptions.R \
   --csv data.csv --analysis ttest --vars score --group condition
 ```
 
+### Regression
+
+```bash
+Rscript core-stats/scripts/R/regression.R \
+  --csv data.csv --dv outcome --blocks "age,gender;stress,trait" --interactions stress:trait --center mean
+```
+
 ### ANOVA
 
 ```bash
@@ -196,7 +205,7 @@ Defaults live in `core-stats/scripts/config.yml` and are loaded via `core-stats/
 
 ## APA template logic (YAML)
 
-Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, data transformation, missingness handling, assumptions, ANOVA, and t-tests).
+Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, data transformation, missingness handling, assumptions, regression, ANOVA, and t-tests).
 
 Key YAML fields:
 

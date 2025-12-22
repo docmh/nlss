@@ -50,6 +50,12 @@ humanize_flag_name <- function(name) {
     "var-equal" = "Equal variances",
     "bootstrap" = "Bootstrap",
     "bootstrap-samples" = "Bootstrap samples",
+    "family" = "Family",
+    "link" = "Link",
+    "interactions" = "Interactions",
+    "center" = "Centering",
+    "standardize" = "Standardized coefficients",
+    "conf-level" = "Confidence level",
     "type" = "Sum of squares type",
     "effect-size" = "Effect size",
     "posthoc" = "Post-hoc method",
@@ -197,6 +203,10 @@ get_template_path <- function(analysis_label) {
   }
   if (label == "anova") {
     path <- resolve_template_path("anova.default", "anova/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label == "regression") {
+    path <- resolve_template_path("regression.default", "regression/default-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
   }
   if (label %in% c("anova post-hoc", "anova posthoc", "anova post hoc")) {
