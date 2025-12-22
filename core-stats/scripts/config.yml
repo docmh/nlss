@@ -1,6 +1,6 @@
 version: 1
 defaults:
-  output_dir: "./outputs/tests"
+  output_dir: "./core-stats-workspace"
   csv:
     sep: ","
     header: true
@@ -90,6 +90,8 @@ modules:
     indicator_suffix: "_miss"
     skew_threshold: 1
     max_patterns: 10
+  init_workspace:
+    agent: "Codex"
 templates:
   descriptive_stats:
     default: "descriptive-stats/default-template.md"
@@ -116,3 +118,6 @@ templates:
     regression: "assumptions/regression-template.md"
   missings:
     default: "/mnt/c/Users/hamme/OneDrive/Software-Projekte/statistic-skills/outputs/tests/missings-output/custom-template.md"
+  init_workspace:
+    default: "init-workspace/default-template.md"
+    scratchpad: "scratchpad/default-template.md"

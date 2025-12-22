@@ -11,7 +11,7 @@ Run one-sample, independent-samples, or paired-samples t-tests in base R and gen
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, or interactive).
+1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose the t-test type and specify variables (one-sample/independent) or paired measures (paired).
 3. Run `scripts/R/t_test.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
 4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) for APA reporting.
@@ -56,6 +56,12 @@ Rscript <path to scripts/R/t_test.R> --rds <path to RDS file> --vars age,score
 Rscript <path to scripts/R/t_test.R> --rdata <path to RData file> --df <data frame name> --vars age,score
 ```
 
+### Parquet input
+
+```bash
+Rscript <path to scripts/R/t_test.R> --parquet <path to parquet file> --vars age,score
+```
+
 ### Interactive prompts
 
 ```bash
@@ -77,7 +83,7 @@ Rscript <path to scripts/R/t_test.R> --interactive
 
 ## Inputs and handling
 
-- Data sources: CSV, SAV, RDS, or RData data frame (`--df` required for RData).
+- Data sources: CSV, SAV, RDS, Parquet, or RData data frame (`--df` required for RData).
 - Independent tests require a `--group` variable with exactly two non-missing levels.
 - Paired tests require `--x` and `--y` lists of equal length (paired by position).
 - Missing values are removed listwise per test (within each variable or pair).

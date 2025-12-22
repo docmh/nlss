@@ -135,6 +135,9 @@ get_builtin_config <- function() {
         indicator_suffix = "_miss",
         skew_threshold = 1,
         max_patterns = 10
+      ),
+      init_workspace = list(
+        agent = "Codex"
       )
     ),
     templates = list(
@@ -172,6 +175,10 @@ get_builtin_config <- function() {
       ),
       missings = list(
         default = "missings/default-template.md"
+      ),
+      init_workspace = list(
+        default = "init-workspace/default-template.md",
+        scratchpad = "scratchpad/default-template.md"
       )
     )
   )

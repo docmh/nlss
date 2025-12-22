@@ -1,6 +1,6 @@
 ---
 name: core-stats
-description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, t-tests, assumption checks, scale reliability, data exploration, missingness handling, data transforms) from CSV/RDS/RData/SAV with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, t-tests, assumption checks, scale reliability, data exploration, missingness handling, data transforms, workspace initialization) from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -16,6 +16,18 @@ metadata:
 ## Overview
 
 Central guidance for all statistic skills in this repo, plus shared conventions for running R scripts and placing outputs.
+
+## Stateful workspace workflow (required)
+
+Treat `defaults.output_dir` from `scripts/config.yml` as the single source of truth for state.
+
+1. Ensure the workspace exists and is functional (`defaults.output_dir` exists, and both `scratchpad.md` and `apa_report.md` exist). If not, run the `init-workspace` subskill first.
+2. If a dataset is referenced (CSV/RDS/RData/SAV/Parquet), confirm that a workspace copy exists as `"<dataset-name>.parquet"` in the workspace. If missing, create it via `init-workspace` before running analyses.
+3. All subskills must operate on the workspace `.parquet` copy (prefer `--parquet` pointing to the workspace copy, or rely on auto-copy behavior).
+4. Before analysis: read and update `scratchpad.md` with the analysis plan and dataset considerations.
+5. After analysis: update `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
+
+Note: `data-transform` and `missings` update the workspace `.parquet` copy in place so downstream analyses remain stateful.
 
 ## Configuration Defaults and Overrides
 
@@ -53,6 +65,7 @@ All scripts accept one of the following input types:
 - `--sav <path>`: SPSS `.sav` file.
 - `--rds <path>`: RDS file containing a data frame.
 - `--rdata <path>`: RData file; also pass `--df <data_frame_name>` to select the data frame.
+- `--parquet <path>`: Parquet file (preferred workspace format).
 - `--interactive`: Prompt for inputs if you want a guided run.
 
 ## Common flags
@@ -67,9 +80,10 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 
 ## Output conventions
 
-- Use `defaults.output_dir` from `scripts/config.yml` for scratch outputs (defaults to `<working directory>/outputs/tmp`, relative to the working directory where the script runs).
+- Use `defaults.output_dir` from `scripts/config.yml` for scratch outputs relative to the working directory where the script runs.
 - The output directory is fixed to `defaults.output_dir` and is not user-overridable.
 - Each analysis appends `apa_report.md` (APA table + narrative) and appends `analysis_log.jsonl` when logging is enabled.
+- Workspace dataset copies are stored as `<dataset-name>.parquet` in the output directory.
 - For `apa_report.md`, templates in `core-stats/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
 
@@ -99,3 +113,4 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [assumptions](references/assumptions.md): Assumption checks for t-tests, ANOVA, and regression (including diagnostics).
 - [t-test](references/t-test.md): One-sample, independent-samples, and paired-samples t-tests with APA outputs.
 - [missings](references/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.
+- [init-workspace](references/init-workspace.md): Initialize the workspace folder with scratchpad.md, apa_report.md, and .parquet dataset copies.

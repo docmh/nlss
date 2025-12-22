@@ -11,7 +11,7 @@ Generate descriptive statistics in base R for psychology coursework or reports, 
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, or interactive).
+1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose numeric variables and optional grouping variable.
 3. Run `scripts/R/descriptive_stats.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
 4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
@@ -44,6 +44,12 @@ Rscript <path to scripts/R/descriptive_stats.R> --rds <path to RDS file> --vars 
 
 ```bash
 Rscript <path to scripts/R/descriptive_stats.R> --rdata <path to RData file> --df <data frame name> --vars age,score
+```
+
+### Parquet input
+
+```bash
+Rscript <path to scripts/R/descriptive_stats.R> --parquet <path to parquet file> --vars age,score
 ```
 
 ### Interactive prompts

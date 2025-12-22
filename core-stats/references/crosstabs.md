@@ -11,7 +11,7 @@ Generate cross-tabulations for two categorical variables, optional stratificatio
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, or interactive).
+1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose row and column variables, with optional grouping variable.
 3. Run `scripts/R/crosstabs.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
 4. Use outputs (`apa_report.md`, `analysis_log.jsonl`).
@@ -44,6 +44,12 @@ Rscript <path to scripts/R/crosstabs.R> --rds <path to RDS file> --row gender --
 
 ```bash
 Rscript <path to scripts/R/crosstabs.R> --rdata <path to RData file> --df <data frame name> --row gender --col condition
+```
+
+### Parquet input
+
+```bash
+Rscript <path to scripts/R/crosstabs.R> --parquet <path to parquet file> --row gender --col condition
 ```
 
 ### Interactive prompts

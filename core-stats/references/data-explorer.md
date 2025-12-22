@@ -11,7 +11,7 @@ Create a data dictionary-style overview with variable names, inferred measuremen
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, or interactive).
+1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Optionally select variables; default is all columns.
 3. Run `scripts/R/data_explorer.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
 4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
@@ -44,6 +44,12 @@ Rscript <path to scripts/R/data_explorer.R> --rds <path to RDS file> --vars age,
 
 ```bash
 Rscript <path to scripts/R/data_explorer.R> --rdata <path to RData file> --df <data frame name> --vars age,gender
+```
+
+### Parquet input
+
+```bash
+Rscript <path to scripts/R/data_explorer.R> --parquet <path to parquet file> --vars age,gender
 ```
 
 ### Interactive prompts

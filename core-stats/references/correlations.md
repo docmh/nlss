@@ -11,7 +11,7 @@ Compute correlations for numeric variables (pairwise or matrix), with optional g
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, or interactive).
+1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose variables: full matrix via `--vars` (or default numeric columns), or cross-correlation via `--x` and `--y`.
 3. Choose correlation method (Pearson/Spearman/Kendall), missing-data handling, and any control variables.
 4. Run `scripts/R/correlations.R` with the correct flags, or use the PowerShell wrapper on Windows.
@@ -63,6 +63,12 @@ Rscript <path to scripts/R/correlations.R> --rds <path to RDS file> --vars age,s
 
 ```bash
 Rscript <path to scripts/R/correlations.R> --rdata <path to RData file> --df <data frame name> --vars age,score
+```
+
+### Parquet input
+
+```bash
+Rscript <path to scripts/R/correlations.R> --parquet <path to parquet file> --vars age,score
 ```
 
 ### Interactive prompts

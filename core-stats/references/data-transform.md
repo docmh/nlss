@@ -11,7 +11,7 @@ Create or modify variables in a data frame: derive new variables, transform or s
 
 ## Core Workflow
 
-1. Identify input type (CSV, SAV, RDS, RData data frame, or interactive).
+1. Identify input type (CSV, SAV, RDS, RData data frame, Parquet, or interactive).
 2. Define transformations:
    - `--calc` for new variables using expressions.
    - `--transform` for standard transforms (log, sqrt, scale).
@@ -19,7 +19,7 @@ Create or modify variables in a data frame: derive new variables, transform or s
    - `--recode` for value mapping.
    - `--rename` and `--drop` for column management.
 3. Run `scripts/R/data_transform.R` with appropriate flags or the Windows wrapper.
-4. Use outputs (`transformed_data.rds`, `apa_report.md`, `analysis_log.jsonl`) in your response.
+4. Use outputs (workspace `<dataset-name>.parquet`, `apa_report.md`, `analysis_log.jsonl`) in your response.
 
 ## Script: `scripts/R/data_transform.R`
 
@@ -81,6 +81,12 @@ Rscript <path to scripts/R/data_transform.R> --rds <path to RDS file> --calc "de
 Rscript <path to scripts/R/data_transform.R> --rdata <path to RData file> --df <data frame name> --standardize score
 ```
 
+### Parquet input
+
+```bash
+Rscript <path to scripts/R/data_transform.R> --parquet <path to parquet file> --standardize score
+```
+
 ### Interactive prompts
 
 ```bash
@@ -120,7 +126,8 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 
 - Outputs are always written to `defaults.output_dir` from `core-stats/scripts/config.yml` (not user-overridable).
 
-- `transformed_data.rds`: Updated dataset in RDS format.
+- `<dataset-name>.parquet`: Workspace dataset copy updated in place (preferred).
+- `transformed_data.rds`: Fallback output only if no workspace `.parquet` copy is available.
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 

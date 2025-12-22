@@ -11,7 +11,7 @@ Compute item-level statistics and scale reliability metrics for psychometric sca
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, or interactive).
+1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose item variables and an optional grouping variable.
 3. (Optional) reverse-score items using `--reverse` plus `--reverse-min`/`--reverse-max`.
 4. Run `scripts/R/scale.R` with the correct flags, or use the PowerShell wrapper on Windows.
@@ -57,6 +57,12 @@ Rscript <path to scripts/R/scale.R> --rds <path to RDS file> --vars item1,item2,
 
 ```bash
 Rscript <path to scripts/R/scale.R> --rdata <path to RData file> --df <data frame name> --vars item1,item2,item3
+```
+
+### Parquet input
+
+```bash
+Rscript <path to scripts/R/scale.R> --parquet <path to parquet file> --vars item1,item2,item3
 ```
 
 ### Interactive prompts

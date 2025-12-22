@@ -11,10 +11,10 @@ Analyze missing-data patterns for selected variables, choose a handling strategy
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, or interactive).
+1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose variables for missingness analysis.
 3. Run `scripts/R/missings.R` with the correct flags (or use the PowerShell wrapper on Windows).
-4. Use outputs (`missing_handled_data.rds`, `apa_report.md`, `analysis_log.jsonl`) in your response.
+4. Use outputs (workspace `<dataset-name>.parquet`, `apa_report.md`, `analysis_log.jsonl`) in your response.
 
 ## Script: `scripts/R/missings.R`
 
@@ -44,6 +44,12 @@ Rscript <path to scripts/R/missings.R> --rds <path to RDS file> --vars age,score
 
 ```bash
 Rscript <path to scripts/R/missings.R> --rdata <path to RData file> --df <data frame name> --vars age,score
+```
+
+### Parquet input
+
+```bash
+Rscript <path to scripts/R/missings.R> --parquet <path to parquet file> --vars age,score
 ```
 
 ### Interactive prompts
@@ -76,7 +82,8 @@ Rscript <path to scripts/R/missings.R> --interactive
 
 - Outputs are always written to `defaults.output_dir` from `core-stats/scripts/config.yml` (not user-overridable).
 
-- `missing_handled_data.rds`: Updated dataset after missingness handling.
+- `<dataset-name>.parquet`: Workspace dataset copy updated in place (preferred).
+- `missing_handled_data.rds`: Fallback output only if no workspace `.parquet` copy is available.
 - `apa_report.md`: APA 7 report containing analysis type, tables, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 

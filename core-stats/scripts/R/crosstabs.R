@@ -24,6 +24,7 @@ print_usage <- function() {
   cat("  Rscript crosstabs.R --sav data.sav --row row_var --col col_var [--group group_var]\n")
   cat("  Rscript crosstabs.R --rds data.rds --row row_var --col col_var [--group group_var]\n")
   cat("  Rscript crosstabs.R --rdata data.RData --df data_frame_name --row row_var --col col_var\n")
+  cat("  Rscript crosstabs.R --parquet data.parquet --row row_var --col col_var\n")
   cat("  Rscript crosstabs.R --interactive\n")
   cat("\n")
   cat("Options:\n")
@@ -33,6 +34,7 @@ print_usage <- function() {
   cat("  --header TRUE/FALSE      CSV header (default: TRUE)\n")
   cat("  --rds PATH               RDS input file (data frame)\n")
   cat("  --rdata PATH             RData input file\n")
+  cat("  --parquet PATH           Parquet input file\n")
   cat("  --df NAME                Data frame object name in RData\n")
   cat("  --row NAME               Row variable name\n")
   cat("  --rows LIST              Comma-separated row variables\n")
@@ -59,7 +61,7 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata)", "csv")
+  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
@@ -76,6 +78,8 @@ interactive_options <- function() {
   } else if (input_type == "rdata") {
     opts$rdata <- resolve_prompt("RData path")
     opts$df <- resolve_prompt("Data frame object name")
+  } else if (input_type == "parquet") {
+    opts$parquet <- resolve_prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }

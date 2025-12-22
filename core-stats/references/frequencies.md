@@ -11,7 +11,7 @@ Generate frequency tables in base R for categorical variables and return an APA 
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, or interactive).
+1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose variables for frequency tables and an optional grouping variable.
 3. Run `scripts/R/frequencies.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
 4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
@@ -44,6 +44,12 @@ Rscript <path to scripts/R/frequencies.R> --rds <path to RDS file> --vars gender
 
 ```bash
 Rscript <path to scripts/R/frequencies.R> --rdata <path to RData file> --df <data frame name> --vars gender,condition
+```
+
+### Parquet input
+
+```bash
+Rscript <path to scripts/R/frequencies.R> --parquet <path to parquet file> --vars gender,condition
 ```
 
 ### Interactive prompts

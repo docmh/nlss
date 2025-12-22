@@ -5,7 +5,7 @@ R-based statistics helpers that produce an APA 7-ready report plus machine-reada
 ## Requirements and system support
 
 - R 4.0+ (base R is enough for CSV/APA outputs).
-- Required R packages: `yaml` (configuration + templates) and `jsonlite` (analysis logging).
+- Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), and `arrow` (parquet workspace copies).
 - Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support.
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
@@ -14,7 +14,7 @@ R-based statistics helpers that produce an APA 7-ready report plus machine-reada
 Install the R dependencies:
 
 ```r
-install.packages(c("yaml", "jsonlite", "haven"))
+install.packages(c("yaml", "jsonlite", "arrow", "haven"))
 # install.packages("foreign") # legacy fallback if haven is not available
 ```
 
@@ -48,6 +48,15 @@ Rscript core-stats/scripts/R/descriptive_stats.R \
   --csv data.csv --vars age,score
 ```
 
+## Stateful workspace architecture
+
+Core-stats is stateful. The workspace is the configured output directory and is treated as the source of truth.
+
+- Run `core-stats/scripts/R/init_workspace.R` first to create `scratchpad.md`, `apa_report.md`, and parquet workspace copies.
+- For any input dataset (CSV/SAV/RDS/RData/Parquet), a workspace copy is created as `<dataset-name>.parquet`.
+- All subskills read from the workspace parquet copy (prefer `--parquet` pointing to the workspace file or rely on auto-copy).
+- `data-transform` and `missings` update the workspace parquet copy in place so downstream analyses see the latest state.
+
 ## Available modules (subskills)
 
 Each subskill has a reference file describing inputs, flags, and outputs. Template-driven modules can be customized via `core-stats/assets/<subskill>/` and `templates.*` in `core-stats/scripts/config.yml`.
@@ -64,6 +73,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `missings` | `core-stats/scripts/R/missings.R` | Missing-data patterns, handling decisions, and transformed datasets. | Yes (`missings/default-template.md`) |
 | `assumptions` | `core-stats/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, and regression. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`) |
 | `t-test` | `core-stats/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
+| `init-workspace` | `core-stats/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
 
 Reference docs:
 - `core-stats/references/descriptive-stats.md`
@@ -76,6 +86,7 @@ Reference docs:
 - `core-stats/references/missings.md`
 - `core-stats/references/assumptions.md`
 - `core-stats/references/t-test.md`
+- `core-stats/references/init-workspace.md`
 
 ## Basic usage by module
 
@@ -151,9 +162,17 @@ Rscript core-stats/scripts/R/t_test.R \
   --csv data.csv --vars score --group condition
 ```
 
+### Workspace initialization
+
+```bash
+Rscript core-stats/scripts/R/init_workspace.R \
+  --csv data.csv
+```
+
 ## Where outputs go
 
 All scripts write to `defaults.output_dir` from `core-stats/scripts/config.yml` and do not accept a custom output directory.
+Workspace dataset copies are stored as `<dataset-name>.parquet` in the output directory; `data_transform` and `missings` update these copies in place.
 
 ## Configuration logic
 

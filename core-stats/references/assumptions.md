@@ -11,7 +11,7 @@ Run assumption and diagnostic checks for t-tests, ANOVA (between, within, mixed)
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, or interactive).
+1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose the analysis family (`ttest`, `anova`, or `regression`) and specify variables.
 3. Run `scripts/R/assumptions.R` with the correct flags, or use the PowerShell wrapper on Windows.
 4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) for reporting or downstream modules.
@@ -92,7 +92,7 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
 
 ## Inputs and handling
 
-- Data sources: CSV, SAV, RDS, or RData data frame (`--df` required for RData).
+- Data sources: CSV, SAV, RDS, Parquet, or RData data frame (`--df` required for RData).
 - `ttest`:
   - One-sample/independent: use `--vars` and optional `--group`.
   - Paired: use `--x` and `--y` lists of equal length.

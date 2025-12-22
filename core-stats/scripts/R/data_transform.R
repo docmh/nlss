@@ -23,6 +23,7 @@ print_usage <- function() {
   cat("  Rscript data_transform.R --sav data.sav [--recode \"var=1:0,2:1\"] [--rename old:new] [--drop var1,var2]\n")
   cat("  Rscript data_transform.R --rds data.rds\n")
   cat("  Rscript data_transform.R --rdata data.RData --df data_frame_name [--interactive]\n")
+  cat("  Rscript data_transform.R --parquet data.parquet\n")
   cat("\n")
   cat("Options:\n")
   cat("  --csv PATH               CSV input file\n")
@@ -31,6 +32,7 @@ print_usage <- function() {
   cat("  --header TRUE/FALSE      CSV header (default: TRUE)\n")
   cat("  --rds PATH               RDS input file (data frame)\n")
   cat("  --rdata PATH             RData input file\n")
+  cat("  --parquet PATH           Parquet input file\n")
   cat("  --df NAME                Data frame object name in RData\n")
   cat("  --calc RULES             New variables: \"newvar=expr|newvar2=expr\"\n")
   cat("  --transform RULES        Transforms: \"var=log|var2=sqrt|var3=scale\"\n")
@@ -62,7 +64,7 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata)", "csv")
+  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
@@ -79,6 +81,8 @@ interactive_options <- function() {
   } else if (input_type == "rdata") {
     opts$rdata <- resolve_prompt("RData path")
     opts$df <- resolve_prompt("Data frame object name")
+  } else if (input_type == "parquet") {
+    opts$parquet <- resolve_prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
@@ -749,6 +753,7 @@ if (!is.null(opts$interactive)) {
 }
 
 df <- resolve_load_dataframe(opts)
+workspace_parquet_path <- attr(df, "workspace_parquet_path")
 
   out_dir <- resolve_ensure_out_dir(resolve_default_out())
 
@@ -965,7 +970,13 @@ log_df <- if (length(log_rows) > 0) do.call(rbind, log_rows) else {
   data.frame(action = character(0), variable = character(0), new_variable = character(0), details = character(0), note = character(0), stringsAsFactors = FALSE)
 }
 
-saveRDS(df, file.path(out_dir, "transformed_data.rds"))
+output_path <- file.path(out_dir, "transformed_data.rds")
+if (!is.null(workspace_parquet_path) && nzchar(workspace_parquet_path)) {
+  write_parquet_data(df, workspace_parquet_path)
+  output_path <- workspace_parquet_path
+} else {
+  saveRDS(df, output_path)
+}
 
 if (nrow(log_df) == 0) {
   apa_text <- "No transformations applied. Data exported unchanged."
@@ -1076,7 +1087,11 @@ if (resolve_parse_bool(opts$log, default = log_default)) {
     module = "data_transform",
     prompt = ctx$prompt,
     commands = ctx$commands,
-    results = list(transformed_df = df, transform_log_df = log_df),
+    results = list(
+      transformed_df = df,
+      transform_log_df = log_df,
+      output_path = output_path
+    ),
     options = list(
       calc = opts$calc,
       transform = opts$transform,

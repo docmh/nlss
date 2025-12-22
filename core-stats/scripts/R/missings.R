@@ -24,6 +24,7 @@ print_usage <- function() {
   cat("  Rscript missings.R --sav data.sav [--vars var1,var2]\n")
   cat("  Rscript missings.R --rds data.rds [--vars var1,var2]\n")
   cat("  Rscript missings.R --rdata data.RData --df data_frame_name [--vars var1,var2]\n")
+  cat("  Rscript missings.R --parquet data.parquet [--vars var1,var2]\n")
   cat("  Rscript missings.R --interactive\n")
   cat("\n")
   cat("Options:\n")
@@ -33,6 +34,7 @@ print_usage <- function() {
   cat("  --header TRUE/FALSE      CSV header (default: TRUE)\n")
   cat("  --rds PATH               RDS input file (data frame)\n")
   cat("  --rdata PATH             RData input file\n")
+  cat("  --parquet PATH           Parquet input file\n")
   cat("  --df NAME                Data frame object name in RData\n")
   cat("  --vars LIST              Comma-separated variable names (default: all columns)\n")
   cat("  --method VALUE           auto|listwise|impute|indicator|drop (default: auto)\n")
@@ -53,7 +55,7 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata)", "csv")
+  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
@@ -70,6 +72,8 @@ interactive_options <- function() {
   } else if (input_type == "rdata") {
     opts$rdata <- resolve_prompt("RData path")
     opts$df <- resolve_prompt("Data frame object name")
+  } else if (input_type == "parquet") {
+    opts$parquet <- resolve_prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
@@ -678,6 +682,7 @@ main <- function() {
   out_dir <- resolve_ensure_out_dir(resolve_default_out())
 
   df <- resolve_load_dataframe(opts)
+  workspace_parquet_path <- attr(df, "workspace_parquet_path")
   vars <- resolve_select_variables(df, opts$vars, default = vars_default)
   if (length(vars) == 0) stop("No variables available for missingness analysis.")
 
@@ -911,7 +916,12 @@ main <- function() {
   )
 
   output_path <- file.path(out_dir, "missing_handled_data.rds")
-  saveRDS(output_df, output_path)
+  if (!is.null(workspace_parquet_path) && nzchar(workspace_parquet_path)) {
+    write_parquet_data(output_df, workspace_parquet_path)
+    output_path <- workspace_parquet_path
+  } else {
+    saveRDS(output_df, output_path)
+  }
 
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
@@ -931,7 +941,8 @@ main <- function() {
         method_selected = method_selected,
         drop_vars = drop_vars,
         indicator_vars = indicator_vars,
-        rows_removed = rows_removed
+        rows_removed = rows_removed,
+        output_path = output_path
       ),
       options = list(
         vars = vars,

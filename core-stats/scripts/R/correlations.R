@@ -24,6 +24,7 @@ print_usage <- function() {
   cat("  Rscript correlations.R --sav data.sav [--vars var1,var2] [--group group_var]\n")
   cat("  Rscript correlations.R --rds data.rds [--vars var1,var2]\n")
   cat("  Rscript correlations.R --rdata data.RData --df data_frame_name [--vars var1,var2]\n")
+  cat("  Rscript correlations.R --parquet data.parquet [--vars var1,var2]\n")
   cat("  Rscript correlations.R --interactive\n")
   cat("\n")
   cat("Options:\n")
@@ -33,6 +34,7 @@ print_usage <- function() {
   cat("  --header TRUE/FALSE    CSV header (default: TRUE)\n")
   cat("  --rds PATH             RDS input file (data frame)\n")
   cat("  --rdata PATH           RData input file\n")
+  cat("  --parquet PATH         Parquet input file\n")
   cat("  --df NAME              Data frame object name in RData\n")
   cat("  --vars LIST            Comma-separated variables for a full matrix (default: all numeric)\n")
   cat("  --x LIST               Comma-separated X variables (for cross-correlation)\n")
@@ -55,7 +57,7 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- prompt("Input type (csv/sav/rds/rdata)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
@@ -72,6 +74,8 @@ interactive_options <- function() {
   } else if (input_type == "rdata") {
     opts$rdata <- prompt("RData path")
     opts$df <- prompt("Data frame object name")
+  } else if (input_type == "parquet") {
+    opts$parquet <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
