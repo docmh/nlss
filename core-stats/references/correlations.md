@@ -98,7 +98,7 @@ Rscript <path to scripts/R/correlations.R> --interactive
 
 ## Outputs
 
-- Outputs are always written to `defaults.output_dir` from `core-stats/scripts/config.yml` (not user-overridable).
+- Outputs are written to the dataset workspace at `defaults.output_dir/<dataset-name>/` from `core-stats/scripts/config.yml` (not user-overridable).
 
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).

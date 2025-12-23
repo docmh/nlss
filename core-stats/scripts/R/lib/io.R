@@ -140,9 +140,51 @@ normalize_path <- function(path) {
   normalizePath(path, winslash = "/", mustWork = FALSE)
 }
 
+get_dataset_workspace_dir <- function(label) {
+  file_label <- sanitize_file_component(label)
+  root <- ensure_out_dir(get_default_out())
+  ensure_out_dir(file.path(root, file_label))
+}
+
+get_workspace_out_dir <- function(df = NULL, label = NULL) {
+  if (!is.null(df)) {
+    dir_attr <- attr(df, "workspace_dir")
+    if (!is.null(dir_attr) && nzchar(dir_attr)) return(ensure_out_dir(dir_attr))
+    parquet_path <- attr(df, "workspace_parquet_path")
+    if (!is.null(parquet_path) && nzchar(parquet_path)) {
+      return(ensure_out_dir(dirname(parquet_path)))
+    }
+  }
+  if (!is.null(label) && nzchar(label)) {
+    return(get_dataset_workspace_dir(label))
+  }
+  ensure_out_dir(get_default_out())
+}
+
+format_backup_timestamp <- function() {
+  now <- Sys.time()
+  base <- format(now, "%Y%m%d%H%M%S")
+  frac <- as.numeric(now) %% 1
+  ms <- as.integer(floor(frac * 1000))
+  paste0(base, sprintf("%03d", ms))
+}
+
+backup_workspace_parquet <- function(parquet_path) {
+  if (is.null(parquet_path) || !nzchar(parquet_path)) return("")
+  if (!file.exists(parquet_path)) return("")
+  dataset_dir <- dirname(parquet_path)
+  backup_dir <- ensure_out_dir(file.path(dataset_dir, "backup"))
+  file_label <- tools::file_path_sans_ext(basename(parquet_path))
+  timestamp <- format_backup_timestamp()
+  backup_path <- file.path(backup_dir, paste0(file_label, "-", timestamp, ".parquet"))
+  copied <- file.copy(parquet_path, backup_path, overwrite = FALSE)
+  if (!isTRUE(copied)) return("")
+  normalize_path(backup_path)
+}
+
 build_workspace_copy_info <- function(label) {
   file_label <- sanitize_file_component(label)
-  out_dir <- ensure_out_dir(get_default_out())
+  out_dir <- get_dataset_workspace_dir(label)
   list(
     label = label,
     file_label = file_label,
@@ -188,6 +230,7 @@ load_dataframe <- function(opts) {
     }
     attr(df, "workspace_parquet_path") <- normalize_path(copy_info$copy_path)
     attr(df, "workspace_source_path") <- normalize_path(source_path)
+    attr(df, "workspace_dir") <- normalize_path(copy_info$out_dir)
     return(df)
   }
 
@@ -204,6 +247,7 @@ load_dataframe <- function(opts) {
     })
     attr(df, "workspace_parquet_path") <- normalize_path(copy_info$copy_path)
     attr(df, "workspace_source_path") <- normalize_path(source_path)
+    attr(df, "workspace_dir") <- normalize_path(copy_info$out_dir)
     return(df)
   }
 
@@ -218,6 +262,7 @@ load_dataframe <- function(opts) {
     })
     attr(df, "workspace_parquet_path") <- normalize_path(copy_info$copy_path)
     attr(df, "workspace_source_path") <- normalize_path(source_path)
+    attr(df, "workspace_dir") <- normalize_path(copy_info$out_dir)
     return(df)
   }
 
@@ -232,6 +277,7 @@ load_dataframe <- function(opts) {
     })
     attr(df, "workspace_parquet_path") <- normalize_path(copy_info$copy_path)
     attr(df, "workspace_source_path") <- normalize_path(source_path)
+    attr(df, "workspace_dir") <- normalize_path(copy_info$out_dir)
     return(df)
   }
 
@@ -246,6 +292,7 @@ load_dataframe <- function(opts) {
     })
     attr(df, "workspace_parquet_path") <- normalize_path(copy_info$copy_path)
     attr(df, "workspace_source_path") <- normalize_path(source_path)
+    attr(df, "workspace_dir") <- normalize_path(copy_info$out_dir)
     return(df)
   }
 

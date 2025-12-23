@@ -1077,8 +1077,8 @@ main <- function() {
   bootstrap_samples_default <- resolve_config_value("modules.t_test.bootstrap_samples", 1000)
 
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  out_dir <- resolve_ensure_out_dir(resolve_default_out())
   df <- resolve_load_dataframe(opts)
+  out_dir <- get_workspace_out_dir(df)
   expect_two_groups <- resolve_parse_bool(opts$`expect-two-groups`, default = FALSE)
 
   has_group <- !is.null(opts$group) && opts$group != ""

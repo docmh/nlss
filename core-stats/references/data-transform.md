@@ -19,7 +19,7 @@ Create or modify variables in a data frame: derive new variables, transform or s
    - `--recode` for value mapping.
    - `--rename` and `--drop` for column management.
 3. Run `scripts/R/data_transform.R` with appropriate flags or the Windows wrapper.
-4. Use outputs (workspace `<dataset-name>.parquet`, `apa_report.md`, `analysis_log.jsonl`) in your response.
+4. Use outputs (workspace `defaults.output_dir/<dataset-name>/<dataset-name>.parquet`, `apa_report.md`, `analysis_log.jsonl`) in your response.
 
 ## Script: `scripts/R/data_transform.R`
 
@@ -120,16 +120,19 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 
 - Always ask the user before overwriting variables or dropping columns.
 - Use `--overwrite-vars` with `--confirm-overwrite` to replace existing variables.
-- Use `--confirm-drop` to delete variables. Input files are not modified; outputs are written to the output directory.
+- Use `--confirm-drop` to delete variables. Input files are not modified; outputs are written to the dataset workspace folder.
 
 ## Outputs
 
-- Outputs are always written to `defaults.output_dir` from `core-stats/scripts/config.yml` (not user-overridable).
+- Outputs are written to the dataset workspace at `defaults.output_dir/<dataset-name>/` from `core-stats/scripts/config.yml` (not user-overridable).
 
-- `<dataset-name>.parquet`: Workspace dataset copy updated in place (preferred).
-- `transformed_data.rds`: Fallback output only if no workspace `.parquet` copy is available.
+- `defaults.output_dir/<dataset-name>/<dataset-name>.parquet`: Workspace dataset copy updated in place (preferred; backup created before overwrite).
+- `defaults.output_dir/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet`: Backup of the previous parquet before overwrites.
+- `transformed_data.rds`: Fallback output only if no workspace `.parquet` copy is available (written in the dataset workspace).
 - `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
+
+Undo: replace `defaults.output_dir/<dataset-name>/<dataset-name>.parquet` with the most recent backup in `defaults.output_dir/<dataset-name>/backup/`.
 
 ## APA 7 Templates
 

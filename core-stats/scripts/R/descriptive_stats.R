@@ -605,9 +605,8 @@ main <- function() {
   log_default <- resolve_config_value("defaults.log", TRUE)
   vars_default <- resolve_config_value("modules.descriptive_stats.vars_default", "numeric")
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  out_dir <- resolve_ensure_out_dir(resolve_default_out())
-
   df <- resolve_load_dataframe(opts)
+  out_dir <- get_workspace_out_dir(df)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
   if (!is.null(group_var) && !(group_var %in% names(df))) {
     stop("Grouping variable not found in data frame.")

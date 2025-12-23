@@ -753,9 +753,8 @@ if (!is.null(opts$interactive)) {
 }
 
 df <- resolve_load_dataframe(opts)
+out_dir <- get_workspace_out_dir(df)
 workspace_parquet_path <- attr(df, "workspace_parquet_path")
-
-  out_dir <- resolve_ensure_out_dir(resolve_default_out())
 
 calc_rules <- if (!is.null(opts$calc)) parse_calc_rules(opts$calc) else list()
 transform_rules <- if (!is.null(opts$transform)) parse_transform_rules(opts$transform) else list()
@@ -970,8 +969,10 @@ log_df <- if (length(log_rows) > 0) do.call(rbind, log_rows) else {
   data.frame(action = character(0), variable = character(0), new_variable = character(0), details = character(0), note = character(0), stringsAsFactors = FALSE)
 }
 
+backup_path <- ""
 output_path <- file.path(out_dir, "transformed_data.rds")
 if (!is.null(workspace_parquet_path) && nzchar(workspace_parquet_path)) {
+  backup_path <- backup_workspace_parquet(workspace_parquet_path)
   write_parquet_data(df, workspace_parquet_path)
   output_path <- workspace_parquet_path
 } else {
@@ -1090,7 +1091,8 @@ if (resolve_parse_bool(opts$log, default = log_default)) {
     results = list(
       transformed_df = df,
       transform_log_df = log_df,
-      output_path = output_path
+      output_path = output_path,
+      backup_path = backup_path
     ),
     options = list(
       calc = opts$calc,

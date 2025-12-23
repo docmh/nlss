@@ -541,6 +541,37 @@ build_dataset_sections <- function(summary_df) {
   paste(sections, collapse = "\n\n")
 }
 
+build_output_targets <- function(summary_df, workspace_root) {
+  targets <- list()
+  if (nrow(summary_df) == 0) {
+    placeholder_label <- "workspace"
+    placeholder_dir <- resolve_ensure_out_dir(file.path(workspace_root, sanitize_file_component(placeholder_label)))
+    targets[[1]] <- list(
+      label = placeholder_label,
+      out_dir = placeholder_dir,
+      summary_df = summary_df[0, , drop = FALSE],
+      dataset_labels = character(0)
+    )
+    return(targets)
+  }
+  for (i in seq_len(nrow(summary_df))) {
+    row <- summary_df[i, , drop = FALSE]
+    copy_path <- as.character(row$copy_path)
+    dataset_dir <- if (!is.na(copy_path) && nzchar(copy_path)) normalize_path(dirname(copy_path)) else ""
+    if (!nzchar(dataset_dir)) {
+      copy_info <- resolve_build_workspace_copy_info(as.character(row$dataset))
+      dataset_dir <- normalize_path(copy_info$out_dir)
+    }
+    targets[[length(targets) + 1]] <- list(
+      label = as.character(row$dataset),
+      out_dir = resolve_ensure_out_dir(dataset_dir),
+      summary_df = row,
+      dataset_labels = as.character(row$dataset)
+    )
+  }
+  targets
+}
+
 build_workspace_table_body <- function(summary_df, table_meta) {
   default_specs <- list(
     list(key = "dataset", label = "Dataset", drop_if_empty = FALSE),
@@ -628,14 +659,11 @@ sep <- if (!is.null(opts$sep)) as.character(opts$sep) else sep_default
 header <- resolve_parse_bool(opts$header, default = header_default)
 
 specs <- build_dataset_specs(opts, sep, header)
-out_dir <- resolve_ensure_out_dir(resolve_default_out())
+workspace_root <- resolve_ensure_out_dir(resolve_default_out())
 
-env_info <- build_env_info(out_dir, opts$agent)
-yaml_front_matter <- build_yaml_front_matter(env_info)
-
-dataset_outputs <- prepare_dataset_outputs(specs, out_dir)
+dataset_outputs <- prepare_dataset_outputs(specs, workspace_root)
 summary_df <- dataset_outputs$summary_df
-dataset_labels <- dataset_outputs$labels
+targets <- build_output_targets(summary_df, workspace_root)
 
 scratchpad_template <- resolve_get_template_path(
   "init_workspace.scratchpad",
@@ -644,21 +672,7 @@ scratchpad_template <- resolve_get_template_path(
 if (is.null(scratchpad_template) || !file.exists(scratchpad_template)) {
   stop("Scratchpad template not found: ", scratchpad_template)
 }
-scratchpad_text <- resolve_render_template_tokens(
-  paste(readLines(scratchpad_template, warn = FALSE), collapse = "\n"),
-  list(
-    created_at = env_info$created_at,
-    workspace_path = env_info$workspace_path,
-    os = env_info$os,
-    r_version = env_info$r_version,
-    agent = env_info$agent,
-    dataset_sections = build_dataset_sections(summary_df)
-  )
-)
-scratchpad_path <- file.path(out_dir, "scratchpad.md")
-scratchpad_con <- file(scratchpad_path, open = "w", encoding = "UTF-8")
-writeLines(scratchpad_text, scratchpad_con)
-close(scratchpad_con)
+scratchpad_template_text <- paste(readLines(scratchpad_template, warn = FALSE), collapse = "\n")
 
 template_path <- resolve_get_template_path(
   "init_workspace.default",
@@ -668,68 +682,92 @@ if (is.null(template_path) || !file.exists(template_path)) {
   stop("APA template not found: ", template_path)
 }
 template_meta <- resolve_get_template_meta(template_path)
-table_result <- build_workspace_table_body(summary_df, template_meta$table)
-note_text <- if (nrow(summary_df) == 0) {
-  "No datasets provided; workspace created without data copies."
-} else {
-  "Dataset copies saved as .parquet in the workspace."
-}
-apa_table <- build_apa_table(table_result$body, note_text)
-apa_text <- build_apa_text(env_info, dataset_labels)
-
-analysis_flags <- list(
-  datasets = if (length(dataset_labels) == 0) "None" else dataset_labels
-)
-template_context <- list(
-  tokens = list(
-    yaml_front_matter = yaml_front_matter,
-    created_at = env_info$created_at,
-    workspace_path = env_info$workspace_path,
-    os = env_info$os,
-    r_version = env_info$r_version,
-    agent = env_info$agent,
-    dataset_count = as.character(length(dataset_labels)),
-    dataset_list = if (length(dataset_labels) == 0) "None" else paste(dataset_labels, collapse = ", "),
-    table_body = table_result$body,
-    narrative_default = apa_text
-  )
-)
-
-resolve_append_apa_report(
-  file.path(out_dir, "apa_report.md"),
-  "Workspace initialization",
-  apa_table,
-  apa_text,
-  analysis_flags = analysis_flags,
-  template_path = template_path,
-  template_context = template_context
-)
 
 log_default <- resolve_config_value("defaults.log", TRUE)
-if (resolve_parse_bool(opts$log, default = log_default)) {
-  ctx <- resolve_get_run_context()
-  resolve_append_analysis_log(
-    out_dir,
-    module = "init_workspace",
-    prompt = ctx$prompt,
-    commands = ctx$commands,
-    results = list(
-      workspace_dir = env_info$workspace_path,
-      scratchpad_path = normalize_path(scratchpad_path),
-      apa_report_path = normalize_path(file.path(out_dir, "apa_report.md")),
-      datasets = summary_df
-    ),
-    options = list(
-      csv = parse_paths(opts$csv),
-      sav = parse_paths(opts$sav),
-      rds = parse_paths(opts$rds),
-      rdata = parse_paths(opts$rdata),
-      parquet = parse_paths(opts$parquet),
-      df = parse_paths(opts$df),
-      sep = sep,
-      header = header,
-      agent = env_info$agent
-    ),
-    user_prompt = resolve_get_user_prompt(opts)
+ctx <- resolve_get_run_context()
+
+for (target in targets) {
+  env_info <- build_env_info(target$out_dir, opts$agent)
+  yaml_front_matter <- build_yaml_front_matter(env_info)
+  dataset_labels <- target$dataset_labels
+
+  scratchpad_text <- resolve_render_template_tokens(
+    scratchpad_template_text,
+    list(
+      created_at = env_info$created_at,
+      workspace_path = env_info$workspace_path,
+      os = env_info$os,
+      r_version = env_info$r_version,
+      agent = env_info$agent,
+      dataset_sections = build_dataset_sections(target$summary_df)
+    )
   )
+  scratchpad_path <- file.path(target$out_dir, "scratchpad.md")
+  scratchpad_con <- file(scratchpad_path, open = "w", encoding = "UTF-8")
+  writeLines(scratchpad_text, scratchpad_con)
+  close(scratchpad_con)
+
+  table_result <- build_workspace_table_body(target$summary_df, template_meta$table)
+  note_text <- if (nrow(target$summary_df) == 0) {
+    "No datasets provided; workspace created without data copies."
+  } else {
+    "Dataset copy saved as .parquet in the dataset workspace."
+  }
+  apa_table <- build_apa_table(table_result$body, note_text)
+  apa_text <- build_apa_text(env_info, dataset_labels)
+
+  analysis_flags <- list(
+    datasets = if (length(dataset_labels) == 0) "None" else dataset_labels
+  )
+  template_context <- list(
+    tokens = list(
+      yaml_front_matter = yaml_front_matter,
+      created_at = env_info$created_at,
+      workspace_path = env_info$workspace_path,
+      os = env_info$os,
+      r_version = env_info$r_version,
+      agent = env_info$agent,
+      dataset_count = as.character(length(dataset_labels)),
+      dataset_list = if (length(dataset_labels) == 0) "None" else paste(dataset_labels, collapse = ", "),
+      table_body = table_result$body,
+      narrative_default = apa_text
+    )
+  )
+
+  resolve_append_apa_report(
+    file.path(target$out_dir, "apa_report.md"),
+    "Workspace initialization",
+    apa_table,
+    apa_text,
+    analysis_flags = analysis_flags,
+    template_path = template_path,
+    template_context = template_context
+  )
+
+  if (resolve_parse_bool(opts$log, default = log_default)) {
+    resolve_append_analysis_log(
+      target$out_dir,
+      module = "init_workspace",
+      prompt = ctx$prompt,
+      commands = ctx$commands,
+      results = list(
+        workspace_dir = env_info$workspace_path,
+        scratchpad_path = normalize_path(scratchpad_path),
+        apa_report_path = normalize_path(file.path(target$out_dir, "apa_report.md")),
+        datasets = target$summary_df
+      ),
+      options = list(
+        csv = parse_paths(opts$csv),
+        sav = parse_paths(opts$sav),
+        rds = parse_paths(opts$rds),
+        rdata = parse_paths(opts$rdata),
+        parquet = parse_paths(opts$parquet),
+        df = parse_paths(opts$df),
+        sep = sep,
+        header = header,
+        agent = env_info$agent
+      ),
+      user_prompt = resolve_get_user_prompt(opts)
+    )
+  }
 }

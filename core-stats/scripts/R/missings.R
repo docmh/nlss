@@ -190,6 +190,13 @@ resolve_write_parquet_data <- function(df, path) {
   stop("Missing write_parquet_data. Ensure lib/io.R is sourced.")
 }
 
+resolve_backup_workspace_parquet <- function(path) {
+  if (exists("backup_workspace_parquet", mode = "function")) {
+    return(get("backup_workspace_parquet", mode = "function")(path))
+  }
+  ""
+}
+
 resolve_select_variables <- function(df, vars, group_var = NULL, default = "all", include_numeric = FALSE) {
   if (exists("select_variables", mode = "function")) {
     return(get("select_variables", mode = "function")(
@@ -686,9 +693,8 @@ main <- function() {
     stop("--max-patterns must be a positive integer.")
   }
 
-  out_dir <- resolve_ensure_out_dir(resolve_default_out())
-
   df <- resolve_load_dataframe(opts)
+  out_dir <- get_workspace_out_dir(df)
   workspace_parquet_path <- attr(df, "workspace_parquet_path")
   vars <- resolve_select_variables(df, opts$vars, default = vars_default)
   if (length(vars) == 0) stop("No variables available for missingness analysis.")
@@ -922,8 +928,10 @@ main <- function() {
     template_context = template_context
   )
 
+  backup_path <- ""
   output_path <- file.path(out_dir, "missing_handled_data.rds")
   if (!is.null(workspace_parquet_path) && nzchar(workspace_parquet_path)) {
+    backup_path <- resolve_backup_workspace_parquet(workspace_parquet_path)
     resolve_write_parquet_data(output_df, workspace_parquet_path)
     output_path <- workspace_parquet_path
   } else {
@@ -949,7 +957,8 @@ main <- function() {
         drop_vars = drop_vars,
         indicator_vars = indicator_vars,
         rows_removed = rows_removed,
-        output_path = output_path
+        output_path = output_path,
+        backup_path = backup_path
       ),
       options = list(
         vars = vars,

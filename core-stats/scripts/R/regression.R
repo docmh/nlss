@@ -870,13 +870,12 @@ main <- function() {
   bootstrap_samples_default <- resolve_config_value("modules.regression.bootstrap_samples", 1000)
 
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  out_dir <- resolve_ensure_out_dir(resolve_default_out())
+  df <- resolve_load_dataframe(opts)
+  out_dir <- get_workspace_out_dir(df)
 
   if (is.null(opts$dv) || !nzchar(opts$dv)) {
     emit_input_issue(out_dir, opts, "Regression requires --dv.", details = list(dv = opts$dv))
   }
-
-  df <- resolve_load_dataframe(opts)
   dv <- as.character(opts$dv)
   if (!dv %in% names(df)) {
     emit_input_issue(out_dir, opts, sprintf("Dependent variable '%s' not found.", dv), details = list(dv = dv))

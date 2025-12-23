@@ -974,9 +974,8 @@ main <- function() {
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
   max_levels <- if (!is.null(opts$`max-levels`)) as.integer(opts$`max-levels`) else max_levels_default
   top_n <- if (!is.null(opts$`top-n`)) as.integer(opts$`top-n`) else top_n_default
-  out_dir <- resolve_ensure_out_dir(resolve_default_out())
-
   df <- resolve_load_dataframe(opts)
+  out_dir <- get_workspace_out_dir(df)
   vars <- resolve_select_variables(df, opts$vars, default = vars_default)
   if (length(vars) == 0) stop("No variables available for exploration.")
 

@@ -1470,8 +1470,8 @@ main <- function() {
   cook_multiplier <- if (!is.null(opts$`cook-multiplier`)) as.numeric(opts$`cook-multiplier`) else cook_multiplier_default
   max_shapiro_n <- if (!is.null(opts$`max-shapiro-n`)) as.numeric(opts$`max-shapiro-n`) else max_shapiro_default
 
-  out_dir <- resolve_ensure_out_dir(resolve_default_out())
   df <- resolve_load_dataframe(opts)
+  out_dir <- get_workspace_out_dir(df)
 
   if (analysis == "auto") {
     if (!is.null(opts$ivs) || !is.null(opts$blocks)) {

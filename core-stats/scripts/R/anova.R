@@ -1394,8 +1394,8 @@ main <- function() {
   max_shapiro_n <- resolve_config_value("modules.assumptions.max_shapiro_n", 5000)
 
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  out_dir <- resolve_ensure_out_dir(resolve_default_out())
   df <- resolve_load_dataframe(opts)
+  out_dir <- get_workspace_out_dir(df)
 
   dv <- if (!is.null(opts$dv)) as.character(opts$dv) else ""
   between_vars <- resolve_parse_list(opts$between)

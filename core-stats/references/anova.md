@@ -95,7 +95,7 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
 
 ## Outputs
 
-- Outputs are always written to `defaults.output_dir` from `core-stats/scripts/config.yml` (not user-overridable).
+- Outputs are written to the dataset workspace at `defaults.output_dir/<dataset-name>/` from `core-stats/scripts/config.yml` (not user-overridable).
 - `apa_report.md`: APA 7 report containing the ANOVA table and narrative.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `summary_df`, `posthoc_df`, and `assumptions_df`.
 - When `--bootstrap TRUE`, `summary_df` includes `boot_ci_low` and `boot_ci_high` for the selected effect size.

@@ -1,6 +1,6 @@
 version: 1
 defaults:
-  output_dir: "./core-stats-workspace"
+  output_dir: "C:/Users/hamme/OneDrive/Software-Projekte/statistic-skills/outputs/tests/workspace"
   csv:
     sep: ","
     header: true

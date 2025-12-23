@@ -19,15 +19,16 @@ Central guidance for all statistic skills in this repo, plus shared conventions 
 
 ## Stateful workspace workflow (required)
 
-Treat `defaults.output_dir` from `scripts/config.yml` as the single source of truth for state.
+Treat `defaults.output_dir` from `scripts/config.yml` as the workspace root (it should only contain dataset subfolders).
 
-1. Ensure the workspace exists and is functional (`defaults.output_dir` exists, and both `scratchpad.md` and `apa_report.md` exist). If not, run the `init-workspace` subskill first.
-2. If a dataset is referenced (CSV/RDS/RData/SAV/Parquet), confirm that a workspace copy exists as `"<dataset-name>.parquet"` in the workspace. If missing, create it via `init-workspace` before running analyses.
-3. All subskills must operate on the workspace `.parquet` copy (prefer `--parquet` pointing to the workspace copy, or rely on auto-copy behavior).
-4. Before analysis: read and update `scratchpad.md` with the analysis plan and dataset considerations.
-5. After analysis: update `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
+1. Ensure the workspace root exists (`defaults.output_dir`).
+2. For each dataset, ensure a dataset workspace folder exists at `defaults.output_dir/<dataset-name>/` containing `scratchpad.md` and `apa_report.md`. If missing, run the `init-workspace` subskill first.
+3. Confirm a workspace copy exists as `defaults.output_dir/<dataset-name>/<dataset-name>.parquet` (dataset name = filename stem or `--df`, sanitized). If missing, create it via `init-workspace` before running analyses.
+4. All subskills must operate on the workspace `.parquet` copy (prefer `--parquet` pointing to the workspace copy, or rely on auto-copy behavior).
+5. Before analysis: read and update the dataset’s `scratchpad.md` with the analysis plan and dataset considerations.
+6. After analysis: update the dataset’s `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
 
-Note: `data-transform` and `missings` update the workspace `.parquet` copy in place so downstream analyses remain stateful.
+Note: `data-transform` and `missings` update the workspace `.parquet` copy in place and create a backup at `defaults.output_dir/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet` before overwriting. Undo = replace the current parquet with the latest backup.
 
 ## Configuration Defaults and Overrides
 
@@ -80,10 +81,10 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 
 ## Output conventions
 
-- Use `defaults.output_dir` from `scripts/config.yml` for scratch outputs relative to the working directory where the script runs.
+- Use `defaults.output_dir` from `scripts/config.yml` as the workspace root; outputs live inside dataset subfolders.
 - The output directory is fixed to `defaults.output_dir` and is not user-overridable.
-- Each analysis appends `apa_report.md` (APA table + narrative) and appends `analysis_log.jsonl` when logging is enabled.
-- Workspace dataset copies are stored as `<dataset-name>.parquet` in the output directory.
+- Each analysis appends `apa_report.md` (APA table + narrative) and `analysis_log.jsonl` inside `defaults.output_dir/<dataset-name>/` when logging is enabled.
+- Workspace dataset copies are stored as `defaults.output_dir/<dataset-name>/<dataset-name>.parquet`.
 - For `apa_report.md`, templates in `core-stats/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
 
@@ -115,4 +116,4 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [anova](references/anova.md): Between-subjects, within-subjects, and mixed ANOVA with APA outputs and post-hoc comparisons.
 - [t-test](references/t-test.md): One-sample, independent-samples, and paired-samples t-tests with APA outputs.
 - [missings](references/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.
-- [init-workspace](references/init-workspace.md): Initialize the workspace folder with scratchpad.md, apa_report.md, and .parquet dataset copies.
+- [init-workspace](references/init-workspace.md): Initialize per-dataset workspace folders with scratchpad.md, apa_report.md, analysis_log.jsonl, and .parquet dataset copies.

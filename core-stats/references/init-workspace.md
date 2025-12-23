@@ -1,24 +1,23 @@
 ---
 name: init-workspace-r
-description: Initialize a workspace folder with scratchpad.md, apa_report.md, and .parquet dataset copies plus environment metadata.
+description: Initialize per-dataset workspace folders with scratchpad.md, apa_report.md, analysis_log.jsonl, and .parquet dataset copies plus environment metadata.
 ---
 
 # Init Workspace (Base R)
 
 ## Overview
 
-Create a workspace folder (the configured output directory) with:
+Create dataset workspace folders under the configured output directory:
 
-- `scratchpad.md` containing a YAML front matter block plus per-dataset sections for analysis planning.
-- `apa_report.md` containing a YAML front matter block plus an APA-style summary of the workspace.
-- `.parquet` copies of each referenced dataset (if any).
-- An appended `analysis_log.jsonl` entry (module: `init_workspace`) when logging is enabled.
+- For each dataset, a subfolder `defaults.output_dir/<dataset-name>/` containing `scratchpad.md`, `apa_report.md`, `analysis_log.jsonl`, and `<dataset-name>.parquet`.
+- An appended `analysis_log.jsonl` entry (module: `init_workspace`) per dataset when logging is enabled.
+- If no datasets are provided, a placeholder folder `defaults.output_dir/workspace/` is created with a scratchpad and APA report noting that no datasets were supplied.
 
 ## Core Workflow
 
 1. Provide one or more datasets (CSV/SAV/RDS/RData/Parquet) or run without data.
 2. Run `scripts/R/init_workspace.R` or use the Windows wrapper.
-3. Use the generated `scratchpad.md` to plan analysis steps and track transformations.
+3. Use the dataset workspace `scratchpad.md` to plan analysis steps and track transformations.
 
 ## Script: `scripts/R/init_workspace.R`
 
@@ -78,11 +77,11 @@ Rscript <path to scripts/R/init_workspace.R> --interactive
 
 ## Outputs
 
-- Outputs are always written to `defaults.output_dir` from `core-stats/scripts/config.yml` (not user-overridable).
-- `scratchpad.md`: YAML front matter plus per-dataset sections with an analysis plan and considerations.
-- `apa_report.md`: APA-style workspace summary using a YAML template plus front matter.
-- `*.parquet`: One copy per referenced dataset (saved in the output directory).
-- `analysis_log.jsonl`: Appended entry with module `init_workspace` and dataset summary.
+- Outputs are written to the dataset workspace at `defaults.output_dir/<dataset-name>/` from `core-stats/scripts/config.yml` (not user-overridable).
+- `scratchpad.md`: YAML front matter plus dataset planning sections (written inside each dataset workspace).
+- `apa_report.md`: APA-style workspace summary using a YAML template plus front matter (per dataset workspace).
+- `<dataset-name>.parquet`: One copy per referenced dataset, stored in `defaults.output_dir/<dataset-name>/`.
+- `analysis_log.jsonl`: Appended entry with module `init_workspace` and dataset summary (per dataset workspace).
 
 ## APA 7 Template (YAML)
 

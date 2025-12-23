@@ -944,9 +944,8 @@ main <- function() {
   adjust_method <- normalize_adjust(opts$`p-adjust`, default = adjust_default)
   coerce_flag <- resolve_parse_bool(opts$coerce, default = coerce_default)
 
-  out_dir <- resolve_ensure_out_dir(resolve_default_out())
-
   df <- resolve_load_dataframe(opts)
+  out_dir <- get_workspace_out_dir(df)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
 
   vars <- resolve_parse_list(opts$vars)

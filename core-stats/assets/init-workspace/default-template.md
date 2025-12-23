@@ -1,7 +1,7 @@
 ---
 tokens:
   title: "Workspace Initialization"
-  table_title: "Workspace dataset copies."
+  table_title: "Dataset workspace summary."
   note_prefix: "*Note.*"
   narrative_heading: "**Narrative**"
 table:

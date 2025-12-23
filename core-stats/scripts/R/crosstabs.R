@@ -1115,9 +1115,8 @@ main <- function() {
   expected_default <- resolve_config_value("modules.crosstabs.expected", TRUE)
   residuals_default <- resolve_config_value("modules.crosstabs.residuals", TRUE)
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  out_dir <- resolve_ensure_out_dir(resolve_default_out())
-
   df <- resolve_load_dataframe(opts)
+  out_dir <- get_workspace_out_dir(df)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
 
   rows <- if (!is.null(opts$rows)) resolve_parse_list(opts$rows) else resolve_parse_list(opts$row)

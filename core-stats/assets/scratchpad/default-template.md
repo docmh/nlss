@@ -6,6 +6,6 @@ r_version: "{{r_version}}"
 agent: "{{agent}}"
 ---
 
-Workspace scratchpad. Update this file as decisions are made.
+Dataset workspace scratchpad. Update this file as decisions are made.
 
 {{dataset_sections}}
