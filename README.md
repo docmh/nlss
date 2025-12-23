@@ -32,7 +32,7 @@ If you are on Windows, ensure `Rscript.exe` is on your PATH or set `RSCRIPT` to 
 
 ## Quick start
 
-Outputs always go to the dataset workspace at `defaults.output_dir/<dataset-name>/` from `core-stats/scripts/config.yml` and are not user-overridable. Each run writes `apa_report.md` and, when logging is enabled, appends to `analysis_log.jsonl` inside that dataset folder.
+Outputs always go to the dataset workspace at `<workspace-root>/<dataset-name>/` and are not user-overridable. Workspace root is the current directory, its parent, or a one-level child containing `core-stats-workspace.yml`; if no manifest is present, scripts fall back to `defaults.output_dir` in `core-stats/scripts/config.yml`. Each run writes `apa_report.md` and, when logging is enabled, appends to `analysis_log.jsonl` inside that dataset folder.
 
 ### Windows (PowerShell wrapper; WSL first, Windows fallback)
 
@@ -51,12 +51,14 @@ Rscript core-stats/scripts/R/descriptive_stats.R \
 
 ## Stateful workspace architecture
 
-Core-stats is stateful. The workspace root is the configured output directory, and each dataset gets its own subfolder.
+Core-stats is stateful. The workspace root is the current directory, its parent, or a one-level child containing `core-stats-workspace.yml` (fallback: `defaults.output_dir`), and each dataset gets its own subfolder.
 
-- Run `core-stats/scripts/R/init_workspace.R` to create `defaults.output_dir/<dataset-name>/scratchpad.md`, `apa_report.md`, `analysis_log.jsonl`, and a parquet workspace copy.
-- For any input dataset (CSV/SAV/RDS/RData/Parquet), the workspace copy lives at `defaults.output_dir/<dataset-name>/<dataset-name>.parquet`.
+- Run `core-stats/scripts/R/init_workspace.R` to create `<workspace-root>/<dataset-name>/scratchpad.md`, `apa_report.md`, `analysis_log.jsonl`, a parquet workspace copy, and `core-stats-workspace.yml` in the workspace root.
+- For any input dataset (CSV/SAV/RDS/RData/Parquet), the workspace copy lives at `<workspace-root>/<dataset-name>/<dataset-name>.parquet`.
 - All subskills read from the workspace parquet copy (prefer `--parquet` pointing to the workspace file or rely on auto-copy).
-- `data-transform` and `missings` update the workspace parquet copy in place and save a backup to `defaults.output_dir/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet` before overwriting.
+- When running from a dataset folder without input flags, scripts select that dataset; otherwise they load `active_dataset` from the manifest.
+- Workspaces must be non-nested and unique per parent folder; scripts stop if nested or sibling workspace manifests are detected.
+- `data-transform` and `missings` update the workspace parquet copy in place and save a backup to `<workspace-root>/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet` before overwriting.
 
 ## Available modules (subskills)
 
@@ -190,14 +192,14 @@ Rscript core-stats/scripts/R/init_workspace.R \
 
 ## Where outputs go
 
-All scripts write to the dataset workspace at `defaults.output_dir/<dataset-name>/` from `core-stats/scripts/config.yml` and do not accept a custom output directory.
-Workspace dataset copies are stored as `defaults.output_dir/<dataset-name>/<dataset-name>.parquet`; `data_transform` and `missings` update these copies in place and create backups in `defaults.output_dir/<dataset-name>/backup/`.
+All scripts write to the dataset workspace at `<workspace-root>/<dataset-name>/` and do not accept a custom output directory. Workspace root is the current directory, its parent, or a one-level child containing `core-stats-workspace.yml` (fallback: `defaults.output_dir` in `core-stats/scripts/config.yml`).
+Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`; `data_transform` and `missings` update these copies in place and create backups in `<workspace-root>/<dataset-name>/backup/`.
 
 ## Configuration logic
 
 Defaults live in `core-stats/scripts/config.yml` and are loaded via `core-stats/scripts/R/lib/config.R`.
 
-- `defaults.*` apply across all modules (for example `defaults.output_dir`).
+- `defaults.*` apply across all modules (for example `defaults.output_dir`, `defaults.workspace_manifest`).
 - `modules.<subskill>.*` holds per-module defaults (for example `modules.crosstabs.percent`).
 - `templates.<subskill>.*` controls the template file used for APA outputs (see next section).
 - CLI flags always override config values at runtime (for example `--digits`, module-specific flags).

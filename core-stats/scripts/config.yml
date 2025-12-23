@@ -1,6 +1,7 @@
 version: 1
 defaults:
   output_dir: "C:/Users/hamme/OneDrive/Software-Projekte/statistic-skills/outputs/tests/workspace"
+  workspace_manifest: "core-stats-workspace.yml"
   csv:
     sep: ","
     header: true

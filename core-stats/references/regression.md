@@ -101,7 +101,7 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
 
 ## Outputs
 
-- Outputs are written to the dataset workspace at `defaults.output_dir/<dataset-name>/` from `core-stats/scripts/config.yml` (not user-overridable).
+- Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `core-stats-workspace.yml`; fallback to `defaults.output_dir` in `core-stats/scripts/config.yml`; not user-overridable).
 - `apa_report.md`: APA 7 report containing regression coefficients and narrative summaries.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `coefficients_df`, `summary_df`, `comparisons_df`, and `diagnostics_df` (Shapiro-Wilk residual checks for OLS).
 

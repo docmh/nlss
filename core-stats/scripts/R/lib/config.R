@@ -35,6 +35,7 @@ get_builtin_config <- function() {
     version = 1,
     defaults = list(
       output_dir = "./outputs/tmp",
+      workspace_manifest = "core-stats-workspace.yml",
       csv = list(
         sep = ",",
         header = TRUE

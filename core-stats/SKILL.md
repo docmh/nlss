@@ -19,16 +19,18 @@ Central guidance for all statistic skills in this repo, plus shared conventions 
 
 ## Stateful workspace workflow (required)
 
-Treat `defaults.output_dir` from `scripts/config.yml` as the workspace root (it should only contain dataset subfolders).
+Treat the workspace root as the current working directory, its parent, or a one-level child containing `core-stats-workspace.yml` (fallback: `defaults.output_dir` from `scripts/config.yml`). It should only contain dataset subfolders.
 
-1. Ensure the workspace root exists (`defaults.output_dir`).
-2. For each dataset, ensure a dataset workspace folder exists at `defaults.output_dir/<dataset-name>/` containing `scratchpad.md` and `apa_report.md`. If missing, run the `init-workspace` subskill first.
-3. Confirm a workspace copy exists as `defaults.output_dir/<dataset-name>/<dataset-name>.parquet` (dataset name = filename stem or `--df`, sanitized). If missing, create it via `init-workspace` before running analyses.
+1. Ensure the workspace root exists (manifest in current dir, parent, or child; fallback to `defaults.output_dir`).
+2. For each dataset, ensure a dataset workspace folder exists at `<workspace-root>/<dataset-name>/` containing `scratchpad.md` and `apa_report.md`. If missing, run the `init-workspace` subskill first.
+3. Confirm a workspace copy exists as `<workspace-root>/<dataset-name>/<dataset-name>.parquet` (dataset name = filename stem or `--df`, sanitized). If missing, create it via `init-workspace` before running analyses.
 4. All subskills must operate on the workspace `.parquet` copy (prefer `--parquet` pointing to the workspace copy, or rely on auto-copy behavior).
-5. Before analysis: read and update the dataset’s `scratchpad.md` with the analysis plan and dataset considerations.
-6. After analysis: update the dataset’s `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
+5. Direct workspace runs (no input flags) should load the dataset from the current dataset folder if applicable; otherwise use `active_dataset` from the manifest.
+6. Workspaces must be non-nested and unique per parent folder; if nested or sibling manifests are detected, stop and ask the user to resolve them.
+7. Before analysis: read and update the dataset’s `scratchpad.md` with the analysis plan and dataset considerations.
+8. After analysis: update the dataset’s `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
 
-Note: `data-transform` and `missings` update the workspace `.parquet` copy in place and create a backup at `defaults.output_dir/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet` before overwriting. Undo = replace the current parquet with the latest backup.
+Note: `data-transform` and `missings` update the workspace `.parquet` copy in place and create a backup at `<workspace-root>/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet` before overwriting. Undo = replace the current parquet with the latest backup.
 
 ## Configuration Defaults and Overrides
 
@@ -81,10 +83,10 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 
 ## Output conventions
 
-- Use `defaults.output_dir` from `scripts/config.yml` as the workspace root; outputs live inside dataset subfolders.
-- The output directory is fixed to `defaults.output_dir` and is not user-overridable.
-- Each analysis appends `apa_report.md` (APA table + narrative) and `analysis_log.jsonl` inside `defaults.output_dir/<dataset-name>/` when logging is enabled.
-- Workspace dataset copies are stored as `defaults.output_dir/<dataset-name>/<dataset-name>.parquet`.
+- Use the workspace root in the current directory, its parent, or a one-level child if `core-stats-workspace.yml` is present; otherwise fall back to `defaults.output_dir` from `scripts/config.yml`.
+- The output directory is fixed to the resolved workspace root and is not user-overridable.
+- Each analysis appends `apa_report.md` (APA table + narrative) and `analysis_log.jsonl` inside `<workspace-root>/<dataset-name>/` when logging is enabled.
+- Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`.
 - For `apa_report.md`, templates in `core-stats/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
 

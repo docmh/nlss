@@ -9,6 +9,7 @@ bootstrap_dir <- {
     getwd()
   }
 }
+
 source(file.path(bootstrap_dir, "lib", "paths.R"))
 source_lib("cli.R")
 source_lib("config.R")
@@ -251,6 +252,17 @@ resolve_append_analysis_log <- function(out_dir, module, prompt, commands, resul
   }
   cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
   invisible(FALSE)
+}
+
+resolve_update_workspace_manifest <- function(workspace_root, summary_df, active_dataset = NULL) {
+  if (exists("update_workspace_manifest", mode = "function")) {
+    return(get("update_workspace_manifest", mode = "function")(
+      workspace_root,
+      summary_df,
+      active_dataset = active_dataset
+    ))
+  }
+  stop("Missing update_workspace_manifest. Ensure lib/io.R is sourced.")
 }
 
 resolve_get_user_prompt <- function(opts) {
@@ -771,3 +783,5 @@ for (target in targets) {
     )
   }
 }
+
+resolve_update_workspace_manifest(workspace_root, summary_df)

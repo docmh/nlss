@@ -6,6 +6,8 @@ resolve_config_value <- function(path, default = NULL) {
 }
 
 get_default_out <- function() {
+  manifest_path <- find_workspace_manifest()
+  if (nzchar(manifest_path)) return(dirname(manifest_path))
   default_out <- resolve_config_value("defaults.output_dir", "./outputs/tmp")
   if (is.null(default_out) || !nzchar(default_out)) return("./outputs/tmp")
   default_out
@@ -14,6 +16,329 @@ get_default_out <- function() {
 ensure_out_dir <- function(path) {
   if (!dir.exists(path)) dir.create(path, recursive = TRUE)
   path
+}
+
+escape_regex <- function(text) {
+  gsub("([\\.^$|()\\[\\]{}*+?\\\\])", "\\\\\\1", as.character(text))
+}
+
+get_workspace_manifest_name <- function() {
+  name <- resolve_config_value("defaults.workspace_manifest", "core-stats-workspace.yml")
+  if (is.null(name) || !nzchar(name)) return("core-stats-workspace.yml")
+  as.character(name)
+}
+
+ensure_yaml <- function() {
+  if (!requireNamespace("yaml", quietly = TRUE)) {
+    stop("Workspace manifests require the 'yaml' package. Install it: install.packages('yaml').")
+  }
+}
+
+is_absolute_path <- function(path) {
+  if (is.null(path) || !nzchar(path)) return(FALSE)
+  grepl("^/|^[A-Za-z]:|^\\\\\\\\", as.character(path))
+}
+
+list_manifest_paths <- function(base_dir, recursive = FALSE) {
+  if (is.null(base_dir) || !nzchar(base_dir)) return(character(0))
+  if (!dir.exists(base_dir)) return(character(0))
+  manifest_name <- get_workspace_manifest_name()
+  pattern <- paste0("^", escape_regex(manifest_name), "$")
+  paths <- list.files(base_dir, pattern = pattern, recursive = recursive, full.names = TRUE)
+  if (length(paths) == 0) return(character(0))
+  vapply(paths, normalize_path, character(1))
+}
+
+make_relative_path <- function(path, base_dir) {
+  if (is.null(path) || !nzchar(path)) return("")
+  path <- normalize_path(path)
+  base_dir <- normalize_path(base_dir)
+  if (!nzchar(base_dir)) return(path)
+  base_dir <- sub("/+$", "", base_dir)
+  prefix <- paste0(base_dir, "/")
+  if (startsWith(path, prefix)) return(sub(paste0("^", prefix), "", path))
+  path
+}
+
+resolve_manifest_path <- function(path, base_dir) {
+  if (is.null(path) || !nzchar(path)) return("")
+  if (is_absolute_path(path)) return(normalize_path(path))
+  normalize_path(file.path(base_dir, as.character(path)))
+}
+
+normalize_dir_path <- function(path) {
+  path <- normalize_path(path)
+  if (!nzchar(path)) return("")
+  sub("/+$", "", path)
+}
+
+is_path_within <- function(path, base_dir) {
+  path <- normalize_dir_path(path)
+  base_dir <- normalize_dir_path(base_dir)
+  if (!nzchar(path) || !nzchar(base_dir)) return(FALSE)
+  if (path == base_dir) return(TRUE)
+  startsWith(path, paste0(base_dir, "/"))
+}
+
+find_workspace_manifest <- function(base_dir = getwd()) {
+  manifest_name <- get_workspace_manifest_name()
+  base_dir <- normalize_dir_path(base_dir)
+  if (!nzchar(base_dir)) return("")
+
+  candidates <- character(0)
+  current_path <- file.path(base_dir, manifest_name)
+  if (file.exists(current_path)) candidates <- c(candidates, normalize_path(current_path))
+
+  parent_dir <- dirname(base_dir)
+  if (nzchar(parent_dir) && parent_dir != base_dir) {
+    parent_path <- file.path(parent_dir, manifest_name)
+    if (file.exists(parent_path)) candidates <- c(candidates, normalize_path(parent_path))
+  }
+
+  child_dirs <- list.dirs(base_dir, full.names = TRUE, recursive = FALSE)
+  child_dirs <- child_dirs[child_dirs != base_dir]
+  for (child_dir in child_dirs) {
+    candidate <- file.path(child_dir, manifest_name)
+    if (file.exists(candidate)) candidates <- c(candidates, normalize_path(candidate))
+  }
+  candidates <- unique(candidates)
+  if (length(candidates) == 0) return("")
+  if (length(candidates) > 1) {
+    stop("Multiple workspace manifests detected. Workspaces must be non-nested and unique per parent directory.")
+  }
+  validate_workspace_manifest_path(candidates[1])
+}
+
+read_workspace_manifest <- function(path) {
+  if (is.null(path) || !nzchar(path) || !file.exists(path)) return(NULL)
+  ensure_yaml()
+  yaml::yaml.load_file(path)
+}
+
+write_workspace_manifest <- function(manifest, path) {
+  if (is.null(path) || !nzchar(path)) return("")
+  ensure_yaml()
+  ensure_out_dir(dirname(path))
+  yaml::write_yaml(manifest, path)
+  normalize_path(path)
+}
+
+normalize_manifest_datasets <- function(datasets) {
+  if (is.null(datasets)) return(list())
+  if (is.data.frame(datasets)) {
+    return(lapply(seq_len(nrow(datasets)), function(i) as.list(datasets[i, , drop = FALSE])))
+  }
+  if (!is.list(datasets)) return(list())
+  if (!is.null(datasets$name) || (length(datasets) > 0 && is.list(datasets[[1]]))) {
+    return(datasets)
+  }
+  if (!is.null(names(datasets)) && any(nzchar(names(datasets)))) {
+    out <- list()
+    for (name in names(datasets)) {
+      entry <- datasets[[name]]
+      if (!is.list(entry)) {
+        entry <- list(value = entry)
+      }
+      if (is.null(entry$name) || !nzchar(entry$name)) entry$name <- name
+      out[[length(out) + 1]] <- entry
+    }
+    return(out)
+  }
+  list()
+}
+
+resolve_manifest_dataset <- function(manifest, dataset_name) {
+  if (is.null(manifest) || is.null(dataset_name) || !nzchar(dataset_name)) return(NULL)
+  datasets <- normalize_manifest_datasets(manifest$datasets)
+  for (entry in datasets) {
+    name <- entry$name
+    if (!is.null(name) && as.character(name) == as.character(dataset_name)) {
+      return(entry)
+    }
+  }
+  NULL
+}
+
+resolve_dataset_dir <- function(entry, workspace_root) {
+  dir_path <- ""
+  if (!is.null(entry$parquet)) {
+    dir_path <- dirname(resolve_manifest_path(entry$parquet, workspace_root))
+  } else if (!is.null(entry$analysis_log)) {
+    dir_path <- dirname(resolve_manifest_path(entry$analysis_log, workspace_root))
+  } else if (!is.null(entry$scratchpad)) {
+    dir_path <- dirname(resolve_manifest_path(entry$scratchpad, workspace_root))
+  } else if (!is.null(entry$apa_report)) {
+    dir_path <- dirname(resolve_manifest_path(entry$apa_report, workspace_root))
+  } else if (!is.null(entry$name) && nzchar(entry$name)) {
+    dir_path <- file.path(workspace_root, sanitize_file_component(entry$name))
+  }
+  normalize_dir_path(dir_path)
+}
+
+resolve_dataset_from_cwd <- function(manifest, manifest_path, cwd = getwd()) {
+  if (is.null(manifest)) return("")
+  workspace_root <- dirname(manifest_path)
+  cwd <- normalize_dir_path(cwd)
+  if (!nzchar(cwd)) return("")
+  datasets <- normalize_manifest_datasets(manifest$datasets)
+  matches <- character(0)
+  for (entry in datasets) {
+    name <- entry$name
+    if (is.null(name) || !nzchar(name)) next
+    dataset_dir <- resolve_dataset_dir(entry, workspace_root)
+    if (!nzchar(dataset_dir)) next
+    if (is_path_within(cwd, dataset_dir)) {
+      matches <- c(matches, as.character(name))
+    }
+  }
+  matches <- unique(matches)
+  if (length(matches) == 1) return(matches[1])
+  if (length(matches) > 1) {
+    stop("Multiple datasets match the current directory. Run from the workspace root or specify input.")
+  }
+  ""
+}
+
+validate_workspace_manifest_path <- function(manifest_path) {
+  if (is.null(manifest_path) || !nzchar(manifest_path)) return("")
+  manifest_path <- normalize_path(manifest_path)
+  workspace_root <- dirname(manifest_path)
+  manifest_name <- get_workspace_manifest_name()
+
+  parent_dir <- dirname(workspace_root)
+  while (nzchar(parent_dir) && parent_dir != workspace_root) {
+    if (file.exists(file.path(parent_dir, manifest_name))) {
+      stop("Nested workspace detected. Remove the manifest in the parent directory.")
+    }
+    next_dir <- dirname(parent_dir)
+    if (next_dir == parent_dir) break
+    parent_dir <- next_dir
+  }
+
+  descendants <- list_manifest_paths(workspace_root, recursive = TRUE)
+  descendants <- setdiff(descendants, manifest_path)
+  if (length(descendants) > 0) {
+    stop("Nested workspace detected inside the workspace root. Remove nested manifests.")
+  }
+
+  parent_root <- dirname(workspace_root)
+  if (nzchar(parent_root) && parent_root != workspace_root) {
+    sibling_dirs <- list.dirs(parent_root, full.names = TRUE, recursive = FALSE)
+    sibling_dirs <- sibling_dirs[sibling_dirs != parent_root]
+    sibling_manifests <- character(0)
+    for (dir_path in sibling_dirs) {
+      candidate <- file.path(dir_path, manifest_name)
+      if (file.exists(candidate)) sibling_manifests <- c(sibling_manifests, normalize_path(candidate))
+    }
+    sibling_manifests <- unique(sibling_manifests)
+    sibling_manifests <- setdiff(sibling_manifests, manifest_path)
+    if (length(sibling_manifests) > 0) {
+      stop("Multiple workspaces detected in the same parent folder. Keep only one workspace.")
+    }
+  }
+  manifest_path
+}
+
+generate_manifest_id <- function() {
+  pool <- c(letters, LETTERS, 0:9)
+  paste(sample(pool, 32, replace = TRUE), collapse = "")
+}
+
+format_manifest_time <- function() {
+  format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+}
+
+build_manifest_dataset_entry <- function(row, workspace_root) {
+  label <- as.character(row$dataset)
+  file_label <- sanitize_file_component(label)
+  dataset_dir <- file.path(workspace_root, file_label)
+  copy_path <- if (is.na(row$copy_path)) "" else as.character(row$copy_path)
+  if (!nzchar(copy_path)) {
+    copy_path <- file.path(dataset_dir, paste0(file_label, ".parquet"))
+  }
+  source_path <- if (is.na(row$source_path)) "" else as.character(row$source_path)
+  type_label <- if (is.na(row$type)) "" else tolower(as.character(row$type))
+  entry <- list(
+    name = label,
+    parquet = make_relative_path(copy_path, workspace_root),
+    analysis_log = make_relative_path(file.path(dataset_dir, "analysis_log.jsonl"), workspace_root),
+    apa_report = make_relative_path(file.path(dataset_dir, "apa_report.md"), workspace_root),
+    scratchpad = make_relative_path(file.path(dataset_dir, "scratchpad.md"), workspace_root),
+    backup_dir = make_relative_path(file.path(dataset_dir, "backup"), workspace_root)
+  )
+  if (nzchar(source_path) || nzchar(type_label)) {
+    source <- list()
+    if (nzchar(source_path)) source$path <- make_relative_path(source_path, workspace_root)
+    if (nzchar(type_label)) source$format <- type_label
+    entry$source <- source
+  }
+  entry
+}
+
+merge_manifest_entries <- function(existing_entries, new_entries) {
+  existing_entries <- normalize_manifest_datasets(existing_entries)
+  new_entries <- normalize_manifest_datasets(new_entries)
+  merged <- list()
+  order <- character(0)
+  for (entry in existing_entries) {
+    name <- entry$name
+    if (is.null(name) || !nzchar(name)) next
+    name <- as.character(name)
+    merged[[name]] <- entry
+    order <- c(order, name)
+  }
+  for (entry in new_entries) {
+    name <- entry$name
+    if (is.null(name) || !nzchar(name)) next
+    name <- as.character(name)
+    merged[[name]] <- entry
+    if (!(name %in% order)) order <- c(order, name)
+  }
+  lapply(order, function(name) merged[[name]])
+}
+
+resolve_active_dataset_name <- function(existing_active, merged_names, new_names, override = NULL) {
+  override <- if (!is.null(override)) as.character(override) else ""
+  existing_active <- if (!is.null(existing_active)) as.character(existing_active) else ""
+  if (nzchar(override) && override %in% merged_names) return(override)
+  if (nzchar(existing_active) && existing_active %in% merged_names) return(existing_active)
+  if (length(new_names) > 0) return(new_names[1])
+  if (length(merged_names) > 0) return(merged_names[1])
+  ""
+}
+
+update_workspace_manifest <- function(workspace_root, summary_df, active_dataset = NULL) {
+  if (is.null(workspace_root) || !nzchar(workspace_root)) {
+    stop("workspace_root is required to update the workspace manifest.")
+  }
+  workspace_root <- normalize_dir_path(workspace_root)
+  manifest_path <- file.path(workspace_root, get_workspace_manifest_name())
+  validate_workspace_manifest_path(manifest_path)
+  existing <- if (file.exists(manifest_path)) read_workspace_manifest(manifest_path) else NULL
+  existing_entries <- if (!is.null(existing)) existing$datasets else NULL
+  new_entries <- list()
+  if (!is.null(summary_df) && nrow(summary_df) > 0) {
+    for (i in seq_len(nrow(summary_df))) {
+      new_entries[[length(new_entries) + 1]] <- build_manifest_dataset_entry(summary_df[i, , drop = FALSE], workspace_root)
+    }
+  }
+  merged_entries <- merge_manifest_entries(existing_entries, new_entries)
+  merged_names <- vapply(merged_entries, function(entry) {
+    name <- entry$name
+    if (is.null(name)) "" else as.character(name)
+  }, character(1))
+  merged_names <- merged_names[nzchar(merged_names)]
+  new_names <- vapply(new_entries, function(entry) as.character(entry$name), character(1))
+  new_names <- new_names[nzchar(new_names)]
+  active <- resolve_active_dataset_name(if (!is.null(existing)) existing$active_dataset else NULL, merged_names, new_names, active_dataset)
+  manifest <- list(
+    schema_version = if (!is.null(existing$schema_version)) existing$schema_version else 1,
+    workspace_id = if (!is.null(existing$workspace_id) && nzchar(existing$workspace_id)) existing$workspace_id else generate_manifest_id(),
+    created_at = if (!is.null(existing$created_at) && nzchar(existing$created_at)) existing$created_at else format_manifest_time(),
+    active_dataset = if (nzchar(active)) active else NULL,
+    datasets = merged_entries
+  )
+  write_workspace_manifest(manifest, manifest_path)
 }
 
 resolve_parse_bool <- function(value, default = FALSE) {
@@ -296,5 +621,40 @@ load_dataframe <- function(opts) {
     return(df)
   }
 
-  stop("No input provided. Use --csv, --sav, --rds, --rdata, --parquet, or --interactive.")
+  manifest_path <- find_workspace_manifest()
+  if (nzchar(manifest_path)) {
+    manifest <- read_workspace_manifest(manifest_path)
+    dataset_name <- resolve_dataset_from_cwd(manifest, manifest_path, getwd())
+    if (!nzchar(dataset_name)) {
+      dataset_name <- if (!is.null(manifest$active_dataset)) as.character(manifest$active_dataset) else ""
+    }
+    if (!nzchar(dataset_name)) {
+      stop("No dataset specified and workspace manifest has no active_dataset. Run from a dataset folder or set active_dataset.")
+    }
+    entry <- resolve_manifest_dataset(manifest, dataset_name)
+    if (is.null(entry)) {
+      stop("Dataset not found in workspace manifest: ", dataset_name)
+    }
+    workspace_root <- dirname(manifest_path)
+    parquet_path <- resolve_manifest_path(entry$parquet, workspace_root)
+    if (!nzchar(parquet_path) || !file.exists(parquet_path)) {
+      stop("Workspace parquet not found: ", parquet_path)
+    }
+    df <- read_parquet_data(parquet_path)
+    attr(df, "workspace_parquet_path") <- normalize_path(parquet_path)
+    attr(df, "workspace_dir") <- normalize_path(dirname(parquet_path))
+    attr(df, "workspace_manifest_path") <- normalize_path(manifest_path)
+    attr(df, "workspace_root") <- normalize_path(workspace_root)
+    attr(df, "workspace_dataset") <- dataset_name
+    source_path <- ""
+    if (!is.null(entry$source) && !is.null(entry$source$path)) {
+      source_path <- resolve_manifest_path(entry$source$path, workspace_root)
+    }
+    if (nzchar(source_path)) {
+      attr(df, "workspace_source_path") <- normalize_path(source_path)
+    }
+    return(df)
+  }
+
+  stop("No input provided. Use --csv, --sav, --rds, --rdata, --parquet, or run inside a workspace directory with a manifest.")
 }
