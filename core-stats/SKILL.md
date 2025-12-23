@@ -50,6 +50,29 @@ powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path
 
 If the script path is omitted, the wrapper falls back to the default configured inside the wrapper script.
 
+### PowerShell wrapper cheat sheet
+
+- First argument must be the `.R` script path; all other flags come after it.
+- Lists use comma-separated values with no spaces: `x1,x2,x3`.
+- Quote values that contain spaces or semicolons (for example `--blocks "x1,x2;x3,mediator"`).
+- Relative paths are resolved from the current PowerShell working directory; use absolute paths when in doubt.
+
+Examples:
+
+```powershell
+# From workspace root, using the manifest + active dataset
+powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/descriptive_stats.R> --vars "x1,x2,x3"
+
+# Absolute CSV path with spaces
+powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/descriptive_stats.R> --csv "C:\Users\me\My Data\study.csv" --vars "x1,x2,x3"
+
+# Workspace parquet copy (preferred)
+powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/descriptive_stats.R> --parquet "C:\workspaces\core-stats\study\study.parquet" --vars "x1,x2,x3"
+
+# Blocks with semicolons need quotes
+powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/regression.R> --dv outcome --blocks "x1,x2;x3,mediator"
+```
+
 ## WSL/Linux direct usage (optional)
 
 Inside WSL or Linux, run `Rscript` directly with the same arguments.
