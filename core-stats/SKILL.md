@@ -27,8 +27,9 @@ Treat the workspace root as the current working directory, its parent, or a one-
 4. All subskills must operate on the workspace `.parquet` copy (prefer `--parquet` pointing to the workspace copy, or rely on auto-copy behavior).
 5. Direct workspace runs (no input flags) should load the dataset from the current dataset folder if applicable; otherwise use `active_dataset` from the manifest.
 6. Workspaces must be non-nested and unique per parent folder; if nested or sibling manifests are detected, stop and ask the user to resolve them.
-7. Before analysis: read and update the dataset’s `scratchpad.md` with the analysis plan and dataset considerations.
-8. After analysis: update the dataset’s `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
+7. Before running any `.R` analysis script, check the dataset’s `analysis_log.jsonl` for an exact prior run (same module + same command/flags + same input dataset; ignore differences in `--user-prompt`). If a match exists, do not rerun; report results from the prior outputs (`apa_report.md` and the matching log entry) instead.
+8. Before analysis: read and update the dataset’s `scratchpad.md` with the analysis plan and dataset considerations.
+9. After analysis: update the dataset’s `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
 
 Note: `data-transform` and `missings` update the workspace `.parquet` copy in place and create a backup at `<workspace-root>/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet` before overwriting. Undo = replace the current parquet with the latest backup.
 
