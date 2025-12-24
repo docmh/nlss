@@ -95,6 +95,13 @@ All scripts accept one of the following input types:
 - `--parquet <path>`: Parquet file (preferred workspace format).
 - `--interactive`: Prompt for inputs if you want a guided run.
 
+Notes:
+
+- Inputs must be local filesystem paths accessible to R. URLs or cloud share links are not supported; download first.
+- On Windows, the PowerShell wrapper converts Windows paths to WSL paths automatically; for WSL direct runs use `/mnt/<drive>/...`.
+- When searching JSONL logs in PowerShell, avoid `\"` escapes; use `rg -F` with single-quoted strings, for example:
+  `rg -F '"module":"scale"' -- 'C:\path\to\analysis_log.jsonl'`.
+
 ## Common flags
 
 - `--sep <char>`: CSV separator (default from `scripts/config.yml` -> `defaults.csv.sep`).
