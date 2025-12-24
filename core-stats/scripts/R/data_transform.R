@@ -202,7 +202,7 @@ resolve_ensure_out_dir <- function(path) {
 
 resolve_load_dataframe <- function(opts) {
   if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
+    return(get("load_dataframe", mode = "function")(opts, lock_safe = TRUE))
   }
   stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
 }

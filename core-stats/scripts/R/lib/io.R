@@ -55,6 +55,11 @@ is_wsl <- function() {
   FALSE
 }
 
+is_windows <- function() {
+  sysname <- Sys.info()[["sysname"]]
+  !is.null(sysname) && tolower(sysname) == "windows"
+}
+
 strip_path_quotes <- function(path) {
   if (is.null(path) || !nzchar(path)) return("")
   path <- as.character(path)
@@ -501,7 +506,8 @@ configure_arrow_defaults <- function() {
   options(
     arrow.use_altrep = FALSE,
     arrow.use_memory_map = FALSE,
-    arrow.use_memory_mapping = FALSE
+    arrow.use_memory_mapping = FALSE,
+    arrow.use_mmap = FALSE
   )
 }
 
@@ -512,11 +518,37 @@ ensure_arrow <- function() {
   configure_arrow_defaults()
 }
 
-read_parquet_data <- function(path) {
+copy_parquet_to_temp <- function(path) {
+  if (is.null(path) || !nzchar(path) || !file.exists(path)) return("")
+  temp_path <- tempfile(pattern = "core-stats-parquet-", fileext = ".parquet")
+  copied <- file.copy(path, temp_path, overwrite = TRUE)
+  if (!isTRUE(copied)) return("")
+  temp_path
+}
+
+read_parquet_data <- function(path, lock_safe = FALSE) {
   ensure_arrow()
   path <- normalize_input_path(path)
-  df <- arrow::read_parquet(path, as_data_frame = TRUE)
-  as.data.frame(df, stringsAsFactors = FALSE)
+  temp_path <- ""
+  if (lock_safe && is_windows() && file.exists(path)) {
+    temp_path <- copy_parquet_to_temp(path)
+    if (nzchar(temp_path)) path <- temp_path
+  }
+  read_fun <- arrow::read_parquet
+  extra <- list()
+  read_formals <- formals(read_fun)
+  if (!is.null(read_formals)) {
+    arg_names <- names(read_formals)
+    if ("memory_map" %in% arg_names) extra$memory_map <- FALSE
+    if ("use_memory_map" %in% arg_names) extra$use_memory_map <- FALSE
+    if ("use_mmap" %in% arg_names) extra$use_mmap <- FALSE
+  }
+  df <- do.call(read_fun, c(list(path, as_data_frame = TRUE), extra))
+  df <- as.data.frame(df, stringsAsFactors = FALSE)
+  if (nzchar(temp_path)) {
+    try(unlink(temp_path), silent = TRUE)
+  }
+  df
 }
 
 write_parquet_data <- function(df, path) {
@@ -629,7 +661,7 @@ load_rdata_frame <- function(path, object_name = NULL) {
   list(df = df, object_name = df_name)
 }
 
-load_dataframe <- function(opts) {
+load_dataframe <- function(opts, lock_safe = FALSE) {
   ensure_out_dir(get_default_out())
 
   if (!is.null(opts$parquet)) {
@@ -638,7 +670,7 @@ load_dataframe <- function(opts) {
     copy_info <- build_workspace_copy_info(label)
     if (normalizePath(source_path, winslash = "/", mustWork = FALSE) ==
         normalizePath(copy_info$copy_path, winslash = "/", mustWork = FALSE)) {
-      df <- read_parquet_data(copy_info$copy_path)
+      df <- read_parquet_data(copy_info$copy_path, lock_safe = lock_safe)
     } else {
       df <- load_or_create_parquet(copy_info$copy_path, function() {
         read_parquet_data(source_path)
@@ -731,7 +763,7 @@ load_dataframe <- function(opts) {
     if (!nzchar(parquet_path) || !file.exists(parquet_path)) {
       stop("Workspace parquet not found: ", parquet_path)
     }
-    df <- read_parquet_data(parquet_path)
+    df <- read_parquet_data(parquet_path, lock_safe = lock_safe)
     attr(df, "workspace_parquet_path") <- normalize_path(parquet_path)
     attr(df, "workspace_dir") <- normalize_path(dirname(parquet_path))
     attr(df, "workspace_manifest_path") <- normalize_path(manifest_path)
