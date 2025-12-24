@@ -87,7 +87,7 @@ with open(path, "w", encoding="utf-8", newline="") as handle:
     }
 }
 
-function Normalize-ConfigPath {
+function Resolve-ConfigPath {
     param([string]$Path)
     return ($Path -replace "\\", "/")
 }
@@ -209,7 +209,7 @@ try {
         }
     }
 
-    function Run-OkR {
+    function Invoke-OkR {
         param([string]$Label, [string]$ScriptPath, [string[]]$ScriptArgs)
         Write-Log "[RUN] $Label"
         $result = Invoke-RScript $ScriptPath $ScriptArgs
@@ -223,7 +223,7 @@ try {
         Write-Log "[PASS] $Label"
     }
 
-    function Run-ExpectFailR {
+    function Invoke-ExpectFailR {
         param([string]$Label, [string]$ScriptPath, [string[]]$ScriptArgs)
         Write-Log "[RUN-FAIL] $Label"
         $result = Invoke-RScript $ScriptPath $ScriptArgs
@@ -245,7 +245,7 @@ try {
         return (Get-Content $Path | Where-Object { $_.Trim() -ne "" }).Count
     }
 
-    function Log-HasExpected {
+    function Test-LogExpected {
         param([string]$Path, [int]$StartCount, [string]$Module, [string]$Status)
         if (-not (Test-Path $Path)) {
             return $false
@@ -268,7 +268,7 @@ try {
         return $false
     }
 
-    function Run-ExpectLogR {
+    function Invoke-ExpectLogR {
         param([string]$Label, [string]$LogFile, [string]$Module, [string]$Status, [string]$ScriptPath, [string[]]$ScriptArgs)
         Write-Log "[RUN-EXPECT] $Label"
         $startCount = Get-LogCount $LogFile
@@ -282,7 +282,7 @@ try {
         }
         $attempts = 10
         for ($i = 0; $i -lt $attempts; $i++) {
-            if (Log-HasExpected $LogFile $startCount $Module $Status) {
+            if (Test-LogExpected $LogFile $startCount $Module $Status) {
                 Write-Log "[PASS] $Label (informational log)"
                 return
             }
@@ -329,25 +329,25 @@ try {
         }
     }
 
-    function Run-InitWorkspace {
+    function Invoke-InitWorkspace {
         param([string]$Label)
         Reset-Parquet
-        Run-OkR $Label (Join-Path $rScriptDir "init_workspace.R") @("--csv", $dataPath)
+        Invoke-OkR $Label (Join-Path $rScriptDir "init_workspace.R") @("--csv", $dataPath)
     }
 
-    function Run-InitWorkspaceCustom {
+    function Invoke-InitWorkspaceCustom {
         param([string]$Label, [string]$CustomPath)
-        Run-OkR $Label (Join-Path $rScriptDir "init_workspace.R") @("--csv", $CustomPath)
+        Invoke-OkR $Label (Join-Path $rScriptDir "init_workspace.R") @("--csv", $CustomPath)
     }
 
-    function Has-RPackage {
+    function Test-RPackage {
         param([string]$Package)
         $result = Invoke-RScript $checkRPackageScript @($Package)
         return ($result.ExitCode -eq 0)
     }
 
-    function Prepare-MixedModelsData {
-        Run-OkR "mixed_models prep" $mixedModelsPrepScript @($dataPath, $mixedDataPath)
+    function Initialize-MixedModelsData {
+        Invoke-OkR "mixed_models prep" $mixedModelsPrepScript @($dataPath, $mixedDataPath)
     }
 
     function Resolve-TemplateSource {
@@ -363,7 +363,7 @@ try {
         return (Join-Path $rootDir ("core-stats\assets\" + $value))
     }
 
-    function Template-TestBase {
+    function Test-TemplateBase {
         param([bool]$AllowMissing, [string]$Label, [string]$Key, [string]$OutputFile, [string]$ScriptPath, [string[]]$ScriptArgs)
         Reset-ToBase
         if ($Key -like "init_workspace.*") {
@@ -378,121 +378,121 @@ try {
         $target = Join-Path $templateOverrideDir ($Key -replace "\.", "_") + ".md"
         Copy-Item $source $target -Force
         Add-Content -Path $target -Value "`n`n$marker"
-        Set-ConfigValue "templates.$Key" (Normalize-ConfigPath $target)
-        Run-OkR $Label $ScriptPath $ScriptArgs
+        Set-ConfigValue "templates.$Key" (Resolve-ConfigPath $target)
+        Invoke-OkR $Label $ScriptPath $ScriptArgs
         Assert-Marker $marker $OutputFile $AllowMissing
         Reset-ToBase
     }
 
-    function Template-Test {
+    function Test-Template {
         param([string]$Label, [string]$Key, [string]$OutputFile, [string]$ScriptPath, [string[]]$ScriptArgs)
-        Template-TestBase $false $Label $Key $OutputFile $ScriptPath $ScriptArgs
+        Test-TemplateBase $false $Label $Key $OutputFile $ScriptPath $ScriptArgs
     }
 
-    function Template-TestOptional {
+    function Test-TemplateOptional {
         param([string]$Label, [string]$Key, [string]$OutputFile, [string]$ScriptPath, [string[]]$ScriptArgs)
-        Template-TestBase $true $Label $Key $OutputFile $ScriptPath $ScriptArgs
+        Test-TemplateBase $true $Label $Key $OutputFile $ScriptPath $ScriptArgs
     }
 
-    Run-InitWorkspace "init workspace"
+    Invoke-InitWorkspace "init workspace"
 
-    $hasLavaan = Has-RPackage "lavaan"
+    $hasLavaan = Test-RPackage "lavaan"
 
-    Run-OkR "data_explorer clean" (Join-Path $rScriptDir "data_explorer.R") @("--parquet", $parquetPath, "--vars", "id,site,group3,gender,education,cat_var2,ordinal_var")
-    Run-OkR "descriptive_stats clean" (Join-Path $rScriptDir "descriptive_stats.R") @("--parquet", $parquetPath, "--vars", "outcome_anova,x1,x2,x3,mediator", "--group", "group3", "--digits", "3")
-    Run-OkR "frequencies clean" (Join-Path $rScriptDir "frequencies.R") @("--parquet", $parquetPath, "--vars", "gender,education,cat_var2,ordinal_var", "--group", "group3")
-    Run-OkR "crosstabs clean" (Join-Path $rScriptDir "crosstabs.R") @("--parquet", $parquetPath, "--row", "gender", "--col", "group3", "--percent", "row", "--chisq", "TRUE", "--expected", "TRUE", "--residuals", "TRUE")
-    Run-OkR "correlations clean" (Join-Path $rScriptDir "correlations.R") @("--parquet", $parquetPath, "--vars", "outcome_anova,x1,x2,x3,mediator", "--method", "pearson", "--missing", "pairwise")
-    Run-OkR "scale clean" (Join-Path $rScriptDir "scale.R") @("--parquet", $parquetPath, "--vars", "f1_1,f1_2,f1_3_rev,f1_4", "--reverse", "f1_3_rev", "--reverse-min", "1", "--reverse-max", "5", "--score", "mean", "--omega", "TRUE")
-    Run-OkR "assumptions clean" (Join-Path $rScriptDir "assumptions.R") @("--parquet", $parquetPath, "--analysis", "regression", "--dv", "outcome_anova", "--ivs", "x1,x2,x3,mediator")
-    Run-OkR "regression clean" (Join-Path $rScriptDir "regression.R") @("--parquet", $parquetPath, "--dv", "outcome_reg", "--blocks", "x1,x2;x3,mediator", "--interactions", "x1:mediator", "--center", "mean", "--standardize", "predictors")
+    Invoke-OkR "data_explorer clean" (Join-Path $rScriptDir "data_explorer.R") @("--parquet", $parquetPath, "--vars", "id,site,group3,gender,education,cat_var2,ordinal_var")
+    Invoke-OkR "descriptive_stats clean" (Join-Path $rScriptDir "descriptive_stats.R") @("--parquet", $parquetPath, "--vars", "outcome_anova,x1,x2,x3,mediator", "--group", "group3", "--digits", "3")
+    Invoke-OkR "frequencies clean" (Join-Path $rScriptDir "frequencies.R") @("--parquet", $parquetPath, "--vars", "gender,education,cat_var2,ordinal_var", "--group", "group3")
+    Invoke-OkR "crosstabs clean" (Join-Path $rScriptDir "crosstabs.R") @("--parquet", $parquetPath, "--row", "gender", "--col", "group3", "--percent", "row", "--chisq", "TRUE", "--expected", "TRUE", "--residuals", "TRUE")
+    Invoke-OkR "correlations clean" (Join-Path $rScriptDir "correlations.R") @("--parquet", $parquetPath, "--vars", "outcome_anova,x1,x2,x3,mediator", "--method", "pearson", "--missing", "pairwise")
+    Invoke-OkR "scale clean" (Join-Path $rScriptDir "scale.R") @("--parquet", $parquetPath, "--vars", "f1_1,f1_2,f1_3_rev,f1_4", "--reverse", "f1_3_rev", "--reverse-min", "1", "--reverse-max", "5", "--score", "mean", "--omega", "TRUE")
+    Invoke-OkR "assumptions clean" (Join-Path $rScriptDir "assumptions.R") @("--parquet", $parquetPath, "--analysis", "regression", "--dv", "outcome_anova", "--ivs", "x1,x2,x3,mediator")
+    Invoke-OkR "regression clean" (Join-Path $rScriptDir "regression.R") @("--parquet", $parquetPath, "--dv", "outcome_reg", "--blocks", "x1,x2;x3,mediator", "--interactions", "x1:mediator", "--center", "mean", "--standardize", "predictors")
     if ($hasLavaan) {
-        Run-OkR "sem clean cfa" (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "cfa", "--factors", "F1=f1_1,f1_2,f1_3_rev,f1_4;F2=f2_1,f2_2,f2_3,f2_4_rev;F3=f3_1,f3_2,f3_3,f3_4")
-        Run-OkR "sem clean mediation" (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "mediation", "--x", "x1", "--m", "mediator", "--y", "outcome_reg", "--bootstrap", "FALSE")
-        Run-ExpectLogR "sem missing vars" (Resolve-LogPath) "sem" "invalid_input" (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "cfa", "--factors", "F1=missing_item1,missing_item2")
+        Invoke-OkR "sem clean cfa" (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "cfa", "--factors", "F1=f1_1,f1_2,f1_3_rev,f1_4;F2=f2_1,f2_2,f2_3,f2_4_rev;F3=f3_1,f3_2,f3_3,f3_4")
+        Invoke-OkR "sem clean mediation" (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "mediation", "--x", "x1", "--m", "mediator", "--y", "outcome_reg", "--bootstrap", "FALSE")
+        Invoke-ExpectLogR "sem missing vars" (Resolve-LogPath) "sem" "invalid_input" (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "cfa", "--factors", "F1=missing_item1,missing_item2")
     } else {
-        Run-ExpectLogR "sem missing lavaan" (Resolve-LogPath) "sem" "missing_dependency" (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "cfa", "--factors", "F1=f1_1,f1_2")
+        Invoke-ExpectLogR "sem missing lavaan" (Resolve-LogPath) "sem" "missing_dependency" (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "cfa", "--factors", "F1=f1_1,f1_2")
     }
-    Run-OkR "anova clean between" (Join-Path $rScriptDir "anova.R") @("--parquet", $parquetPath, "--dv", "outcome_anova", "--between", "group3")
-    Run-OkR "t_test clean one-sample" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--vars", "x1", "--mu", "0")
-    Run-OkR "t_test clean independent" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--vars", "outcome_anova", "--group", "group2")
-    Run-OkR "t_test clean paired" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--x", "f1_1", "--y", "f1_2")
+    Invoke-OkR "anova clean between" (Join-Path $rScriptDir "anova.R") @("--parquet", $parquetPath, "--dv", "outcome_anova", "--between", "group3")
+    Invoke-OkR "t_test clean one-sample" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--vars", "x1", "--mu", "0")
+    Invoke-OkR "t_test clean independent" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--vars", "outcome_anova", "--group", "group2")
+    Invoke-OkR "t_test clean paired" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--x", "f1_1", "--y", "f1_2")
 
-    Prepare-MixedModelsData
-    Run-InitWorkspaceCustom "init workspace (mixed models)" $mixedDataPath
+    Initialize-MixedModelsData
+    Invoke-InitWorkspaceCustom "init workspace (mixed models)" $mixedDataPath
 
-    $hasLme4 = Has-RPackage "lme4"
+    $hasLme4 = Test-RPackage "lme4"
     $hasEmmeans = $false
     if ($hasLme4) {
-        $hasEmmeans = Has-RPackage "emmeans"
+        $hasEmmeans = Test-RPackage "emmeans"
     }
 
     if ($hasLme4) {
-        Run-OkR "mixed_models clean" (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--dv", "score", "--fixed", "time,group3,x1", "--random", "id", "--reml", "TRUE", "--df-method", "satterthwaite")
-        Run-OkR "mixed_models emmeans" (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--dv", "score", "--fixed", "time*group3,x1", "--random", "id", "--emmeans", "time*group3", "--contrasts", "pairwise", "--p-adjust", "holm")
-        Run-ExpectLogR "mixed_models missing random" $mixedAnalysisLogPath "mixed_models" "invalid_input" (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--dv", "score", "--fixed", "time,group3")
+        Invoke-OkR "mixed_models clean" (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--dv", "score", "--fixed", "time,group3,x1", "--random", "id", "--reml", "TRUE", "--df-method", "satterthwaite")
+        Invoke-OkR "mixed_models emmeans" (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--dv", "score", "--fixed", "time*group3,x1", "--random", "id", "--emmeans", "time*group3", "--contrasts", "pairwise", "--p-adjust", "holm")
+        Invoke-ExpectLogR "mixed_models missing random" $mixedAnalysisLogPath "mixed_models" "invalid_input" (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--dv", "score", "--fixed", "time,group3")
     } else {
-        Run-ExpectLogR "mixed_models missing lme4" $mixedAnalysisLogPath "mixed_models" "missing_dependency" (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--formula", "score ~ time + (1|id)")
+        Invoke-ExpectLogR "mixed_models missing lme4" $mixedAnalysisLogPath "mixed_models" "missing_dependency" (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--formula", "score ~ time + (1|id)")
     }
 
-    Run-InitWorkspace "init workspace (edge)"
-    Run-OkR "data_explorer edge" (Join-Path $rScriptDir "data_explorer.R") @("--parquet", $parquetPath, "--vars", "age,income,cat_var,high_missing_var,all_missing_var,zero_var,near_zero_var")
-    Run-OkR "descriptive_stats edge" (Join-Path $rScriptDir "descriptive_stats.R") @("--parquet", $parquetPath, "--vars", "skewed_var,outlier_var,zero_var,near_zero_var,high_missing_var", "--group", "group2", "--digits", "3")
-    Run-OkR "frequencies edge" (Join-Path $rScriptDir "frequencies.R") @("--parquet", $parquetPath, "--vars", "cat_var", "--group", "group2")
-    Run-OkR "crosstabs edge" (Join-Path $rScriptDir "crosstabs.R") @("--parquet", $parquetPath, "--row", "cat_var", "--col", "group2", "--fisher", "TRUE", "--fisher-simulate", "TRUE", "--fisher-b", "200")
-    Run-OkR "correlations edge" (Join-Path $rScriptDir "correlations.R") @("--parquet", $parquetPath, "--x", "skewed_var,outlier_var", "--y", "age,income", "--method", "spearman", "--missing", "complete", "--p-adjust", "BH")
-    Run-OkR "scale edge" (Join-Path $rScriptDir "scale.R") @("--parquet", $parquetPath, "--vars", "f2_1,f2_2,f2_3,f2_4_rev", "--reverse", "f2_4_rev", "--reverse-min", "1", "--reverse-max", "5", "--missing", "complete", "--omega", "FALSE")
-    Run-OkR "assumptions edge" (Join-Path $rScriptDir "assumptions.R") @("--parquet", $parquetPath, "--analysis", "anova", "--dv", "outcome_anova", "--between", "group3", "--within", "pre_score,mid_score,post_score", "--subject-id", "id")
-    Run-OkR "regression edge bootstrap" (Join-Path $rScriptDir "regression.R") @("--parquet", $parquetPath, "--dv", "outcome_reg", "--ivs", "x1,x2,x3", "--bootstrap", "TRUE", "--bootstrap-samples", "200", "--seed", "42")
+    Invoke-InitWorkspace "init workspace (edge)"
+    Invoke-OkR "data_explorer edge" (Join-Path $rScriptDir "data_explorer.R") @("--parquet", $parquetPath, "--vars", "age,income,cat_var,high_missing_var,all_missing_var,zero_var,near_zero_var")
+    Invoke-OkR "descriptive_stats edge" (Join-Path $rScriptDir "descriptive_stats.R") @("--parquet", $parquetPath, "--vars", "skewed_var,outlier_var,zero_var,near_zero_var,high_missing_var", "--group", "group2", "--digits", "3")
+    Invoke-OkR "frequencies edge" (Join-Path $rScriptDir "frequencies.R") @("--parquet", $parquetPath, "--vars", "cat_var", "--group", "group2")
+    Invoke-OkR "crosstabs edge" (Join-Path $rScriptDir "crosstabs.R") @("--parquet", $parquetPath, "--row", "cat_var", "--col", "group2", "--fisher", "TRUE", "--fisher-simulate", "TRUE", "--fisher-b", "200")
+    Invoke-OkR "correlations edge" (Join-Path $rScriptDir "correlations.R") @("--parquet", $parquetPath, "--x", "skewed_var,outlier_var", "--y", "age,income", "--method", "spearman", "--missing", "complete", "--p-adjust", "BH")
+    Invoke-OkR "scale edge" (Join-Path $rScriptDir "scale.R") @("--parquet", $parquetPath, "--vars", "f2_1,f2_2,f2_3,f2_4_rev", "--reverse", "f2_4_rev", "--reverse-min", "1", "--reverse-max", "5", "--missing", "complete", "--omega", "FALSE")
+    Invoke-OkR "assumptions edge" (Join-Path $rScriptDir "assumptions.R") @("--parquet", $parquetPath, "--analysis", "anova", "--dv", "outcome_anova", "--between", "group3", "--within", "pre_score,mid_score,post_score", "--subject-id", "id")
+    Invoke-OkR "regression edge bootstrap" (Join-Path $rScriptDir "regression.R") @("--parquet", $parquetPath, "--dv", "outcome_reg", "--ivs", "x1,x2,x3", "--bootstrap", "TRUE", "--bootstrap-samples", "200", "--seed", "42")
     if ($hasLavaan) {
-        Run-OkR "sem edge path" (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "path", "--dv", "outcome_reg", "--ivs", "skewed_var,outlier_var")
+        Invoke-OkR "sem edge path" (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "path", "--dv", "outcome_reg", "--ivs", "skewed_var,outlier_var")
     }
-    Run-OkR "anova edge mixed" (Join-Path $rScriptDir "anova.R") @("--parquet", $parquetPath, "--within", "pre_score,mid_score,post_score", "--between", "group3", "--subject-id", "id", "--posthoc", "pairwise")
-    Run-OkR "t_test edge independent" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--vars", "pre_score", "--group", "group2", "--var-equal", "TRUE")
-    Run-OkR "t_test edge bootstrap paired" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--x", "pre_score", "--y", "post_score", "--bootstrap", "TRUE", "--bootstrap-samples", "200", "--seed", "42")
+    Invoke-OkR "anova edge mixed" (Join-Path $rScriptDir "anova.R") @("--parquet", $parquetPath, "--within", "pre_score,mid_score,post_score", "--between", "group3", "--subject-id", "id", "--posthoc", "pairwise")
+    Invoke-OkR "t_test edge independent" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--vars", "pre_score", "--group", "group2", "--var-equal", "TRUE")
+    Invoke-OkR "t_test edge bootstrap paired" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--x", "pre_score", "--y", "post_score", "--bootstrap", "TRUE", "--bootstrap-samples", "200", "--seed", "42")
 
-    Run-InitWorkspace "init workspace (missings clean)"
-    Run-OkR "missings clean" (Join-Path $rScriptDir "missings.R") @("--parquet", $parquetPath, "--vars", "outcome_anova,x1,x2,x3,mediator", "--method", "listwise")
+    Invoke-InitWorkspace "init workspace (missings clean)"
+    Invoke-OkR "missings clean" (Join-Path $rScriptDir "missings.R") @("--parquet", $parquetPath, "--vars", "outcome_anova,x1,x2,x3,mediator", "--method", "listwise")
 
-    Run-InitWorkspace "init workspace (missings edge)"
-    Run-OkR "missings edge" (Join-Path $rScriptDir "missings.R") @("--parquet", $parquetPath, "--vars", "age,income,satisfaction,outcome_reg,high_missing_var,all_missing_var", "--method", "indicator", "--indicator-threshold", "0.2", "--drop-threshold", "0.5")
+    Invoke-InitWorkspace "init workspace (missings edge)"
+    Invoke-OkR "missings edge" (Join-Path $rScriptDir "missings.R") @("--parquet", $parquetPath, "--vars", "age,income,satisfaction,outcome_reg,high_missing_var,all_missing_var", "--method", "indicator", "--indicator-threshold", "0.2", "--drop-threshold", "0.5")
 
-    Run-InitWorkspace "init workspace (transform clean)"
-    Run-OkR "data_transform clean" (Join-Path $rScriptDir "data_transform.R") @("--parquet", $parquetPath, "--calc", "score_avg=(f1_1+f1_2+f1_4)/3", "--standardize", "x1")
+    Invoke-InitWorkspace "init workspace (transform clean)"
+    Invoke-OkR "data_transform clean" (Join-Path $rScriptDir "data_transform.R") @("--parquet", $parquetPath, "--calc", "score_avg=(f1_1+f1_2+f1_4)/3", "--standardize", "x1")
 
-    Run-InitWorkspace "init workspace (transform edge)"
-    Run-OkR "data_transform edge" (Join-Path $rScriptDir "data_transform.R") @("--parquet", $parquetPath, "--transform", "skewed_var=log", "--percentile-bins", "outlier_var=4", "--recode", "group3=A:1,B:2,C:3", "--drop", "zero_var", "--confirm-drop", "TRUE")
+    Invoke-InitWorkspace "init workspace (transform edge)"
+    Invoke-OkR "data_transform edge" (Join-Path $rScriptDir "data_transform.R") @("--parquet", $parquetPath, "--transform", "skewed_var=log", "--percentile-bins", "outlier_var=4", "--recode", "group3=A:1,B:2,C:3", "--drop", "zero_var", "--confirm-drop", "TRUE")
 
-    Template-Test "template init_workspace apa" "init_workspace.default" $apaReportPath (Join-Path $rScriptDir "init_workspace.R") @("--csv", $dataPath)
-    Template-Test "template init_workspace scratchpad" "init_workspace.scratchpad" $scratchpadPath (Join-Path $rScriptDir "init_workspace.R") @("--csv", $dataPath)
-    Template-Test "template descriptive_stats" "descriptive_stats.default" $apaReportPath (Join-Path $rScriptDir "descriptive_stats.R") @("--parquet", $parquetPath, "--vars", "outcome_anova,x1,x2")
-    Template-Test "template frequencies default" "frequencies.default" $apaReportPath (Join-Path $rScriptDir "frequencies.R") @("--parquet", $parquetPath, "--vars", "gender,education")
-    Template-Test "template frequencies grouped" "frequencies.grouped" $apaReportPath (Join-Path $rScriptDir "frequencies.R") @("--parquet", $parquetPath, "--vars", "gender", "--group", "group3")
-    Template-Test "template crosstabs default" "crosstabs.default" $apaReportPath (Join-Path $rScriptDir "crosstabs.R") @("--parquet", $parquetPath, "--row", "gender", "--col", "group3")
-    Template-Test "template crosstabs grouped" "crosstabs.grouped" $apaReportPath (Join-Path $rScriptDir "crosstabs.R") @("--parquet", $parquetPath, "--row", "gender", "--col", "group3", "--group", "site")
-    Template-Test "template correlations default" "correlations.default" $apaReportPath (Join-Path $rScriptDir "correlations.R") @("--parquet", $parquetPath, "--vars", "x1,x2,x3")
-    Template-Test "template correlations cross" "correlations.cross" $apaReportPath (Join-Path $rScriptDir "correlations.R") @("--parquet", $parquetPath, "--x", "x1,x2", "--y", "x3,mediator")
-    Template-Test "template scale" "scale.default" $apaReportPath (Join-Path $rScriptDir "scale.R") @("--parquet", $parquetPath, "--vars", "f1_1,f1_2,f1_3_rev,f1_4", "--reverse", "f1_3_rev", "--reverse-min", "1", "--reverse-max", "5")
-    Template-Test "template data_explorer" "data_explorer.default" $apaReportPath (Join-Path $rScriptDir "data_explorer.R") @("--parquet", $parquetPath, "--vars", "id,site,group3")
-    Template-TestOptional "template data_transform" "data_transform.default" $apaReportPath (Join-Path $rScriptDir "data_transform.R") @("--parquet", $parquetPath, "--calc", "score_avg=(f1_1+f1_2+f1_4)/3")
-    Run-InitWorkspace "init workspace (templates after transform)"
-    Template-TestOptional "template missings" "missings.default" $apaReportPath (Join-Path $rScriptDir "missings.R") @("--parquet", $parquetPath, "--vars", "age,income,satisfaction", "--method", "listwise")
-    Run-InitWorkspace "init workspace (templates after missings)"
-    Template-Test "template assumptions ttest" "assumptions.ttest" $apaReportPath (Join-Path $rScriptDir "assumptions.R") @("--parquet", $parquetPath, "--analysis", "ttest", "--vars", "x1", "--group", "group2")
-    Template-Test "template assumptions anova" "assumptions.anova" $apaReportPath (Join-Path $rScriptDir "assumptions.R") @("--parquet", $parquetPath, "--analysis", "anova", "--dv", "outcome_anova", "--between", "group3")
-    Template-Test "template assumptions regression" "assumptions.regression" $apaReportPath (Join-Path $rScriptDir "assumptions.R") @("--parquet", $parquetPath, "--analysis", "regression", "--dv", "outcome_anova", "--ivs", "x1,x2,x3")
-    Template-Test "template regression" "regression.default" $apaReportPath (Join-Path $rScriptDir "regression.R") @("--parquet", $parquetPath, "--dv", "outcome_reg", "--ivs", "x1,x2,x3")
+    Test-Template "template init_workspace apa" "init_workspace.default" $apaReportPath (Join-Path $rScriptDir "init_workspace.R") @("--csv", $dataPath)
+    Test-Template "template init_workspace scratchpad" "init_workspace.scratchpad" $scratchpadPath (Join-Path $rScriptDir "init_workspace.R") @("--csv", $dataPath)
+    Test-Template "template descriptive_stats" "descriptive_stats.default" $apaReportPath (Join-Path $rScriptDir "descriptive_stats.R") @("--parquet", $parquetPath, "--vars", "outcome_anova,x1,x2")
+    Test-Template "template frequencies default" "frequencies.default" $apaReportPath (Join-Path $rScriptDir "frequencies.R") @("--parquet", $parquetPath, "--vars", "gender,education")
+    Test-Template "template frequencies grouped" "frequencies.grouped" $apaReportPath (Join-Path $rScriptDir "frequencies.R") @("--parquet", $parquetPath, "--vars", "gender", "--group", "group3")
+    Test-Template "template crosstabs default" "crosstabs.default" $apaReportPath (Join-Path $rScriptDir "crosstabs.R") @("--parquet", $parquetPath, "--row", "gender", "--col", "group3")
+    Test-Template "template crosstabs grouped" "crosstabs.grouped" $apaReportPath (Join-Path $rScriptDir "crosstabs.R") @("--parquet", $parquetPath, "--row", "gender", "--col", "group3", "--group", "site")
+    Test-Template "template correlations default" "correlations.default" $apaReportPath (Join-Path $rScriptDir "correlations.R") @("--parquet", $parquetPath, "--vars", "x1,x2,x3")
+    Test-Template "template correlations cross" "correlations.cross" $apaReportPath (Join-Path $rScriptDir "correlations.R") @("--parquet", $parquetPath, "--x", "x1,x2", "--y", "x3,mediator")
+    Test-Template "template scale" "scale.default" $apaReportPath (Join-Path $rScriptDir "scale.R") @("--parquet", $parquetPath, "--vars", "f1_1,f1_2,f1_3_rev,f1_4", "--reverse", "f1_3_rev", "--reverse-min", "1", "--reverse-max", "5")
+    Test-Template "template data_explorer" "data_explorer.default" $apaReportPath (Join-Path $rScriptDir "data_explorer.R") @("--parquet", $parquetPath, "--vars", "id,site,group3")
+    Test-TemplateOptional "template data_transform" "data_transform.default" $apaReportPath (Join-Path $rScriptDir "data_transform.R") @("--parquet", $parquetPath, "--calc", "score_avg=(f1_1+f1_2+f1_4)/3")
+    Invoke-InitWorkspace "init workspace (templates after transform)"
+    Test-TemplateOptional "template missings" "missings.default" $apaReportPath (Join-Path $rScriptDir "missings.R") @("--parquet", $parquetPath, "--vars", "age,income,satisfaction", "--method", "listwise")
+    Invoke-InitWorkspace "init workspace (templates after missings)"
+    Test-Template "template assumptions ttest" "assumptions.ttest" $apaReportPath (Join-Path $rScriptDir "assumptions.R") @("--parquet", $parquetPath, "--analysis", "ttest", "--vars", "x1", "--group", "group2")
+    Test-Template "template assumptions anova" "assumptions.anova" $apaReportPath (Join-Path $rScriptDir "assumptions.R") @("--parquet", $parquetPath, "--analysis", "anova", "--dv", "outcome_anova", "--between", "group3")
+    Test-Template "template assumptions regression" "assumptions.regression" $apaReportPath (Join-Path $rScriptDir "assumptions.R") @("--parquet", $parquetPath, "--analysis", "regression", "--dv", "outcome_anova", "--ivs", "x1,x2,x3")
+    Test-Template "template regression" "regression.default" $apaReportPath (Join-Path $rScriptDir "regression.R") @("--parquet", $parquetPath, "--dv", "outcome_reg", "--ivs", "x1,x2,x3")
     if ($hasLavaan) {
-        Template-Test "template sem default" "sem.default" $apaReportPath (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "path", "--dv", "outcome_reg", "--ivs", "x1,x2")
-        Template-Test "template sem mediation" "sem.mediation" $apaReportPath (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "mediation", "--x", "x1", "--m", "mediator", "--y", "outcome_reg")
+        Test-Template "template sem default" "sem.default" $apaReportPath (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "path", "--dv", "outcome_reg", "--ivs", "x1,x2")
+        Test-Template "template sem mediation" "sem.mediation" $apaReportPath (Join-Path $rScriptDir "sem.R") @("--parquet", $parquetPath, "--analysis", "mediation", "--x", "x1", "--m", "mediator", "--y", "outcome_reg")
     } else {
         Write-Log "[WARN] skipping sem templates (lavaan not installed)"
     }
 
     if ($hasLme4) {
-        Template-Test "template mixed_models default" "mixed_models.default" $mixedApaReportPath (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--formula", "score ~ time + group3 + x1 + (1|id)")
+        Test-Template "template mixed_models default" "mixed_models.default" $mixedApaReportPath (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--formula", "score ~ time + group3 + x1 + (1|id)")
         if ($hasEmmeans) {
-            Template-Test "template mixed_models emmeans" "mixed_models.emmeans" $mixedApaReportPath (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--formula", "score ~ time * group3 + x1 + (1|id)", "--emmeans", "time*group3", "--contrasts", "pairwise")
+            Test-Template "template mixed_models emmeans" "mixed_models.emmeans" $mixedApaReportPath (Join-Path $rScriptDir "mixed_models.R") @("--parquet", $mixedParquetPath, "--formula", "score ~ time * group3 + x1 + (1|id)", "--emmeans", "time*group3", "--contrasts", "pairwise")
         } else {
             Write-Log "[WARN] skipping mixed_models emmeans template (emmeans not installed)"
         }
@@ -500,18 +500,18 @@ try {
         Write-Log "[WARN] skipping mixed_models templates (lme4 not installed)"
     }
 
-    Template-Test "template anova default" "anova.default" $apaReportPath (Join-Path $rScriptDir "anova.R") @("--parquet", $parquetPath, "--dv", "outcome_anova", "--between", "group3")
-    Template-Test "template anova posthoc" "anova.posthoc" $apaReportPath (Join-Path $rScriptDir "anova.R") @("--parquet", $parquetPath, "--dv", "outcome_anova", "--between", "group3")
-    Template-Test "template t_test" "t_test.default" $apaReportPath (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--vars", "x1", "--mu", "0")
+    Test-Template "template anova default" "anova.default" $apaReportPath (Join-Path $rScriptDir "anova.R") @("--parquet", $parquetPath, "--dv", "outcome_anova", "--between", "group3")
+    Test-Template "template anova posthoc" "anova.posthoc" $apaReportPath (Join-Path $rScriptDir "anova.R") @("--parquet", $parquetPath, "--dv", "outcome_anova", "--between", "group3")
+    Test-Template "template t_test" "t_test.default" $apaReportPath (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--vars", "x1", "--mu", "0")
 
-    Run-ExpectLogR "t_test invalid group levels" (Resolve-LogPath) "t_test" "expected_invalid_input" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--vars", "outcome_anova", "--group", "group3", "--expect-two-groups", "TRUE")
-    Run-ExpectLogR "t_test paired with group" (Resolve-LogPath) "t_test" "invalid_input" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--x", "pre_score", "--y", "post_score", "--group", "group3")
-    Run-ExpectLogR "anova missing subject-id" (Resolve-LogPath) "anova" "invalid_input" (Join-Path $rScriptDir "anova.R") @("--parquet", $parquetPath, "--within", "pre_score,post_score")
-    Run-ExpectLogR "regression missing dv" (Resolve-LogPath) "regression" "invalid_input" (Join-Path $rScriptDir "regression.R") @("--parquet", $parquetPath, "--ivs", "x1,x2")
+    Invoke-ExpectLogR "t_test invalid group levels" (Resolve-LogPath) "t_test" "expected_invalid_input" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--vars", "outcome_anova", "--group", "group3", "--expect-two-groups", "TRUE")
+    Invoke-ExpectLogR "t_test paired with group" (Resolve-LogPath) "t_test" "invalid_input" (Join-Path $rScriptDir "t_test.R") @("--parquet", $parquetPath, "--x", "pre_score", "--y", "post_score", "--group", "group3")
+    Invoke-ExpectLogR "anova missing subject-id" (Resolve-LogPath) "anova" "invalid_input" (Join-Path $rScriptDir "anova.R") @("--parquet", $parquetPath, "--within", "pre_score,post_score")
+    Invoke-ExpectLogR "regression missing dv" (Resolve-LogPath) "regression" "invalid_input" (Join-Path $rScriptDir "regression.R") @("--parquet", $parquetPath, "--ivs", "x1,x2")
 
     Write-Log "[DONE] smoke tests finished"
 
-    function Cleanup-Runs {
+    function Clear-TestRuns {
         param([int]$Keep)
         if (-not (Test-Path $runsBase)) { return }
         $runDirs = Get-ChildItem -Path $runsBase -Directory | Where-Object { $_.Name -match '^\d{14}$' } | Sort-Object Name
@@ -526,7 +526,7 @@ try {
     if ($env:CORE_STATS_KEEP_RUNS -and ($env:CORE_STATS_KEEP_RUNS -as [int])) {
         $keepRuns = [int]$env:CORE_STATS_KEEP_RUNS
     }
-    Cleanup-Runs $keepRuns
+    Clear-TestRuns $keepRuns
 } finally {
     if (Test-Path $configBak) {
         Copy-Item $configBak $configPath -Force
