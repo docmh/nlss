@@ -27,7 +27,7 @@ Treat the workspace root as the current working directory, its parent, or a one-
 4. All subskills must operate on the workspace `.parquet` copy (prefer `--parquet` pointing to the workspace copy, or rely on auto-copy behavior).
 5. Direct workspace runs (no input flags) should load the dataset from the current dataset folder if applicable; otherwise use `active_dataset` from the manifest.
 6. Workspaces must be non-nested and unique per parent folder; if nested or sibling manifests are detected, stop and ask the user to resolve them.
-7. Before running any `.R` analysis script, check the dataset’s `analysis_log.jsonl` for an exact prior run (same module + same command/flags + same input dataset; ignore differences in `--user-prompt`). If a match exists, do not rerun; report results from the prior outputs (`apa_report.md` and the matching log entry) instead.
+7. Before running any `.R` analysis script, check the dataset’s `analysis_log.jsonl` for an exact prior run (same module + same command/flags + same input dataset; ignore differences in `--user-prompt`). When searching JSONL logs in PowerShell, use single quotes for the pattern and path; do not backslash-escape quotes (PowerShell treats `\` literally). Examples: `rg -F '"module"' -- 'C:\path\to\analysis_log.jsonl'` or `rg -F '"module":"scale"' -- 'C:\path\to\analysis_log.jsonl'`. If a match exists, do not rerun; report results from the prior outputs (`apa_report.md` and the matching log entry) instead.
 8. Before analysis: read and update the dataset’s `scratchpad.md` with the analysis plan and dataset considerations.
 9. After analysis: update the dataset’s `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
 
@@ -99,8 +99,6 @@ Notes:
 
 - Inputs must be local filesystem paths accessible to R. URLs or cloud share links are not supported; download first.
 - On Windows, the PowerShell wrapper converts Windows paths to WSL paths automatically; for WSL direct runs use `/mnt/<drive>/...`.
-- When searching JSONL logs in PowerShell, avoid `\"` escapes; use `rg -F` with single-quoted strings, for example:
-  `rg -F '"module":"scale"' -- 'C:\path\to\analysis_log.jsonl'`.
 
 ## Common flags
 

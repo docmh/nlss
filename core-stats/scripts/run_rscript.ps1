@@ -171,8 +171,7 @@ if (-not $rscript) {
 }
 
 try {
-    $targetDir = Split-Path -Parent $target
-    $runDir = $targetDir
+    $runDir = $prevLocation.Path
     if ($useEnvCwd) {
         $runDir = $envCwd
     }
