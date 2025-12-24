@@ -39,6 +39,74 @@ is_absolute_path <- function(path) {
   grepl("^/|^[A-Za-z]:|^\\\\\\\\", as.character(path))
 }
 
+is_wsl <- function() {
+  distro <- Sys.getenv("WSL_DISTRO_NAME", unset = "")
+  if (nzchar(distro)) return(TRUE)
+  release <- ""
+  if (exists("Sys.uname", mode = "function")) {
+    release <- tryCatch(Sys.uname()[["release"]], error = function(e) "")
+  } else if (exists("Sys.info", mode = "function")) {
+    info <- tryCatch(Sys.info(), error = function(e) NULL)
+    if (!is.null(info) && !is.na(info["release"])) release <- info["release"]
+  }
+  if (!is.null(release) && nzchar(release)) {
+    return(grepl("microsoft", release, ignore.case = TRUE))
+  }
+  FALSE
+}
+
+strip_path_quotes <- function(path) {
+  if (is.null(path) || !nzchar(path)) return("")
+  path <- as.character(path)
+  if (nchar(path) < 2) return(path)
+  first <- substr(path, 1, 1)
+  last <- substr(path, nchar(path), nchar(path))
+  if ((first == "\"" && last == "\"") || (first == "'" && last == "'")) {
+    return(substr(path, 2, nchar(path) - 1))
+  }
+  path
+}
+
+try_wslpath <- function(path) {
+  if (!is_wsl()) return("")
+  wslpath <- Sys.which("wslpath")
+  if (!nzchar(wslpath)) return("")
+  out <- tryCatch(system2(wslpath, c("-a", "-u", path), stdout = TRUE, stderr = TRUE), error = function(e) character(0))
+  out <- out[nzchar(out)]
+  if (length(out) == 0) return("")
+  trimws(out[1])
+}
+
+convert_windows_to_wsl_path <- function(path) {
+  if (!is_wsl()) return(path)
+  converted <- try_wslpath(path)
+  if (nzchar(converted)) return(converted)
+  path <- gsub("\\\\", "/", path)
+  if (grepl("^[A-Za-z]:/", path)) {
+    drive <- tolower(substr(path, 1, 1))
+    rest <- substr(path, 4, nchar(path))
+    return(paste0("/mnt/", drive, "/", rest))
+  }
+  path
+}
+
+normalize_input_path <- function(path) {
+  if (is.null(path)) return("")
+  path <- as.character(path)
+  if (length(path) == 0 || all(is.na(path))) return("")
+  path <- path[1]
+  if (is.na(path) || !nzchar(path)) return("")
+  path <- trimws(path)
+  if (!nzchar(path)) return("")
+  path <- strip_path_quotes(path)
+  path <- enc2utf8(path)
+  path <- gsub("\\\\", "/", path)
+  if (is_wsl() && (grepl("^[A-Za-z]:/", path) || grepl("^//", path))) {
+    path <- convert_windows_to_wsl_path(path)
+  }
+  path.expand(path)
+}
+
 list_manifest_paths <- function(base_dir, recursive = FALSE) {
   if (is.null(base_dir) || !nzchar(base_dir)) return(character(0))
   if (!dir.exists(base_dir)) return(character(0))
@@ -408,6 +476,7 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
 }
 
 read_sav_data <- function(path) {
+  path <- normalize_input_path(path)
   if (requireNamespace("haven", quietly = TRUE)) {
     df <- haven::read_sav(path)
     return(as.data.frame(df, stringsAsFactors = FALSE))
@@ -420,20 +489,39 @@ read_sav_data <- function(path) {
   stop("SPSS .sav support requires the 'haven' or 'foreign' package. Install one: install.packages('haven').")
 }
 
+configure_arrow_defaults <- function() {
+  arrow_ns <- asNamespace("arrow")
+  # Avoid keeping Parquet files memory-mapped/locked on Windows.
+  fn_names <- c("set_use_altrep", "set_use_memory_mapping", "set_use_memory_map", "set_use_mmap")
+  for (fn_name in fn_names) {
+    if (exists(fn_name, envir = arrow_ns, mode = "function")) {
+      try(get(fn_name, envir = arrow_ns)(FALSE), silent = TRUE)
+    }
+  }
+  options(
+    arrow.use_altrep = FALSE,
+    arrow.use_memory_map = FALSE,
+    arrow.use_memory_mapping = FALSE
+  )
+}
+
 ensure_arrow <- function() {
   if (!requireNamespace("arrow", quietly = TRUE)) {
     stop("Parquet support requires the 'arrow' package. Install it: install.packages('arrow').")
   }
+  configure_arrow_defaults()
 }
 
 read_parquet_data <- function(path) {
   ensure_arrow()
+  path <- normalize_input_path(path)
   df <- arrow::read_parquet(path, as_data_frame = TRUE)
   as.data.frame(df, stringsAsFactors = FALSE)
 }
 
 write_parquet_data <- function(df, path) {
   ensure_arrow()
+  path <- normalize_input_path(path)
   arrow::write_parquet(df, path)
 }
 
@@ -447,7 +535,8 @@ load_or_create_parquet <- function(copy_path, read_source) {
 }
 
 sanitize_file_component <- function(value) {
-  clean <- gsub("[^A-Za-z0-9._-]", "_", as.character(value))
+  clean <- enc2utf8(as.character(value))
+  clean <- gsub("[^A-Za-z0-9._-]", "_", clean)
   clean <- gsub("_+", "_", clean)
   if (!nzchar(clean)) clean <- "dataset"
   clean
@@ -461,8 +550,9 @@ derive_dataset_label <- function(path, df_name = NULL) {
 }
 
 normalize_path <- function(path) {
-  if (is.null(path) || !nzchar(path)) return("")
-  normalizePath(path, winslash = "/", mustWork = FALSE)
+  path <- normalize_input_path(path)
+  if (!nzchar(path)) return("")
+  enc2utf8(normalizePath(path, winslash = "/", mustWork = FALSE))
 }
 
 get_dataset_workspace_dir <- function(label) {
@@ -519,6 +609,7 @@ build_workspace_copy_info <- function(label) {
 }
 
 load_rdata_frame <- function(path, object_name = NULL) {
+  path <- normalize_input_path(path)
   env <- new.env()
   load(path, envir = env)
   if (!is.null(object_name) && nzchar(object_name) && exists(object_name, envir = env)) {
@@ -542,7 +633,7 @@ load_dataframe <- function(opts) {
   ensure_out_dir(get_default_out())
 
   if (!is.null(opts$parquet)) {
-    source_path <- as.character(opts$parquet)
+    source_path <- normalize_input_path(opts$parquet)
     label <- derive_dataset_label(source_path)
     copy_info <- build_workspace_copy_info(label)
     if (normalizePath(source_path, winslash = "/", mustWork = FALSE) ==
@@ -560,7 +651,7 @@ load_dataframe <- function(opts) {
   }
 
   if (!is.null(opts$csv)) {
-    source_path <- as.character(opts$csv)
+    source_path <- normalize_input_path(opts$csv)
     label <- derive_dataset_label(source_path)
     copy_info <- build_workspace_copy_info(label)
     sep_default <- resolve_config_value("defaults.csv.sep", ",")
@@ -577,7 +668,7 @@ load_dataframe <- function(opts) {
   }
 
   if (!is.null(opts$sav)) {
-    source_path <- as.character(opts$sav)
+    source_path <- normalize_input_path(opts$sav)
     label <- derive_dataset_label(source_path)
     copy_info <- build_workspace_copy_info(label)
     df <- load_or_create_parquet(copy_info$copy_path, function() {
@@ -592,7 +683,7 @@ load_dataframe <- function(opts) {
   }
 
   if (!is.null(opts$rds)) {
-    source_path <- as.character(opts$rds)
+    source_path <- normalize_input_path(opts$rds)
     label <- derive_dataset_label(source_path)
     copy_info <- build_workspace_copy_info(label)
     df <- load_or_create_parquet(copy_info$copy_path, function() {
@@ -608,7 +699,7 @@ load_dataframe <- function(opts) {
 
   if (!is.null(opts$rdata)) {
     if (is.null(opts$df)) stop("--df is required when using --rdata")
-    source_path <- as.character(opts$rdata)
+    source_path <- normalize_input_path(opts$rdata)
     label <- derive_dataset_label(source_path, opts$df)
     copy_info <- build_workspace_copy_info(label)
     df <- load_or_create_parquet(copy_info$copy_path, function() {

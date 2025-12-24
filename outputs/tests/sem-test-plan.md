@@ -15,7 +15,7 @@
 - Rscript available.
 - R packages installed: `arrow`, `yaml`, `jsonlite`, `lavaan`.
 - Optional: `haven` for `.sav` input coverage (skipped if missing).
-- Interactive coverage requires a usable PTY; skipped if unavailable.
+- Interactive coverage uses `CORE_STATS_PROMPT_FILE` to feed prompts during automation.
 
 ## Run sequence (deliberate)
 

@@ -138,12 +138,29 @@ if (-not (Test-Path $target -PathType Leaf)) {
     exit 2
 }
 
+$envCwd = $env:CORE_STATS_RSCRIPT_CWD
+$useEnvCwd = $false
+if ($envCwd -and (Test-Path $envCwd)) {
+    $useEnvCwd = $true
+}
+
+$prevLocation = Get-Location
+
 if ($wslExe) {
+    if ($useEnvCwd) {
+        Set-Location $envCwd
+    }
     $wslTarget = Convert-ToWslPath -Path $target -WslExe $wslExe
     $wslArgs = Convert-ArgsToWsl -InputArgs $allArgs -WslExe $wslExe
     & $wslExe "Rscript" $wslTarget @wslArgs
     if ($LASTEXITCODE -eq 0) {
+        if ($useEnvCwd) {
+            Set-Location $prevLocation
+        }
         exit 0
+    }
+    if ($useEnvCwd) {
+        Set-Location $prevLocation
     }
     Write-Warning "WSL execution failed; falling back to Windows Rscript."
 }
@@ -153,11 +170,14 @@ if (-not $rscript) {
     exit 127
 }
 
-$prevLocation = Get-Location
 try {
     $targetDir = Split-Path -Parent $target
-    if ($targetDir) {
-        Set-Location $targetDir
+    $runDir = $targetDir
+    if ($useEnvCwd) {
+        $runDir = $envCwd
+    }
+    if ($runDir) {
+        Set-Location $runDir
     }
     & $rscript $target @allArgs
     exit $LASTEXITCODE

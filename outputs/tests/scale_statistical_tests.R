@@ -31,32 +31,44 @@ config_path <- file.path(root, "core-stats", "scripts", "config.yml")
 if (!file.exists(config_path)) {
   stop(paste("Missing config:", config_path))
 }
-config_backup <- tempfile("config-", fileext = ".yml")
-file.copy(config_path, config_backup, overwrite = TRUE)
-on.exit({
-  file.copy(config_backup, config_path, overwrite = TRUE)
-  unlink(config_backup)
-}, add = TRUE)
 
-set_default_output_dir <- function(path) {
-  lines <- readLines(config_path, warn = FALSE)
-  updated <- FALSE
-  for (idx in seq_along(lines)) {
-    if (grepl("^\\s*output_dir:", lines[[idx]])) {
-      indent <- sub("(\\s*).*$", "\\1", lines[[idx]])
-      lines[[idx]] <- paste0(indent, "output_dir: \"", path, "\"")
-      updated <- TRUE
-      break
+read_config_value <- function(path, key) {
+  if (!file.exists(path)) return("")
+  parts <- strsplit(key, ".", fixed = TRUE)[[1]]
+  lines <- readLines(path, warn = FALSE)
+  keys <- character(0)
+  indents <- integer(0)
+  for (line in lines) {
+    stripped <- trimws(line)
+    if (!nzchar(stripped) || startsWith(stripped, "#")) next
+    indent <- nchar(line) - nchar(sub("^\\s+", "", line))
+    key_name <- sub(":.*$", "", stripped)
+    while (length(indents) > 0 && tail(indents, 1) >= indent) {
+      keys <- keys[-length(keys)]
+      indents <- indents[-length(indents)]
+    }
+    keys <- c(keys, key_name)
+    indents <- c(indents, indent)
+    if (length(keys) == length(parts) && all(keys == parts)) {
+      value <- sub("^[^:]*:\\s*", "", stripped)
+      value <- sub("^['\"]", "", value)
+      value <- sub("['\"]$", "", value)
+      return(value)
     }
   }
-  if (!updated) {
-    stop("output_dir not found in config.yml")
-  }
-  writeLines(lines, config_path, useBytes = TRUE)
+  ""
+}
+
+resolve_path <- function(path) {
+  if (!nzchar(path)) return("")
+  if (grepl("^/|^[A-Za-z]:|^\\\\\\\\", path)) return(normalizePath(path, winslash = "/", mustWork = FALSE))
+  normalizePath(file.path(root, path), winslash = "/", mustWork = FALSE)
 }
 
 run_root_env <- Sys.getenv("CORE_STATS_TEST_ROOT", unset = "")
-runs_base <- file.path(root, "outputs", "test-runs")
+runs_base_cfg <- read_config_value(config_path, "tests.output_dir")
+if (!nzchar(runs_base_cfg)) runs_base_cfg <- "./outputs/test-runs"
+runs_base <- resolve_path(runs_base_cfg)
 if (nzchar(run_root_env)) {
   run_root <- normalizePath(run_root_env, winslash = "/", mustWork = FALSE)
 } else {
@@ -70,7 +82,13 @@ dir.create(workdir, recursive = TRUE, showWarnings = FALSE)
 
 workspace_root <- file.path(workdir, "workspace")
 dir.create(workspace_root, recursive = TRUE, showWarnings = FALSE)
-set_default_output_dir(workspace_root)
+manifest_name <- read_config_value(config_path, "defaults.workspace_manifest")
+if (!nzchar(manifest_name)) manifest_name <- "core-stats-workspace.yml"
+manifest_path <- file.path(workspace_root, manifest_name)
+file.create(manifest_path, showWarnings = FALSE)
+on.exit({
+  if (file.exists(manifest_path)) file.remove(manifest_path)
+}, add = TRUE)
 
 tmpdir <- file.path(workdir, "tmp")
 dir.create(tmpdir, recursive = TRUE, showWarnings = FALSE)
@@ -197,6 +215,9 @@ run_scale <- function(name, df, items, args = list(), expect_failure = FALSE, in
     cmd_args <- c(cmd_args, "--coerce", ifelse(isTRUE(args$coerce), "TRUE", "FALSE"))
   }
 
+  old_wd <- getwd()
+  setwd(workspace_root)
+  on.exit(setwd(old_wd), add = TRUE)
   output <- system2("Rscript", cmd_args, stdout = TRUE, stderr = TRUE)
   status <- attr(output, "status")
   if (is.null(status)) status <- 0

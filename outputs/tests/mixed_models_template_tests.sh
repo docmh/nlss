@@ -6,7 +6,6 @@ CONFIG_PATH="${ROOT_DIR}/core-stats/scripts/config.yml"
 R_SCRIPT_DIR="${ROOT_DIR}/core-stats/scripts/R"
 MIXED_SCRIPT="${R_SCRIPT_DIR}/mixed_models.R"
 PREP_SCRIPT="${ROOT_DIR}/outputs/tests/mixed_models_prep.R"
-DATA_GOLDEN="${ROOT_DIR}/outputs/tests/golden_dataset.csv"
 CHECK_PKG_SCRIPT="${ROOT_DIR}/outputs/tests/check_r_package.R"
 TEMPLATE_DEFAULT="${ROOT_DIR}/core-stats/assets/mixed-models/default-template.md"
 TEMPLATE_EMMEANS="${ROOT_DIR}/core-stats/assets/mixed-models/emmeans-template.md"
@@ -37,32 +36,6 @@ sys.exit(0)
 PY
 }
 
-set_config_value() {
-  python3 - "$CONFIG_PATH" "$1" "$2" <<'PY'
-import sys
-path, key, value = sys.argv[1], sys.argv[2], sys.argv[3]
-parts = key.split(".")
-lines = open(path, "r", encoding="utf-8").read().splitlines()
-stack = []
-for idx, line in enumerate(lines):
-    stripped = line.strip()
-    if not stripped or stripped.startswith("#"):
-        continue
-    indent = len(line) - len(line.lstrip(" "))
-    key_name, _, _ = stripped.partition(":")
-    while stack and stack[-1][1] >= indent:
-        stack.pop()
-    stack.append((key_name, indent))
-    if [k for k, _ in stack] == parts:
-        lines[idx] = (" " * indent) + f'{key_name}: "{value}"'
-        break
-else:
-    sys.exit(1)
-with open(path, "w", encoding="utf-8", newline="") as handle:
-    handle.write("\n".join(lines) + "\n")
-PY
-}
-
 to_abs_path() {
   local path="$1"
   if [[ "${path}" == "~"* ]]; then
@@ -74,6 +47,22 @@ to_abs_path() {
   fi
   echo "${ROOT_DIR}/${path#./}"
 }
+
+WORKSPACE_MANIFEST_NAME="$(get_config_value defaults.workspace_manifest)"
+if [ -z "${WORKSPACE_MANIFEST_NAME}" ]; then
+  WORKSPACE_MANIFEST_NAME="core-stats-workspace.yml"
+fi
+
+DATA_DIR_CFG="$(get_config_value tests.data_dir)"
+if [ -z "${DATA_DIR_CFG}" ]; then
+  DATA_DIR_CFG="./outputs/tests"
+fi
+DATA_DIR="$(to_abs_path "${DATA_DIR_CFG}")"
+DATA_GOLDEN_CFG="$(get_config_value tests.golden_dataset)"
+if [ -z "${DATA_GOLDEN_CFG}" ]; then
+  DATA_GOLDEN_CFG="${DATA_DIR}/golden_dataset.csv"
+fi
+DATA_GOLDEN="$(to_abs_path "${DATA_GOLDEN_CFG}")"
 
 assert_contains() {
   local file="$1"
@@ -132,15 +121,18 @@ else
 fi
 
 WORKSPACE_DIR="${RUN_ROOT}/mixed_models_template_workspace"
+WORKSPACE_MANIFEST_PATH="${WORKSPACE_DIR}/${WORKSPACE_MANIFEST_NAME}"
 TMP_BASE="${RUN_ROOT}/tmp/mixed_models_templates"
 LOG_FILE="${RUN_ROOT}/mixed_models_template_tests.log"
 
 mkdir -p "${RUN_ROOT}" "${WORKSPACE_DIR}" "${TMP_BASE}"
+: > "${WORKSPACE_MANIFEST_PATH}"
 : > "${LOG_FILE}"
 
 export TMPDIR="${TMP_BASE}"
 export TMP="${TMP_BASE}"
 export TEMP="${TMP_BASE}"
+cd "${WORKSPACE_DIR}"
 
 if ! command -v Rscript >/dev/null 2>&1; then
   echo "Rscript not found. Install R or use scripts/run_rscript.ps1 on Windows."
@@ -172,26 +164,20 @@ if Rscript "${CHECK_PKG_SCRIPT}" emmeans >/dev/null 2>&1; then
   HAS_EMMEANS=1
 fi
 
-CONFIG_BAK="$(mktemp)"
-cp "${CONFIG_PATH}" "${CONFIG_BAK}"
-
 DEFAULT_BAK="${TMP_BASE}/default-template-backup.md"
 EMMEANS_BAK="${TMP_BASE}/emmeans-template-backup.md"
 
 cleanup() {
+  rm -f "${WORKSPACE_MANIFEST_PATH}"
   if [[ -f "${DEFAULT_BAK}" ]]; then
     mv -f "${DEFAULT_BAK}" "${TEMPLATE_DEFAULT}"
   fi
   if [[ -f "${EMMEANS_BAK}" ]]; then
     mv -f "${EMMEANS_BAK}" "${TEMPLATE_EMMEANS}"
   fi
-  cp "${CONFIG_BAK}" "${CONFIG_PATH}"
-  rm -f "${CONFIG_BAK}"
   cleanup_runs
 }
 trap cleanup EXIT
-
-set_config_value defaults.output_dir "${WORKSPACE_DIR}"
 
 MIXED_DATA_PATH="${TMP_BASE}/mixed_models_long.csv"
 Rscript "${PREP_SCRIPT}" "${DATA_GOLDEN}" "${MIXED_DATA_PATH}" >>"${LOG_FILE}" 2>&1

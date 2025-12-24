@@ -4,7 +4,7 @@
 
 - Run every current module with a clean variable subset and with edge-case inputs.
 - Exercise key flags and template branches (grouped, cross, anova/regression).
-- Validate outputs in `defaults.output_dir/<dataset-name>/`: `analysis_log.jsonl`, `apa_report.md`, `scratchpad.md`, and the workspace parquet copy.
+- Validate outputs in `tests.output_dir/<timestamp>/workspace/<dataset-name>/`: `analysis_log.jsonl`, `apa_report.md`, `scratchpad.md`, and the workspace parquet copy.
 
 ## Prereqs
 
@@ -15,7 +15,7 @@
 
 ## Workspace setup
 
-- Preferred: `bash scripts/tests.sh smoke` (creates a run root under `outputs/test-runs/<timestamp>` and sets `defaults.output_dir` automatically).
+- Preferred: `bash scripts/tests.sh smoke` (creates a run root under `tests.output_dir/<timestamp>` and uses a workspace manifest to route outputs without editing `defaults.output_dir`).
 - On Windows, run `powershell -ExecutionPolicy Bypass -File scripts/tests.ps1 smoke` to use Windows R.
 - For manual runs, set `RUN_ROOT` and use `WORKSPACE_DIR="${RUN_ROOT}/workspace"` so outputs stay in the run folder.
 - Always run `init-workspace` first to create `golden_dataset/golden_dataset.parquet` and the dataset `scratchpad.md`/`apa_report.md`.
@@ -177,7 +177,7 @@ For automated checks, prefer the JSONL log entry (`results.status = expected_inv
 
 ## Smoke-test checks
 
-- `analysis_log.jsonl` gets appended for each module in `defaults.output_dir/golden_dataset/`.
-- `scratchpad.md` and `apa_report.md` exist in `defaults.output_dir/golden_dataset/`.
+- `analysis_log.jsonl` gets appended for each module in `tests.output_dir/<timestamp>/workspace/golden_dataset/`.
+- `scratchpad.md` and `apa_report.md` exist in `tests.output_dir/<timestamp>/workspace/golden_dataset/`.
 - `golden_dataset/golden_dataset.parquet` exists in the workspace and updates after `missings` and `data-transform`.
 - Template override runs show `TEMPLATE_SMOKE_TEST` in `apa_report.md` for the target module.

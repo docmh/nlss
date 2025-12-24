@@ -23,6 +23,8 @@ Create dataset workspace folders under the workspace root (current directory, it
 
 ## Script: `scripts/R/init_workspace.R`
 
+Input paths must point to local files that R can access. URLs or cloud share links are not supported; download the data first. When using the Windows wrapper, Windows paths like `C:\Data\study.sav` are converted to WSL paths automatically; for WSL direct runs, use `/mnt/<drive>/...`.
+
 ### Windows wrapper (WSL first, Windows fallback)
 
 ```powershell

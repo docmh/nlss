@@ -4,7 +4,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONFIG_PATH="${ROOT_DIR}/core-stats/scripts/config.yml"
-DATA_PATH="${ROOT_DIR}/outputs/tests/golden_dataset.csv"
 R_SCRIPT_DIR="${ROOT_DIR}/core-stats/scripts/R"
 RUN_RSCRIPT_PS="${ROOT_DIR}/core-stats/scripts/run_rscript.ps1"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/outputs/tests/check_r_package.R"
@@ -65,6 +64,7 @@ PY
 RUNS_BASE_CFG="$(get_config_value tests.output_dir)"
 TEMPLATE_OVERRIDE_DIR_CFG="$(get_config_value tests.template_dir)"
 TEMPLATE_MARKER="$(get_config_value tests.template_marker)"
+WORKSPACE_MANIFEST_NAME="$(get_config_value defaults.workspace_manifest)"
 
 if [ -z "${RUNS_BASE_CFG}" ]; then
   RUNS_BASE_CFG="outputs/test-runs"
@@ -74,6 +74,9 @@ if [ -z "${TEMPLATE_OVERRIDE_DIR_CFG}" ]; then
 fi
 if [ -z "${TEMPLATE_MARKER}" ]; then
   TEMPLATE_MARKER="TEMPLATE_SMOKE_TEST"
+fi
+if [ -z "${WORKSPACE_MANIFEST_NAME}" ]; then
+  WORKSPACE_MANIFEST_NAME="core-stats-workspace.yml"
 fi
 
 RUN_ID="$(date +%Y%m%d%H%M%S)"
@@ -90,6 +93,17 @@ to_abs_path() {
   fi
   echo "${ROOT_DIR}/${path#./}"
 }
+
+DATA_DIR_CFG="$(get_config_value tests.data_dir)"
+if [ -z "${DATA_DIR_CFG}" ]; then
+  DATA_DIR_CFG="./outputs/tests"
+fi
+DATA_DIR="$(to_abs_path "${DATA_DIR_CFG}")"
+DATA_PATH_CFG="$(get_config_value tests.golden_dataset)"
+if [ -z "${DATA_PATH_CFG}" ]; then
+  DATA_PATH_CFG="${DATA_DIR}/golden_dataset.csv"
+fi
+DATA_PATH="$(to_abs_path "${DATA_PATH_CFG}")"
 
 resolve_run_path() {
   local path="$1"
@@ -147,6 +161,7 @@ else
 fi
 
 WORKSPACE_DIR="${RUN_ROOT}/workspace"
+WORKSPACE_MANIFEST_PATH="${WORKSPACE_DIR}/${WORKSPACE_MANIFEST_NAME}"
 TEMPLATE_OVERRIDE_DIR="$(resolve_run_path "${TEMPLATE_OVERRIDE_DIR_CFG}")"
 TMP_BASE="${RUN_ROOT}/tmp"
 LOG_PATH="${RUN_ROOT}/smoke_test.log"
@@ -196,9 +211,12 @@ if [ "${USE_POWERSHELL}" -eq 0 ]; then
     exit 1
   fi
   echo "[INFO] Using Rscript directly." | tee -a "${LOG_PATH}"
+else
+  export CORE_STATS_RSCRIPT_CWD="${WORKSPACE_DIR_WIN}"
 fi
 
 mkdir -p "${WORKSPACE_DIR}" "${DATASET_DIR}" "${TEMPLATE_OVERRIDE_DIR}" "${TMP_BASE}"
+: > "${WORKSPACE_MANIFEST_PATH}"
 export TMPDIR="${TMP_BASE}"
 export TMP="${TMP_BASE}"
 export TEMP="${TMP_BASE}"
@@ -206,20 +224,15 @@ export TEMP="${TMP_BASE}"
 CONFIG_BAK="$(mktemp)"
 CONFIG_BASE="$(mktemp)"
 cp "${CONFIG_PATH}" "${CONFIG_BAK}"
+cp "${CONFIG_PATH}" "${CONFIG_BASE}"
 
 restore_config() {
   cp "${CONFIG_BAK}" "${CONFIG_PATH}"
   rm -f "${CONFIG_BAK}" "${CONFIG_BASE}"
+  rm -f "${WORKSPACE_MANIFEST_PATH}"
 }
 
 trap restore_config EXIT
-
-CONFIG_OUTPUT_DIR="${WORKSPACE_DIR_WIN}"
-if [ "${USE_POWERSHELL}" -eq 0 ]; then
-  CONFIG_OUTPUT_DIR="${WORKSPACE_DIR}"
-fi
-set_config_value defaults.output_dir "${CONFIG_OUTPUT_DIR}"
-cp "${CONFIG_PATH}" "${CONFIG_BASE}"
 
 reset_to_base() {
   cp "${CONFIG_BASE}" "${CONFIG_PATH}"
@@ -441,16 +454,9 @@ run_expect_log() {
   local log_file="$1"; shift
   local module="$1"; shift
   local status="$1"; shift
-  local fallback_log="${ROOT_DIR}/core-stats-workspace/${DATASET_LABEL}/analysis_log.jsonl"
   echo "[RUN-EXPECT] ${label}" | tee -a "${LOG_PATH}"
   local start_count
-  local fallback_start
   start_count="$(log_count "${log_file}")"
-  if [ "${fallback_log}" != "${log_file}" ]; then
-    fallback_start="$(log_count "${fallback_log}")"
-  else
-    fallback_start="${start_count}"
-  fi
   set +e
   "$@" >>"${LOG_PATH}" 2>&1
   local exit_status=$?
@@ -465,10 +471,6 @@ run_expect_log() {
       echo "[PASS] ${label} (informational log)" | tee -a "${LOG_PATH}"
       return 0
     fi
-    if [ -f "${fallback_log}" ] && log_has_expected "${fallback_log}" "${fallback_start}" "${module}" "${status}"; then
-      echo "[PASS] ${label} (informational log fallback)" | tee -a "${LOG_PATH}"
-      return 0
-    fi
     sleep 0.3
   done
   echo "[FAIL] ${label} (expected failure or ${status} log)" | tee -a "${LOG_PATH}"
@@ -476,11 +478,7 @@ run_expect_log() {
 }
 
 resolve_log_path() {
-  local out_dir
-  out_dir="$(get_config_value defaults.output_dir)"
-  if [ -z "${out_dir}" ]; then
-    out_dir="${WORKSPACE_DIR}"
-  fi
+  local out_dir="${WORKSPACE_DIR}"
   if [[ "${out_dir}" =~ ^[A-Za-z]:[\\\\/] || "${out_dir}" =~ ^\\\\ ]]; then
     out_dir="$(to_wsl_path "${out_dir}")"
   else
@@ -584,7 +582,7 @@ if [ ! -f "${DATA_PATH}" ]; then
   exit 1
 fi
 
-cd "${ROOT_DIR}"
+cd "${WORKSPACE_DIR}"
 
 rm -f "${APA_REPORT_PATH}" "${SCRATCHPAD_PATH}" "${ANALYSIS_LOG_PATH}"
 run_init_workspace "init workspace"

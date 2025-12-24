@@ -272,6 +272,18 @@ resolve_get_user_prompt <- function(opts) {
   NULL
 }
 
+resolve_normalize_input_path <- function(path) {
+  if (exists("normalize_input_path", mode = "function")) {
+    return(get("normalize_input_path", mode = "function")(path))
+  }
+  if (is.null(path)) return("")
+  path <- as.character(path)
+  if (length(path) == 0 || all(is.na(path))) return("")
+  path <- path[1]
+  if (is.na(path) || !nzchar(path)) return("")
+  enc2utf8(trimws(path))
+}
+
 resolve_agent_default <- function() {
   config_agent <- resolve_config_value("modules.init_workspace.agent", NULL)
   if (!is.null(config_agent) && nzchar(config_agent)) return(as.character(config_agent))
@@ -294,16 +306,20 @@ parse_paths <- function(value) {
     values <- resolve_parse_list(value, sep = ",")
   }
   values <- trimws(as.character(values))
+  values <- trim_empty(values)
+  values <- vapply(values, resolve_normalize_input_path, character(1))
   trim_empty(values)
 }
 
 normalize_path <- function(path) {
-  if (is.null(path) || !nzchar(path)) return("")
-  normalizePath(path, winslash = "/", mustWork = FALSE)
+  path <- resolve_normalize_input_path(path)
+  if (!nzchar(path)) return("")
+  enc2utf8(normalizePath(path, winslash = "/", mustWork = FALSE))
 }
 
 sanitize_file_component <- function(value) {
-  clean <- gsub("[^A-Za-z0-9._-]", "_", as.character(value))
+  clean <- enc2utf8(as.character(value))
+  clean <- gsub("[^A-Za-z0-9._-]", "_", clean)
   clean <- gsub("_+", "_", clean)
   if (!nzchar(clean)) clean <- "dataset"
   clean

@@ -6,7 +6,6 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONFIG_PATH="${ROOT_DIR}/core-stats/scripts/config.yml"
 R_SCRIPT_DIR="${ROOT_DIR}/core-stats/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/outputs/tests/check_regression_log.py"
-DATA_GOLDEN="${ROOT_DIR}/outputs/tests/golden_dataset.csv"
 TEMPLATE_PATH="${ROOT_DIR}/core-stats/assets/regression/default-template.md"
 
 get_config_value() {
@@ -35,32 +34,6 @@ sys.exit(0)
 PY
 }
 
-set_config_value() {
-  python3 - "$CONFIG_PATH" "$1" "$2" <<'PY'
-import sys
-path, key, value = sys.argv[1], sys.argv[2], sys.argv[3]
-parts = key.split(".")
-lines = open(path, "r", encoding="utf-8").read().splitlines()
-stack = []
-for idx, line in enumerate(lines):
-    stripped = line.strip()
-    if not stripped or stripped.startswith("#"):
-        continue
-    indent = len(line) - len(line.lstrip(" "))
-    key_name, _, _ = stripped.partition(":")
-    while stack and stack[-1][1] >= indent:
-        stack.pop()
-    stack.append((key_name, indent))
-    if [k for k, _ in stack] == parts:
-        lines[idx] = (" " * indent) + f"{key_name}: \"{value}\""
-        break
-else:
-    sys.exit(1)
-with open(path, "w", encoding="utf-8", newline="") as handle:
-    handle.write("\n".join(lines) + "\n")
-PY
-}
-
 to_abs_path() {
   local path="$1"
   if [[ "${path}" == "~"* ]]; then
@@ -72,6 +45,22 @@ to_abs_path() {
   fi
   echo "${ROOT_DIR}/${path#./}"
 }
+
+WORKSPACE_MANIFEST_NAME="$(get_config_value defaults.workspace_manifest)"
+if [ -z "${WORKSPACE_MANIFEST_NAME}" ]; then
+  WORKSPACE_MANIFEST_NAME="core-stats-workspace.yml"
+fi
+
+DATA_DIR_CFG="$(get_config_value tests.data_dir)"
+if [ -z "${DATA_DIR_CFG}" ]; then
+  DATA_DIR_CFG="./outputs/tests"
+fi
+DATA_DIR="$(to_abs_path "${DATA_DIR_CFG}")"
+DATA_GOLDEN_CFG="$(get_config_value tests.golden_dataset)"
+if [ -z "${DATA_GOLDEN_CFG}" ]; then
+  DATA_GOLDEN_CFG="${DATA_DIR}/golden_dataset.csv"
+fi
+DATA_GOLDEN="$(to_abs_path "${DATA_GOLDEN_CFG}")"
 
 RUNS_BASE_CFG="$(get_config_value tests.output_dir)"
 if [ -z "${RUNS_BASE_CFG}" ]; then
@@ -87,6 +76,7 @@ else
 fi
 
 WORKSPACE_DIR="${RUN_ROOT}/regression_workspace"
+WORKSPACE_MANIFEST_PATH="${WORKSPACE_DIR}/${WORKSPACE_MANIFEST_NAME}"
 TMP_BASE="${RUN_ROOT}/tmp/regression"
 LOG_FILE="${RUN_ROOT}/regression_test.log"
 
@@ -101,12 +91,8 @@ LOG_PATH="${DATASET_DIR}/analysis_log.jsonl"
 PARQUET_GOLDEN="${DATASET_DIR}/${DATASET_LABEL}.parquet"
 TEMPLATE_BAK="${TMP_BASE}/regression-template-backup.md"
 
-CONFIG_BAK="$(mktemp)"
-cp "${CONFIG_PATH}" "${CONFIG_BAK}"
-
 cleanup() {
-  cp "${CONFIG_BAK}" "${CONFIG_PATH}"
-  rm -f "${CONFIG_BAK}"
+  rm -f "${WORKSPACE_MANIFEST_PATH}"
   if [ -f "${TEMPLATE_BAK}" ]; then
     mv -f "${TEMPLATE_BAK}" "${TEMPLATE_PATH}"
   fi
@@ -126,12 +112,12 @@ if [ ! -f "${DATA_GOLDEN}" ]; then
 fi
 
 mkdir -p "${WORKSPACE_DIR}" "${DATASET_DIR}" "${TMP_BASE}"
+: > "${WORKSPACE_MANIFEST_PATH}"
 export TMPDIR="${TMP_BASE}"
 export TMP="${TMP_BASE}"
 export TEMP="${TMP_BASE}"
 rm -f "${APA_REPORT_PATH}" "${SCRATCHPAD_PATH}" "${LOG_PATH}"
-
-set_config_value defaults.output_dir "${WORKSPACE_DIR}"
+cd "${WORKSPACE_DIR}"
 
 log_count() {
   python3 - "$1" <<'PY'

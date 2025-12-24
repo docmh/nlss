@@ -44,16 +44,64 @@ dir.create(out_root, recursive = TRUE, showWarnings = FALSE)
 dir.create(data_dir, recursive = TRUE, showWarnings = FALSE)
 
 config_path <- file.path(repo_root, "core-stats", "scripts", "config.yml")
-config_lines <- readLines(config_path)
-on.exit(writeLines(config_lines, config_path), add = TRUE)
 
-output_idx <- grep("^\\s*output_dir:", config_lines)
-assert_true(length(output_idx) > 0, "config.yml missing defaults.output_dir")
-config_lines[output_idx[1]] <- sub("output_dir:.*", "output_dir: \"./outputs/tests\"", config_lines[output_idx[1]])
-writeLines(config_lines, config_path)
+read_config_value <- function(path, key) {
+  if (!file.exists(path)) return("")
+  parts <- strsplit(key, ".", fixed = TRUE)[[1]]
+  lines <- readLines(path, warn = FALSE)
+  keys <- character(0)
+  indents <- integer(0)
+  for (line in lines) {
+    stripped <- trimws(line)
+    if (!nzchar(stripped) || startsWith(stripped, "#")) next
+    indent <- nchar(line) - nchar(sub("^\\s+", "", line))
+    key_name <- sub(":.*$", "", stripped)
+    while (length(indents) > 0 && tail(indents, 1) >= indent) {
+      keys <- keys[-length(keys)]
+      indents <- indents[-length(indents)]
+    }
+    keys <- c(keys, key_name)
+    indents <- c(indents, indent)
+    if (length(keys) == length(parts) && all(keys == parts)) {
+      value <- sub("^[^:]*:\\s*", "", stripped)
+      value <- sub("^['\"]", "", value)
+      value <- sub("['\"]$", "", value)
+      return(value)
+    }
+  }
+  ""
+}
+
+resolve_path <- function(path) {
+  if (!nzchar(path)) return("")
+  if (grepl("^/|^[A-Za-z]:|^\\\\\\\\", path)) return(normalizePath(path, winslash = "/", mustWork = FALSE))
+  normalizePath(file.path(repo_root, path), winslash = "/", mustWork = FALSE)
+}
+
+run_root_env <- Sys.getenv("CORE_STATS_TEST_ROOT", unset = "")
+runs_base_cfg <- read_config_value(config_path, "tests.output_dir")
+if (!nzchar(runs_base_cfg)) runs_base_cfg <- "./outputs/test-runs"
+runs_base <- resolve_path(runs_base_cfg)
+if (nzchar(run_root_env)) {
+  run_root <- normalizePath(run_root_env, winslash = "/", mustWork = FALSE)
+} else {
+  timestamp <- format(Sys.time(), "%Y%m%d%H%M%S")
+  run_root <- file.path(runs_base, timestamp)
+}
+dir.create(run_root, recursive = TRUE, showWarnings = FALSE)
+
+workspace_root <- file.path(run_root, "missings_workspace")
+dir.create(workspace_root, recursive = TRUE, showWarnings = FALSE)
+manifest_name <- read_config_value(config_path, "defaults.workspace_manifest")
+if (!nzchar(manifest_name)) manifest_name <- "core-stats-workspace.yml"
+manifest_path <- file.path(workspace_root, manifest_name)
+file.create(manifest_path, showWarnings = FALSE)
+on.exit({
+  if (file.exists(manifest_path)) file.remove(manifest_path)
+}, add = TRUE)
 
 missings_script <- file.path(repo_root, "core-stats", "scripts", "R", "missings.R")
-out_dir <- file.path(repo_root, "outputs", "tests")
+out_dir <- workspace_root
 base_outputs <- c("missing_handled_data.rds", "apa_report.md", "analysis_log.jsonl")
 
 resolve_dataset_dir <- function(name) {
@@ -112,6 +160,9 @@ run_case <- function(name, input_type, df, vars, extra_args = character(0), post
     args <- c(args, extra_args)
   }
 
+  old_wd <- getwd()
+  setwd(workspace_root)
+  on.exit(setwd(old_wd), add = TRUE)
   stdout <- system2("Rscript", args, stdout = TRUE, stderr = TRUE)
   status <- attr(stdout, "status")
   if (!is.null(status) && status != 0) {

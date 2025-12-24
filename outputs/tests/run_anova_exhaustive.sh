@@ -6,27 +6,6 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONFIG_PATH="${ROOT_DIR}/core-stats/scripts/config.yml"
 R_SCRIPT_DIR="${ROOT_DIR}/core-stats/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/outputs/tests/check_anova_log.py"
-DATA_GOLDEN="${ROOT_DIR}/outputs/tests/golden_dataset.csv"
-DATA_EDGE="${ROOT_DIR}/outputs/tests/anova_edge_dataset.csv"
-DATA_MISSING="${ROOT_DIR}/outputs/tests/anova_all_missing.csv"
-
-DATASET_GOLDEN_LABEL="$(basename "${DATA_GOLDEN}")"
-DATASET_GOLDEN_LABEL="${DATASET_GOLDEN_LABEL%.*}"
-DATASET_EDGE_LABEL="$(basename "${DATA_EDGE}")"
-DATASET_EDGE_LABEL="${DATASET_EDGE_LABEL%.*}"
-DATASET_MISSING_LABEL="$(basename "${DATA_MISSING}")"
-DATASET_MISSING_LABEL="${DATASET_MISSING_LABEL%.*}"
-
-DATASET_GOLDEN_DIR="${WORKSPACE_DIR}/${DATASET_GOLDEN_LABEL}"
-DATASET_EDGE_DIR="${WORKSPACE_DIR}/${DATASET_EDGE_LABEL}"
-DATASET_MISSING_DIR="${WORKSPACE_DIR}/${DATASET_MISSING_LABEL}"
-
-APA_REPORT_PATH="${DATASET_GOLDEN_DIR}/apa_report.md"
-SCRATCHPAD_PATH="${DATASET_GOLDEN_DIR}/scratchpad.md"
-LOG_PATH="${DATASET_GOLDEN_DIR}/analysis_log.jsonl"
-PARQUET_GOLDEN="${DATASET_GOLDEN_DIR}/${DATASET_GOLDEN_LABEL}.parquet"
-PARQUET_EDGE="${DATASET_EDGE_DIR}/${DATASET_EDGE_LABEL}.parquet"
-PARQUET_MISSING="${DATASET_MISSING_DIR}/${DATASET_MISSING_LABEL}.parquet"
 
 get_config_value() {
   python3 - "$CONFIG_PATH" "$1" <<'PY'
@@ -54,32 +33,6 @@ sys.exit(0)
 PY
 }
 
-set_config_value() {
-  python3 - "$CONFIG_PATH" "$1" "$2" <<'PY'
-import sys
-path, key, value = sys.argv[1], sys.argv[2], sys.argv[3]
-parts = key.split(".")
-lines = open(path, "r", encoding="utf-8").read().splitlines()
-stack = []
-for idx, line in enumerate(lines):
-    stripped = line.strip()
-    if not stripped or stripped.startswith("#"):
-        continue
-    indent = len(line) - len(line.lstrip(" "))
-    key_name, _, _ = stripped.partition(":")
-    while stack and stack[-1][1] >= indent:
-        stack.pop()
-    stack.append((key_name, indent))
-    if [k for k, _ in stack] == parts:
-        lines[idx] = (" " * indent) + f"{key_name}: \"{value}\""
-        break
-else:
-    sys.exit(1)
-with open(path, "w", encoding="utf-8", newline="") as handle:
-    handle.write("\n".join(lines) + "\n")
-PY
-}
-
 to_abs_path() {
   local path="$1"
   if [[ "${path}" == "~"* ]]; then
@@ -91,6 +44,24 @@ to_abs_path() {
   fi
   echo "${ROOT_DIR}/${path#./}"
 }
+
+WORKSPACE_MANIFEST_NAME="$(get_config_value defaults.workspace_manifest)"
+if [ -z "${WORKSPACE_MANIFEST_NAME}" ]; then
+  WORKSPACE_MANIFEST_NAME="core-stats-workspace.yml"
+fi
+
+DATA_DIR_CFG="$(get_config_value tests.data_dir)"
+if [ -z "${DATA_DIR_CFG}" ]; then
+  DATA_DIR_CFG="./outputs/tests"
+fi
+DATA_DIR="$(to_abs_path "${DATA_DIR_CFG}")"
+DATA_GOLDEN_CFG="$(get_config_value tests.golden_dataset)"
+if [ -z "${DATA_GOLDEN_CFG}" ]; then
+  DATA_GOLDEN_CFG="${DATA_DIR}/golden_dataset.csv"
+fi
+DATA_GOLDEN="$(to_abs_path "${DATA_GOLDEN_CFG}")"
+DATA_EDGE="${DATA_DIR}/anova_edge_dataset.csv"
+DATA_MISSING="${DATA_DIR}/anova_all_missing.csv"
 
 RUNS_BASE_CFG="$(get_config_value tests.output_dir)"
 if [ -z "${RUNS_BASE_CFG}" ]; then
@@ -106,19 +77,37 @@ else
 fi
 
 WORKSPACE_DIR="${RUN_ROOT}/anova_workspace"
+WORKSPACE_MANIFEST_PATH="${WORKSPACE_DIR}/${WORKSPACE_MANIFEST_NAME}"
 TMP_BASE="${RUN_ROOT}/tmp/anova"
 LOG_FILE="${RUN_ROOT}/anova_exhaustive.log"
 
+DATASET_GOLDEN_LABEL="$(basename "${DATA_GOLDEN}")"
+DATASET_GOLDEN_LABEL="${DATASET_GOLDEN_LABEL%.*}"
+DATASET_EDGE_LABEL="$(basename "${DATA_EDGE}")"
+DATASET_EDGE_LABEL="${DATASET_EDGE_LABEL%.*}"
+DATASET_MISSING_LABEL="$(basename "${DATA_MISSING}")"
+DATASET_MISSING_LABEL="${DATASET_MISSING_LABEL%.*}"
+
+DATASET_GOLDEN_DIR="${WORKSPACE_DIR}/${DATASET_GOLDEN_LABEL}"
+DATASET_EDGE_DIR="${WORKSPACE_DIR}/${DATASET_EDGE_LABEL}"
+DATASET_MISSING_DIR="${WORKSPACE_DIR}/${DATASET_MISSING_LABEL}"
+
+APA_REPORT_PATH="${DATASET_GOLDEN_DIR}/apa_report.md"
+SCRATCHPAD_PATH="${DATASET_GOLDEN_DIR}/scratchpad.md"
+LOG_PATH="${DATASET_GOLDEN_DIR}/analysis_log.jsonl"
+LOG_PATH_EDGE="${DATASET_EDGE_DIR}/analysis_log.jsonl"
+PARQUET_GOLDEN="${DATASET_GOLDEN_DIR}/${DATASET_GOLDEN_LABEL}.parquet"
+PARQUET_EDGE="${DATASET_EDGE_DIR}/${DATASET_EDGE_LABEL}.parquet"
+PARQUET_MISSING="${DATASET_MISSING_DIR}/${DATASET_MISSING_LABEL}.parquet"
+
 mkdir -p "${RUN_ROOT}"
+mkdir -p "${WORKSPACE_DIR}"
+: > "${WORKSPACE_MANIFEST_PATH}"
 
-CONFIG_BAK="$(mktemp)"
-cp "${CONFIG_PATH}" "${CONFIG_BAK}"
-
-restore_config() {
-  cp "${CONFIG_BAK}" "${CONFIG_PATH}"
-  rm -f "${CONFIG_BAK}"
+cleanup() {
+  rm -f "${WORKSPACE_MANIFEST_PATH}"
 }
-trap restore_config EXIT
+trap cleanup EXIT
 
 : > "${LOG_FILE}"
 
@@ -141,8 +130,7 @@ export TMPDIR="${TMP_BASE}"
 export TMP="${TMP_BASE}"
 export TEMP="${TMP_BASE}"
 rm -f "${APA_REPORT_PATH}" "${SCRATCHPAD_PATH}" "${LOG_PATH}"
-
-set_config_value defaults.output_dir "${WORKSPACE_DIR}"
+cd "${WORKSPACE_DIR}"
 
 log_count() {
   python3 - "$1" <<'PY'
@@ -171,6 +159,19 @@ check_anova_log() {
   local status="$1"; shift
   local boot_ci="${1:--}"; shift || true
   python3 "${CHECK_SCRIPT}" "${LOG_PATH}" "${start_count}" "${mode}" "${posthoc}" "${posthoc_rows}" "${effect_size}" "${sphericity}" "${status}" "${boot_ci}"
+}
+
+check_anova_log_path() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local mode="$1"; shift
+  local posthoc="$1"; shift
+  local posthoc_rows="$1"; shift
+  local effect_size="$1"; shift
+  local sphericity="$1"; shift
+  local status="$1"; shift
+  local boot_ci="${1:--}"; shift || true
+  python3 "${CHECK_SCRIPT}" "${log_path}" "${start_count}" "${mode}" "${posthoc}" "${posthoc_rows}" "${effect_size}" "${sphericity}" "${status}" "${boot_ci}"
 }
 
 run_ok() {
@@ -286,9 +287,9 @@ start=$(log_count "${LOG_PATH}")
 run_ok "anova within posthoc tukey requested" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --within pre_score,post_score --subject-id id --posthoc tukey
 check_anova_log "${start}" "within" "pairwise" "gt0" "partial_eta_sq" "-" "-" || exit 1
 
-start=$(log_count "${LOG_PATH}")
+start=$(log_count "${LOG_PATH_EDGE}")
 run_ok "anova CSV input (edge dataset)" Rscript "${R_SCRIPT_DIR}/anova.R" --csv "${DATA_EDGE}" --dv dv_num --between group --posthoc tukey
-check_anova_log "${start}" "between" "tukey" "gt0" "partial_eta_sq" "-" "-" || exit 1
+check_anova_log_path "${LOG_PATH_EDGE}" "${start}" "between" "tukey" "gt0" "partial_eta_sq" "-" "-" || exit 1
 
 start=$(log_count "${LOG_PATH}")
 run_ok "anova between bootstrap" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_anova --between group3 --bootstrap TRUE --bootstrap-samples 200

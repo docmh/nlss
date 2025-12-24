@@ -49,6 +49,11 @@ if [ -z "${RUNS_BASE_CFG}" ]; then
   RUNS_BASE_CFG="outputs/test-runs"
 fi
 
+WORKSPACE_MANIFEST_NAME="$(get_config_value defaults.workspace_manifest)"
+if [ -z "${WORKSPACE_MANIFEST_NAME}" ]; then
+  WORKSPACE_MANIFEST_NAME="core-stats-workspace.yml"
+fi
+
 RUN_ID="$(date +%Y%m%d%H%M%S)"
 RUNS_BASE="$(to_abs_path "${RUNS_BASE_CFG}")"
 if [ -n "${CORE_STATS_TEST_ROOT:-}" ]; then
@@ -87,15 +92,10 @@ SUMMARY_PATH="$RUN_ROOT/scale-output-tests-results.txt"
 
 mkdir -p "$BASE_OUT" "$APPEND_OUT" "$MOD_OUT" "$TMPDIR_PATH"
 
-CONFIG_BAK="$(mktemp)"
-cp "$CONFIG_PATH" "$CONFIG_BAK"
-
 cleanup() {
   if [[ -f "$BACKUP_PATH" ]]; then
     mv -f "$BACKUP_PATH" "$TEMPLATE_PATH"
   fi
-  cp "$CONFIG_BAK" "$CONFIG_PATH"
-  rm -f "$CONFIG_BAK"
 }
 trap cleanup EXIT
 
@@ -144,27 +144,22 @@ cleanup_runs() {
 
 run_scale() {
   local out_dir="$1"
-  python3 - "$CONFIG_PATH" "$out_dir" <<'PY'
-import sys
-path, value = sys.argv[1], sys.argv[2]
-lines = open(path, "r", encoding="utf-8").read().splitlines()
-for idx, line in enumerate(lines):
-    stripped = line.strip()
-    if stripped.startswith("output_dir:"):
-        indent = len(line) - len(line.lstrip(" "))
-        lines[idx] = (" " * indent) + f'output_dir: "{value}"'
-        break
-else:
-    raise SystemExit("output_dir not found in config.yml")
-with open(path, "w", encoding="utf-8", newline="") as handle:
-    handle.write("\\n".join(lines) + "\\n")
-PY
-  TMPDIR="$TMPDIR_PATH" Rscript "$SCRIPT_PATH" \
-    --csv "$CSV_PATH" \
-    --vars item1,item2,item3 \
-    --digits 2 \
-    --log TRUE \
-    >/dev/null
+  local manifest_path="${out_dir}/${WORKSPACE_MANIFEST_NAME}"
+  : > "${manifest_path}"
+  set +e
+  (
+    trap 'rm -f "${manifest_path}"' EXIT
+    cd "${out_dir}" || exit 1
+    TMPDIR="$TMPDIR_PATH" Rscript "$SCRIPT_PATH" \
+      --csv "$CSV_PATH" \
+      --vars item1,item2,item3 \
+      --digits 2 \
+      --log TRUE \
+      >/dev/null
+  )
+  local status=$?
+  set -e
+  return "${status}"
 }
 
 cat >"$CSV_PATH" <<'EOF_DATA'

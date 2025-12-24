@@ -5,7 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONFIG_PATH="${ROOT_DIR}/core-stats/scripts/config.yml"
 R_SCRIPT_DIR="${ROOT_DIR}/core-stats/scripts/R"
-DATA_GOLDEN="${ROOT_DIR}/outputs/tests/golden_dataset.csv"
 CHECK_SCRIPT="${ROOT_DIR}/outputs/tests/check_sem_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/outputs/tests/check_r_package.R"
 
@@ -73,6 +72,22 @@ to_abs_path() {
   echo "${ROOT_DIR}/${path#./}"
 }
 
+WORKSPACE_MANIFEST_NAME="$(get_config_value defaults.workspace_manifest)"
+if [ -z "${WORKSPACE_MANIFEST_NAME}" ]; then
+  WORKSPACE_MANIFEST_NAME="core-stats-workspace.yml"
+fi
+
+DATA_DIR_CFG="$(get_config_value tests.data_dir)"
+if [ -z "${DATA_DIR_CFG}" ]; then
+  DATA_DIR_CFG="./outputs/tests"
+fi
+DATA_DIR="$(to_abs_path "${DATA_DIR_CFG}")"
+DATA_GOLDEN_CFG="$(get_config_value tests.golden_dataset)"
+if [ -z "${DATA_GOLDEN_CFG}" ]; then
+  DATA_GOLDEN_CFG="${DATA_DIR}/golden_dataset.csv"
+fi
+DATA_GOLDEN="$(to_abs_path "${DATA_GOLDEN_CFG}")"
+
 RUNS_BASE_CFG="$(get_config_value tests.output_dir)"
 if [ -z "${RUNS_BASE_CFG}" ]; then
   RUNS_BASE_CFG="outputs/test-runs"
@@ -87,6 +102,7 @@ else
 fi
 
 WORKSPACE_DIR="${RUN_ROOT}/sem_workspace"
+WORKSPACE_MANIFEST_PATH="${WORKSPACE_DIR}/${WORKSPACE_MANIFEST_NAME}"
 TMP_BASE="${RUN_ROOT}/tmp/sem"
 LOG_FILE="${RUN_ROOT}/sem_test.log"
 
@@ -106,6 +122,7 @@ cp "${CONFIG_PATH}" "${CONFIG_BAK}"
 cleanup() {
   cp "${CONFIG_BAK}" "${CONFIG_PATH}"
   rm -f "${CONFIG_BAK}"
+  rm -f "${WORKSPACE_MANIFEST_PATH}"
 }
 trap cleanup EXIT
 
@@ -122,6 +139,7 @@ if [ ! -f "${DATA_GOLDEN}" ]; then
 fi
 
 mkdir -p "${WORKSPACE_DIR}" "${DATASET_DIR}" "${TMP_BASE}"
+: > "${WORKSPACE_MANIFEST_PATH}"
 export TMPDIR="${TMP_BASE}"
 export TMP="${TMP_BASE}"
 export TEMP="${TMP_BASE}"
@@ -134,15 +152,8 @@ HAS_HAVEN=0
 if Rscript "${CHECK_R_PACKAGE_SCRIPT}" haven >/dev/null 2>&1; then
   HAS_HAVEN=1
 fi
-HAS_PTY=0
-if command -v script >/dev/null 2>&1; then
-  if script -q -c "true" /dev/null >/dev/null 2>&1; then
-    HAS_PTY=1
-  fi
-fi
 rm -f "${APA_REPORT_PATH}" "${SCRATCHPAD_PATH}" "${LOG_PATH}"
-
-set_config_value defaults.output_dir "${WORKSPACE_DIR}"
+cd "${WORKSPACE_DIR}"
 
 log_count() {
   python3 - "$1" <<'PY'
@@ -520,13 +531,9 @@ if [ "${HAS_HAVEN}" -eq 1 ]; then
   check_log "${start}" "ok" "path" "standard" "3" "chisq,df,cfi" "-" "false" "false" "false"
 fi
 
-if [ "${HAS_PTY}" -eq 1 ]; then
-  start=$(log_count "${LOG_PATH}")
-  run_ok "interactive path" bash -c "script -q -c \"Rscript \\\"${R_SCRIPT_DIR}/sem.R\\\" --interactive\" /dev/null < \"${INTERACTIVE_INPUT}\""
-  check_log "${start}" "ok" "path" "standard" "3" "chisq,df,cfi" "-" "false" "false" "false"
-else
-  echo "[SKIP] interactive mode (no pty available)" | tee -a "${LOG_FILE}"
-fi
+start=$(log_count "${LOG_PATH}")
+run_ok "interactive path" env CORE_STATS_PROMPT_FILE="${INTERACTIVE_INPUT}" Rscript "${R_SCRIPT_DIR}/sem.R" --interactive
+check_log "${start}" "ok" "path" "standard" "3" "chisq,df,cfi" "-" "false" "false" "false"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "cfa factors (mlr)" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis cfa --factors "${FACTORS}" --estimator MLR --missing fiml --se robust --ci standard --fit "chisq,df,cfi,tli,rmsea,srmr" --std std.all --r2 TRUE

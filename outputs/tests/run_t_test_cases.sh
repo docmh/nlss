@@ -5,8 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONFIG_PATH="${ROOT_DIR}/core-stats/scripts/config.yml"
 SCRIPT="${ROOT_DIR}/core-stats/scripts/R/t_test.R"
-DATA_MAIN="${ROOT_DIR}/outputs/tests/data/t_test_main.csv"
-DATA_SMALL="${ROOT_DIR}/outputs/tests/data/t_test_small.csv"
 
 get_config_value() {
   python3 - "$CONFIG_PATH" "$1" <<'PY'
@@ -34,32 +32,6 @@ sys.exit(0)
 PY
 }
 
-set_config_value() {
-  python3 - "$CONFIG_PATH" "$1" "$2" <<'PY'
-import sys
-path, key, value = sys.argv[1], sys.argv[2], sys.argv[3]
-parts = key.split(".")
-lines = open(path, "r", encoding="utf-8").read().splitlines()
-stack = []
-for idx, line in enumerate(lines):
-    stripped = line.strip()
-    if not stripped or stripped.startswith("#"):
-        continue
-    indent = len(line) - len(line.lstrip(" "))
-    key_name, _, _ = stripped.partition(":")
-    while stack and stack[-1][1] >= indent:
-        stack.pop()
-    stack.append((key_name, indent))
-    if [k for k, _ in stack] == parts:
-        lines[idx] = (" " * indent) + f"{key_name}: \"{value}\""
-        break
-else:
-    sys.exit(1)
-with open(path, "w", encoding="utf-8", newline="") as handle:
-    handle.write("\\n".join(lines) + "\\n")
-PY
-}
-
 to_abs_path() {
   local path="$1"
   if [[ "${path}" == "~"* ]]; then
@@ -71,6 +43,19 @@ to_abs_path() {
   fi
   echo "${ROOT_DIR}/${path#./}"
 }
+
+WORKSPACE_MANIFEST_NAME="$(get_config_value defaults.workspace_manifest)"
+if [ -z "${WORKSPACE_MANIFEST_NAME}" ]; then
+  WORKSPACE_MANIFEST_NAME="core-stats-workspace.yml"
+fi
+
+DATA_DIR_CFG="$(get_config_value tests.data_dir)"
+if [ -z "${DATA_DIR_CFG}" ]; then
+  DATA_DIR_CFG="./outputs/tests"
+fi
+DATA_DIR="$(to_abs_path "${DATA_DIR_CFG}")"
+DATA_MAIN="${DATA_DIR}/data/t_test_main.csv"
+DATA_SMALL="${DATA_DIR}/data/t_test_small.csv"
 
 RUNS_BASE_CFG="$(get_config_value tests.output_dir)"
 if [ -z "${RUNS_BASE_CFG}" ]; then
@@ -86,20 +71,18 @@ else
 fi
 
 WORKSPACE_DIR="${RUN_ROOT}/t_test_workspace"
+WORKSPACE_MANIFEST_PATH="${WORKSPACE_DIR}/${WORKSPACE_MANIFEST_NAME}"
 TMPDIR_PATH="${RUN_ROOT}/tmp/t_test"
 LOG_PATH="${RUN_ROOT}/t_test_cases.log"
 
-CONFIG_BAK="$(mktemp)"
-cp "${CONFIG_PATH}" "${CONFIG_BAK}"
-
 cleanup() {
-  cp "${CONFIG_BAK}" "${CONFIG_PATH}"
-  rm -f "${CONFIG_BAK}"
+  rm -f "${WORKSPACE_MANIFEST_PATH}"
 }
 trap cleanup EXIT
 
 mkdir -p "${TMPDIR_PATH}" "${WORKSPACE_DIR}"
-set_config_value defaults.output_dir "${WORKSPACE_DIR}"
+: > "${WORKSPACE_MANIFEST_PATH}"
+cd "${WORKSPACE_DIR}"
 
 run_ok() {
   local label="$1"; shift

@@ -8,7 +8,6 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $rootDir = Resolve-Path (Join-Path $scriptDir "..\..") | Select-Object -ExpandProperty Path
 $configPath = Join-Path $rootDir "core-stats\scripts\config.yml"
 $runRscriptPs = Join-Path $rootDir "core-stats\scripts\run_rscript.ps1"
-$dataPath = Join-Path $rootDir "outputs\tests\golden_dataset.csv"
 $rScriptDir = Join-Path $rootDir "core-stats\scripts\R"
 $checkRPackageScript = Join-Path $rootDir "outputs\tests\check_r_package.R"
 $mixedModelsPrepScript = Join-Path $rootDir "outputs\tests\mixed_models_prep.R"
@@ -121,6 +120,20 @@ $templateMarker = Get-ConfigValue "tests.template_marker"
 if (-not $templateMarker) {
     $templateMarker = "TEMPLATE_SMOKE_TEST"
 }
+$workspaceManifestName = Get-ConfigValue "defaults.workspace_manifest"
+if (-not $workspaceManifestName) {
+    $workspaceManifestName = "core-stats-workspace.yml"
+}
+$dataDirCfg = Get-ConfigValue "tests.data_dir"
+if (-not $dataDirCfg) {
+    $dataDirCfg = "outputs/tests"
+}
+$dataDir = Resolve-RootPath $dataDirCfg
+$dataPathCfg = Get-ConfigValue "tests.golden_dataset"
+if (-not $dataPathCfg) {
+    $dataPathCfg = Join-Path $dataDir "golden_dataset.csv"
+}
+$dataPath = Resolve-RootPath $dataPathCfg
 
 $runId = Get-Date -Format "yyyyMMddHHmmss"
 $runsBase = Resolve-RootPath $runsBaseCfg
@@ -133,6 +146,7 @@ if (-not $RunRoot) {
 }
 $script:runRoot = $RunRoot
 $workspaceDir = Join-Path $RunRoot "workspace"
+$workspaceManifestPath = Join-Path $workspaceDir $workspaceManifestName
 $templateOverrideDir = Resolve-RunPath $templateOverrideCfg
 $tmpBase = Join-Path $RunRoot "tmp"
 $logPath = Join-Path $RunRoot "smoke_test.log"
@@ -152,24 +166,23 @@ $mixedApaReportPath = Join-Path $mixedDatasetDir "apa_report.md"
 $mixedAnalysisLogPath = Join-Path $mixedDatasetDir "analysis_log.jsonl"
 
 New-Item -ItemType Directory -Force -Path $RunRoot, $workspaceDir, $datasetDir, $templateOverrideDir, $tmpBase | Out-Null
+New-Item -ItemType File -Force -Path $workspaceManifestPath | Out-Null
 
 [System.Environment]::SetEnvironmentVariable("TMPDIR", $tmpBase, "Process")
 [System.Environment]::SetEnvironmentVariable("TMP", $tmpBase, "Process")
 [System.Environment]::SetEnvironmentVariable("TEMP", $tmpBase, "Process")
+[System.Environment]::SetEnvironmentVariable("CORE_STATS_RSCRIPT_CWD", $workspaceDir, "Process")
 
 $configBak = Join-Path $tmpBase "config-backup.yml"
 $configBase = Join-Path $tmpBase "config-base.yml"
 Copy-Item $configPath $configBak -Force
+Copy-Item $configPath $configBase -Force
 
 function Reset-ToBase {
     Copy-Item $configBase $configPath -Force
 }
 
 try {
-    $configOut = Normalize-ConfigPath $workspaceDir
-    Set-ConfigValue "defaults.output_dir" $configOut
-    Copy-Item $configPath $configBase -Force
-
     "" | Out-File -FilePath $logPath
 
     if (-not (Test-Path $dataPath)) {
@@ -177,7 +190,7 @@ try {
         exit 1
     }
 
-    Set-Location $rootDir
+    Set-Location $workspaceDir
 
     if (Test-Path $apaReportPath) { Remove-Item $apaReportPath -Force }
     if (Test-Path $scratchpadPath) { Remove-Item $scratchpadPath -Force }
@@ -257,13 +270,8 @@ try {
 
     function Run-ExpectLogR {
         param([string]$Label, [string]$LogFile, [string]$Module, [string]$Status, [string]$ScriptPath, [string[]]$ScriptArgs)
-        $fallbackLog = Join-Path $rootDir "core-stats-workspace\$datasetLabel\analysis_log.jsonl"
         Write-Log "[RUN-EXPECT] $Label"
         $startCount = Get-LogCount $LogFile
-        $fallbackStart = $startCount
-        if ($fallbackLog -ne $LogFile) {
-            $fallbackStart = Get-LogCount $fallbackLog
-        }
         $result = Invoke-RScript $ScriptPath $ScriptArgs
         if ($result.Output) {
             $result.Output | Out-File -FilePath $logPath -Append
@@ -278,10 +286,6 @@ try {
                 Write-Log "[PASS] $Label (informational log)"
                 return
             }
-            if ((Test-Path $fallbackLog) -and (Log-HasExpected $fallbackLog $fallbackStart $Module $Status)) {
-                Write-Log "[PASS] $Label (informational log fallback)"
-                return
-            }
             Start-Sleep -Milliseconds 300
         }
         Write-Log "[FAIL] $Label (expected failure or $Status log)"
@@ -289,15 +293,7 @@ try {
     }
 
     function Resolve-LogPath {
-        $outDir = Get-ConfigValue "defaults.output_dir"
-        if (-not $outDir) {
-            $outDir = $workspaceDir
-        }
-        $outDir = $outDir -replace "/", "\"
-        if (-not [System.IO.Path]::IsPathRooted($outDir)) {
-            $outDir = Join-Path $rootDir $outDir
-        }
-        return (Join-Path (Join-Path $outDir $datasetLabel) "analysis_log.jsonl")
+        return (Join-Path (Join-Path $workspaceDir $datasetLabel) "analysis_log.jsonl")
     }
 
     function Assert-Marker {
@@ -539,4 +535,8 @@ try {
     if (Test-Path $configBase) {
         Remove-Item $configBase -Force
     }
+    if (Test-Path $workspaceManifestPath) {
+        Remove-Item $workspaceManifestPath -Force
+    }
+    [System.Environment]::SetEnvironmentVariable("CORE_STATS_RSCRIPT_CWD", $null, "Process")
 }
