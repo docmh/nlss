@@ -205,6 +205,14 @@ resolve_load_dataframe <- function(opts) {
   stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
 }
 
+
+resolve_get_workspace_out_dir <- function(df) {
+  if (exists("get_workspace_out_dir", mode = "function")) {
+    return(get("get_workspace_out_dir", mode = "function")(df))
+  }
+  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
+}
+
 resolve_get_levels <- function(vec) {
   if (exists("get_levels", mode = "function")) {
     return(get("get_levels", mode = "function")(vec))
@@ -1116,7 +1124,7 @@ main <- function() {
   residuals_default <- resolve_config_value("modules.crosstabs.residuals", TRUE)
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
   df <- resolve_load_dataframe(opts)
-  out_dir <- get_workspace_out_dir(df)
+  out_dir <- resolve_get_workspace_out_dir(df)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
 
   rows <- if (!is.null(opts$rows)) resolve_parse_list(opts$rows) else resolve_parse_list(opts$row)

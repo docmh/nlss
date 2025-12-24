@@ -211,6 +211,14 @@ resolve_load_dataframe <- function(opts) {
   stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
 }
 
+
+resolve_get_workspace_out_dir <- function(df) {
+  if (exists("get_workspace_out_dir", mode = "function")) {
+    return(get("get_workspace_out_dir", mode = "function")(df))
+  }
+  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
+}
+
 resolve_get_template_path <- function(key, default_relative = NULL) {
   if (exists("resolve_template_path", mode = "function")) {
     return(get("resolve_template_path", mode = "function")(key, default_relative))
@@ -1395,7 +1403,7 @@ main <- function() {
 
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
   df <- resolve_load_dataframe(opts)
-  out_dir <- get_workspace_out_dir(df)
+  out_dir <- resolve_get_workspace_out_dir(df)
 
   dv <- if (!is.null(opts$dv)) as.character(opts$dv) else ""
   between_vars <- resolve_parse_list(opts$between)

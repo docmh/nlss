@@ -207,6 +207,14 @@ resolve_load_dataframe <- function(opts) {
   stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
 }
 
+
+resolve_get_workspace_out_dir <- function(df) {
+  if (exists("get_workspace_out_dir", mode = "function")) {
+    return(get("get_workspace_out_dir", mode = "function")(df))
+  }
+  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
+}
+
 resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
   if (exists("append_apa_report", mode = "function")) {
     return(get("append_apa_report", mode = "function")(
@@ -753,7 +761,7 @@ if (!is.null(opts$interactive)) {
 }
 
 df <- resolve_load_dataframe(opts)
-out_dir <- get_workspace_out_dir(df)
+out_dir <- resolve_get_workspace_out_dir(df)
 workspace_parquet_path <- attr(df, "workspace_parquet_path")
 
 calc_rules <- if (!is.null(opts$calc)) parse_calc_rules(opts$calc) else list()

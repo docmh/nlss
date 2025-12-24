@@ -164,6 +164,14 @@ resolve_load_dataframe <- function(opts) {
   stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
 }
 
+
+resolve_get_workspace_out_dir <- function(df) {
+  if (exists("get_workspace_out_dir", mode = "function")) {
+    return(get("get_workspace_out_dir", mode = "function")(df))
+  }
+  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
+}
+
 resolve_parse_list <- function(value, sep = ",") {
   if (exists("parse_list", mode = "function")) {
     return(get("parse_list", mode = "function")(value, sep = sep))
@@ -945,7 +953,7 @@ main <- function() {
   coerce_flag <- resolve_parse_bool(opts$coerce, default = coerce_default)
 
   df <- resolve_load_dataframe(opts)
-  out_dir <- get_workspace_out_dir(df)
+  out_dir <- resolve_get_workspace_out_dir(df)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
 
   vars <- resolve_parse_list(opts$vars)

@@ -158,6 +158,14 @@ resolve_load_dataframe <- function(opts) {
   stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
 }
 
+
+resolve_get_workspace_out_dir <- function(df) {
+  if (exists("get_workspace_out_dir", mode = "function")) {
+    return(get("get_workspace_out_dir", mode = "function")(df))
+  }
+  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
+}
+
 resolve_select_variables <- function(df, vars, group_var = NULL, default = "numeric", include_numeric = FALSE) {
   if (exists("select_variables", mode = "function")) {
     return(get("select_variables", mode = "function")(
@@ -606,7 +614,7 @@ main <- function() {
   vars_default <- resolve_config_value("modules.descriptive_stats.vars_default", "numeric")
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
   df <- resolve_load_dataframe(opts)
-  out_dir <- get_workspace_out_dir(df)
+  out_dir <- resolve_get_workspace_out_dir(df)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
   if (!is.null(group_var) && !(group_var %in% names(df))) {
     stop("Grouping variable not found in data frame.")
