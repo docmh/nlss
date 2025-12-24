@@ -55,6 +55,16 @@ humanize_flag_name <- function(name) {
     "interactions" = "Interactions",
     "center" = "Centering",
     "standardize" = "Standardized coefficients",
+    "formula" = "Formula",
+    "fixed" = "Fixed effects",
+    "random" = "Random effects",
+    "reml" = "REML estimation",
+    "df-method" = "DF method",
+    "emmeans" = "Marginal means",
+    "contrasts" = "Contrasts",
+    "optimizer" = "Optimizer",
+    "maxfun" = "Optimizer maxfun",
+    "diagnostics" = "Diagnostics",
     "conf-level" = "Confidence level",
     "type" = "Sum of squares type",
     "effect-size" = "Effect size",
@@ -207,6 +217,14 @@ get_template_path <- function(analysis_label) {
   }
   if (label == "regression") {
     path <- resolve_template_path("regression.default", "regression/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label == "mixed models") {
+    path <- resolve_template_path("mixed_models.default", "mixed-models/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label %in% c("mixed models emmeans", "mixed models marginal means")) {
+    path <- resolve_template_path("mixed_models.emmeans", "mixed-models/emmeans-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
   }
   if (label %in% c("anova post-hoc", "anova posthoc", "anova post hoc")) {

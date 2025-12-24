@@ -1,6 +1,6 @@
 version: 1
 defaults:
-  output_dir: "./core-stats-workspace"
+  output_dir: "/mnt/c/Users/hamme/OneDrive/Software-Projekte/statistic-skills/outputs/test-runs/20251224183826/workspace"
   workspace_manifest: "core-stats-workspace.yml"
   csv:
     sep: ","
@@ -81,6 +81,19 @@ modules:
     standardize: "none"
     bootstrap: false
     bootstrap_samples: 1000
+  mixed_models:
+    reml: true
+    type: "III"
+    df_method: "satterthwaite"
+    standardize: "none"
+    emmeans: "none"
+    contrasts: "none"
+    p_adjust: "holm"
+    conf_level: 0.95
+    optimizer: "bobyqa"
+    maxfun: 100000
+    diagnostics: true
+    max_shapiro_n: 5000
   assumptions:
     analysis: "auto"
     vars_default: "numeric"
@@ -136,6 +149,9 @@ templates:
     posthoc: "anova/posthoc-template.md"
   regression:
     default: "regression/default-template.md"
+  mixed_models:
+    default: "mixed-models/default-template.md"
+    emmeans: "mixed-models/emmeans-template.md"
   assumptions:
     ttest: "assumptions/ttest-template.md"
     anova: "assumptions/anova-template.md"
@@ -146,6 +162,6 @@ templates:
     default: "init-workspace/default-template.md"
     scratchpad: "scratchpad/default-template.md"
 tests:
-  output_dir: "./outputs/tests/workspace"
-  template_dir: "./outputs/tests/templates"
+  output_dir: "./outputs/test-runs"
+  template_dir: "templates"
   template_marker: "TEMPLATE_SMOKE_TEST"

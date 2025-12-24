@@ -101,6 +101,9 @@ function Convert-ArgsToWsl {
 
 $wslExe = Get-WslExe
 $rscript = Get-RscriptPath
+if ($env:CORE_STATS_SKIP_WSL) {
+    $wslExe = $null
+}
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $defaultScript = Join-Path $scriptDir "R\descriptive_stats.R"
@@ -150,5 +153,14 @@ if (-not $rscript) {
     exit 127
 }
 
-& $rscript $target @allArgs
-exit $LASTEXITCODE
+$prevLocation = Get-Location
+try {
+    $targetDir = Split-Path -Parent $target
+    if ($targetDir) {
+        Set-Location $targetDir
+    }
+    & $rscript $target @allArgs
+    exit $LASTEXITCODE
+} finally {
+    Set-Location $prevLocation
+}

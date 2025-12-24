@@ -4,19 +4,17 @@ R-based statistics helpers that produce an APA 7-ready report plus machine-reada
 
 ## Requirements and system support
 
-- R 4.0+ (base R is enough for CSV/APA outputs).
+- R 4.4+ (base R is enough for CSV/APA outputs).
 - Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), and `arrow` (parquet workspace copies).
-- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `car` for Type II/III ANOVA sums of squares.
+- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `car` for Type II/III ANOVA sums of squares; `lme4` for mixed models; `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `performance` for R2/ICC.
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
 - Optional: WSL if you want the wrapper to run Linux Rscript first and fall back to Windows Rscript.
 
 Install the R dependencies:
 
-```r
-install.packages(c("yaml", "jsonlite", "arrow", "haven"))
-# install.packages("foreign") # legacy fallback if haven is not available
-# install.packages("car") # optional for Type II/III ANOVA sums of squares
+```bash
+Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','haven','foreign','car','lme4','lmerTest','emmeans','performance'))"
 ```
 
 ## Install
@@ -107,6 +105,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `missings` | `core-stats/scripts/R/missings.R` | Missing-data patterns, handling decisions, and transformed datasets. | Yes (`missings/default-template.md`) |
 | `assumptions` | `core-stats/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, and regression. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`) |
 | `regression` | `core-stats/scripts/R/regression.R` | Multiple and hierarchical regression (OLS/GLM) with interactions and bootstrap CIs. | Yes (`regression/default-template.md`) |
+| `mixed-models` | `core-stats/scripts/R/mixed_models.R` | Linear mixed-effects models with random effects and marginal means. | Yes (`mixed-models/default-template.md`, `mixed-models/emmeans-template.md`) |
 | `anova` | `core-stats/scripts/R/anova.R` | Between-, within-, and mixed ANOVA with post-hoc comparisons. | Yes (`anova/default-template.md`, `anova/posthoc-template.md`) |
 | `t-test` | `core-stats/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
 | `init-workspace` | `core-stats/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
@@ -122,6 +121,7 @@ Reference docs:
 - `core-stats/references/missings.md`
 - `core-stats/references/assumptions.md`
 - `core-stats/references/regression.md`
+- `core-stats/references/mixed-models.md`
 - `core-stats/references/anova.md`
 - `core-stats/references/t-test.md`
 - `core-stats/references/init-workspace.md`
@@ -200,6 +200,13 @@ Rscript core-stats/scripts/R/regression.R \
   --csv data.csv --dv outcome --blocks "age,gender;stress,trait" --interactions stress:trait --center mean
 ```
 
+### Mixed models
+
+```bash
+Rscript core-stats/scripts/R/mixed_models.R \
+  --csv data.csv --formula "score ~ time + (1|id)"
+```
+
 ### ANOVA
 
 ```bash
@@ -248,6 +255,29 @@ Key YAML fields:
 - `narrative.template` or `narrative.row_template`: controls `{{narrative}}` rendering; `row_template` repeats over `narrative_rows` and can be joined with `narrative.join`.
 
 Template paths can be overridden in `core-stats/scripts/config.yml` under `templates.<subskill>.<name>` (for example `templates.crosstabs.grouped`). Edit the template files or point to your own to change APA output without touching the R scripts.
+
+## Tests
+
+Use the test runner to keep outputs in per-run folders under `outputs/test-runs/<timestamp>` (last 10 retained):
+
+```bash
+bash scripts/tests.sh smoke
+bash scripts/tests.sh deliberate
+bash scripts/tests.sh all
+bash scripts/tests.sh clean --keep 10
+```
+
+Windows PowerShell (smoke only):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/tests.ps1 smoke
+```
+
+Optional overrides:
+
+- `CORE_STATS_KEEP_RUNS` to change the retention count.
+- `CORE_STATS_TEST_ROOT` to force a specific run root.
+- The deliberate suite includes mixed models tests; `lme4` is required and `emmeans`/`lmerTest` enable extended checks.
 
 ## Using with Codex (Codes)
 

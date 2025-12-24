@@ -1,6 +1,6 @@
 ---
 name: core-stats
-description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, regression, ANOVA, t-tests, assumption checks, scale reliability, data exploration, missingness handling, data transforms, workspace initialization) from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, regression, mixed models, ANOVA, t-tests, assumption checks, scale reliability, data exploration, missingness handling, data transforms, workspace initialization) from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -139,6 +139,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [data-transform](references/data-transform.md): Create/modify variables (compute, recode, standardize, rename, drop) with change logs and updated datasets.
 - [assumptions](references/assumptions.md): Assumption checks for t-tests, ANOVA, and regression (including diagnostics).
 - [regression](references/regression.md): Multiple and hierarchical regression with interactions, bootstrap options, and APA outputs.
+- [mixed-models](references/mixed-models.md): Linear mixed-effects models with random effects, marginal means, and APA outputs.
 - [anova](references/anova.md): Between-subjects, within-subjects, and mixed ANOVA with APA outputs and post-hoc comparisons.
 - [t-test](references/t-test.md): One-sample, independent-samples, and paired-samples t-tests with APA outputs.
 - [missings](references/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.

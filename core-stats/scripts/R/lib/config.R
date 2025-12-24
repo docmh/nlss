@@ -127,6 +127,20 @@ get_builtin_config <- function() {
         bootstrap = FALSE,
         bootstrap_samples = 1000
       ),
+      mixed_models = list(
+        reml = TRUE,
+        type = "III",
+        df_method = "satterthwaite",
+        standardize = "none",
+        emmeans = "none",
+        contrasts = "none",
+        p_adjust = "holm",
+        conf_level = 0.95,
+        optimizer = "bobyqa",
+        maxfun = 100000,
+        diagnostics = TRUE,
+        max_shapiro_n = 5000
+      ),
       assumptions = list(
         analysis = "auto",
         vars_default = "numeric",
@@ -196,6 +210,10 @@ get_builtin_config <- function() {
       regression = list(
         default = "regression/default-template.md"
       ),
+      mixed_models = list(
+        default = "mixed-models/default-template.md",
+        emmeans = "mixed-models/emmeans-template.md"
+      ),
       assumptions = list(
         ttest = "assumptions/ttest-template.md",
         anova = "assumptions/anova-template.md",
@@ -208,6 +226,11 @@ get_builtin_config <- function() {
         default = "init-workspace/default-template.md",
         scratchpad = "scratchpad/default-template.md"
       )
+    ),
+    tests = list(
+      output_dir = "./outputs/test-runs",
+      template_dir = "templates",
+      template_marker = "TEMPLATE_SMOKE_TEST"
     )
   )
 }
