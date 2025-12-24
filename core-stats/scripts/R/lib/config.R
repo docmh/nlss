@@ -141,6 +141,22 @@ get_builtin_config <- function() {
         diagnostics = TRUE,
         max_shapiro_n = 5000
       ),
+      sem = list(
+        analysis = "sem",
+        estimator = "MLR",
+        missing = "fiml",
+        se = "robust",
+        ci = "standard",
+        conf_level = 0.95,
+        bootstrap = FALSE,
+        bootstrap_samples = 5000,
+        std = "std.all",
+        fit = "chisq,df,cfi,tli,rmsea,srmr",
+        r2 = TRUE,
+        modindices = 0,
+        residuals = FALSE,
+        invariance = "configural,metric,scalar,strict"
+      ),
       assumptions = list(
         analysis = "auto",
         vars_default = "numeric",
@@ -213,6 +229,12 @@ get_builtin_config <- function() {
       mixed_models = list(
         default = "mixed-models/default-template.md",
         emmeans = "mixed-models/emmeans-template.md"
+      ),
+      sem = list(
+        default = "sem/default-template.md",
+        cfa = "sem/cfa-template.md",
+        mediation = "sem/mediation-template.md",
+        invariance = "sem/invariance-template.md"
       ),
       assumptions = list(
         ttest = "assumptions/ttest-template.md",

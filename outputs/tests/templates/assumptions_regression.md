@@ -1,0 +1,64 @@
+---
+tokens:
+  title: "Assumptions checks (regression)"
+  table_title: "Regression assumption checks."
+  note_prefix: "*Note.*"
+  narrative_heading: "**Narrative**"
+table:
+  columns:
+    - key: "model"
+      label: "Model"
+      drop_if_empty: true
+    - key: "assumption"
+      label: "Assumption"
+    - key: "test"
+      label: "Test"
+    - key: "target"
+      label: "Target"
+    - key: "statistic"
+      label: "Statistic"
+      drop_if_empty: true
+    - key: "df"
+      label: "df"
+      drop_if_empty: true
+    - key: "p"
+      label: "p"
+      drop_if_empty: true
+    - key: "value"
+      label: "Value"
+      drop_if_empty: true
+    - key: "decision"
+      label: "Decision"
+      drop_if_empty: true
+    - key: "n"
+      label: "n"
+      drop_if_empty: true
+note:
+  template: "{{note_default}}"
+narrative:
+  row_template: "{{full_sentence}}"
+  join: "\n"
+  drop_empty: true
+---
+# {{title}}
+
+Analysis:
+
+{{analysis_flags}}
+
+**Table {{table_number}}**
+
+{{table_title}}
+
+{{table_body}}
+
+{{note_prefix}} {{note_body}}
+
+{{narrative_heading}}
+
+{{narrative}}
+
+---
+
+
+TEMPLATE_SMOKE_TEST_20251223104724_assumptions_regression

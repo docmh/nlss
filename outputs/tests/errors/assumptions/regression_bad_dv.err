@@ -1,0 +1,6 @@
+Error in run_regression_assumptions(df, opts, settings) : 
+  Regression model failed.
+Calls: main -> run_regression_assumptions
+In addition: Warning message:
+In storage.mode(v) <- "double" : NAs introduced by coercion
+Execution halted

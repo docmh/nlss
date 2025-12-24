@@ -1,0 +1,4 @@
+Error in run_ttest_assumptions(df, opts, settings) : 
+  Variable is not numeric: category
+Calls: main -> run_ttest_assumptions
+Execution halted

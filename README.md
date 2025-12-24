@@ -6,7 +6,7 @@ R-based statistics helpers that produce an APA 7-ready report plus machine-reada
 
 - R 4.4+ (base R is enough for CSV/APA outputs).
 - Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), and `arrow` (parquet workspace copies).
-- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `car` for Type II/III ANOVA sums of squares; `lme4` for mixed models; `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `performance` for R2/ICC.
+- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `car` for Type II/III ANOVA sums of squares; `lme4` for mixed models; `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `performance` for R2/ICC; `lavaan` for SEM/CFA/mediation.
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
 - Optional: WSL if you want the wrapper to run Linux Rscript first and fall back to Windows Rscript.
@@ -14,7 +14,7 @@ R-based statistics helpers that produce an APA 7-ready report plus machine-reada
 Install the R dependencies:
 
 ```bash
-Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','haven','foreign','car','lme4','lmerTest','emmeans','performance'))"
+Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','haven','foreign','car','lme4','lmerTest','emmeans','performance','lavaan'))"
 ```
 
 ## Install
@@ -106,6 +106,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `assumptions` | `core-stats/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, and regression. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`) |
 | `regression` | `core-stats/scripts/R/regression.R` | Multiple and hierarchical regression (OLS/GLM) with interactions and bootstrap CIs. | Yes (`regression/default-template.md`) |
 | `mixed-models` | `core-stats/scripts/R/mixed_models.R` | Linear mixed-effects models with random effects and marginal means. | Yes (`mixed-models/default-template.md`, `mixed-models/emmeans-template.md`) |
+| `sem` | `core-stats/scripts/R/sem.R` | Structural equation modeling (SEM), CFA, mediation, path analysis, invariance. | Yes (`sem/default-template.md`, `sem/cfa-template.md`, `sem/mediation-template.md`, `sem/invariance-template.md`) |
 | `anova` | `core-stats/scripts/R/anova.R` | Between-, within-, and mixed ANOVA with post-hoc comparisons. | Yes (`anova/default-template.md`, `anova/posthoc-template.md`) |
 | `t-test` | `core-stats/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
 | `init-workspace` | `core-stats/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
@@ -122,6 +123,7 @@ Reference docs:
 - `core-stats/references/assumptions.md`
 - `core-stats/references/regression.md`
 - `core-stats/references/mixed-models.md`
+- `core-stats/references/sem.md`
 - `core-stats/references/anova.md`
 - `core-stats/references/t-test.md`
 - `core-stats/references/init-workspace.md`
@@ -207,6 +209,13 @@ Rscript core-stats/scripts/R/mixed_models.R \
   --csv data.csv --formula "score ~ time + (1|id)"
 ```
 
+### SEM (lavaan)
+
+```bash
+Rscript core-stats/scripts/R/sem.R \
+  --csv data.csv --analysis cfa --factors "F1=item1,item2;F2=item3,item4"
+```
+
 ### ANOVA
 
 ```bash
@@ -245,7 +254,7 @@ Defaults live in `core-stats/scripts/config.yml` and are loaded via `core-stats/
 
 ## APA template logic (YAML)
 
-Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, data transformation, missingness handling, assumptions, regression, ANOVA, and t-tests).
+Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, data transformation, missingness handling, assumptions, regression, SEM, ANOVA, and t-tests).
 
 Key YAML fields:
 

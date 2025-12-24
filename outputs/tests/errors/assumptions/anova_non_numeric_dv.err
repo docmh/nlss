@@ -1,0 +1,4 @@
+Error in run_anova_assumptions(df, opts, settings) : 
+  Dependent variable must be numeric.
+Calls: main -> run_anova_assumptions
+Execution halted

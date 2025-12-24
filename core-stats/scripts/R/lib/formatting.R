@@ -29,6 +29,7 @@ humanize_flag_name <- function(name) {
     "omega" = "Omega total",
     "x" = "X variables",
     "y" = "Y variables",
+    "m" = "Mediators",
     "include-numeric" = "Include numeric variables",
     "percent" = "Percentages",
     "include-expected" = "Include expected counts",
@@ -64,12 +65,27 @@ humanize_flag_name <- function(name) {
     "contrasts" = "Contrasts",
     "optimizer" = "Optimizer",
     "maxfun" = "Optimizer maxfun",
+    "estimator" = "Estimator",
+    "se" = "Standard errors",
+    "ci" = "Confidence interval",
     "diagnostics" = "Diagnostics",
     "conf-level" = "Confidence level",
     "type" = "Sum of squares type",
     "effect-size" = "Effect size",
     "posthoc" = "Post-hoc method",
     "covariates" = "Covariates",
+    "ordered" = "Ordered variables",
+    "model" = "Model",
+    "model-file" = "Model file",
+    "factors" = "Factors",
+    "serial" = "Serial mediation",
+    "group-equal" = "Group constraints",
+    "invariance" = "Invariance steps",
+    "std" = "Standardization",
+    "fit" = "Fit indices",
+    "r2" = "R2 reporting",
+    "modindices" = "Mod indices cutoff",
+    "residuals" = "Residuals",
     "sphericity" = "Sphericity test",
     "analysis" = "Analysis",
     "mode" = "Mode",
@@ -221,6 +237,22 @@ get_template_path <- function(analysis_label) {
   }
   if (label == "mixed models") {
     path <- resolve_template_path("mixed_models.default", "mixed-models/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label == "sem (cfa)") {
+    path <- resolve_template_path("sem.cfa", "sem/cfa-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label == "sem (mediation)") {
+    path <- resolve_template_path("sem.mediation", "sem/mediation-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label == "sem (invariance)") {
+    path <- resolve_template_path("sem.invariance", "sem/invariance-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label %in% c("sem", "structural equation modeling", "sem (path analysis)")) {
+    path <- resolve_template_path("sem.default", "sem/default-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
   }
   if (label %in% c("mixed models emmeans", "mixed models marginal means")) {

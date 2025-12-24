@@ -1,0 +1,4 @@
+Error in run_ttest_assumptions(df, opts, settings) : 
+  --x and --y must have the same number of variables.
+Calls: main -> run_ttest_assumptions
+Execution halted

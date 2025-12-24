@@ -1,0 +1,4 @@
+Error in run_ttest_assumptions(df, opts, settings) : 
+  Grouping variable must have exactly two levels for independent checks.
+Calls: main -> run_ttest_assumptions
+Execution halted
