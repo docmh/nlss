@@ -173,7 +173,24 @@ get_builtin_config <- function() {
         vif_high = 10,
         outlier_z = 3,
         cook_multiplier = 4,
-        max_shapiro_n = 5000
+        max_shapiro_n = 5000,
+        mixed_models = list(
+          random_effects = TRUE,
+          singular = TRUE,
+          convergence = TRUE,
+          dharma = FALSE,
+          performance = TRUE
+        ),
+        sem = list(
+          mardia = TRUE,
+          mahalanobis = TRUE,
+          mahalanobis_alpha = 0.001,
+          collinearity = TRUE,
+          max_cor = 0.9,
+          max_kappa = 30,
+          heywood = TRUE,
+          convergence = TRUE
+        )
       ),
       missings = list(
         vars_default = "all",
@@ -239,7 +256,9 @@ get_builtin_config <- function() {
       assumptions = list(
         ttest = "assumptions/ttest-template.md",
         anova = "assumptions/anova-template.md",
-        regression = "assumptions/regression-template.md"
+        regression = "assumptions/regression-template.md",
+        mixed_models = "assumptions/mixed-models-template.md",
+        sem = "assumptions/sem-template.md"
       ),
       missings = list(
         default = "missings/default-template.md"

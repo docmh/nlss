@@ -1,18 +1,18 @@
 ---
 name: assumptions
-description: Assumption checks for t-tests, ANOVA, and regression with APA-ready tables, narratives, and diagnostics.
+description: Assumption checks for t-tests, ANOVA, regression, mixed models, and SEM with APA-ready tables, narratives, and diagnostics.
 ---
 
-# Assumptions Checks (Base R, APA 7)
+# Assumptions Checks (APA 7)
 
 ## Overview
 
-Run assumption and diagnostic checks for t-tests, ANOVA (between, within, mixed), and regression (including multiple and hierarchical models). The script outputs APA-ready tables/narratives plus a machine-readable JSONL log.
+Run assumption and diagnostic checks for t-tests, ANOVA (between, within, mixed), regression (including multiple and hierarchical models), mixed models, and SEM/CFA/mediation/path models. The script outputs APA-ready tables/narratives plus a machine-readable JSONL log.
 
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
-2. Choose the analysis family (`ttest`, `anova`, or `regression`) and specify variables.
+2. Choose the analysis family (`ttest`, `anova`, `regression`, `mixed_models`, or `sem`) and specify variables.
 3. Run `scripts/R/assumptions.R` with the correct flags, or use the PowerShell wrapper on Windows.
 4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) for reporting or downstream modules.
 
@@ -60,6 +60,18 @@ Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis re
 Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis regression --dv outcome --blocks age,gender;stress,trait
 ```
 
+### Mixed models assumptions
+
+```bash
+Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis mixed_models --formula "score ~ time + (1|id)"
+```
+
+### SEM assumptions (CFA builder)
+
+```bash
+Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis sem --factors "F1=item1,item2;F2=item3,item4"
+```
+
 ### Interactive prompts
 
 ```bash
@@ -70,7 +82,7 @@ Rscript <path to scripts/R/assumptions.R> --interactive
 
 Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
 
-- `--analysis` defaults to `modules.assumptions.analysis` (`auto`, `ttest`, `anova`, `regression`).
+- `--analysis` defaults to `modules.assumptions.analysis` (`auto`, `ttest`, `anova`, `regression`, `mixed_models`, `sem`; `cfa`, `path`, `mediation`, `invariance` also route to SEM checks).
 - `--vars` defaults to `modules.assumptions.vars_default` (numeric columns).
 - `--normality` defaults to `modules.assumptions.normality` (`shapiro` or `none`).
 - `--homogeneity` defaults to `modules.assumptions.homogeneity` (`levene`, `bartlett`, `fligner`, `f`, `all`, `none`).
@@ -87,6 +99,19 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
   - `--outlier-z` (`modules.assumptions.outlier_z`)
   - `--cook-multiplier` (`modules.assumptions.cook_multiplier`)
   - `--max-shapiro-n` (`modules.assumptions.max_shapiro_n`)
+- Mixed models inputs: `--formula` or `--dv` + `--fixed` + `--random`.
+  - `--reml` uses `modules.mixed_models.reml`.
+  - `--optimizer` uses `modules.mixed_models.optimizer`.
+  - `--maxfun` uses `modules.mixed_models.maxfun`.
+  - Mixed-model assumption toggles use `modules.assumptions.mixed_models.*` (`random_effects`, `singular`, `convergence`, `dharma`, `performance`).
+- SEM inputs: `--model`, `--model-file`, `--paths`, `--factors`, or builders (`--dv`/`--ivs`, `--x`/`--m`/`--y`).
+  - `--estimator` uses `modules.sem.estimator`.
+  - `--missing` uses `modules.sem.missing`.
+  - `--se` uses `modules.sem.se`.
+  - `--ci` uses `modules.sem.ci`.
+  - `--bootstrap`/`--bootstrap-samples` use `modules.sem.bootstrap`/`modules.sem.bootstrap_samples`.
+  - `--std` uses `modules.sem.std`.
+  - SEM assumption toggles use `modules.assumptions.sem.*` (`mardia`, `mahalanobis`, `mahalanobis_alpha`, `collinearity`, `max_cor`, `max_kappa`, `heywood`, `convergence`).
 - `--digits` uses `defaults.digits`.
 - `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` uses `defaults.log`.
@@ -103,6 +128,12 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
 - `regression`:
   - Multiple regression: use `--dv` and `--ivs`.
   - Hierarchical regression: use `--blocks` (semicolon-separated blocks; blocks are cumulative).
+- `mixed_models`:
+  - Use `--formula` (recommended) or `--dv` + `--fixed` + `--random`.
+  - Requires the `lme4` package; random-effects terms are required.
+- `sem`:
+  - Use `--analysis sem/cfa/path/mediation/invariance` plus `--model`/`--model-file` or a builder (`--factors`, `--dv`/`--ivs`, `--x`/`--m`/`--y`).
+  - Optional `--ordered` for ordered categorical indicators; `--group` for multigroup fits.
 - Missing values are handled listwise per test or model.
 
 ## Outputs
@@ -110,7 +141,7 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `core-stats-workspace.yml`; fallback to `defaults.output_dir` in `core-stats/scripts/config.yml`; not user-overridable).
 - `apa_report.md`: APA 7 report containing analysis flags, table, and narrative.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
-- Diagnostics include normality tests, homogeneity tests, sphericity (when applicable), and regression diagnostics (VIF, Breusch-Pagan, Durbin-Watson, outliers, influence).
+- Diagnostics include normality tests, homogeneity tests, sphericity (when applicable), regression diagnostics (VIF, Breusch-Pagan, Durbin-Watson, outliers, influence), mixed-model checks (singularity, convergence, random-effects normality, optional DHARMa/performance/influence.ME), and SEM checks (univariate/multivariate normality, Mahalanobis outliers, collinearity, Heywood cases, convergence).
 
 ## APA 7 Templates (YAML)
 
@@ -119,6 +150,8 @@ Templates are stored under `core-stats/assets/assumptions/` and mapped in `core-
 - `templates.assumptions.ttest`: `assumptions/ttest-template.md`
 - `templates.assumptions.anova`: `assumptions/anova-template.md`
 - `templates.assumptions.regression`: `assumptions/regression-template.md`
+- `templates.assumptions.mixed_models`: `assumptions/mixed-models-template.md`
+- `templates.assumptions.sem`: `assumptions/sem-template.md`
 
 Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
 
@@ -138,7 +171,7 @@ Use `drop_if_empty: true` to hide columns with all empty values.
 
 Available note tokens include:
 
-`note_default`, `alpha`, `homogeneity_tests`, `vif_warn`, `vif_high`, `outlier_z`, `cook_threshold`.
+`note_default`, `alpha`, `homogeneity_tests`, `vif_warn`, `vif_high`, `outlier_z`, `cook_threshold`, `mahalanobis_alpha`, `max_cor`, `max_kappa`.
 
 ### Narrative tokens
 
@@ -150,4 +183,13 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 - Report the assumption tests used (e.g., Shapiro-Wilk, Levene, Mauchly, Breusch-Pagan) with statistics and p-values.
 - For regression, report VIF values and any influence/outlier flags.
+- For mixed models, report singularity/convergence flags, residual diagnostics, and any random-effects normality/outlier findings.
+- For SEM, report multivariate normality (Mardia), Mahalanobis outliers, collinearity/Heywood cases, and convergence status.
 - Note any violations and consider corrections or robust alternatives when assumptions are not met.
+
+## Dependencies
+
+- Parquet input requires the R package `arrow`.
+- Mixed-model assumptions require the R package `lme4`.
+- SEM assumptions require the R package `lavaan`.
+- Optional checks use `performance`, `DHARMa`, `influence.ME`, and `MVN` when available.

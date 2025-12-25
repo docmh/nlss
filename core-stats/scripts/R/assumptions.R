@@ -27,6 +27,8 @@ print_usage <- function() {
   cat("  Rscript assumptions.R --csv data.csv --analysis anova --within pre,mid,post --between group\n")
   cat("  Rscript assumptions.R --csv data.csv --analysis regression --dv outcome --ivs age,stress\n")
   cat("  Rscript assumptions.R --csv data.csv --analysis regression --dv outcome --blocks age,gender;stress\n")
+  cat("  Rscript assumptions.R --csv data.csv --analysis mixed_models --formula \"score ~ time + (1|id)\"\n")
+  cat("  Rscript assumptions.R --csv data.csv --analysis sem --factors \"F1=item1,item2;F2=item3,item4\"\n")
   cat("  Rscript assumptions.R --parquet data.parquet --analysis ttest --vars var1,var2\n")
   cat("  Rscript assumptions.R --interactive\n")
   cat("\n")
@@ -39,7 +41,7 @@ print_usage <- function() {
   cat("  --rdata PATH             RData input file\n")
   cat("  --parquet PATH           Parquet input file\n")
   cat("  --df NAME                Data frame object name in RData\n")
-  cat("  --analysis TYPE          ttest/anova/regression/auto\n")
+  cat("  --analysis TYPE          ttest/anova/regression/mixed_models/sem/auto\n")
   cat("  --vars LIST              Variables for t-test (one-sample/independent)\n")
   cat("  --group NAME             Grouping variable (independent t-test)\n")
   cat("  --x LIST                 Paired measure 1 variables\n")
@@ -50,6 +52,33 @@ print_usage <- function() {
   cat("  --subject-id NAME        Subject id (optional, repeated measures)\n")
   cat("  --ivs LIST               Regression predictors\n")
   cat("  --blocks TEXT            Hierarchical blocks (semicolon-separated)\n")
+  cat("  --formula TEXT           Mixed model formula (lme4)\n")
+  cat("  --fixed LIST             Mixed model fixed effects\n")
+  cat("  --random LIST            Mixed model random terms\n")
+  cat("  --reml TRUE/FALSE        Mixed model REML estimation\n")
+  cat("  --optimizer NAME         Mixed model optimizer\n")
+  cat("  --maxfun N               Mixed model optimizer maxfun\n")
+  cat("  --model TEXT             SEM model syntax (lavaan)\n")
+  cat("  --model-file PATH        SEM model syntax file\n")
+  cat("  --paths TEXT             Alias for --model\n")
+  cat("  --factors TEXT            CFA builder: F1=item1,item2;F2=item3,item4\n")
+  cat("  --covariates LIST        SEM covariates\n")
+  cat("  --serial TRUE/FALSE      SEM serial mediation (two mediators)\n")
+  cat("  --group-equal LIST       SEM group.equal constraints\n")
+  cat("  --invariance LIST        SEM invariance steps\n")
+  cat("  --ordered LIST           SEM ordered categorical variables\n")
+  cat("  --estimator NAME         SEM estimator\n")
+  cat("  --missing TYPE           SEM missing handling\n")
+  cat("  --se TYPE                SEM standard errors\n")
+  cat("  --ci TYPE                SEM confidence interval type\n")
+  cat("  --conf-level VALUE       SEM confidence level\n")
+  cat("  --bootstrap TRUE/FALSE   SEM bootstrap standard errors\n")
+  cat("  --bootstrap-samples N    SEM bootstrap resamples\n")
+  cat("  --std TYPE               SEM standardization\n")
+  cat("  --fit LIST               SEM fit indices\n")
+  cat("  --r2 TRUE/FALSE          SEM R2 reporting\n")
+  cat("  --modindices N           SEM modification index cutoff\n")
+  cat("  --residuals TRUE/FALSE   SEM residuals output\n")
   cat("  --normality TYPE         shapiro/none\n")
   cat("  --homogeneity TYPE       levene/bartlett/fligner/f/all/none\n")
   cat("  --linearity TRUE/FALSE   Regression linearity check\n")
@@ -58,6 +87,18 @@ print_usage <- function() {
   cat("  --durbin-watson TRUE/FALSE  Durbin-Watson statistic\n")
   cat("  --outliers TRUE/FALSE    Standardized residual outliers\n")
   cat("  --influence TRUE/FALSE   Cook's distance influence\n")
+  cat("  --random-effects TRUE/FALSE   Mixed model random-effects normality\n")
+  cat("  --singular TRUE/FALSE    Mixed model singular fit check\n")
+  cat("  --convergence TRUE/FALSE Mixed/SEM convergence check\n")
+  cat("  --dharma TRUE/FALSE      Mixed model DHARMa diagnostics (optional)\n")
+  cat("  --performance TRUE/FALSE Mixed model performance diagnostics (optional)\n")
+  cat("  --mardia TRUE/FALSE      SEM multivariate normality (optional)\n")
+  cat("  --mahalanobis TRUE/FALSE SEM Mahalanobis outlier check\n")
+  cat("  --mahalanobis-alpha VALUE  SEM Mahalanobis alpha (default: 0.001)\n")
+  cat("  --collinearity TRUE/FALSE SEM collinearity checks\n")
+  cat("  --max-cor VALUE          SEM max |r| threshold\n")
+  cat("  --max-kappa VALUE        SEM condition-number threshold\n")
+  cat("  --heywood TRUE/FALSE     SEM Heywood case checks\n")
   cat("  --vif-warn VALUE         VIF warning threshold (default: 5)\n")
   cat("  --vif-high VALUE         VIF high threshold (default: 10)\n")
   cat("  --outlier-z VALUE        Outlier z threshold (default: 3)\n")
@@ -334,9 +375,9 @@ interactive_options <- function() {
   }
 
   analysis_default <- resolve_config_value("modules.assumptions.analysis", "auto")
-  analysis_input <- resolve_prompt("Analysis (ttest/anova/regression/auto)", analysis_default)
+  analysis_input <- resolve_prompt("Analysis (ttest/anova/regression/mixed_models/sem/auto)", analysis_default)
   analysis_norm <- normalize_analysis_type(analysis_input, default = "auto")
-  opts$analysis <- analysis_norm
+  opts$analysis <- analysis_input
 
   if (analysis_norm == "ttest") {
     test_type <- resolve_prompt("t-test type (one-sample/independent/paired)", "one-sample")
@@ -369,6 +410,52 @@ interactive_options <- function() {
     } else {
       opts$ivs <- resolve_prompt("Predictors (comma-separated)", "")
     }
+  } else if (analysis_norm == "mixed_models") {
+    use_formula <- resolve_prompt("Use full formula? (yes/no)", "yes")
+    if (tolower(use_formula) %in% c("yes", "y")) {
+      opts$formula <- resolve_prompt("Model formula (e.g., score ~ time + (1|id))", "")
+    } else {
+      opts$dv <- resolve_prompt("Dependent variable", "")
+      opts$fixed <- resolve_prompt("Fixed effects (comma-separated)", "")
+      opts$random <- resolve_prompt("Random terms (comma-separated; e.g., 1|id,time|id)", "")
+    }
+  } else if (analysis_norm == "sem") {
+    sem_type <- resolve_prompt("SEM analysis (sem/cfa/path/mediation/invariance)", "sem")
+    opts$analysis <- sem_type
+    sem_type <- tolower(sem_type)
+    if (sem_type == "cfa") {
+      opts$factors <- resolve_prompt("Factors (F1=item1,item2;F2=item3,item4)", "")
+      opts$model <- resolve_prompt("Model syntax (blank to use factors)", "")
+    } else if (sem_type == "mediation") {
+      opts$x <- resolve_prompt("Predictor (x)", "")
+      opts$m <- resolve_prompt("Mediators (comma-separated)", "")
+      opts$y <- resolve_prompt("Outcome (y)", "")
+      opts$covariates <- resolve_prompt("Covariates (comma-separated, optional)", "")
+      opts$serial <- resolve_prompt("Serial mediation TRUE/FALSE", "FALSE")
+    } else if (sem_type == "path") {
+      opts$dv <- resolve_prompt("Dependent variable", "")
+      opts$ivs <- resolve_prompt("Predictors (comma-separated)", "")
+      opts$covariates <- resolve_prompt("Covariates (comma-separated, optional)", "")
+      opts$model <- resolve_prompt("Model syntax (blank to use dv/ivs)", "")
+    } else {
+      opts$model <- resolve_prompt("Model syntax", "")
+    }
+
+    estimator_default <- resolve_config_value("modules.sem.estimator", "MLR")
+    missing_default <- resolve_config_value("modules.sem.missing", "fiml")
+    se_default <- resolve_config_value("modules.sem.se", "robust")
+    ci_default <- resolve_config_value("modules.sem.ci", "standard")
+    bootstrap_default <- resolve_config_value("modules.sem.bootstrap", FALSE)
+    bootstrap_samples_default <- resolve_config_value("modules.sem.bootstrap_samples", 5000)
+    std_default <- resolve_config_value("modules.sem.std", "std.all")
+
+    opts$estimator <- resolve_prompt("Estimator", estimator_default)
+    opts$missing <- resolve_prompt("Missing handling", missing_default)
+    opts$se <- resolve_prompt("SE type", se_default)
+    opts$ci <- resolve_prompt("CI type", ci_default)
+    opts$bootstrap <- resolve_prompt("Bootstrap TRUE/FALSE", ifelse(isTRUE(bootstrap_default), "TRUE", "FALSE"))
+    opts$`bootstrap-samples` <- resolve_prompt("Bootstrap samples", as.character(bootstrap_samples_default))
+    opts$std <- resolve_prompt("Standardization (none/std.lv/std.all)", std_default)
   }
 
   normality_default <- resolve_config_value("modules.assumptions.normality", "shapiro")
@@ -379,19 +466,56 @@ interactive_options <- function() {
   dw_default <- resolve_config_value("modules.assumptions.durbin_watson", TRUE)
   outliers_default <- resolve_config_value("modules.assumptions.outliers", TRUE)
   influence_default <- resolve_config_value("modules.assumptions.influence", TRUE)
+  mm_random_default <- resolve_config_value("modules.assumptions.mixed_models.random_effects", TRUE)
+  mm_singular_default <- resolve_config_value("modules.assumptions.mixed_models.singular", TRUE)
+  mm_conv_default <- resolve_config_value("modules.assumptions.mixed_models.convergence", TRUE)
+  mm_dharma_default <- resolve_config_value("modules.assumptions.mixed_models.dharma", FALSE)
+  mm_perf_default <- resolve_config_value("modules.assumptions.mixed_models.performance", TRUE)
+  mm_reml_default <- resolve_config_value("modules.mixed_models.reml", TRUE)
+  mm_optimizer_default <- resolve_config_value("modules.mixed_models.optimizer", "bobyqa")
+  mm_maxfun_default <- resolve_config_value("modules.mixed_models.maxfun", 100000)
+  sem_mardia_default <- resolve_config_value("modules.assumptions.sem.mardia", TRUE)
+  sem_mahal_default <- resolve_config_value("modules.assumptions.sem.mahalanobis", TRUE)
+  sem_coll_default <- resolve_config_value("modules.assumptions.sem.collinearity", TRUE)
+  sem_heywood_default <- resolve_config_value("modules.assumptions.sem.heywood", TRUE)
+  sem_conv_default <- resolve_config_value("modules.assumptions.sem.convergence", TRUE)
+  sem_mahal_alpha_default <- resolve_config_value("modules.assumptions.sem.mahalanobis_alpha", 0.001)
+  sem_max_cor_default <- resolve_config_value("modules.assumptions.sem.max_cor", 0.9)
+  sem_max_kappa_default <- resolve_config_value("modules.assumptions.sem.max_kappa", 30)
   alpha_default <- resolve_config_value("modules.assumptions.alpha", 0.05)
   digits_default <- resolve_config_value("defaults.digits", 2)
 
   opts$normality <- resolve_prompt("Normality test (shapiro/none)", normality_default)
   if (analysis_norm %in% c("ttest", "anova")) {
     opts$homogeneity <- resolve_prompt("Homogeneity test (levene/bartlett/fligner/f/all/none)", homogeneity_default)
-  } else {
+  } else if (analysis_norm == "regression") {
     opts$linearity <- resolve_prompt("Linearity TRUE/FALSE", ifelse(isTRUE(linearity_default), "TRUE", "FALSE"))
     opts$homoscedasticity <- resolve_prompt("Homoscedasticity TRUE/FALSE", ifelse(isTRUE(homoscedasticity_default), "TRUE", "FALSE"))
     opts$vif <- resolve_prompt("VIF TRUE/FALSE", ifelse(isTRUE(vif_default), "TRUE", "FALSE"))
     opts$`durbin-watson` <- resolve_prompt("Durbin-Watson TRUE/FALSE", ifelse(isTRUE(dw_default), "TRUE", "FALSE"))
     opts$outliers <- resolve_prompt("Outliers TRUE/FALSE", ifelse(isTRUE(outliers_default), "TRUE", "FALSE"))
     opts$influence <- resolve_prompt("Influence TRUE/FALSE", ifelse(isTRUE(influence_default), "TRUE", "FALSE"))
+  } else if (analysis_norm == "mixed_models") {
+    opts$homoscedasticity <- resolve_prompt("Homoscedasticity TRUE/FALSE", ifelse(isTRUE(homoscedasticity_default), "TRUE", "FALSE"))
+    opts$outliers <- resolve_prompt("Outliers TRUE/FALSE", ifelse(isTRUE(outliers_default), "TRUE", "FALSE"))
+    opts$influence <- resolve_prompt("Influence TRUE/FALSE", ifelse(isTRUE(influence_default), "TRUE", "FALSE"))
+    opts$`random-effects` <- resolve_prompt("Random-effects normality TRUE/FALSE", ifelse(isTRUE(mm_random_default), "TRUE", "FALSE"))
+    opts$singular <- resolve_prompt("Singular fit TRUE/FALSE", ifelse(isTRUE(mm_singular_default), "TRUE", "FALSE"))
+    opts$convergence <- resolve_prompt("Convergence TRUE/FALSE", ifelse(isTRUE(mm_conv_default), "TRUE", "FALSE"))
+    opts$dharma <- resolve_prompt("DHARMa TRUE/FALSE", ifelse(isTRUE(mm_dharma_default), "TRUE", "FALSE"))
+    opts$performance <- resolve_prompt("performance TRUE/FALSE", ifelse(isTRUE(mm_perf_default), "TRUE", "FALSE"))
+    opts$reml <- resolve_prompt("REML TRUE/FALSE", ifelse(isTRUE(mm_reml_default), "TRUE", "FALSE"))
+    opts$optimizer <- resolve_prompt("Optimizer", mm_optimizer_default)
+    opts$maxfun <- resolve_prompt("Optimizer maxfun", as.character(mm_maxfun_default))
+  } else if (analysis_norm == "sem") {
+    opts$mardia <- resolve_prompt("Mardia multivariate normality TRUE/FALSE", ifelse(isTRUE(sem_mardia_default), "TRUE", "FALSE"))
+    opts$mahalanobis <- resolve_prompt("Mahalanobis outliers TRUE/FALSE", ifelse(isTRUE(sem_mahal_default), "TRUE", "FALSE"))
+    opts$`mahalanobis-alpha` <- resolve_prompt("Mahalanobis alpha", as.character(sem_mahal_alpha_default))
+    opts$collinearity <- resolve_prompt("Collinearity TRUE/FALSE", ifelse(isTRUE(sem_coll_default), "TRUE", "FALSE"))
+    opts$`max-cor` <- resolve_prompt("Max |r| threshold", as.character(sem_max_cor_default))
+    opts$`max-kappa` <- resolve_prompt("Condition number threshold", as.character(sem_max_kappa_default))
+    opts$heywood <- resolve_prompt("Heywood checks TRUE/FALSE", ifelse(isTRUE(sem_heywood_default), "TRUE", "FALSE"))
+    opts$convergence <- resolve_prompt("Convergence TRUE/FALSE", ifelse(isTRUE(sem_conv_default), "TRUE", "FALSE"))
   }
 
   opts$alpha <- resolve_prompt("Decision alpha", format(alpha_default, trim = TRUE))
@@ -409,6 +533,18 @@ normalize_analysis_type <- function(value, default = "auto") {
   if (val %in% c("ttest", "t-test", "t_test", "t")) return("ttest")
   if (val %in% c("anova", "aov")) return("anova")
   if (val %in% c("regression", "reg", "lm")) return("regression")
+  if (val %in% c("mixed_models", "mixed-models", "mixed", "lmm", "lme4")) return("mixed_models")
+  if (val %in% c("sem", "cfa", "path", "mediation", "invariance", "structural", "mi")) return("sem")
+  default
+}
+
+normalize_sem_type <- function(value, default = "sem") {
+  val <- if (!is.null(value) && nzchar(value)) tolower(as.character(value)) else tolower(default)
+  if (val %in% c("sem", "structural")) return("sem")
+  if (val %in% c("cfa", "confirmatory")) return("cfa")
+  if (val %in% c("path", "path-analysis", "path_analysis")) return("path")
+  if (val %in% c("mediation", "med", "indirect")) return("mediation")
+  if (val %in% c("invariance", "measurement-invariance", "mi")) return("invariance")
   default
 }
 
@@ -440,6 +576,212 @@ parse_blocks <- function(value) {
     vars <- trimws(strsplit(block, ",", fixed = TRUE)[[1]])
     vars[vars != ""]
   })
+}
+
+normalize_reml <- function(value, default = TRUE) {
+  resolve_parse_bool(value, default = default)
+}
+
+normalize_maxfun <- function(value, default = 100000) {
+  if (is.null(value) || value == "") return(default)
+  val <- suppressWarnings(as.numeric(value))
+  if (is.na(val) || val <= 0) return(default)
+  as.integer(val)
+}
+
+normalize_random_terms <- function(terms) {
+  out <- character(0)
+  for (term in terms) {
+    term <- trimws(term)
+    if (!nzchar(term)) next
+    if (grepl("\\|", term)) {
+      if (!grepl("^\\(.*\\)$", term)) {
+        term <- paste0("(", term, ")")
+      }
+      out <- c(out, term)
+    } else {
+      out <- c(out, paste0("(1|", term, ")"))
+    }
+  }
+  out
+}
+
+extract_random_terms_from_formula <- function(formula_text) {
+  if (is.null(formula_text) || !nzchar(formula_text)) return(character(0))
+  matches <- gregexpr("\\([^\\)]+\\|[^\\)]+\\)", formula_text, perl = TRUE)
+  if (matches[[1]][1] == -1) return(character(0))
+  terms <- regmatches(formula_text, matches)[[1]]
+  trimws(terms)
+}
+
+build_model_formula <- function(dv, fixed_terms, random_terms) {
+  fixed_term <- if (length(fixed_terms) > 0) paste(fixed_terms, collapse = " + ") else "1"
+  random_term <- if (length(random_terms) > 0) paste(random_terms, collapse = " + ") else ""
+  rhs <- if (nzchar(random_term)) paste(fixed_term, "+", random_term) else fixed_term
+  as.formula(paste(dv, "~", rhs))
+}
+
+coerce_model_factors <- function(df, vars, dv) {
+  for (var in vars) {
+    if (!var %in% names(df)) next
+    if (identical(var, dv)) next
+    if (is.numeric(df[[var]])) next
+    df[[var]] <- as.factor(df[[var]])
+  }
+  df
+}
+
+build_lmer_control <- function(optimizer, maxfun) {
+  if (!requireNamespace("lme4", quietly = TRUE)) return(NULL)
+  if (is.null(optimizer) || !nzchar(optimizer)) {
+    if (is.null(maxfun) || is.na(maxfun)) return(lme4::lmerControl())
+    return(lme4::lmerControl(optCtrl = list(maxfun = maxfun)))
+  }
+  if (is.null(maxfun) || is.na(maxfun)) {
+    return(lme4::lmerControl(optimizer = optimizer))
+  }
+  lme4::lmerControl(optimizer = optimizer, optCtrl = list(maxfun = maxfun))
+}
+
+normalize_estimator <- function(value, default = "MLR") {
+  val <- if (!is.null(value) && nzchar(value)) as.character(value) else as.character(default)
+  val <- toupper(val)
+  allowed <- c("ML", "MLR", "MLM", "MLMV", "MLMVS", "WLSMV", "ULSMV", "DWLS", "ULS", "GLS")
+  if (val %in% allowed) return(val)
+  toupper(default)
+}
+
+normalize_missing <- function(value, default = "fiml") {
+  val <- if (!is.null(value) && nzchar(value)) tolower(as.character(value)) else tolower(default)
+  if (val %in% c("fiml", "ml")) return("fiml")
+  if (val %in% c("listwise", "list")) return("listwise")
+  if (val %in% c("pairwise", "pair")) return("pairwise")
+  val
+}
+
+normalize_se <- function(value, default = "robust") {
+  val <- if (!is.null(value) && nzchar(value)) tolower(as.character(value)) else tolower(default)
+  if (val %in% c("standard", "none", "default")) return("standard")
+  if (val %in% c("robust", "sandwich")) return("robust")
+  if (val %in% c("bootstrap", "boot")) return("bootstrap")
+  "standard"
+}
+
+normalize_ci <- function(value, default = "standard") {
+  val <- if (!is.null(value) && nzchar(value)) tolower(as.character(value)) else tolower(default)
+  if (val %in% c("standard", "normal", "none")) return("standard")
+  if (val %in% c("bootstrap", "boot", "perc", "percentile")) return("bootstrap")
+  if (val %in% c("bca", "bca.simple", "bca_simple")) return("bca")
+  "standard"
+}
+
+normalize_std <- function(value, default = "std.all") {
+  val <- if (!is.null(value) && nzchar(value)) tolower(as.character(value)) else tolower(default)
+  if (val %in% c("none", "no", "false")) return("none")
+  if (val %in% c("std.lv", "std_lv", "latent")) return("std.lv")
+  if (val %in% c("std.all", "std_all", "all")) return("std.all")
+  default
+}
+
+normalize_model_syntax <- function(text) {
+  if (is.null(text) || !nzchar(text)) return("")
+  out <- gsub(";", "\n", text)
+  trimws(out)
+}
+
+parse_factor_spec <- function(text) {
+  if (is.null(text) || !nzchar(text)) return(list())
+  parts <- strsplit(text, ";", fixed = TRUE)[[1]]
+  factors <- list()
+  for (chunk in parts) {
+    chunk <- trimws(chunk)
+    if (!nzchar(chunk)) next
+    pair <- strsplit(chunk, "=", fixed = TRUE)[[1]]
+    if (length(pair) != 2) {
+      stop("Invalid factor specification: ", chunk)
+    }
+    name <- trimws(pair[1])
+    items <- trimws(strsplit(pair[2], ",", fixed = TRUE)[[1]])
+    items <- items[nzchar(items)]
+    if (!nzchar(name) || length(items) == 0) {
+      stop("Invalid factor specification: ", chunk)
+    }
+    factors[[name]] <- items
+  }
+  factors
+}
+
+build_cfa_model <- function(factors) {
+  if (length(factors) == 0) return("")
+  lines <- character(0)
+  for (name in names(factors)) {
+    items <- factors[[name]]
+    if (length(items) == 0) next
+    lines <- c(lines, paste0(name, " =~ ", paste(items, collapse = " + ")))
+  }
+  paste(lines, collapse = "\n")
+}
+
+build_path_model <- function(dv, ivs, covariates) {
+  if (!nzchar(dv) || length(ivs) == 0) return("")
+  rhs <- paste(ivs, collapse = " + ")
+  if (length(covariates) > 0) rhs <- paste(rhs, paste(covariates, collapse = " + "), sep = " + ")
+  paste0(dv, " ~ ", rhs)
+}
+
+build_mediation_model <- function(x, mediators, y, covariates, serial = FALSE) {
+  if (!nzchar(x) || !nzchar(y) || length(mediators) == 0) return("")
+  cov_text <- ""
+  if (length(covariates) > 0) cov_text <- paste0(" + ", paste(covariates, collapse = " + "))
+
+  lines <- character(0)
+  if (isTRUE(serial)) {
+    if (length(mediators) != 2) {
+      stop("Serial mediation currently supports exactly two mediators.")
+    }
+    m1 <- mediators[1]
+    m2 <- mediators[2]
+    lines <- c(lines, paste0(m1, " ~ a1*", x, cov_text))
+    lines <- c(lines, paste0(m2, " ~ a2*", x, " + d21*", m1, cov_text))
+    lines <- c(lines, paste0(y, " ~ c_prime*", x, " + b1*", m1, " + b2*", m2, cov_text))
+    lines <- c(lines, paste0("indirect_", m1, " := a1*b1"))
+    lines <- c(lines, paste0("indirect_", m2, " := a2*b2"))
+    lines <- c(lines, "indirect_serial := a1*d21*b2")
+    lines <- c(lines, paste0("total_indirect := indirect_", m1, " + indirect_", m2, " + indirect_serial"))
+    lines <- c(lines, "total := c_prime + total_indirect")
+  } else {
+    b_terms <- character(0)
+    indirect_terms <- character(0)
+    for (i in seq_along(mediators)) {
+      m <- mediators[i]
+      lines <- c(lines, paste0(m, " ~ a", i, "*", x, cov_text))
+      b_terms <- c(b_terms, paste0("b", i, "*", m))
+      indirect_terms <- c(indirect_terms, paste0("indirect_", m, " := a", i, "*b", i))
+    }
+    rhs <- paste(c(paste0("c_prime*", x), b_terms), collapse = " + ")
+    if (length(covariates) > 0) rhs <- paste(rhs, paste(covariates, collapse = " + "), sep = " + ")
+    lines <- c(lines, paste0(y, " ~ ", rhs))
+    lines <- c(lines, indirect_terms)
+    if (length(indirect_terms) > 0) {
+      total_indirect <- paste(sub(" :=.*$", "", indirect_terms), collapse = " + ")
+      lines <- c(lines, paste0("total_indirect := ", total_indirect))
+      lines <- c(lines, "total := c_prime + total_indirect")
+    }
+  }
+  paste(lines, collapse = "\n")
+}
+
+extract_model_vars <- function(model_syntax) {
+  if (!requireNamespace("lavaan", quietly = TRUE)) return(character(0))
+  table <- tryCatch(lavaan::lavaanify(model_syntax, auto = FALSE), error = function(e) NULL)
+  if (is.null(table)) return(character(0))
+  relevant_ops <- table$op %in% c("=~", "~", "~~")
+  latent_vars <- unique(table$lhs[table$op == "=~"])
+  vars <- unique(c(table$lhs[relevant_ops], table$rhs[relevant_ops]))
+  vars <- setdiff(vars, latent_vars)
+  vars <- vars[nzchar(vars)]
+  vars <- setdiff(vars, "1")
+  vars
 }
 
 format_num <- function(value, digits) {
@@ -601,6 +943,95 @@ calc_linearity <- function(x, residuals) {
   list(stat = unname(test$estimate), p = test$p.value)
 }
 
+is_pkg_available <- function(name) {
+  requireNamespace(name, quietly = TRUE)
+}
+
+extract_first_numeric <- function(value) {
+  if (is.null(value)) return(NA_real_)
+  if (is.numeric(value)) return(as.numeric(value[1]))
+  if (is.character(value)) return(suppressWarnings(as.numeric(value[1])))
+  if (is.list(value) && length(value) > 0) return(extract_first_numeric(value[[1]]))
+  NA_real_
+}
+
+extract_named_numeric <- function(obj, keys) {
+  for (key in keys) {
+    if (!is.null(obj[[key]])) {
+      val <- extract_first_numeric(obj[[key]])
+      if (!is.na(val)) return(val)
+    }
+  }
+  NA_real_
+}
+
+extract_test_values <- function(test) {
+  if (is.null(test)) {
+    return(list(stat = NA_real_, p = NA_real_, df1 = NA_real_, df2 = NA_real_, note = ""))
+  }
+  if (inherits(test, "htest")) {
+    stat <- extract_first_numeric(test$statistic)
+    p <- extract_first_numeric(test$p.value)
+    df <- test$parameter
+    df1 <- NA_real_
+    df2 <- NA_real_
+    if (!is.null(df)) {
+      df_vals <- as.numeric(df)
+      if (length(df_vals) > 0) df1 <- df_vals[1]
+      if (length(df_vals) > 1) df2 <- df_vals[2]
+    }
+    note <- if (!is.null(test$method)) as.character(test$method) else ""
+    return(list(stat = stat, p = p, df1 = df1, df2 = df2, note = note))
+  }
+  if (is.data.frame(test) && nrow(test) > 0) {
+    row <- test[1, , drop = FALSE]
+    stat <- extract_named_numeric(row, c("statistic", "stat", "chisq", "chi.square", "t", "z"))
+    p <- extract_named_numeric(row, c("p", "p.value", "p_value", "pval"))
+    df1 <- extract_named_numeric(row, c("df", "df1", "df_1"))
+    df2 <- extract_named_numeric(row, c("df2", "df_2"))
+    note <- if ("method" %in% names(row)) as.character(row$method[1]) else ""
+    return(list(stat = stat, p = p, df1 = df1, df2 = df2, note = note))
+  }
+  if (is.list(test)) {
+    stat <- extract_named_numeric(test, c("statistic", "stat", "chisq", "chi.square", "t", "z"))
+    p <- extract_named_numeric(test, c("p.value", "p", "p_value", "pval"))
+    df1 <- extract_named_numeric(test, c("df", "df1", "df_1"))
+    df2 <- extract_named_numeric(test, c("df2", "df_2"))
+    note <- ""
+    if (!is.null(test$method)) note <- as.character(test$method)
+    if (!nzchar(note) && !is.null(test$note)) note <- as.character(test$note)
+    return(list(stat = stat, p = p, df1 = df1, df2 = df2, note = note))
+  }
+  list(stat = NA_real_, p = NA_real_, df1 = NA_real_, df2 = NA_real_, note = "")
+}
+
+calc_abs_resid_cor <- function(resid, fitted_vals) {
+  if (length(resid) < 3 || length(fitted_vals) < 3) return(NULL)
+  test <- tryCatch(cor.test(abs(resid), fitted_vals), error = function(e) NULL)
+  if (is.null(test)) return(NULL)
+  list(stat = extract_first_numeric(test$estimate), p = test$p.value, df1 = extract_first_numeric(test$parameter))
+}
+
+fit_sem_model <- function(analysis, model_syntax, df, estimator, missing, se, bootstrap_samples, ordered_vars, group_var, group_equal) {
+  args <- list(
+    model = model_syntax,
+    data = df,
+    estimator = estimator,
+    missing = missing,
+    se = se
+  )
+  if (length(ordered_vars) > 0) args$ordered <- ordered_vars
+  if (nzchar(group_var)) args$group <- group_var
+  if (!is.null(group_equal) && length(group_equal) > 0) args$group.equal <- group_equal
+  if (se == "bootstrap") args$bootstrap <- bootstrap_samples
+
+  if (analysis == "cfa") {
+    do.call(lavaan::cfa, args)
+  } else {
+    do.call(lavaan::sem, args)
+  }
+}
+
 make_check_row <- function(analysis_type, model, assumption, test, target, group,
                            statistic, df1, df2, p, value, n, decision, note) {
   safe_text <- function(value) {
@@ -642,6 +1073,11 @@ decision_from_vif <- function(vif, warn, high) {
 decision_from_count <- function(count) {
   if (is.na(count)) return("")
   if (count > 0) "flag" else "ok"
+}
+
+decision_from_threshold <- function(value, threshold) {
+  if (is.na(value)) return("")
+  if (value >= threshold) "flag" else "ok"
 }
 
 build_assumptions_table_body <- function(checks_df, digits, table_spec = NULL) {
@@ -1389,6 +1825,633 @@ run_regression_assumptions <- function(df, opts, settings) {
   list(checks = checks_df)
 }
 
+run_mixed_models_assumptions <- function(df, opts, settings) {
+  if (!is_pkg_available("lme4")) {
+    stop("Mixed models require the 'lme4' package.")
+  }
+  rows <- list()
+  formula_text <- ""
+  if (!is.null(opts$formula) && !is.logical(opts$formula)) {
+    formula_text <- as.character(opts$formula)
+  }
+  dv <- if (!is.null(opts$dv)) as.character(opts$dv) else ""
+  fixed_terms <- resolve_parse_list(opts$fixed)
+  random_terms_raw <- resolve_parse_list(opts$random)
+  random_terms <- normalize_random_terms(random_terms_raw)
+
+  if (nzchar(formula_text)) {
+    formula <- tryCatch(as.formula(formula_text), error = function(e) NULL)
+    if (is.null(formula)) stop("Invalid mixed model formula.")
+  } else {
+    if (!nzchar(dv)) stop("Mixed model checks require --formula or --dv.")
+    if (length(random_terms) == 0) stop("Mixed model checks require --random or random effects in --formula.")
+    formula <- build_model_formula(dv, fixed_terms, random_terms)
+    formula_text <- paste(deparse(formula), collapse = " ")
+  }
+
+  random_terms_in_formula <- extract_random_terms_from_formula(formula_text)
+  if (length(random_terms_in_formula) == 0) stop("Mixed model checks require at least one random effect term.")
+  if (!nzchar(dv)) {
+    dv_vars <- all.vars(formula[[2]])
+    if (length(dv_vars) > 0) dv <- dv_vars[1]
+  }
+
+  vars <- unique(all.vars(formula))
+  missing <- setdiff(vars, names(df))
+  if (length(missing) > 0) stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
+  model_df <- df[, vars, drop = FALSE]
+  complete <- complete.cases(model_df)
+  model_df <- model_df[complete, , drop = FALSE]
+  if (nrow(model_df) == 0) stop("No complete cases available for mixed-model checks.")
+  if (!nzchar(dv) || !(dv %in% names(model_df))) stop("Dependent variable not found.")
+  if (!is.numeric(model_df[[dv]])) stop("Dependent variable must be numeric for mixed-model checks.")
+  model_df <- coerce_model_factors(model_df, vars, dv)
+
+  control <- build_lmer_control(settings$optimizer, settings$maxfun)
+  fit <- tryCatch(
+    if (is.null(control)) {
+      lme4::lmer(formula, data = model_df, REML = settings$reml)
+    } else {
+      lme4::lmer(formula, data = model_df, REML = settings$reml, control = control)
+    },
+    error = function(e) NULL
+  )
+  if (is.null(fit)) stop("Mixed model fit failed.")
+
+  resid_vals <- tryCatch(residuals(fit), error = function(e) NULL)
+  fitted_vals <- tryCatch(fitted(fit), error = function(e) NULL)
+  n <- if (!is.null(resid_vals)) length(resid_vals) else NA_real_
+  model_label <- "Mixed"
+
+  if (settings$convergence) {
+    conv_note <- ""
+    conv_msgs <- tryCatch(fit@optinfo$conv$lme4$messages, error = function(e) NULL)
+    if (!is.null(conv_msgs) && length(conv_msgs) > 0) conv_note <- paste(conv_msgs, collapse = "; ")
+    decision <- ifelse(nzchar(conv_note), "flag", "ok")
+    rows[[length(rows) + 1]] <- make_check_row(
+      analysis_type = "mixed_models",
+      model = model_label,
+      assumption = "Convergence",
+      test = "lme4",
+      target = "Model",
+      group = "",
+      statistic = NA_real_,
+      df1 = NA_real_,
+      df2 = NA_real_,
+      p = NA_real_,
+      value = NA_real_,
+      n = n,
+      decision = decision,
+      note = conv_note
+    )
+  }
+
+  if (settings$singular) {
+    singular <- tryCatch(lme4::isSingular(fit), error = function(e) NA)
+    decision <- ifelse(isTRUE(singular), "flag", "ok")
+    note <- ifelse(isTRUE(singular), "Singular fit detected.", "")
+    rows[[length(rows) + 1]] <- make_check_row(
+      analysis_type = "mixed_models",
+      model = model_label,
+      assumption = "Singularity",
+      test = "lme4::isSingular",
+      target = "Model",
+      group = "",
+      statistic = NA_real_,
+      df1 = NA_real_,
+      df2 = NA_real_,
+      p = NA_real_,
+      value = NA_real_,
+      n = n,
+      decision = decision,
+      note = note
+    )
+  }
+
+  if (settings$normality != "none" && !is.null(resid_vals)) {
+    shapiro <- safe_shapiro(resid_vals, settings$max_shapiro_n)
+    decision <- decision_from_p(shapiro$p, settings$alpha)
+    rows[[length(rows) + 1]] <- make_check_row(
+      analysis_type = "mixed_models",
+      model = model_label,
+      assumption = "Normality",
+      test = "Shapiro-Wilk",
+      target = "Residuals",
+      group = "",
+      statistic = shapiro$w,
+      df1 = NA_real_,
+      df2 = NA_real_,
+      p = shapiro$p,
+      value = NA_real_,
+      n = shapiro$n,
+      decision = decision,
+      note = shapiro$note
+    )
+  }
+
+  if (settings$random_effects) {
+    ranefs <- tryCatch(lme4::ranef(fit, condVar = FALSE), error = function(e) NULL)
+    if (!is.null(ranefs) && length(ranefs) > 0) {
+      for (grp in names(ranefs)) {
+        re_df <- ranefs[[grp]]
+        if (!is.data.frame(re_df) || nrow(re_df) == 0) next
+        for (term in names(re_df)) {
+          vals <- re_df[[term]]
+          shapiro <- safe_shapiro(vals, settings$max_shapiro_n)
+          decision <- decision_from_p(shapiro$p, settings$alpha)
+          rows[[length(rows) + 1]] <- make_check_row(
+            analysis_type = "mixed_models",
+            model = model_label,
+            assumption = "Random-effects normality",
+            test = "Shapiro-Wilk",
+            target = term,
+            group = grp,
+            statistic = shapiro$w,
+            df1 = NA_real_,
+            df2 = NA_real_,
+            p = shapiro$p,
+            value = NA_real_,
+            n = shapiro$n,
+            decision = decision,
+            note = shapiro$note
+          )
+        }
+      }
+    }
+  }
+
+  if (settings$homoscedasticity && !is.null(resid_vals) && !is.null(fitted_vals)) {
+    cor_res <- calc_abs_resid_cor(resid_vals, fitted_vals)
+    if (!is.null(cor_res)) {
+      decision <- decision_from_p(cor_res$p, settings$alpha)
+      rows[[length(rows) + 1]] <- make_check_row(
+        analysis_type = "mixed_models",
+        model = model_label,
+        assumption = "Homoscedasticity",
+        test = "Abs resid vs fitted",
+        target = "Residuals",
+        group = "",
+        statistic = cor_res$stat,
+        df1 = cor_res$df1,
+        df2 = NA_real_,
+        p = cor_res$p,
+        value = NA_real_,
+        n = n,
+        decision = decision,
+        note = ""
+      )
+    }
+    if (isTRUE(settings$performance) && isTRUE(settings$packages$performance)) {
+      perf_test <- tryCatch(performance::check_heteroscedasticity(fit), error = function(e) NULL)
+      perf_vals <- extract_test_values(perf_test)
+      if (!is.na(perf_vals$stat) || !is.na(perf_vals$p)) {
+        decision <- decision_from_p(perf_vals$p, settings$alpha)
+        rows[[length(rows) + 1]] <- make_check_row(
+          analysis_type = "mixed_models",
+          model = model_label,
+          assumption = "Homoscedasticity",
+          test = "performance::check_heteroscedasticity",
+          target = "Residuals",
+          group = "",
+          statistic = perf_vals$stat,
+          df1 = perf_vals$df1,
+          df2 = perf_vals$df2,
+          p = perf_vals$p,
+          value = NA_real_,
+          n = n,
+          decision = decision,
+          note = perf_vals$note
+        )
+      }
+    }
+  }
+
+  if (settings$outliers && !is.null(resid_vals)) {
+    resid_sd <- sd(resid_vals, na.rm = TRUE)
+    if (!is.na(resid_sd) && resid_sd > 0) {
+      std_res <- resid_vals / resid_sd
+      max_abs <- max(abs(std_res), na.rm = TRUE)
+      count <- sum(abs(std_res) > settings$outlier_z, na.rm = TRUE)
+      decision <- decision_from_count(count)
+      note <- paste0("|std resid| > ", settings$outlier_z, ": ", count)
+      rows[[length(rows) + 1]] <- make_check_row(
+        analysis_type = "mixed_models",
+        model = model_label,
+        assumption = "Outliers",
+        test = "Std. residuals",
+        target = "Residuals",
+        group = "",
+        statistic = NA_real_,
+        df1 = NA_real_,
+        df2 = NA_real_,
+        p = NA_real_,
+        value = max_abs,
+        n = n,
+        decision = decision,
+        note = note
+      )
+    }
+  }
+
+  if (settings$influence && isTRUE(settings$packages$influence)) {
+    group_list <- tryCatch(lme4::getME(fit, "flist"), error = function(e) NULL)
+    if (!is.null(group_list) && length(group_list) > 0) {
+      for (grp in names(group_list)) {
+        infl <- tryCatch(influence.ME::influence(fit, group = grp), error = function(e) NULL)
+        if (is.null(infl)) next
+        cooks <- tryCatch(influence.ME::cooks.distance(infl), error = function(e) NULL)
+        if (is.null(cooks)) next
+        max_cook <- max(cooks, na.rm = TRUE)
+        threshold <- settings$cook_multiplier / length(cooks)
+        count <- sum(cooks > threshold, na.rm = TRUE)
+        decision <- decision_from_count(count)
+        note <- paste0("Cook's D > ", format_stat(threshold, settings$digits), ": ", count)
+        rows[[length(rows) + 1]] <- make_check_row(
+          analysis_type = "mixed_models",
+          model = model_label,
+          assumption = "Influence",
+          test = "Cook's distance (cluster)",
+          target = grp,
+          group = "",
+          statistic = NA_real_,
+          df1 = NA_real_,
+          df2 = NA_real_,
+          p = NA_real_,
+          value = max_cook,
+          n = length(cooks),
+          decision = decision,
+          note = note
+        )
+      }
+    }
+  }
+
+  if (settings$dharma && isTRUE(settings$packages$dharma)) {
+    sim <- tryCatch(DHARMa::simulateResiduals(fit, plot = FALSE), error = function(e) NULL)
+    if (!is.null(sim)) {
+      uni <- tryCatch(DHARMa::testUniformity(sim), error = function(e) NULL)
+      uni_vals <- extract_test_values(uni)
+      if (!is.na(uni_vals$stat) || !is.na(uni_vals$p)) {
+        decision <- decision_from_p(uni_vals$p, settings$alpha)
+        rows[[length(rows) + 1]] <- make_check_row(
+          analysis_type = "mixed_models",
+          model = model_label,
+          assumption = "Residuals",
+          test = "DHARMa uniformity",
+          target = "Residuals",
+          group = "",
+          statistic = uni_vals$stat,
+          df1 = uni_vals$df1,
+          df2 = uni_vals$df2,
+          p = uni_vals$p,
+          value = NA_real_,
+          n = n,
+          decision = decision,
+          note = uni_vals$note
+        )
+      }
+      disp <- tryCatch(DHARMa::testDispersion(sim), error = function(e) NULL)
+      disp_vals <- extract_test_values(disp)
+      if (!is.na(disp_vals$stat) || !is.na(disp_vals$p)) {
+        decision <- decision_from_p(disp_vals$p, settings$alpha)
+        rows[[length(rows) + 1]] <- make_check_row(
+          analysis_type = "mixed_models",
+          model = model_label,
+          assumption = "Residuals",
+          test = "DHARMa dispersion",
+          target = "Residuals",
+          group = "",
+          statistic = disp_vals$stat,
+          df1 = disp_vals$df1,
+          df2 = disp_vals$df2,
+          p = disp_vals$p,
+          value = NA_real_,
+          n = n,
+          decision = decision,
+          note = disp_vals$note
+        )
+      }
+    }
+  }
+
+  checks_df <- if (length(rows) > 0) do.call(rbind, rows) else data.frame()
+  list(checks = checks_df, model = formula_text)
+}
+
+run_sem_assumptions <- function(df, opts, settings) {
+  if (!is_pkg_available("lavaan")) {
+    stop("SEM assumptions require the 'lavaan' package.")
+  }
+  rows <- list()
+  sem_type <- settings$sem_type
+  model_text <- ""
+  if (!is.null(opts$model) && !is.logical(opts$model) && nzchar(opts$model)) {
+    model_text <- as.character(opts$model)
+  }
+  if (!nzchar(model_text) && !is.null(opts$paths) && !is.logical(opts$paths) && nzchar(opts$paths)) {
+    model_text <- as.character(opts$paths)
+  }
+  if (!nzchar(model_text) && !is.null(opts$`model-file`) && !is.logical(opts$`model-file`) && nzchar(opts$`model-file`)) {
+    model_path <- as.character(opts$`model-file`)
+    if (!file.exists(model_path)) stop(paste0("Model file not found: ", model_path))
+    model_text <- paste(readLines(model_path, warn = FALSE), collapse = "\n")
+  }
+
+  factors_text <- if (!is.null(opts$factors) && !is.logical(opts$factors)) as.character(opts$factors) else ""
+  covariates <- resolve_parse_list(opts$covariates)
+
+  if (!nzchar(model_text)) {
+    if (sem_type == "cfa" && nzchar(factors_text)) {
+      factors <- parse_factor_spec(factors_text)
+      model_text <- build_cfa_model(factors)
+    } else if (sem_type == "mediation") {
+      x <- if (!is.null(opts$x)) as.character(opts$x) else ""
+      mediators <- resolve_parse_list(opts$m)
+      y <- if (!is.null(opts$y)) as.character(opts$y) else ""
+      serial <- resolve_parse_bool(opts$serial, default = FALSE)
+      model_text <- build_mediation_model(x, mediators, y, covariates, serial)
+    } else if (sem_type == "path") {
+      dv <- if (!is.null(opts$dv)) as.character(opts$dv) else ""
+      ivs <- resolve_parse_list(opts$ivs)
+      model_text <- build_path_model(dv, ivs, covariates)
+    } else if (nzchar(factors_text)) {
+      factors <- parse_factor_spec(factors_text)
+      model_text <- build_cfa_model(factors)
+    }
+  }
+
+  if (!nzchar(model_text)) {
+    stop("Model syntax is required. Use --model, --model-file, or a builder option.")
+  }
+  model_syntax <- normalize_model_syntax(model_text)
+  model_vars <- extract_model_vars(model_syntax)
+  if (length(model_vars) == 0 && nzchar(factors_text)) {
+    factors <- parse_factor_spec(factors_text)
+    model_vars <- unique(unlist(factors))
+  }
+  if (length(model_vars) == 0) stop("No model variables could be identified.")
+  missing_vars <- setdiff(model_vars, names(df))
+  if (length(missing_vars) > 0) stop(paste("Missing variables:", paste(missing_vars, collapse = ", ")))
+
+  ordered_vars <- resolve_parse_list(opts$ordered)
+  if (length(ordered_vars) > 0) {
+    missing_ordered <- setdiff(ordered_vars, names(df))
+    if (length(missing_ordered) > 0) {
+      stop(paste("Unknown ordered variables:", paste(missing_ordered, collapse = ", ")))
+    }
+    ordered_vars <- intersect(ordered_vars, model_vars)
+  }
+
+  cont_vars <- setdiff(model_vars, ordered_vars)
+  cont_vars <- cont_vars[sapply(df[cont_vars], is.numeric)]
+  cont_data <- if (length(cont_vars) > 0) df[, cont_vars, drop = FALSE] else NULL
+  cont_complete <- if (!is.null(cont_data)) cont_data[complete.cases(cont_data), , drop = FALSE] else NULL
+
+  if (settings$normality != "none") {
+    for (var in cont_vars) {
+      vals <- df[[var]]
+      vals <- vals[!is.na(vals)]
+      shapiro <- safe_shapiro(vals, settings$max_shapiro_n)
+      decision <- decision_from_p(shapiro$p, settings$alpha)
+      rows[[length(rows) + 1]] <- make_check_row(
+        analysis_type = "sem",
+        model = toupper(sem_type),
+        assumption = "Normality",
+        test = "Shapiro-Wilk",
+        target = var,
+        group = "",
+        statistic = shapiro$w,
+        df1 = NA_real_,
+        df2 = NA_real_,
+        p = shapiro$p,
+        value = NA_real_,
+        n = shapiro$n,
+        decision = decision,
+        note = shapiro$note
+      )
+    }
+  }
+
+  if (settings$mardia && isTRUE(settings$packages$mvn) && !is.null(cont_complete)) {
+    if (nrow(cont_complete) > 2 && ncol(cont_complete) > 1) {
+      mvn_res <- tryCatch(
+        MVN::mvn(cont_complete, mvnTest = "mardia", multivariatePlot = "none"),
+        error = function(e) NULL
+      )
+      if (!is.null(mvn_res) && !is.null(mvn_res$multivariateNormality)) {
+        mvn_tbl <- mvn_res$multivariateNormality
+        label_col <- NULL
+        if ("Test" %in% names(mvn_tbl)) label_col <- "Test"
+        labels <- if (!is.null(label_col)) as.character(mvn_tbl[[label_col]]) else rownames(mvn_tbl)
+        stat_col <- NULL
+        if ("Statistic" %in% names(mvn_tbl)) stat_col <- "Statistic"
+        if (is.null(stat_col) && "statistic" %in% names(mvn_tbl)) stat_col <- "statistic"
+        p_col <- NULL
+        if ("p value" %in% names(mvn_tbl)) p_col <- "p value"
+        if (is.null(p_col) && "p.value" %in% names(mvn_tbl)) p_col <- "p.value"
+        if (is.null(p_col) && "p" %in% names(mvn_tbl)) p_col <- "p"
+
+        if (!is.null(labels) && !is.null(stat_col) && !is.null(p_col)) {
+          for (i in seq_along(labels)) {
+            label <- labels[i]
+            if (!grepl("Mardia", label, ignore.case = TRUE)) next
+            stat_val <- extract_first_numeric(mvn_tbl[[stat_col]][i])
+            p_val <- extract_first_numeric(mvn_tbl[[p_col]][i])
+            test_label <- if (grepl("skew", label, ignore.case = TRUE)) "Mardia (skew)" else "Mardia (kurtosis)"
+            decision <- decision_from_p(p_val, settings$alpha)
+            rows[[length(rows) + 1]] <- make_check_row(
+              analysis_type = "sem",
+              model = toupper(sem_type),
+              assumption = "Multivariate normality",
+              test = test_label,
+              target = "Indicators",
+              group = "",
+              statistic = stat_val,
+              df1 = NA_real_,
+              df2 = NA_real_,
+              p = p_val,
+              value = NA_real_,
+              n = nrow(cont_complete),
+              decision = decision,
+              note = ""
+            )
+          }
+        }
+      }
+    }
+  }
+
+  if (settings$mahalanobis && !is.null(cont_complete)) {
+    if (nrow(cont_complete) > 2 && ncol(cont_complete) > 1) {
+      cov_mat <- tryCatch(cov(cont_complete), error = function(e) NULL)
+      if (!is.null(cov_mat)) {
+        center <- colMeans(cont_complete)
+        d2 <- tryCatch(mahalanobis(cont_complete, center, cov_mat), error = function(e) NULL)
+        if (!is.null(d2)) {
+          cutoff <- qchisq(1 - settings$mahalanobis_alpha, df = ncol(cont_complete))
+          count <- sum(d2 > cutoff, na.rm = TRUE)
+          max_dist <- max(d2, na.rm = TRUE)
+          decision <- decision_from_count(count)
+          note <- paste0("Chi-square cutoff (alpha = ", settings$mahalanobis_alpha, "): ", format_stat(cutoff, settings$digits))
+          rows[[length(rows) + 1]] <- make_check_row(
+            analysis_type = "sem",
+            model = toupper(sem_type),
+            assumption = "Outliers",
+            test = "Mahalanobis distance",
+            target = "Indicators",
+            group = "",
+            statistic = NA_real_,
+            df1 = NA_real_,
+            df2 = NA_real_,
+            p = NA_real_,
+            value = max_dist,
+            n = nrow(cont_complete),
+            decision = decision,
+            note = note
+          )
+        }
+      }
+    }
+  }
+
+  if (settings$collinearity && !is.null(cont_complete) && ncol(cont_complete) > 1) {
+    cor_mat <- tryCatch(cor(cont_complete, use = "pairwise.complete.obs"), error = function(e) NULL)
+    if (!is.null(cor_mat)) {
+      max_cor <- max(abs(cor_mat[upper.tri(cor_mat)]), na.rm = TRUE)
+      if (!is.finite(max_cor)) max_cor <- NA_real_
+      decision <- decision_from_threshold(max_cor, settings$max_cor)
+      note <- paste0("Threshold = ", settings$max_cor)
+      rows[[length(rows) + 1]] <- make_check_row(
+        analysis_type = "sem",
+        model = toupper(sem_type),
+        assumption = "Multicollinearity",
+        test = "Max |r|",
+        target = "Indicators",
+        group = "",
+        statistic = NA_real_,
+        df1 = NA_real_,
+        df2 = NA_real_,
+        p = NA_real_,
+        value = max_cor,
+        n = nrow(cont_complete),
+        decision = decision,
+        note = note
+      )
+      kappa_val <- tryCatch(kappa(cor_mat), error = function(e) NA_real_)
+      decision <- decision_from_threshold(kappa_val, settings$max_kappa)
+      note <- paste0("Threshold = ", settings$max_kappa)
+      rows[[length(rows) + 1]] <- make_check_row(
+        analysis_type = "sem",
+        model = toupper(sem_type),
+        assumption = "Multicollinearity",
+        test = "Condition number",
+        target = "Indicators",
+        group = "",
+        statistic = NA_real_,
+        df1 = NA_real_,
+        df2 = NA_real_,
+        p = NA_real_,
+        value = kappa_val,
+        n = nrow(cont_complete),
+        decision = decision,
+        note = note
+      )
+    }
+  }
+
+  fit <- NULL
+  if (settings$convergence || settings$heywood) {
+    estimator <- settings$estimator
+    missing <- settings$missing
+    se <- settings$se
+    bootstrap_samples <- settings$bootstrap_samples
+    group_var <- if (!is.null(opts$group)) as.character(opts$group) else ""
+    if (nzchar(group_var) && !(group_var %in% names(df))) {
+      stop(paste0("Grouping variable not found: ", group_var))
+    }
+    group_equal <- resolve_parse_list(opts$`group-equal`)
+    fit_type <- if (sem_type %in% c("cfa", "invariance")) "cfa" else "sem"
+    fit <- tryCatch(
+      fit_sem_model(fit_type, model_syntax, df, estimator, missing, se, bootstrap_samples, ordered_vars, group_var, group_equal),
+      error = function(e) NULL
+    )
+    if (is.null(fit)) stop("SEM model failed.")
+  }
+
+  if (!is.null(fit) && settings$convergence) {
+    converged <- tryCatch(lavaan::lavInspect(fit, "converged"), error = function(e) NA)
+    decision <- ifelse(isTRUE(converged), "ok", "flag")
+    note <- ifelse(isTRUE(converged), "", "Model did not converge.")
+    rows[[length(rows) + 1]] <- make_check_row(
+      analysis_type = "sem",
+      model = toupper(sem_type),
+      assumption = "Convergence",
+      test = "lavaan",
+      target = "Model",
+      group = "",
+      statistic = NA_real_,
+      df1 = NA_real_,
+      df2 = NA_real_,
+      p = NA_real_,
+      value = NA_real_,
+      n = NA_real_,
+      decision = decision,
+      note = note
+    )
+  }
+
+  if (!is.null(fit) && settings$heywood) {
+    pe <- tryCatch(lavaan::parameterEstimates(fit, standardized = TRUE), error = function(e) NULL)
+    if (!is.null(pe) && nrow(pe) > 0) {
+      var_rows <- pe[pe$op == "~~" & pe$lhs == pe$rhs, , drop = FALSE]
+      neg_count <- sum(var_rows$est < 0, na.rm = TRUE)
+      decision <- decision_from_count(neg_count)
+      note <- paste0("Negative variances: ", neg_count)
+      rows[[length(rows) + 1]] <- make_check_row(
+        analysis_type = "sem",
+        model = toupper(sem_type),
+        assumption = "Heywood",
+        test = "Negative variances",
+        target = "Model",
+        group = "",
+        statistic = NA_real_,
+        df1 = NA_real_,
+        df2 = NA_real_,
+        p = NA_real_,
+        value = neg_count,
+        n = NA_real_,
+        decision = decision,
+        note = note
+      )
+      if ("std.all" %in% names(pe)) {
+        load_rows <- pe[pe$op == "=~", , drop = FALSE]
+        count <- sum(abs(load_rows$std.all) > 1, na.rm = TRUE)
+        decision <- decision_from_count(count)
+        note <- paste0("|std.all| > 1: ", count)
+        rows[[length(rows) + 1]] <- make_check_row(
+          analysis_type = "sem",
+          model = toupper(sem_type),
+          assumption = "Heywood",
+          test = "Std. loading > 1",
+          target = "Model",
+          group = "",
+          statistic = NA_real_,
+          df1 = NA_real_,
+          df2 = NA_real_,
+          p = NA_real_,
+          value = count,
+          n = NA_real_,
+          decision = decision,
+          note = note
+        )
+      }
+    }
+  }
+
+  checks_df <- if (length(rows) > 0) do.call(rbind, rows) else data.frame()
+  list(checks = checks_df, model = model_syntax, sem_type = sem_type, vars = model_vars)
+}
+
 build_note_tokens <- function(analysis_type, settings, homogeneity_tests) {
   homogeneity_label <- if (length(homogeneity_tests) == 0) {
     "None."
@@ -1406,7 +2469,7 @@ build_note_tokens <- function(analysis_type, settings, homogeneity_tests) {
     paste(labels, collapse = "; ")
   }
 
-  note_default <- if (analysis_type == "regression") {
+  if (analysis_type == "regression") {
     parts <- c(
       if (settings$normality != "none") {
         paste0("Normality assessed with Shapiro-Wilk (alpha = ", settings$alpha, ").")
@@ -1419,7 +2482,50 @@ build_note_tokens <- function(analysis_type, settings, homogeneity_tests) {
       if (settings$outliers) paste0("Outliers flagged at |std resid| > ", settings$outlier_z, ".") else NULL,
       if (settings$influence) paste0("Cook's D threshold = ", settings$cook_multiplier, "/n.") else NULL
     )
-    paste(parts[!is.null(parts) & nzchar(parts)], collapse = " ")
+    note_default <- paste(parts[!is.null(parts) & nzchar(parts)], collapse = " ")
+  } else if (analysis_type == "mixed_models") {
+    parts <- c(
+      if (settings$normality != "none") {
+        paste0("Residual normality assessed with Shapiro-Wilk (alpha = ", settings$alpha, ").")
+      } else {
+        "Residual normality not assessed."
+      },
+      if (settings$random_effects) "Random-effects normality assessed with Shapiro-Wilk." else "Random-effects normality not assessed.",
+      if (settings$homoscedasticity) "Homoscedasticity assessed with residual-fitted correlation." else "Homoscedasticity not assessed.",
+      if (isTRUE(settings$performance) && isTRUE(settings$packages$performance)) {
+        "Additional heteroscedasticity check via performance::check_heteroscedasticity."
+      } else {
+        NULL
+      },
+      if (settings$singular) "Singular fit flagged via lme4::isSingular." else NULL,
+      if (settings$convergence) "Convergence warnings reported from the optimizer." else NULL,
+      if (settings$outliers) paste0("Outliers flagged at |std resid| > ", settings$outlier_z, ".") else NULL,
+      if (settings$influence) paste0("Cook's D threshold = ", settings$cook_multiplier, "/n (clusters when available).") else NULL,
+      if (settings$dharma && isTRUE(settings$packages$dharma)) "DHARMa residual diagnostics included when available." else NULL,
+      if (settings$dharma && !isTRUE(settings$packages$dharma)) "DHARMa requested but package not available." else NULL,
+      if (settings$influence && !isTRUE(settings$packages$influence)) "Influence checks require influence.ME (not available)." else NULL
+    )
+    note_default <- paste(parts[!is.null(parts) & nzchar(parts)], collapse = " ")
+  } else if (analysis_type == "sem") {
+    parts <- c(
+      if (settings$normality != "none") {
+        paste0("Univariate normality assessed with Shapiro-Wilk (alpha = ", settings$alpha, ").")
+      } else {
+        "Univariate normality not assessed."
+      },
+      if (settings$mardia && isTRUE(settings$packages$mvn)) {
+        "Multivariate normality assessed with Mardia."
+      } else if (settings$mardia) {
+        "Mardia test not available (MVN missing)."
+      } else {
+        "Multivariate normality not assessed."
+      },
+      if (settings$mahalanobis) paste0("Mahalanobis outliers flagged at alpha = ", settings$mahalanobis_alpha, ".") else NULL,
+      if (settings$collinearity) paste0("Collinearity thresholds: max |r| = ", settings$max_cor, ", condition number = ", settings$max_kappa, ".") else NULL,
+      if (settings$heywood) "Heywood cases flagged (negative variances or |std loading| > 1)." else NULL,
+      if (settings$convergence) "Convergence reported from lavaan." else NULL
+    )
+    note_default <- paste(parts[!is.null(parts) & nzchar(parts)], collapse = " ")
   } else {
     parts <- c(
       if (settings$normality != "none") {
@@ -1429,7 +2535,7 @@ build_note_tokens <- function(analysis_type, settings, homogeneity_tests) {
       },
       paste0("Homogeneity tests: ", homogeneity_label, ".")
     )
-    paste(parts, collapse = " ")
+    note_default <- paste(parts, collapse = " ")
   }
 
   list(
@@ -1439,7 +2545,10 @@ build_note_tokens <- function(analysis_type, settings, homogeneity_tests) {
     vif_warn = settings$vif_warn,
     vif_high = settings$vif_high,
     outlier_z = settings$outlier_z,
-    cook_threshold = paste0(settings$cook_multiplier, "/n")
+    cook_threshold = paste0(settings$cook_multiplier, "/n"),
+    mahalanobis_alpha = if (!is.null(settings$mahalanobis_alpha)) settings$mahalanobis_alpha else NA_real_,
+    max_cor = if (!is.null(settings$max_cor)) settings$max_cor else NA_real_,
+    max_kappa = if (!is.null(settings$max_kappa)) settings$max_kappa else NA_real_
   )
 }
 
@@ -1474,9 +2583,35 @@ main <- function() {
   outlier_z_default <- resolve_config_value("modules.assumptions.outlier_z", 3)
   cook_multiplier_default <- resolve_config_value("modules.assumptions.cook_multiplier", 4)
   max_shapiro_default <- resolve_config_value("modules.assumptions.max_shapiro_n", 5000)
+  mm_random_default <- resolve_config_value("modules.assumptions.mixed_models.random_effects", TRUE)
+  mm_singular_default <- resolve_config_value("modules.assumptions.mixed_models.singular", TRUE)
+  mm_conv_default <- resolve_config_value("modules.assumptions.mixed_models.convergence", TRUE)
+  mm_dharma_default <- resolve_config_value("modules.assumptions.mixed_models.dharma", FALSE)
+  mm_performance_default <- resolve_config_value("modules.assumptions.mixed_models.performance", TRUE)
+  sem_mardia_default <- resolve_config_value("modules.assumptions.sem.mardia", TRUE)
+  sem_mahal_default <- resolve_config_value("modules.assumptions.sem.mahalanobis", TRUE)
+  sem_mahal_alpha_default <- resolve_config_value("modules.assumptions.sem.mahalanobis_alpha", 0.001)
+  sem_coll_default <- resolve_config_value("modules.assumptions.sem.collinearity", TRUE)
+  sem_max_cor_default <- resolve_config_value("modules.assumptions.sem.max_cor", 0.9)
+  sem_max_kappa_default <- resolve_config_value("modules.assumptions.sem.max_kappa", 30)
+  sem_heywood_default <- resolve_config_value("modules.assumptions.sem.heywood", TRUE)
+  sem_conv_default <- resolve_config_value("modules.assumptions.sem.convergence", TRUE)
+  mm_reml_default <- resolve_config_value("modules.mixed_models.reml", TRUE)
+  mm_optimizer_default <- resolve_config_value("modules.mixed_models.optimizer", "bobyqa")
+  mm_maxfun_default <- resolve_config_value("modules.mixed_models.maxfun", 100000)
+  sem_analysis_default <- resolve_config_value("modules.sem.analysis", "sem")
+  sem_estimator_default <- resolve_config_value("modules.sem.estimator", "MLR")
+  sem_missing_default <- resolve_config_value("modules.sem.missing", "fiml")
+  sem_se_default <- resolve_config_value("modules.sem.se", "robust")
+  sem_ci_default <- resolve_config_value("modules.sem.ci", "standard")
+  sem_bootstrap_default <- resolve_config_value("modules.sem.bootstrap", FALSE)
+  sem_bootstrap_samples_default <- resolve_config_value("modules.sem.bootstrap_samples", 5000)
+  sem_std_default <- resolve_config_value("modules.sem.std", "std.all")
 
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  analysis <- normalize_analysis_type(if (!is.null(opts$analysis)) opts$analysis else analysis_default, default = "auto")
+  analysis_input <- if (!is.null(opts$analysis)) opts$analysis else analysis_default
+  analysis <- normalize_analysis_type(analysis_input, default = "auto")
+  sem_type <- normalize_sem_type(analysis_input, default = sem_analysis_default)
   normality <- if (!is.null(opts$normality)) tolower(opts$normality) else normality_default
   homogeneity_tests <- parse_homogeneity_tests(opts$homogeneity, homogeneity_default)
   linearity <- resolve_parse_bool(opts$linearity, default = linearity_default)
@@ -1492,12 +2627,45 @@ main <- function() {
   outlier_z <- if (!is.null(opts$`outlier-z`)) as.numeric(opts$`outlier-z`) else outlier_z_default
   cook_multiplier <- if (!is.null(opts$`cook-multiplier`)) as.numeric(opts$`cook-multiplier`) else cook_multiplier_default
   max_shapiro_n <- if (!is.null(opts$`max-shapiro-n`)) as.numeric(opts$`max-shapiro-n`) else max_shapiro_default
+  random_effects <- resolve_parse_bool(opts$`random-effects`, default = mm_random_default)
+  singular <- resolve_parse_bool(opts$singular, default = mm_singular_default)
+  mm_convergence <- resolve_parse_bool(opts$convergence, default = mm_conv_default)
+  dharma <- resolve_parse_bool(opts$dharma, default = mm_dharma_default)
+  performance_flag <- resolve_parse_bool(opts$performance, default = mm_performance_default)
+  mardia <- resolve_parse_bool(opts$mardia, default = sem_mardia_default)
+  mahalanobis <- resolve_parse_bool(opts$mahalanobis, default = sem_mahal_default)
+  mahalanobis_alpha <- if (!is.null(opts$`mahalanobis-alpha`)) as.numeric(opts$`mahalanobis-alpha`) else sem_mahal_alpha_default
+  collinearity <- resolve_parse_bool(opts$collinearity, default = sem_coll_default)
+  max_cor <- if (!is.null(opts$`max-cor`)) as.numeric(opts$`max-cor`) else sem_max_cor_default
+  max_kappa <- if (!is.null(opts$`max-kappa`)) as.numeric(opts$`max-kappa`) else sem_max_kappa_default
+  heywood <- resolve_parse_bool(opts$heywood, default = sem_heywood_default)
+  sem_convergence <- resolve_parse_bool(opts$convergence, default = sem_conv_default)
+  reml <- normalize_reml(opts$reml, default = mm_reml_default)
+  optimizer <- if (!is.null(opts$optimizer) && nzchar(opts$optimizer)) as.character(opts$optimizer) else mm_optimizer_default
+  maxfun <- normalize_maxfun(opts$maxfun, default = mm_maxfun_default)
+  estimator <- normalize_estimator(opts$estimator, default = sem_estimator_default)
+  missing <- normalize_missing(opts$missing, default = sem_missing_default)
+  se <- normalize_se(opts$se, default = sem_se_default)
+  ci <- normalize_ci(opts$ci, default = sem_ci_default)
+  std <- normalize_std(opts$std, default = sem_std_default)
+  bootstrap <- resolve_parse_bool(opts$bootstrap, default = sem_bootstrap_default)
+  if (bootstrap && se != "bootstrap") se <- "bootstrap"
+  if (se == "bootstrap" && !bootstrap) bootstrap <- TRUE
+  bootstrap_samples <- if (!is.null(opts$`bootstrap-samples`)) as.numeric(opts$`bootstrap-samples`) else sem_bootstrap_samples_default
+  if (is.na(bootstrap_samples) || bootstrap_samples <= 0) bootstrap_samples <- sem_bootstrap_samples_default
 
   df <- resolve_load_dataframe(opts)
   out_dir <- resolve_get_workspace_out_dir(df)
 
   if (analysis == "auto") {
-    if (!is.null(opts$ivs) || !is.null(opts$blocks)) {
+    if (!is.null(opts$formula) || !is.null(opts$random) || !is.null(opts$fixed)) {
+      analysis <- "mixed_models"
+    } else if (!is.null(opts$model) || !is.null(opts$`model-file`) || !is.null(opts$paths) ||
+               !is.null(opts$factors) || !is.null(opts$x) || !is.null(opts$m) || !is.null(opts$y) ||
+               !is.null(opts$ordered) || !is.null(opts$`group-equal`) || !is.null(opts$invariance) ||
+               !is.null(opts$group)) {
+      analysis <- "sem"
+    } else if (!is.null(opts$ivs) || !is.null(opts$blocks)) {
       analysis <- "regression"
     } else if (!is.null(opts$within) || !is.null(opts$between) || !is.null(opts$dv)) {
       analysis <- "anova"
@@ -1506,9 +2674,23 @@ main <- function() {
     }
   }
 
-  if (analysis == "regression") {
+  if (analysis %in% c("regression", "mixed_models", "sem")) {
     homogeneity_tests <- character(0)
   }
+
+  if (is.na(mahalanobis_alpha) || mahalanobis_alpha <= 0 || mahalanobis_alpha >= 1) {
+    mahalanobis_alpha <- sem_mahal_alpha_default
+  }
+  if (is.na(max_cor) || max_cor <= 0) max_cor <- sem_max_cor_default
+  if (is.na(max_kappa) || max_kappa <= 0) max_kappa <- sem_max_kappa_default
+
+  analysis_convergence <- if (analysis == "sem") sem_convergence else mm_convergence
+  packages <- list(
+    performance = is_pkg_available("performance"),
+    influence = is_pkg_available("influence.ME"),
+    dharma = is_pkg_available("DHARMa"),
+    mvn = is_pkg_available("MVN")
+  )
 
   settings <- list(
     alpha = alpha,
@@ -1526,7 +2708,30 @@ main <- function() {
     vif_high = vif_high,
     outlier_z = outlier_z,
     cook_multiplier = cook_multiplier,
-    max_shapiro_n = max_shapiro_n
+    max_shapiro_n = max_shapiro_n,
+    random_effects = random_effects,
+    singular = singular,
+    convergence = analysis_convergence,
+    dharma = dharma,
+    performance = performance_flag,
+    mardia = mardia,
+    mahalanobis = mahalanobis,
+    mahalanobis_alpha = mahalanobis_alpha,
+    collinearity = collinearity,
+    max_cor = max_cor,
+    max_kappa = max_kappa,
+    heywood = heywood,
+    reml = reml,
+    optimizer = optimizer,
+    maxfun = maxfun,
+    sem_type = sem_type,
+    estimator = estimator,
+    missing = missing,
+    se = se,
+    ci = ci,
+    std = std,
+    bootstrap_samples = bootstrap_samples,
+    packages = packages
   )
 
   if (normality == "none") {
@@ -1539,6 +2744,10 @@ main <- function() {
     result <- run_anova_assumptions(df, opts, settings)
   } else if (analysis == "regression") {
     result <- run_regression_assumptions(df, opts, settings)
+  } else if (analysis == "mixed_models") {
+    result <- run_mixed_models_assumptions(df, opts, settings)
+  } else if (analysis == "sem") {
+    result <- run_sem_assumptions(df, opts, settings)
   } else {
     stop("Unknown analysis type.")
   }
@@ -1557,6 +2766,8 @@ main <- function() {
     ttest = "assumptions.ttest",
     anova = "assumptions.anova",
     regression = "assumptions.regression",
+    mixed_models = "assumptions.mixed_models",
+    sem = "assumptions.sem",
     "assumptions.ttest"
   )
   template_default <- switch(
@@ -1564,6 +2775,8 @@ main <- function() {
     ttest = "assumptions/ttest-template.md",
     anova = "assumptions/anova-template.md",
     regression = "assumptions/regression-template.md",
+    mixed_models = "assumptions/mixed-models-template.md",
+    sem = "assumptions/sem-template.md",
     "assumptions/ttest-template.md"
   )
   template_override <- resolve_template_override(opts$template, module = "assumptions")
@@ -1587,17 +2800,43 @@ main <- function() {
 
   analysis_flags <- list(
     analysis = analysis,
+    sem_type = if (analysis == "sem") sem_type else NULL,
     mode = if (!is.null(result$mode)) result$mode else NULL,
     dv = if (!is.null(opts$dv)) opts$dv else NULL,
     vars = if (!is.null(opts$vars)) opts$vars else NULL,
     x = if (!is.null(opts$x)) opts$x else NULL,
     y = if (!is.null(opts$y)) opts$y else NULL,
+    m = if (!is.null(opts$m)) opts$m else NULL,
+    covariates = if (!is.null(opts$covariates)) opts$covariates else NULL,
+    serial = if (!is.null(opts$serial)) opts$serial else NULL,
     group = if (!is.null(opts$group)) opts$group else NULL,
     between = if (!is.null(opts$between)) opts$between else NULL,
     within = if (!is.null(opts$within)) opts$within else NULL,
     "subject-id" = if (!is.null(opts$`subject-id`)) opts$`subject-id` else NULL,
     ivs = if (!is.null(opts$ivs)) opts$ivs else NULL,
     blocks = if (!is.null(opts$blocks)) opts$blocks else NULL,
+    formula = if (analysis == "mixed_models" && !is.null(result$model)) {
+      result$model
+    } else if (!is.null(opts$formula)) {
+      opts$formula
+    } else {
+      NULL
+    },
+    fixed = if (!is.null(opts$fixed)) opts$fixed else NULL,
+    random = if (!is.null(opts$random)) opts$random else NULL,
+    model = if (analysis == "sem" && !is.null(result$model)) {
+      result$model
+    } else if (!is.null(opts$model)) {
+      opts$model
+    } else {
+      NULL
+    },
+    "model-file" = if (!is.null(opts$`model-file`)) opts$`model-file` else NULL,
+    paths = if (!is.null(opts$paths)) opts$paths else NULL,
+    factors = if (!is.null(opts$factors)) opts$factors else NULL,
+    ordered = if (!is.null(opts$ordered)) opts$ordered else NULL,
+    "group-equal" = if (!is.null(opts$`group-equal`)) opts$`group-equal` else NULL,
+    invariance = if (!is.null(opts$invariance)) opts$invariance else NULL,
     normality = settings$normality,
     homogeneity = if (analysis %in% c("ttest", "anova")) {
       if (length(homogeneity_tests) > 0) paste(homogeneity_tests, collapse = ", ") else "none"
@@ -1605,11 +2844,33 @@ main <- function() {
       NULL
     },
     linearity = if (analysis == "regression") linearity else NULL,
-    homoscedasticity = if (analysis == "regression") homoscedasticity else NULL,
+    homoscedasticity = if (analysis %in% c("regression", "mixed_models")) homoscedasticity else NULL,
     vif = if (analysis == "regression") vif else NULL,
     "durbin-watson" = if (analysis == "regression") durbin_watson else NULL,
-    outliers = if (analysis == "regression") outliers else NULL,
-    influence = if (analysis == "regression") influence else NULL,
+    outliers = if (analysis %in% c("regression", "mixed_models")) outliers else NULL,
+    influence = if (analysis %in% c("regression", "mixed_models")) influence else NULL,
+    "random-effects" = if (analysis == "mixed_models") random_effects else NULL,
+    singular = if (analysis == "mixed_models") singular else NULL,
+    convergence = if (analysis %in% c("mixed_models", "sem")) analysis_convergence else NULL,
+    dharma = if (analysis == "mixed_models") dharma else NULL,
+    performance = if (analysis == "mixed_models") performance_flag else NULL,
+    reml = if (analysis == "mixed_models") reml else NULL,
+    optimizer = if (analysis == "mixed_models") optimizer else NULL,
+    maxfun = if (analysis == "mixed_models") maxfun else NULL,
+    mardia = if (analysis == "sem") mardia else NULL,
+    mahalanobis = if (analysis == "sem") mahalanobis else NULL,
+    "mahalanobis-alpha" = if (analysis == "sem") mahalanobis_alpha else NULL,
+    collinearity = if (analysis == "sem") collinearity else NULL,
+    "max-cor" = if (analysis == "sem") max_cor else NULL,
+    "max-kappa" = if (analysis == "sem") max_kappa else NULL,
+    heywood = if (analysis == "sem") heywood else NULL,
+    estimator = if (analysis == "sem") estimator else NULL,
+    missing = if (analysis == "sem") missing else NULL,
+    se = if (analysis == "sem") se else NULL,
+    ci = if (analysis == "sem") ci else NULL,
+    std = if (analysis == "sem") std else NULL,
+    bootstrap = if (analysis == "sem") bootstrap else NULL,
+    "bootstrap-samples" = if (analysis == "sem") bootstrap_samples else NULL,
     alpha = alpha,
     digits = digits
   )
@@ -1646,6 +2907,29 @@ main <- function() {
         durbin_watson = durbin_watson,
         outliers = outliers,
         influence = influence,
+        random_effects = random_effects,
+        singular = singular,
+        convergence = analysis_convergence,
+        dharma = dharma,
+        performance = performance_flag,
+        reml = reml,
+        optimizer = optimizer,
+        maxfun = maxfun,
+        sem_type = sem_type,
+        mardia = mardia,
+        mahalanobis = mahalanobis,
+        mahalanobis_alpha = mahalanobis_alpha,
+        collinearity = collinearity,
+        max_cor = max_cor,
+        max_kappa = max_kappa,
+        heywood = heywood,
+        estimator = estimator,
+        missing = missing,
+        se = se,
+        ci = ci,
+        std = std,
+        bootstrap = bootstrap,
+        bootstrap_samples = bootstrap_samples,
         alpha = alpha,
         digits = digits
       ),

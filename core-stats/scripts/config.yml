@@ -126,6 +126,21 @@ modules:
     outlier_z: 3
     cook_multiplier: 4
     max_shapiro_n: 5000
+    mixed_models:
+      random_effects: true
+      singular: true
+      convergence: true
+      dharma: false
+      performance: true
+    sem:
+      mardia: true
+      mahalanobis: true
+      mahalanobis_alpha: 0.001
+      collinearity: true
+      max_cor: 0.9
+      max_kappa: 30
+      heywood: true
+      convergence: true
   missings:
     vars_default: "all"
     method: "auto"
@@ -176,6 +191,8 @@ templates:
     ttest: "assumptions/ttest-template.md"
     anova: "assumptions/anova-template.md"
     regression: "assumptions/regression-template.md"
+    mixed_models: "assumptions/mixed-models-template.md"
+    sem: "assumptions/sem-template.md"
   missings:
     default: "missings/default-template.md"
   init_workspace:

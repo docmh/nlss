@@ -103,7 +103,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `data-explorer` | `core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Yes (`data-explorer/default-template.md`) |
 | `data-transform` | `core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Yes (`data-transform/default-template.md`) |
 | `missings` | `core-stats/scripts/R/missings.R` | Missing-data patterns, handling decisions, and transformed datasets. | Yes (`missings/default-template.md`) |
-| `assumptions` | `core-stats/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, and regression. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`) |
+| `assumptions` | `core-stats/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, regression, mixed models, and SEM. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`, `assumptions/mixed-models-template.md`, `assumptions/sem-template.md`) |
 | `regression` | `core-stats/scripts/R/regression.R` | Multiple and hierarchical regression (OLS/GLM) with interactions and bootstrap CIs. | Yes (`regression/default-template.md`) |
 | `mixed-models` | `core-stats/scripts/R/mixed_models.R` | Linear mixed-effects models with random effects and marginal means. | Yes (`mixed-models/default-template.md`, `mixed-models/emmeans-template.md`) |
 | `sem` | `core-stats/scripts/R/sem.R` | Structural equation modeling (SEM), CFA, mediation, path analysis, invariance. | Yes (`sem/default-template.md`, `sem/cfa-template.md`, `sem/mediation-template.md`, `sem/invariance-template.md`) |
@@ -193,6 +193,10 @@ Rscript core-stats/scripts/R/missings.R \
 ```bash
 Rscript core-stats/scripts/R/assumptions.R \
   --csv data.csv --analysis ttest --vars score --group condition
+Rscript core-stats/scripts/R/assumptions.R \
+  --csv data.csv --analysis mixed_models --formula "score ~ time + (1|id)"
+Rscript core-stats/scripts/R/assumptions.R \
+  --csv data.csv --analysis sem --factors "F1=item1,item2;F2=item3,item4"
 ```
 
 ### Regression
