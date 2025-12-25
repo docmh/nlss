@@ -44,7 +44,7 @@ is_wsl <- function() {
   if (nzchar(distro)) return(TRUE)
   release <- ""
   if (exists("Sys.uname", mode = "function")) {
-    release <- tryCatch(Sys.uname()[["release"]], error = function(e) "")
+    release <- tryCatch(base::Sys.uname()[["release"]], error = function(e) "")
   } else if (exists("Sys.info", mode = "function")) {
     info <- tryCatch(Sys.info(), error = function(e) NULL)
     if (!is.null(info) && !is.na(info["release"])) release <- info["release"]

@@ -216,6 +216,19 @@ resolve_get_template_meta <- function(path) {
   }
   list()
 }
+resolve_template_override <- local({
+  override_impl <- NULL
+  if (exists("resolve_template_override", mode = "function")) {
+    override_impl <- get("resolve_template_override", mode = "function")
+  }
+  function(template_ref, module = NULL) {
+    if (!is.null(override_impl)) {
+      return(override_impl(template_ref, module = module))
+    }
+    NULL
+  }
+})
+
 
 resolve_normalize_table_columns <- function(columns, default_specs) {
   if (exists("normalize_table_columns", mode = "function")) {
