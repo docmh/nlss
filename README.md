@@ -268,7 +268,7 @@ You can also pass `--template <name|path>` to any subskill to select a configure
 
 ## Using with Codex (Codes)
 
-Codex discovers this repo's skill via `AGENTS.md` and `core-stats/SKILL.md`. Open Codex in the repo root and ask for a statistical task; it should route to the correct subskill automatically.
+Codex discovers this repo's skill via `core-stats/SKILL.md`. Open Codex in the repo root and ask for a statistical task; it should route to the correct subskill automatically.
 
 Example prompt:
 
