@@ -448,6 +448,89 @@ get_user_prompt <- function(opts = list()) {
   val
 }
 
+core_stats_log_cache <- new.env(parent = emptyenv())
+
+resolve_core_stats_skill_path <- function() {
+  script_dir <- if (exists("resolve_script_dir", mode = "function")) {
+    resolve_script_dir()
+  } else {
+    getwd()
+  }
+  candidates <- c(
+    file.path(script_dir, "..", "..", "SKILL.md"),
+    file.path(script_dir, "..", "SKILL.md"),
+    file.path(script_dir, "SKILL.md"),
+    file.path(getwd(), "core-stats", "SKILL.md"),
+    file.path(getwd(), "SKILL.md")
+  )
+  for (candidate in candidates) {
+    if (file.exists(candidate)) return(normalize_path(candidate))
+  }
+  ""
+}
+
+read_core_stats_frontmatter <- function(path) {
+  if (is.null(path) || !nzchar(path) || !file.exists(path)) return(character(0))
+  lines <- readLines(path, warn = FALSE)
+  if (length(lines) < 3) return(character(0))
+  if (trimws(lines[1]) != "---") return(character(0))
+  end_idx <- which(trimws(lines[-1]) %in% c("---", "..."))
+  if (length(end_idx) == 0) return(character(0))
+  end_line <- end_idx[1] + 1
+  lines[2:(end_line - 1)]
+}
+
+extract_metadata_version <- function(lines) {
+  if (length(lines) == 0) return("")
+  in_metadata <- FALSE
+  meta_indent <- NULL
+  for (line in lines) {
+    if (!in_metadata) {
+      if (grepl("^\\s*metadata\\s*:", line)) {
+        in_metadata <- TRUE
+        meta_indent <- nchar(gsub("^(\\s*).*", "\\1", line))
+      }
+      next
+    }
+    if (!nzchar(trimws(line))) next
+    indent <- nchar(gsub("^(\\s*).*", "\\1", line))
+    if (!is.null(meta_indent) && indent <= meta_indent) {
+      in_metadata <- FALSE
+      next
+    }
+    if (grepl("^\\s*version\\s*:", line)) {
+      value <- sub("^\\s*version\\s*:\\s*", "", line)
+      value <- sub("\\s+#.*$", "", value)
+      value <- gsub("^\"|\"$", "", value)
+      value <- gsub("^'|'$", "", value)
+      value <- trimws(value)
+      if (nzchar(value)) return(value)
+    }
+  }
+  ""
+}
+
+get_core_stats_version <- function() {
+  if (exists("core_stats_version", envir = core_stats_log_cache, inherits = FALSE)) {
+    return(core_stats_log_cache$core_stats_version)
+  }
+  path <- resolve_core_stats_skill_path()
+  version <- extract_metadata_version(read_core_stats_frontmatter(path))
+  if (!nzchar(version)) version <- NA_character_
+  core_stats_log_cache$core_stats_version <- version
+  version
+}
+
+format_log_os_string <- function() {
+  info <- Sys.info()
+  if (!is.null(info) && !is.na(info["sysname"])) {
+    parts <- c(info["sysname"], info["release"])
+    parts <- parts[!is.na(parts) & nzchar(parts)]
+    return(paste(parts, collapse = " "))
+  }
+  R.version$platform
+}
+
 append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
     cat("Note: jsonlite not installed; skipping analysis_log.jsonl output.\n")
@@ -456,6 +539,9 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
 
   entry <- list(
     timestamp_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    core_stats_version = get_core_stats_version(),
+    r_version = R.version.string,
+    os = format_log_os_string(),
     module = module,
     user_prompt = user_prompt,
     prompt = prompt,
