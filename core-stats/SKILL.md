@@ -107,6 +107,7 @@ Notes:
 - `--log TRUE/FALSE`: Append to `analysis_log.jsonl` (default from `scripts/config.yml` -> `defaults.log`).
 - `--user-prompt <text>`: Store the original AI user prompt in the JSONL log (required: always pass the last user message when an analysis is requested).
 - `--digits <n>`: Rounding for APA output where supported (default from `scripts/config.yml` -> `defaults.digits`).
+- `--template <ref|path>`: Select a template key (e.g., `default`, `grouped`) or a direct template path; falls back to default selection when not found.
 
 Module-specific analysis options (variables, grouping, method choices, etc.) are described in each subskill reference.
 
@@ -124,6 +125,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 APA templates are Markdown files with optional YAML front matter and `{{token}}` placeholders. They can control table columns, notes, and narrative text.
 
 - Template selection is configurable in `scripts/config.yml` under `templates.*` (e.g., `templates.descriptive_stats.default`, `templates.crosstabs.grouped`, `templates.correlations.cross`).
+- CLI runs can override the selection with `--template <ref|path>` when needed.
 - YAML front matter supports:
   - `tokens`: static or derived tokens that can be referenced in the template body.
   - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
