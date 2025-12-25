@@ -50,6 +50,7 @@ print_usage <- function() {
   cat("  --bootstrap TRUE/FALSE Bootstrap confidence intervals (default: FALSE)\n")
   cat("  --bootstrap-samples N  Bootstrap resamples (default: 1000)\n")
   cat("  --digits N             Rounding digits (default: 2)\n")
+  cat("  --template REF         Template path or template key (optional)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive          Prompt for inputs\n")
@@ -117,6 +118,7 @@ interactive_options <- function() {
   opts$bootstrap <- resolve_prompt("Bootstrap TRUE/FALSE", ifelse(isTRUE(bootstrap_default), "TRUE", "FALSE"))
   opts$`bootstrap-samples` <- resolve_prompt("Bootstrap samples", as.character(bootstrap_samples_default))
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -1553,7 +1555,12 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_text <- format_apa_text(summary_df, digits, effect_size_label)
   apa_table <- format_apa_table(summary_df, digits, note_tokens$note_default, effect_size_label)
-  template_path <- resolve_get_template_path("anova.default", "anova/default-template.md")
+  template_override <- resolve_template_override(opts$template, module = "anova")
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else {
+    resolve_get_template_path("anova.default", "anova/default-template.md")
+  }
   template_meta <- resolve_get_template_meta(template_path)
   table_result <- build_anova_table_body(summary_df, digits, template_meta$table, effect_size_label)
   narrative_rows <- build_anova_narrative_rows(summary_df, digits, effect_size_label)
@@ -1599,7 +1606,11 @@ main <- function() {
   if (nrow(posthoc_df) > 0) {
     posthoc_note_tokens <- build_posthoc_note_tokens(posthoc_used, p_adjust)
     posthoc_apa_table <- format_posthoc_table(posthoc_df, digits, posthoc_note_tokens$note_default)
-    posthoc_template_path <- resolve_get_template_path("anova.posthoc", "anova/posthoc-template.md")
+    posthoc_template_path <- if (!is.null(template_override)) {
+      template_override
+    } else {
+      resolve_get_template_path("anova.posthoc", "anova/posthoc-template.md")
+    }
     posthoc_meta <- resolve_get_template_meta(posthoc_template_path)
     posthoc_table <- build_posthoc_table_body(posthoc_df, digits, posthoc_meta$table)
     posthoc_narrative_rows <- build_posthoc_narrative_rows(posthoc_df, digits)

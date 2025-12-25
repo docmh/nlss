@@ -66,6 +66,7 @@ Rscript <path to scripts/R/frequencies.R> --interactive
 - `--group` is optional and produces grouped frequency tables (one grouping variable).
 - `--digits` controls rounding for percentages (default: `defaults.digits`).
 - `--include-numeric` defaults to `modules.frequencies.include_numeric`.
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 

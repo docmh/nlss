@@ -51,6 +51,7 @@ print_usage <- function() {
   cat("  --seed N               Random seed for bootstrap (optional)\n")
   cat("  --digits N             Rounding digits (default: 2)\n")
   cat("  --expect-two-groups TRUE/FALSE  Informational output when group levels != 2 (default: FALSE)\n")
+  cat("  --template REF         Template path or template key (optional)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive          Prompt for inputs\n")
@@ -111,6 +112,7 @@ interactive_options <- function() {
   opts$`bootstrap-samples` <- resolve_prompt("Bootstrap samples", as.character(bootstrap_samples_default))
   opts$seed <- resolve_prompt("Bootstrap seed (optional)", "")
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -1210,7 +1212,12 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_text <- format_apa_text(summary_df, digits, conf_level, alternative, var_equal)
   apa_table <- format_apa_table(summary_df, digits, note_tokens$note_default)
-  template_path <- resolve_get_template_path("t_test.default", "t-test/default-template.md")
+  template_override <- resolve_template_override(opts$template, module = "t_test")
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else {
+    resolve_get_template_path("t_test.default", "t-test/default-template.md")
+  }
   template_meta <- resolve_get_template_meta(template_path)
   table_result <- build_ttest_table_body(summary_df, digits, template_meta$table)
   narrative_rows <- build_ttest_narrative_rows(summary_df, digits, conf_level, alternative, var_equal)

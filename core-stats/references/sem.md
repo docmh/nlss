@@ -90,6 +90,7 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
 - `--modindices`: modification index cutoff (default: `modules.sem.modindices`).
 - `--residuals`: include standardized residuals in the JSONL log (default: `modules.sem.residuals`).
 - `--digits`: rounding (default: `defaults.digits`).
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log`: JSONL logging (default: `defaults.log`).
 - `--user-prompt`: original AI prompt for logging.
 

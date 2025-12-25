@@ -86,6 +86,7 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
 - `--bootstrap` and `--bootstrap-samples` use `modules.regression.bootstrap` and `modules.regression.bootstrap_samples`.
 - `--seed` sets the random seed for bootstrap resampling (optional).
 - `--digits` uses `defaults.digits`.
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` uses `defaults.log`.
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 

@@ -88,6 +88,7 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
   - `--cook-multiplier` (`modules.assumptions.cook_multiplier`)
   - `--max-shapiro-n` (`modules.assumptions.max_shapiro_n`)
 - `--digits` uses `defaults.digits`.
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` uses `defaults.log`.
 
 ## Inputs and handling

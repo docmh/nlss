@@ -82,6 +82,7 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
 - `--bootstrap` uses `modules.anova.bootstrap` (TRUE/FALSE).
 - `--bootstrap-samples` uses `modules.anova.bootstrap_samples` (default: 1000).
 - `--digits` uses `defaults.digits`.
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` uses `defaults.log`.
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 

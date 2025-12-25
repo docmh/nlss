@@ -55,6 +55,7 @@ print_usage <- function() {
   cat("  --overwrite-vars          Allow overwriting existing variables\n")
   cat("  --confirm-overwrite       Confirm overwriting existing variables\n")
   cat("  --confirm-drop            Confirm dropping variables\n")
+  cat("  --template REF            Template path or template key (optional)\n")
   cat("  --user-prompt TEXT        Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE          Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive             Prompt for inputs\n")
@@ -119,6 +120,7 @@ interactive_options <- function() {
     ifelse(isTRUE(confirm_overwrite_default), "TRUE", "FALSE")
   )
   opts$`confirm-drop` <- resolve_prompt("Confirm dropping variables TRUE/FALSE", ifelse(isTRUE(confirm_drop_default), "TRUE", "FALSE"))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -1051,7 +1053,12 @@ table_df <- if (nrow(log_df) == 0) {
 apa_table <- make_markdown_table(table_df)
 summary_tokens <- build_transform_summary_tokens(log_df)
 note_tokens <- build_transform_note_tokens(log_df, summary_tokens)
-template_path <- resolve_get_template_path("data_transform.default", "data-transform/default-template.md")
+template_override <- resolve_template_override(opts$template, module = "data_transform")
+template_path <- if (!is.null(template_override)) {
+  template_override
+} else {
+  resolve_get_template_path("data_transform.default", "data-transform/default-template.md")
+}
 template_meta <- resolve_get_template_meta(template_path)
 table_result <- build_transform_table_body(log_df, template_meta$table)
 narrative_rows <- build_transform_narrative_rows(log_df)

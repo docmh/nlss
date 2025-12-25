@@ -52,6 +52,7 @@ print_usage <- function() {
   cat("  --expected TRUE/FALSE     Include expected counts (default: TRUE)\n")
   cat("  --residuals TRUE/FALSE    Include residuals (default: TRUE)\n")
   cat("  --digits N                Rounding digits (default: 2)\n")
+  cat("  --template REF            Template path or template key (optional)\n")
   cat("  --user-prompt TEXT        Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE          Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive             Prompt for inputs\n")
@@ -112,6 +113,7 @@ interactive_options <- function() {
   opts$expected <- resolve_prompt("Include expected counts TRUE/FALSE", ifelse(isTRUE(expected_default), "TRUE", "FALSE"))
   opts$residuals <- resolve_prompt("Include residuals TRUE/FALSE", ifelse(isTRUE(residuals_default), "TRUE", "FALSE"))
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -1191,7 +1193,10 @@ main <- function() {
 
   percent_label <- if (!is.null(opts$percent) && opts$percent != "") opts$percent else percent_default
   use_group_template <- !is.null(group_var)
-  template_path <- if (use_group_template) {
+  template_override <- resolve_template_override(opts$template, module = "crosstabs")
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else if (use_group_template) {
     resolve_get_template_path("crosstabs.grouped", "crosstabs/grouped-template.md")
   } else {
     resolve_get_template_path("crosstabs.default", "crosstabs/default-template.md")

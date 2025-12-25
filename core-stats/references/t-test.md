@@ -78,6 +78,7 @@ Rscript <path to scripts/R/t_test.R> --interactive
 - `--conf-level` uses `modules.t_test.conf_level`.
 - `--bootstrap` uses `modules.t_test.bootstrap` and `--bootstrap-samples` uses `modules.t_test.bootstrap_samples`.
 - `--digits` controls rounding (default: `defaults.digits`).
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 - `--expect-two-groups` prints an informational message and exits successfully when `--group` has != 2 levels (useful for negative checks).

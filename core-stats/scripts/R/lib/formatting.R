@@ -197,6 +197,53 @@ resolve_template_path <- function(key, default_relative = NULL) {
   resolved
 }
 
+resolve_template_config_path <- function(key) {
+  configured <- NULL
+  if (exists("resolve_config_value", mode = "function")) {
+    configured <- get("resolve_config_value", mode = "function")(paste0("templates.", key), NULL)
+  }
+  if (isFALSE(configured) || is.null(configured) || !nzchar(configured)) return(NULL)
+  resolved <- if (is_absolute_path(configured)) path.expand(configured) else file.path(get_assets_dir(), configured)
+  if (!file.exists(resolved)) return(NULL)
+  resolved
+}
+
+resolve_template_file_path <- function(path) {
+  if (is.null(path) || !nzchar(path)) return(NULL)
+  path <- as.character(path)
+  if (is_absolute_path(path)) {
+    expanded <- path.expand(path)
+    if (file.exists(expanded)) return(expanded)
+  }
+  if (file.exists(path)) {
+    return(normalizePath(path, winslash = "/", mustWork = FALSE))
+  }
+  assets_path <- file.path(get_assets_dir(), path)
+  if (file.exists(assets_path)) return(assets_path)
+  NULL
+}
+
+resolve_template_override <- function(template_ref, module = NULL) {
+  if (is.null(template_ref) || is.logical(template_ref)) return(NULL)
+  ref <- trimws(as.character(template_ref)[1])
+  if (!nzchar(ref)) return(NULL)
+
+  file_path <- resolve_template_file_path(ref)
+  if (!is.null(file_path)) return(file_path)
+
+  ref_key <- ref
+  if (startsWith(ref_key, "templates.")) {
+    ref_key <- sub("^templates\\.", "", ref_key)
+  }
+  if (grepl("\\.", ref_key)) {
+    return(resolve_template_config_path(ref_key))
+  }
+  if (!is.null(module) && nzchar(module)) {
+    return(resolve_template_config_path(paste0(module, ".", ref_key)))
+  }
+  NULL
+}
+
 get_template_path <- function(analysis_label) {
   label <- tolower(trimws(analysis_label))
   if (label == "descriptive statistics") {

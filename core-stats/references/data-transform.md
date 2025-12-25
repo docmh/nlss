@@ -113,6 +113,7 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 - `--overwrite-vars` allows overwriting existing variables (default: `modules.data_transform.overwrite_vars`); use with `--confirm-overwrite`.
 - `--confirm-overwrite` or `--interactive` is required when overwriting existing variables (default: `modules.data_transform.confirm_overwrite`).
 - `--confirm-drop` or `--interactive` is required when dropping variables (default: `modules.data_transform.confirm_drop`).
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 

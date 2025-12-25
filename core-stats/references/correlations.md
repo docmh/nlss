@@ -93,6 +93,7 @@ Rscript <path to scripts/R/correlations.R> --interactive
 - `--coerce` coerces non-numeric columns to numeric (default: `modules.correlations.coerce`).
 - `--digits` controls rounding (default: `defaults.digits`).
 - `--interactive` prompts for inputs.
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 

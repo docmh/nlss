@@ -48,6 +48,7 @@ print_usage <- function() {
   cat("  --conf-level VALUE     Confidence level for Fisher CI (default: 0.95)\n")
   cat("  --coerce TRUE/FALSE    Coerce non-numeric vars to numeric (default: FALSE)\n")
   cat("  --digits N             Rounding digits (default: 2)\n")
+  cat("  --template REF         Template path or template key (optional)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive          Prompt for inputs\n")
@@ -102,6 +103,7 @@ interactive_options <- function() {
   opts$`conf-level` <- prompt("Confidence level", as.character(conf_default))
   opts$coerce <- prompt("Coerce non-numeric TRUE/FALSE", ifelse(isTRUE(coerce_default), "TRUE", "FALSE"))
   opts$digits <- prompt("Rounding digits", as.character(digits_default))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -1062,7 +1064,10 @@ main <- function() {
   }
 
   use_cross_template <- length(x_vars) > 0 && length(y_vars) > 0
-  template_path <- if (use_cross_template) {
+  template_override <- resolve_template_override(opts$template, module = "correlations")
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else if (use_cross_template) {
     resolve_get_template_path("correlations.cross", "correlations/cross-correlation-template.md")
   } else {
     resolve_get_template_path("correlations.default", "correlations/default-template.md")

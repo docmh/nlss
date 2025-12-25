@@ -40,6 +40,7 @@ print_usage <- function() {
   cat("  --digits N             Rounding digits (default: 2)\n")
   cat("  --max-levels N         Max unique levels to list before truncating (default: 20)\n")
   cat("  --top-n N              When truncating, show top N levels (default: 10)\n")
+  cat("  --template REF         Template path or template key (optional)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive          Prompt for inputs\n")
@@ -79,6 +80,7 @@ interactive_options <- function() {
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
   opts$`max-levels` <- resolve_prompt("Max levels before truncating", as.character(max_levels_default))
   opts$`top-n` <- resolve_prompt("Top N levels when truncating", as.character(top_n_default))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -1062,7 +1064,12 @@ main <- function() {
     format_apa_levels_table(levels_df, digits)
   )
   apa_text <- format_apa_text(overview_df, levels_df, digits)
-  template_path <- resolve_get_template_path("data_explorer.default", "data-explorer/default-template.md")
+  template_override <- resolve_template_override(opts$template, module = "data_explorer")
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else {
+    resolve_get_template_path("data_explorer.default", "data-explorer/default-template.md")
+  }
   template_meta <- resolve_get_template_meta(template_path)
   overview_spec <- if (!is.null(template_meta) && !is.null(template_meta[["table"]])) template_meta[["table"]] else NULL
   if (is.null(overview_spec) &&

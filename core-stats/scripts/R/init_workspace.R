@@ -37,6 +37,7 @@ print_usage <- function() {
   cat("  --sep VALUE            CSV separator (default: ,)\n")
   cat("  --header TRUE/FALSE    CSV header (default: TRUE)\n")
   cat("  --agent TEXT           Agent name (default from config or CODEX_AGENT)\n")
+  cat("  --template REF         Template path or template key (optional)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive          Prompt for inputs\n")
@@ -62,6 +63,7 @@ interactive_options <- function() {
   opts$parquet <- resolve_prompt("Parquet path(s) (comma-separated, blank for none)", "")
   agent_default <- resolve_agent_default()
   opts$agent <- resolve_prompt("Agent name", agent_default)
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -702,10 +704,15 @@ if (is.null(scratchpad_template) || !file.exists(scratchpad_template)) {
 }
 scratchpad_template_text <- paste(readLines(scratchpad_template, warn = FALSE), collapse = "\n")
 
-template_path <- resolve_get_template_path(
-  "init_workspace.default",
-  "init-workspace/default-template.md"
-)
+template_override <- resolve_template_override(opts$template, module = "init_workspace")
+template_path <- if (!is.null(template_override)) {
+  template_override
+} else {
+  resolve_get_template_path(
+    "init_workspace.default",
+    "init-workspace/default-template.md"
+  )
+}
 if (is.null(template_path) || !file.exists(template_path)) {
   stop("APA template not found: ", template_path)
 }

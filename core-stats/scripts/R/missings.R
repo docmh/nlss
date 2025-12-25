@@ -47,6 +47,7 @@ print_usage <- function() {
   cat("  --skew-threshold VALUE   Skewness cutoff for numeric imputation (default: 1.00)\n")
   cat("  --max-patterns N         Max missingness patterns to list (default: 10)\n")
   cat("  --digits N               Rounding digits (default: 2)\n")
+  cat("  --template REF           Template path or template key (optional)\n")
   cat("  --user-prompt TEXT       Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE         Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive            Prompt for inputs\n")
@@ -100,6 +101,7 @@ interactive_options <- function() {
   opts$`skew-threshold` <- resolve_prompt("Skew threshold", as.character(skew_default))
   opts$`max-patterns` <- resolve_prompt("Max patterns", as.character(max_patterns_default))
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -876,7 +878,12 @@ main <- function() {
     ifelse(patterns_info$truncated, " Other patterns grouped.", "")
   )
 
-  template_path <- resolve_get_template_path("missings.default", "missings/default-template.md")
+  template_override <- resolve_template_override(opts$template, module = "missings")
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else {
+    resolve_get_template_path("missings.default", "missings/default-template.md")
+  }
   template_meta <- resolve_get_template_meta(template_path)
   summary_table <- build_missing_table_body(summary_df, digits, template_meta$table)
   pattern_spec <- template_meta$patterns_table

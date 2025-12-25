@@ -46,6 +46,7 @@ print_usage <- function() {
   cat("  --omega TRUE/FALSE     Compute omega total (default: TRUE)\n")
   cat("  --coerce TRUE/FALSE    Coerce non-numeric vars to numeric (default: FALSE)\n")
   cat("  --digits N             Rounding digits (default: 2)\n")
+  cat("  --template REF         Template path or template key (optional)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive          Prompt for inputs\n")
@@ -101,6 +102,7 @@ interactive_options <- function() {
   opts$omega <- resolve_prompt("Compute omega TRUE/FALSE", ifelse(isTRUE(omega_default), "TRUE", "FALSE"))
   opts$coerce <- resolve_prompt("Coerce non-numeric TRUE/FALSE", ifelse(isTRUE(coerce_default), "TRUE", "FALSE"))
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -987,7 +989,12 @@ main <- function() {
   item_df <- do.call(rbind, item_list)
   reliability_df <- do.call(rbind, reliability_list)
 
-  template_path <- resolve_get_template_path("scale.default", "scale/default-template.md")
+  template_override <- resolve_template_override(opts$template, module = "scale")
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else {
+    resolve_get_template_path("scale.default", "scale/default-template.md")
+  }
   template_meta <- resolve_get_template_meta(template_path)
   apa_report_path <- file.path(out_dir, "apa_report.md")
 

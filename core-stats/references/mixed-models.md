@@ -76,6 +76,7 @@ Defaults are loaded from `core-stats/scripts/config.yml` (requires R package `ya
 - `--diagnostics` uses `modules.mixed_models.diagnostics` (TRUE/FALSE).
 - `--max-shapiro-n` uses `modules.mixed_models.max_shapiro_n`.
 - `--digits` uses `defaults.digits`.
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` uses `defaults.log`.
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 

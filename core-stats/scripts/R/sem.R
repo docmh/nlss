@@ -64,6 +64,7 @@ print_usage <- function() {
   cat("  --modindices N          Modification index cutoff (0 to skip)\n")
   cat("  --residuals TRUE/FALSE  Store standardized residuals in log\n")
   cat("  --digits N              Rounding digits (default: 2)\n")
+  cat("  --template REF          Template path or template key (optional)\n")
   cat("  --user-prompt TEXT      Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE        Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive           Prompt for inputs\n")
@@ -142,6 +143,7 @@ interactive_options <- function() {
   opts$modindices <- resolve_prompt("Modindices cutoff", as.character(modindices_default))
   opts$residuals <- resolve_prompt("Include residuals TRUE/FALSE", ifelse(isTRUE(residuals_default), "TRUE", "FALSE"))
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -895,6 +897,7 @@ main <- function() {
 
   df <- resolve_load_dataframe(opts)
   out_dir <- resolve_get_workspace_out_dir(df)
+  template_override <- resolve_template_override(opts$template, module = "sem")
 
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     emit_input_issue(out_dir, opts, "SEM requires the 'lavaan' package.", details = list(package = "lavaan"), status = "missing_dependency")
@@ -1057,7 +1060,11 @@ main <- function() {
       group_labels = if (length(group_labels) > 0) paste(group_labels, collapse = ", ") else ""
     )
 
-    template_path <- resolve_get_template_path("sem.invariance", "sem/invariance-template.md")
+    template_path <- if (!is.null(template_override)) {
+      template_override
+    } else {
+      resolve_get_template_path("sem.invariance", "sem/invariance-template.md")
+    }
     template_meta <- resolve_get_template_meta(template_path)
     table_result <- build_invariance_table_body(summary_df, digits, template_meta$table)
     apa_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
@@ -1209,7 +1216,11 @@ main <- function() {
     mediation = "sem/mediation-template.md",
     "sem/default-template.md"
   )
-  template_path <- resolve_get_template_path(template_key, template_default)
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else {
+    resolve_get_template_path(template_key, template_default)
+  }
   template_meta <- resolve_get_template_meta(template_path)
   table_result <- build_sem_table_body(param_df, digits, template_meta$table)
   apa_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)

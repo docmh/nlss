@@ -66,6 +66,7 @@ Rscript <path to scripts/R/data_explorer.R> --interactive
 - `--max-levels` controls when level tables are truncated (default: `modules.data_explorer.max_levels`). Categorical variables with more levels are summarized with top `--top-n` levels and an "Other (remaining)" row.
 - `--top-n` controls how many levels to keep when truncating (default: `modules.data_explorer.top_n`).
 - `--digits` controls rounding (default: `defaults.digits`).
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 

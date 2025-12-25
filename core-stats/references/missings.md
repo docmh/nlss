@@ -75,6 +75,7 @@ Rscript <path to scripts/R/missings.R> --interactive
 - `--skew-threshold` controls mean vs. median imputation for numeric variables (default: `modules.missings.skew_threshold`).
 - `--max-patterns` caps the number of patterns shown (default: `modules.missings.max_patterns`).
 - `--digits` controls rounding (default: `defaults.digits`).
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 

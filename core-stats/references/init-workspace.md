@@ -76,6 +76,7 @@ Rscript <path to scripts/R/init_workspace.R> --interactive
 - Defaults are loaded from `core-stats/scripts/config.yml`; CLI flags override config values.
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--agent` defaults to `modules.init_workspace.agent` (fallback to `CODEX_AGENT`, else `Codex`).
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 

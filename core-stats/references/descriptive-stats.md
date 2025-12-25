@@ -65,6 +65,7 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 - `--vars` defaults to `modules.descriptive_stats.vars_default` (typically numeric columns) if omitted.
 - `--group` is optional and produces grouped summaries.
 - `--digits` controls rounding (default: `defaults.digits`).
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 

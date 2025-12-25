@@ -39,6 +39,7 @@ print_usage <- function() {
   cat("  --vars LIST          Comma-separated variable names (default: all numeric)\n")
   cat("  --group NAME         Grouping variable name (optional)\n")
   cat("  --digits N           Rounding digits (default: 2)\n")
+  cat("  --template REF       Template path or template key (optional)\n")
   cat("  --user-prompt TEXT   Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE     Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive        Prompt for inputs\n")
@@ -75,6 +76,7 @@ interactive_options <- function() {
   opts$group <- resolve_prompt("Grouping variable (blank for none)", "")
   digits_default <- resolve_config_value("defaults.digits", 2)
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -627,7 +629,12 @@ main <- function() {
   apa_report_path <- file.path(out_dir, "apa_report.md")
   apa_table <- format_apa_table(summary_df, digits)
   apa_text <- format_apa_text(summary_df, digits)
-  template_path <- resolve_get_template_path("descriptive_stats.default", "descriptive-stats/default-template.md")
+  template_override <- resolve_template_override(opts$template, module = "descriptive_stats")
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else {
+    resolve_get_template_path("descriptive_stats.default", "descriptive-stats/default-template.md")
+  }
   template_meta <- resolve_get_template_meta(template_path)
   table_body <- build_descriptive_table_body(summary_df, digits, template_meta$table)
   note_tokens <- build_descriptive_note_tokens()

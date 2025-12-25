@@ -52,6 +52,7 @@ print_usage <- function() {
   cat("  --diagnostics TRUE/FALSE Diagnostics (default: TRUE)\n")
   cat("  --max-shapiro-n N      Max n for Shapiro test (default: 5000)\n")
   cat("  --digits N             Rounding digits (default: 2)\n")
+  cat("  --template REF         Template path or template key (optional)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive          Prompt for inputs\n")
@@ -119,6 +120,7 @@ interactive_options <- function() {
   opts$diagnostics <- resolve_prompt("Diagnostics TRUE/FALSE", ifelse(isTRUE(diagnostics_default), "TRUE", "FALSE"))
   opts$`max-shapiro-n` <- resolve_prompt("Max Shapiro n", as.character(max_shapiro_n_default))
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -1196,7 +1198,12 @@ main <- function() {
     apa_text <- paste(vapply(narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
   }
 
-  template_path <- resolve_get_template_path("mixed_models.default", "mixed-models/default-template.md")
+  template_override <- resolve_template_override(opts$template, module = "mixed_models")
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else {
+    resolve_get_template_path("mixed_models.default", "mixed-models/default-template.md")
+  }
   template_meta <- resolve_get_template_meta(template_path)
   table_result <- build_fixed_effects_table_body(fixed_df, digits, template_meta$table)
   apa_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
@@ -1255,7 +1262,11 @@ main <- function() {
     emmeans_rows <- data.frame()
   }
   if (nrow(emmeans_rows) > 0) {
-    emmeans_template_path <- resolve_get_template_path("mixed_models.emmeans", "mixed-models/emmeans-template.md")
+    emmeans_template_path <- if (!is.null(template_override)) {
+      template_override
+    } else {
+      resolve_get_template_path("mixed_models.emmeans", "mixed-models/emmeans-template.md")
+    }
     emmeans_meta <- resolve_get_template_meta(emmeans_template_path)
     emmeans_table <- build_emmeans_table_body(emmeans_rows, digits, emmeans_meta$table)
     emmeans_note_tokens <- build_emmeans_note_tokens(conf_level, contrasts, p_adjust)

@@ -77,6 +77,7 @@ Rscript <path to scripts/R/crosstabs.R> --interactive
 - `--residuals`: Include standardized/adjusted residuals (default: `modules.crosstabs.residuals`).
 - `--digits`: Rounding digits for outputs (default: `defaults.digits`).
 - `--interactive`: Prompt for inputs.
+- `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log`: Toggle JSONL logging (default: `defaults.log`).
 - `--user-prompt`: Store the original AI prompt in the JSONL log (optional).
 

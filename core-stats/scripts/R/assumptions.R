@@ -65,6 +65,7 @@ print_usage <- function() {
   cat("  --max-shapiro-n VALUE    Max n for Shapiro-Wilk (default: 5000)\n")
   cat("  --alpha VALUE            Decision alpha (default: 0.05)\n")
   cat("  --digits N               Rounding digits (default: 2)\n")
+  cat("  --template REF           Template path or template key (optional)\n")
   cat("  --user-prompt TEXT       Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE         Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive            Prompt for inputs\n")
@@ -382,6 +383,7 @@ interactive_options <- function() {
 
   opts$alpha <- resolve_prompt("Decision alpha", format(alpha_default, trim = TRUE))
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
@@ -1551,7 +1553,12 @@ main <- function() {
     regression = "assumptions/regression-template.md",
     "assumptions/ttest-template.md"
   )
-  template_path <- resolve_get_template_path(template_key, template_default)
+  template_override <- resolve_template_override(opts$template, module = "assumptions")
+  template_path <- if (!is.null(template_override)) {
+    template_override
+  } else {
+    resolve_get_template_path(template_key, template_default)
+  }
   template_meta <- resolve_get_template_meta(template_path)
   table_body <- build_assumptions_table_body(checks_df, digits, template_meta$table)
   template_context <- list(
