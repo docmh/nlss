@@ -265,29 +265,6 @@ Key YAML fields:
 
 Template paths can be overridden in `core-stats/scripts/config.yml` under `templates.<subskill>.<name>` (for example `templates.crosstabs.grouped`). Edit the template files or point to your own to change APA output without touching the R scripts.
 
-## Tests
-
-Use the test runner to keep outputs in per-run folders under `outputs/test-runs/<timestamp>` (last 10 retained):
-
-```bash
-bash scripts/tests.sh smoke
-bash scripts/tests.sh deliberate
-bash scripts/tests.sh all
-bash scripts/tests.sh clean --keep 10
-```
-
-Windows PowerShell (smoke only):
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/tests.ps1 smoke
-```
-
-Optional overrides:
-
-- `CORE_STATS_KEEP_RUNS` to change the retention count.
-- `CORE_STATS_TEST_ROOT` to force a specific run root.
-- The deliberate suite includes mixed models tests; `lme4` is required and `emmeans`/`lmerTest` enable extended checks.
-
 ## Using with Codex (Codes)
 
 Codex discovers this repo's skill via `AGENTS.md` and `core-stats/SKILL.md`. Open Codex in the repo root and ask for a statistical task; it should route to the correct subskill automatically.

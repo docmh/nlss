@@ -181,30 +181,3 @@ templates:
   init_workspace:
     default: "init-workspace/default-template.md"
     scratchpad: "scratchpad/default-template.md"
-tests:
-  output_dir: "./outputs/test-runs"
-  keep_runs_default: 10
-  data_dir: "./outputs/tests"
-  golden_dataset: "./outputs/tests/data/golden_dataset.csv"
-  template_dir: "templates"
-  template_marker: "TEMPLATE_SMOKE_TEST"
-  scripts:
-    harness_unix: "./scripts/tests.sh"
-    harness_windows: "./scripts/tests.ps1"
-    smoke_unix: "./outputs/tests/run_smoke_test.sh"
-    smoke_windows: "./scripts/tests.ps1"
-    deliberate_unix:
-      - "./outputs/tests/run_anova_tests.sh"
-      - "./outputs/tests/run_regression_tests.sh"
-      - "./outputs/tests/run_sem_tests.sh"
-      - "./outputs/tests/run_mixed_models_tests.sh"
-      - "./outputs/tests/run_t_test_tests.sh"
-      - "./outputs/tests/run_data_explorer_tests.sh"
-      - "./outputs/tests/run_data_transform_tests.sh"
-      - "./outputs/tests/run_scale_tests.sh"
-  plans:
-    smoke: "./outputs/tests/plan-smoke.md"
-    anova: "./outputs/tests/plan-anova.md"
-    regression: "./outputs/tests/plan-regression.md"
-    mixed_models: "./outputs/tests/plan-mixed-models.md"
-    sem: "./outputs/tests/plan-sem.md"

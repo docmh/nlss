@@ -4,12 +4,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONFIG_PATH="${ROOT_DIR}/core-stats/scripts/config.yml"
+TESTS_CONFIG_PATH="${CORE_STATS_TESTS_CONFIG:-${ROOT_DIR}/outputs/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/core-stats/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/outputs/tests/check_anova_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/outputs/tests/check_r_package.R"
 
 get_config_value() {
-  python3 - "$CONFIG_PATH" "$1" <<'PY'
+  local path="${CONFIG_PATH}"
+  local key="$1"
+  if [ $# -gt 1 ]; then
+    path="$1"
+    key="$2"
+  fi
+  python3 - "$path" "$key" <<'PY'
 import sys
 path, key = sys.argv[1], sys.argv[2]
 parts = key.split(".")
@@ -32,6 +39,14 @@ for line in lines:
         sys.exit(0)
 sys.exit(0)
 PY
+}
+
+get_tests_value() {
+  local path="${TESTS_CONFIG_PATH}"
+  if [ ! -f "${path}" ]; then
+    path="${CONFIG_PATH}"
+  fi
+  get_config_value "${path}" "$1"
 }
 
 set_config_value() {
@@ -77,12 +92,12 @@ if [ -z "${WORKSPACE_MANIFEST_NAME}" ]; then
   WORKSPACE_MANIFEST_NAME="core-stats-workspace.yml"
 fi
 
-DATA_DIR_CFG="$(get_config_value tests.data_dir)"
+DATA_DIR_CFG="$(get_tests_value tests.data_dir)"
 if [ -z "${DATA_DIR_CFG}" ]; then
   DATA_DIR_CFG="./outputs/tests"
 fi
 DATA_DIR="$(to_abs_path "${DATA_DIR_CFG}")"
-DATA_GOLDEN_CFG="$(get_config_value tests.golden_dataset)"
+DATA_GOLDEN_CFG="$(get_tests_value tests.golden_dataset)"
 if [ -z "${DATA_GOLDEN_CFG}" ]; then
   DATA_GOLDEN_CFG="${DATA_DIR}/golden_dataset.csv"
 fi
@@ -90,7 +105,7 @@ DATA_GOLDEN="$(to_abs_path "${DATA_GOLDEN_CFG}")"
 DATA_EDGE="${DATA_DIR}/data/anova_edge_dataset.csv"
 DATA_MISSING="${DATA_DIR}/data/anova_all_missing.csv"
 
-RUNS_BASE_CFG="$(get_config_value tests.output_dir)"
+RUNS_BASE_CFG="$(get_tests_value tests.output_dir)"
 if [ -z "${RUNS_BASE_CFG}" ]; then
   RUNS_BASE_CFG="outputs/test-runs"
 fi

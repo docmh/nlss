@@ -248,11 +248,6 @@ get_builtin_config <- function() {
         default = "init-workspace/default-template.md",
         scratchpad = "scratchpad/default-template.md"
       )
-    ),
-    tests = list(
-      output_dir = "./outputs/test-runs",
-      template_dir = "templates",
-      template_marker = "TEMPLATE_SMOKE_TEST"
     )
   )
 }

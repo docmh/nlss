@@ -4,13 +4,20 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONFIG_PATH="${ROOT_DIR}/core-stats/scripts/config.yml"
+TESTS_CONFIG_PATH="${CORE_STATS_TESTS_CONFIG:-${ROOT_DIR}/outputs/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/core-stats/scripts/R"
 RUN_RSCRIPT_PS="${ROOT_DIR}/core-stats/scripts/run_rscript.ps1"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/outputs/tests/check_r_package.R"
 MIXED_MODELS_PREP_SCRIPT="${ROOT_DIR}/outputs/tests/mixed_models_prep.R"
 
 get_config_value() {
-  python3 - "$CONFIG_PATH" "$1" <<'PY'
+  local path="${CONFIG_PATH}"
+  local key="$1"
+  if [ $# -gt 1 ]; then
+    path="$1"
+    key="$2"
+  fi
+  python3 - "$path" "$key" <<'PY'
 import sys
 path, key = sys.argv[1], sys.argv[2]
 parts = key.split(".")
@@ -33,6 +40,14 @@ for line in lines:
         sys.exit(0)
 sys.exit(0)
 PY
+}
+
+get_tests_value() {
+  local path="${TESTS_CONFIG_PATH}"
+  if [ ! -f "${path}" ]; then
+    path="${CONFIG_PATH}"
+  fi
+  get_config_value "${path}" "$1"
 }
 
 set_config_value() {
@@ -61,9 +76,9 @@ with open(path, "w", encoding="utf-8", newline="") as handle:
 PY
 }
 
-RUNS_BASE_CFG="$(get_config_value tests.output_dir)"
-TEMPLATE_OVERRIDE_DIR_CFG="$(get_config_value tests.template_dir)"
-TEMPLATE_MARKER="$(get_config_value tests.template_marker)"
+RUNS_BASE_CFG="$(get_tests_value tests.output_dir)"
+TEMPLATE_OVERRIDE_DIR_CFG="$(get_tests_value tests.template_dir)"
+TEMPLATE_MARKER="$(get_tests_value tests.template_marker)"
 WORKSPACE_MANIFEST_NAME="$(get_config_value defaults.workspace_manifest)"
 
 if [ -z "${RUNS_BASE_CFG}" ]; then
@@ -94,12 +109,12 @@ to_abs_path() {
   echo "${ROOT_DIR}/${path#./}"
 }
 
-DATA_DIR_CFG="$(get_config_value tests.data_dir)"
+DATA_DIR_CFG="$(get_tests_value tests.data_dir)"
 if [ -z "${DATA_DIR_CFG}" ]; then
   DATA_DIR_CFG="./outputs/tests"
 fi
 DATA_DIR="$(to_abs_path "${DATA_DIR_CFG}")"
-DATA_PATH_CFG="$(get_config_value tests.golden_dataset)"
+DATA_PATH_CFG="$(get_tests_value tests.golden_dataset)"
 if [ -z "${DATA_PATH_CFG}" ]; then
   DATA_PATH_CFG="${DATA_DIR}/golden_dataset.csv"
 fi
