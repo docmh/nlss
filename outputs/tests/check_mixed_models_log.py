@@ -51,7 +51,7 @@ if len(sys.argv) < 22:
     sys.stderr.write(
         "Usage: check_mixed_models_log.py LOG START STATUS FORMULA DV RANDOM TYPE DF_METHOD STANDARDIZE DIAGNOSTICS "
         "EMMEANS CONTRASTS P_ADJUST CONF_LEVEL OPTIMIZER MAXFUN REML FIXED_ROWS EMMEANS_ROWS CONTRAST_ROWS "
-        "DIAGNOSTICS_ROWS STD_BETA\n"
+        "DIAGNOSTICS_ROWS STD_BETA [DIGITS] [USER_PROMPT] [SHAPIRO]\n"
     )
     sys.exit(2)
 
@@ -77,6 +77,11 @@ expect_emmeans_rows = parse_arg(sys.argv[19])
 expect_contrast_rows = parse_arg(sys.argv[20])
 expect_diagnostics_rows = parse_arg(sys.argv[21])
 expect_std_beta = parse_arg(sys.argv[22]) if len(sys.argv) > 22 else None
+expect_digits = parse_int(parse_arg(sys.argv[23])) if len(sys.argv) > 23 else None
+expect_user_prompt = parse_arg(sys.argv[24]) if len(sys.argv) > 24 else None
+expect_shapiro = parse_arg(sys.argv[25]) if len(sys.argv) > 25 else None
+if expect_shapiro is not None:
+    expect_shapiro = str(expect_shapiro).strip().lower()
 
 if not log_path.exists():
     sys.exit(1)
@@ -107,6 +112,9 @@ with log_path.open("r", encoding="utf-8") as handle:
 
         fixed_df = results.get("fixed_effects_df")
         if not isinstance(fixed_df, list) or len(fixed_df) == 0:
+            continue
+
+        if expect_user_prompt is not None and entry.get("user_prompt") != expect_user_prompt:
             continue
 
         if expect_formula is not None and options.get("formula") != expect_formula:
@@ -189,6 +197,14 @@ with log_path.open("r", encoding="utf-8") as handle:
             if bool(options.get("reml")) != expect_reml:
                 continue
 
+        if expect_digits is not None:
+            digits_val = options.get("digits")
+            try:
+                if int(digits_val) != expect_digits:
+                    continue
+            except (TypeError, ValueError):
+                continue
+
         if expect_fixed_rows is not None:
             fixed_len = list_len(fixed_df)
             if expect_fixed_rows == "gt0" and fixed_len <= 0:
@@ -227,6 +243,19 @@ with log_path.open("r", encoding="utf-8") as handle:
             if expect_std_beta == "present" and not std_present:
                 continue
             if expect_std_beta == "absent" and std_present:
+                continue
+
+        if expect_shapiro is not None:
+            shapiro_present = False
+            diagnostics_df = results.get("diagnostics_df")
+            if isinstance(diagnostics_df, list):
+                for row in diagnostics_df:
+                    if isinstance(row, dict) and row.get("metric") == "shapiro_wilk":
+                        shapiro_present = True
+                        break
+            if expect_shapiro == "present" and not shapiro_present:
+                continue
+            if expect_shapiro == "absent" and shapiro_present:
                 continue
 
         found = True

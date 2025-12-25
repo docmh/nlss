@@ -1064,13 +1064,19 @@ main <- function() {
   apa_text <- format_apa_text(overview_df, levels_df, digits)
   template_path <- resolve_get_template_path("data_explorer.default", "data-explorer/default-template.md")
   template_meta <- resolve_get_template_meta(template_path)
-  overview_spec <- template_meta$table
-  if (is.null(overview_spec) && !is.null(template_meta$tables$overview)) {
-    overview_spec <- template_meta$tables$overview
+  overview_spec <- if (!is.null(template_meta) && !is.null(template_meta[["table"]])) template_meta[["table"]] else NULL
+  if (is.null(overview_spec) &&
+      !is.null(template_meta) &&
+      !is.null(template_meta[["tables"]]) &&
+      !is.null(template_meta[["tables"]][["overview"]])) {
+    overview_spec <- template_meta[["tables"]][["overview"]]
   }
-  levels_spec <- template_meta$levels_table
-  if (is.null(levels_spec) && !is.null(template_meta$tables$levels)) {
-    levels_spec <- template_meta$tables$levels
+  levels_spec <- if (!is.null(template_meta) && !is.null(template_meta[["levels_table"]])) template_meta[["levels_table"]] else NULL
+  if (is.null(levels_spec) &&
+      !is.null(template_meta) &&
+      !is.null(template_meta[["tables"]]) &&
+      !is.null(template_meta[["tables"]][["levels"]])) {
+    levels_spec <- template_meta[["tables"]][["levels"]]
   }
   overview_table <- build_overview_table_body(overview_df, digits, overview_spec)
   levels_table <- build_levels_table_body(levels_df, digits, levels_spec)

@@ -1,4 +1,0 @@
-Error in run_regression_assumptions(df, opts, settings) : 
-  Regression checks require --ivs or --blocks.
-Calls: main -> run_regression_assumptions
-Execution halted

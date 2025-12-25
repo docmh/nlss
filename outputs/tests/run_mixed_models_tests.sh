@@ -35,6 +35,32 @@ sys.exit(0)
 PY
 }
 
+set_config_value() {
+  python3 - "$CONFIG_PATH" "$1" "$2" <<'PY'
+import sys
+path, key, value = sys.argv[1], sys.argv[2], sys.argv[3]
+parts = key.split(".")
+lines = open(path, "r", encoding="utf-8").read().splitlines()
+stack = []
+for idx, line in enumerate(lines):
+    stripped = line.strip()
+    if not stripped or stripped.startswith("#"):
+        continue
+    indent = len(line) - len(line.lstrip(" "))
+    key_name, _, _ = stripped.partition(":")
+    while stack and stack[-1][1] >= indent:
+        stack.pop()
+    stack.append((key_name, indent))
+    if [k for k, _ in stack] == parts:
+        lines[idx] = (" " * indent) + f"{key_name}: \"{value}\""
+        break
+else:
+    sys.exit(1)
+with open(path, "w", encoding="utf-8", newline="") as handle:
+    handle.write("\n".join(lines) + "\n")
+PY
+}
+
 to_abs_path() {
   local path="$1"
   if [[ "${path}" == "~"* ]]; then
@@ -100,7 +126,14 @@ if [ ! -f "${DATA_GOLDEN}" ]; then
   exit 1
 fi
 
+CONFIG_BAK="$(mktemp)"
+cp "${CONFIG_PATH}" "${CONFIG_BAK}"
+
 cleanup() {
+  if [ -f "${CONFIG_BAK}" ]; then
+    cp "${CONFIG_BAK}" "${CONFIG_PATH}"
+    rm -f "${CONFIG_BAK}"
+  fi
   rm -f "${WORKSPACE_MANIFEST_PATH}"
 }
 trap cleanup EXIT
@@ -111,6 +144,24 @@ PARQUET_PATH="${DATASET_DIR}/${DATASET_LABEL}.parquet"
 LOG_PATH="${DATASET_DIR}/analysis_log.jsonl"
 APA_REPORT_PATH="${DATASET_DIR}/apa_report.md"
 MIXED_DATA_PATH="${TMP_BASE}/${DATASET_LABEL}.csv"
+CSV_SEMI_LABEL="mixed_models_csv_semi"
+CSV_SEMI_PATH="${TMP_BASE}/${CSV_SEMI_LABEL}.csv"
+CSV_SEMI_DIR="${WORKSPACE_DIR}/${CSV_SEMI_LABEL}"
+CSV_SEMI_LOG_PATH="${CSV_SEMI_DIR}/analysis_log.jsonl"
+RDS_LABEL="mixed_models_rds"
+RDS_PATH="${TMP_BASE}/${RDS_LABEL}.rds"
+RDS_DIR="${WORKSPACE_DIR}/${RDS_LABEL}"
+RDS_LOG_PATH="${RDS_DIR}/analysis_log.jsonl"
+RDATA_DF_NAME="mixed_models_rdata_df"
+RDATA_LABEL="${RDATA_DF_NAME}"
+RDATA_PATH="${TMP_BASE}/mixed_models_rdata.RData"
+RDATA_DIR="${WORKSPACE_DIR}/${RDATA_LABEL}"
+RDATA_LOG_PATH="${RDATA_DIR}/analysis_log.jsonl"
+RDS_BAD_PATH="${TMP_BASE}/mixed_models_bad.rds"
+SAV_LABEL="mixed_models_sav"
+SAV_PATH="${TMP_BASE}/${SAV_LABEL}.sav"
+SAV_DIR="${WORKSPACE_DIR}/${SAV_LABEL}"
+SAV_LOG_PATH="${SAV_DIR}/analysis_log.jsonl"
 
 rm -f "${APA_REPORT_PATH}" "${LOG_PATH}"
 cd "${WORKSPACE_DIR}"
@@ -139,11 +190,187 @@ print(count)
 PY
 }
 
-check_log() {
-  python3 "${CHECK_SCRIPT}" "$@"
+assert_log_unchanged() {
+  local before="$1"
+  local after="$2"
+  local label="$3"
+  if [ "${after}" -ne "${before}" ]; then
+    echo "[FAIL] ${label} (expected log count unchanged)" | tee -a "${LOG_FILE}"
+    exit 1
+  fi
 }
 
-run_expect_status() {
+assert_contains() {
+  local file="$1"
+  local expected="$2"
+  if command -v rg >/dev/null 2>&1; then
+    if ! rg -q --fixed-strings "$expected" "$file"; then
+      echo "Expected to find: $expected" | tee -a "${LOG_FILE}"
+      echo "In file: $file" | tee -a "${LOG_FILE}"
+      exit 1
+    fi
+  else
+    if ! grep -qF "$expected" "$file"; then
+      echo "Expected to find: $expected" | tee -a "${LOG_FILE}"
+      echo "In file: $file" | tee -a "${LOG_FILE}"
+      exit 1
+    fi
+  fi
+}
+
+resolve_template_source() {
+  local value="$1"
+  if [[ "${value}" == "~"* ]]; then
+    value="${HOME}${value:1}"
+  fi
+  if [[ "${value}" == /* || "${value}" =~ ^[A-Za-z]: ]]; then
+    echo "${value}"
+    return 0
+  fi
+  echo "${ROOT_DIR}/core-stats/assets/${value}"
+}
+
+expect_log() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local status="-"
+  local formula="-"
+  local dv="-"
+  local random="-"
+  local type="-"
+  local df_method="-"
+  local standardize="-"
+  local diagnostics="-"
+  local emmeans="-"
+  local contrasts="-"
+  local p_adjust="-"
+  local conf_level="-"
+  local optimizer="-"
+  local maxfun="-"
+  local reml="-"
+  local fixed_rows="-"
+  local emmeans_rows="-"
+  local contrast_rows="-"
+  local diagnostics_rows="-"
+  local std_beta="-"
+  local digits="-"
+  local user_prompt="-"
+  local shapiro="-"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --status)
+        status="$2"
+        shift 2
+        ;;
+      --formula)
+        formula="$2"
+        shift 2
+        ;;
+      --dv)
+        dv="$2"
+        shift 2
+        ;;
+      --random)
+        random="$2"
+        shift 2
+        ;;
+      --type)
+        type="$2"
+        shift 2
+        ;;
+      --df-method)
+        df_method="$2"
+        shift 2
+        ;;
+      --standardize)
+        standardize="$2"
+        shift 2
+        ;;
+      --diagnostics)
+        diagnostics="$2"
+        shift 2
+        ;;
+      --emmeans)
+        emmeans="$2"
+        shift 2
+        ;;
+      --contrasts)
+        contrasts="$2"
+        shift 2
+        ;;
+      --p-adjust)
+        p_adjust="$2"
+        shift 2
+        ;;
+      --conf-level)
+        conf_level="$2"
+        shift 2
+        ;;
+      --optimizer)
+        optimizer="$2"
+        shift 2
+        ;;
+      --maxfun)
+        maxfun="$2"
+        shift 2
+        ;;
+      --reml)
+        reml="$2"
+        shift 2
+        ;;
+      --fixed-rows)
+        fixed_rows="$2"
+        shift 2
+        ;;
+      --emmeans-rows)
+        emmeans_rows="$2"
+        shift 2
+        ;;
+      --contrast-rows)
+        contrast_rows="$2"
+        shift 2
+        ;;
+      --diagnostics-rows)
+        diagnostics_rows="$2"
+        shift 2
+        ;;
+      --std-beta)
+        std_beta="$2"
+        shift 2
+        ;;
+      --digits)
+        digits="$2"
+        shift 2
+        ;;
+      --user-prompt)
+        user_prompt="$2"
+        shift 2
+        ;;
+      --shapiro)
+        shapiro="$2"
+        shift 2
+        ;;
+      *)
+        echo "[FAIL] unknown expect flag: $1" | tee -a "${LOG_FILE}"
+        exit 1
+        ;;
+    esac
+  done
+
+  python3 "${CHECK_SCRIPT}" "${log_path}" "${start_count}" \
+    "${status}" "${formula}" "${dv}" "${random}" "${type}" "${df_method}" "${standardize}" "${diagnostics}" \
+    "${emmeans}" "${contrasts}" "${p_adjust}" "${conf_level}" "${optimizer}" "${maxfun}" "${reml}" \
+    "${fixed_rows}" "${emmeans_rows}" "${contrast_rows}" "${diagnostics_rows}" "${std_beta}" \
+    "${digits}" "${user_prompt}" "${shapiro}"
+}
+
+expect_log_main() {
+  local start_count="$1"; shift
+  expect_log "${LOG_PATH}" "${start_count}" "$@"
+}
+
+run_expect_invalid() {
   local label="$1"; shift
   local status="$1"; shift
   echo "[RUN-EXPECT] ${label}" | tee -a "${LOG_FILE}"
@@ -157,8 +384,7 @@ run_expect_status() {
     echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
     exit 1
   fi
-  local placeholders=(- - - - - - - - - - - - - - - - - - -)
-  if check_log "${LOG_PATH}" "${start_count}" "${status}" "${placeholders[@]}"; then
+  if expect_log_main "${start_count}" --status "${status}"; then
     echo "[PASS] ${label} (${status})" | tee -a "${LOG_FILE}"
   else
     echo "[FAIL] ${label} (status ${status} not logged)" | tee -a "${LOG_FILE}"
@@ -166,7 +392,7 @@ run_expect_status() {
   fi
 }
 
-run_expect_status_log() {
+run_expect_invalid_log() {
   local log_path="$1"; shift
   local label="$1"; shift
   local status="$1"; shift
@@ -181,8 +407,7 @@ run_expect_status_log() {
     echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
     exit 1
   fi
-  local placeholders=(- - - - - - - - - - - - - - - - - - -)
-  if check_log "${log_path}" "${start_count}" "${status}" "${placeholders[@]}"; then
+  if expect_log "${log_path}" "${start_count}" --status "${status}"; then
     echo "[PASS] ${label} (${status})" | tee -a "${LOG_FILE}"
   else
     echo "[FAIL] ${label} (status ${status} not logged)" | tee -a "${LOG_FILE}"
@@ -190,7 +415,37 @@ run_expect_status_log() {
   fi
 }
 
+run_expect_fail() {
+  local label="$1"; shift
+  echo "[RUN-EXPECT-FAIL] ${label}" | tee -a "${LOG_FILE}"
+  set +e
+  "$@" >>"${LOG_FILE}" 2>&1
+  local exit_status=$?
+  set -e
+  if [ "${exit_status}" -eq 0 ]; then
+    echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
+    exit 1
+  fi
+  echo "[PASS] ${label} (failed as expected)" | tee -a "${LOG_FILE}"
+}
+
 run_ok "mixed_models prep" Rscript "${PREP_SCRIPT}" "${DATA_GOLDEN}" "${MIXED_DATA_PATH}"
+run_ok "mixed_models format prep" Rscript - "${MIXED_DATA_PATH}" "${CSV_SEMI_PATH}" "${RDS_PATH}" "${RDATA_PATH}" "${RDATA_DF_NAME}" "${RDS_BAD_PATH}" <<'RS'
+args <- commandArgs(trailingOnly = TRUE)
+input_path <- args[1]
+csv_semi_path <- args[2]
+rds_path <- args[3]
+rdata_path <- args[4]
+rdata_df_name <- args[5]
+rds_bad_path <- args[6]
+df <- read.csv(input_path, stringsAsFactors = FALSE)
+write.table(df, csv_semi_path, sep = ";", row.names = FALSE, col.names = TRUE)
+saveRDS(df, rds_path)
+assign(rdata_df_name, df)
+other_df <- df[1:min(5, nrow(df)), , drop = FALSE]
+save(list = c(rdata_df_name, "other_df"), file = rdata_path)
+saveRDS(list(note = "not a data frame"), rds_bad_path)
+RS
 run_ok "init workspace" Rscript "${R_SCRIPT_DIR}/init_workspace.R" --csv "${MIXED_DATA_PATH}"
 
 if ! Rscript "${CHECK_PKG_SCRIPT}" lme4 >/dev/null 2>&1; then
@@ -208,9 +463,46 @@ if Rscript "${CHECK_PKG_SCRIPT}" lmerTest >/dev/null 2>&1; then
   HAS_LMERTEST=1
 fi
 
+HAS_PBKRTEST=0
+if Rscript "${CHECK_PKG_SCRIPT}" pbkrtest >/dev/null 2>&1; then
+  HAS_PBKRTEST=1
+fi
+
+HAS_HAVEN=0
+if Rscript "${CHECK_PKG_SCRIPT}" haven >/dev/null 2>&1; then
+  HAS_HAVEN=1
+fi
+
+HAS_FOREIGN=0
+if Rscript "${CHECK_PKG_SCRIPT}" foreign >/dev/null 2>&1; then
+  HAS_FOREIGN=1
+fi
+
 DF_METHOD_EXPECT="satterthwaite"
 if [ "${HAS_LMERTEST}" -eq 0 ]; then
   DF_METHOD_EXPECT="none"
+fi
+
+DF_METHOD_KR_EXPECT="kenward-roger"
+if [ "${HAS_LMERTEST}" -eq 0 ]; then
+  DF_METHOD_KR_EXPECT="none"
+fi
+
+HAS_SAV=0
+if [ "${HAS_HAVEN}" -eq 1 ]; then
+  HAS_SAV=1
+  run_ok "mixed_models sav prep" Rscript - "${MIXED_DATA_PATH}" "${SAV_PATH}" <<'RS'
+args <- commandArgs(trailingOnly = TRUE)
+input_path <- args[1]
+sav_path <- args[2]
+df <- read.csv(input_path, stringsAsFactors = FALSE)
+if (!requireNamespace("haven", quietly = TRUE)) {
+  stop("haven not available")
+}
+haven::write_sav(df, sav_path)
+RS
+else
+  echo "[WARN] skipping SAV input tests (haven not installed)" | tee -a "${LOG_FILE}"
 fi
 
 start_count="$(log_count "${LOG_PATH}")"
@@ -221,8 +513,27 @@ run_ok "mixed_models clean formula" \
   --reml TRUE \
   --type III \
   --df-method satterthwaite \
-  --diagnostics TRUE
-check_log "${LOG_PATH}" "${start_count}" - "score ~ time + group3 + x1 + (1|id)" - "(1|id)" "III" "${DF_METHOD_EXPECT}" none TRUE none none none 0.95 bobyqa 100000 TRUE gt0 - - gt0 absent
+  --diagnostics TRUE \
+  --max-shapiro-n 100000
+expect_log_main "${start_count}" \
+  --formula "score ~ time + group3 + x1 + (1|id)" \
+  --random "(1|id)" \
+  --type III \
+  --df-method "${DF_METHOD_EXPECT}" \
+  --standardize none \
+  --diagnostics TRUE \
+  --emmeans none \
+  --contrasts none \
+  --p-adjust none \
+  --conf-level 0.95 \
+  --optimizer bobyqa \
+  --maxfun 100000 \
+  --reml TRUE \
+  --fixed-rows gt0 \
+  --diagnostics-rows gt0 \
+  --std-beta absent \
+  --digits 2 \
+  --shapiro present
 
 echo "[PASS] mixed_models clean formula (log)" | tee -a "${LOG_FILE}"
 
@@ -238,7 +549,23 @@ run_ok "mixed_models fixed/random standardize" \
   --diagnostics FALSE \
   --reml FALSE \
   --maxfun 20000
-check_log "${LOG_PATH}" "${start_count}" - - score "(1|id)" "II" none predictors FALSE none none none 0.95 bobyqa 20000 FALSE gt0 - - 0 present
+expect_log_main "${start_count}" \
+  --dv score \
+  --random "(1|id)" \
+  --type II \
+  --df-method "${DF_METHOD_EXPECT}" \
+  --standardize predictors \
+  --diagnostics FALSE \
+  --emmeans none \
+  --contrasts none \
+  --p-adjust none \
+  --conf-level 0.95 \
+  --optimizer bobyqa \
+  --maxfun 20000 \
+  --reml FALSE \
+  --fixed-rows gt0 \
+  --diagnostics-rows 0 \
+  --std-beta present
 
 echo "[PASS] mixed_models fixed/random standardize (log)" | tee -a "${LOG_FILE}"
 
@@ -254,7 +581,23 @@ run_ok "mixed_models random shorthand" \
   --conf-level 0.9 \
   --optimizer nloptwrap \
   --maxfun 5000
-check_log "${LOG_PATH}" "${start_count}" - - score "(1|id)" "I" none none TRUE none none none 0.9 nloptwrap 5000 TRUE gt0 - - gt0 absent
+expect_log_main "${start_count}" \
+  --dv score \
+  --random "(1|id)" \
+  --type I \
+  --df-method none \
+  --standardize none \
+  --diagnostics TRUE \
+  --emmeans none \
+  --contrasts none \
+  --p-adjust none \
+  --conf-level 0.9 \
+  --optimizer nloptwrap \
+  --maxfun 5000 \
+  --reml TRUE \
+  --fixed-rows gt0 \
+  --diagnostics-rows gt0 \
+  --std-beta absent
 
 echo "[PASS] mixed_models random shorthand (log)" | tee -a "${LOG_FILE}"
 
@@ -274,33 +617,406 @@ else
   emmeans_rows="0"
   contrast_rows="0"
 fi
-check_log "${LOG_PATH}" "${start_count}" - "score ~ time * group3 + x1 + (1|id)" - "(1|id)" "III" "${DF_METHOD_EXPECT}" none TRUE "time*group3" pairwise holm 0.9 bobyqa 100000 TRUE gt0 "${emmeans_rows}" "${contrast_rows}" gt0 absent
+expect_log_main "${start_count}" \
+  --formula "score ~ time * group3 + x1 + (1|id)" \
+  --random "(1|id)" \
+  --type III \
+  --df-method "${DF_METHOD_EXPECT}" \
+  --standardize none \
+  --diagnostics TRUE \
+  --emmeans "time*group3" \
+  --contrasts pairwise \
+  --p-adjust holm \
+  --conf-level 0.9 \
+  --optimizer bobyqa \
+  --maxfun 100000 \
+  --reml TRUE \
+  --fixed-rows gt0 \
+  --emmeans-rows "${emmeans_rows}" \
+  --contrast-rows "${contrast_rows}" \
+  --diagnostics-rows gt0 \
+  --std-beta absent
 
 echo "[PASS] mixed_models emmeans contrasts (log)" | tee -a "${LOG_FILE}"
 
-run_expect_status "mixed_models missing random" invalid_input \
+if [ "${HAS_LMERTEST}" -eq 1 ] && [ "${HAS_PBKRTEST}" -eq 0 ]; then
+  run_expect_fail "mixed_models df-method kenward-roger missing pbkrtest" \
+    Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+    --parquet "${PARQUET_PATH}" \
+    --formula "score ~ time + group3 + (1|id)" \
+    --type II \
+    --df-method kenward-roger
+else
+  start_count="$(log_count "${LOG_PATH}")"
+  run_ok "mixed_models df-method kenward-roger" \
+    Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+    --parquet "${PARQUET_PATH}" \
+    --formula "score ~ time + group3 + (1|id)" \
+    --type II \
+    --df-method kenward-roger
+  expect_log_main "${start_count}" \
+    --formula "score ~ time + group3 + (1|id)" \
+    --random "(1|id)" \
+    --type II \
+    --df-method "${DF_METHOD_KR_EXPECT}" \
+    --standardize none \
+    --diagnostics TRUE \
+    --emmeans none \
+    --contrasts none \
+    --p-adjust none \
+    --conf-level 0.95 \
+    --optimizer bobyqa \
+    --maxfun 100000 \
+    --reml TRUE \
+    --fixed-rows gt0 \
+    --diagnostics-rows gt0 \
+    --std-beta absent
+  echo "[PASS] mixed_models df-method kenward-roger (log)" | tee -a "${LOG_FILE}"
+fi
+
+start_count="$(log_count "${LOG_PATH}")"
+run_ok "mixed_models emmeans only" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --parquet "${PARQUET_PATH}" \
+  --formula "score ~ time + group3 + (1|id)" \
+  --emmeans time
+if [ "${HAS_EMMEANS}" -eq 1 ]; then
+  emmeans_only_rows="gt0"
+else
+  emmeans_only_rows="0"
+fi
+expect_log_main "${start_count}" \
+  --formula "score ~ time + group3 + (1|id)" \
+  --random "(1|id)" \
+  --type III \
+  --df-method "${DF_METHOD_EXPECT}" \
+  --standardize none \
+  --diagnostics TRUE \
+  --emmeans time \
+  --contrasts none \
+  --p-adjust none \
+  --conf-level 0.95 \
+  --optimizer bobyqa \
+  --maxfun 100000 \
+  --reml TRUE \
+  --fixed-rows gt0 \
+  --emmeans-rows "${emmeans_only_rows}" \
+  --contrast-rows 0 \
+  --diagnostics-rows gt0 \
+  --std-beta absent
+
+echo "[PASS] mixed_models emmeans only (log)" | tee -a "${LOG_FILE}"
+
+start_count="$(log_count "${LOG_PATH}")"
+run_ok "mixed_models contrasts without emmeans" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --parquet "${PARQUET_PATH}" \
+  --formula "score ~ time + group3 + (1|id)" \
+  --contrasts pairwise
+expect_log_main "${start_count}" \
+  --formula "score ~ time + group3 + (1|id)" \
+  --random "(1|id)" \
+  --type III \
+  --df-method "${DF_METHOD_EXPECT}" \
+  --standardize none \
+  --diagnostics TRUE \
+  --emmeans none \
+  --contrasts none \
+  --p-adjust none \
+  --conf-level 0.95 \
+  --optimizer bobyqa \
+  --maxfun 100000 \
+  --reml TRUE \
+  --fixed-rows gt0 \
+  --emmeans-rows 0 \
+  --contrast-rows 0 \
+  --diagnostics-rows gt0 \
+  --std-beta absent
+
+echo "[PASS] mixed_models contrasts without emmeans (log)" | tee -a "${LOG_FILE}"
+
+start_count="$(log_count "${CSV_SEMI_LOG_PATH}")"
+run_ok "mixed_models csv semicolon" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --csv "${CSV_SEMI_PATH}" \
+  --sep ";" \
+  --header TRUE \
+  --formula "score ~ time + group3 + (1|id)"
+expect_log "${CSV_SEMI_LOG_PATH}" "${start_count}" \
+  --formula "score ~ time + group3 + (1|id)" \
+  --random "(1|id)" \
+  --type III \
+  --df-method "${DF_METHOD_EXPECT}" \
+  --standardize none \
+  --diagnostics TRUE \
+  --emmeans none \
+  --contrasts none \
+  --p-adjust none \
+  --conf-level 0.95 \
+  --optimizer bobyqa \
+  --maxfun 100000 \
+  --reml TRUE \
+  --fixed-rows gt0 \
+  --diagnostics-rows gt0 \
+  --std-beta absent
+
+echo "[PASS] mixed_models csv semicolon (log)" | tee -a "${LOG_FILE}"
+
+start_count="$(log_count "${RDS_LOG_PATH}")"
+run_ok "mixed_models rds input" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --rds "${RDS_PATH}" \
+  --formula "score ~ time + group3 + (1|id)"
+expect_log "${RDS_LOG_PATH}" "${start_count}" \
+  --formula "score ~ time + group3 + (1|id)" \
+  --random "(1|id)" \
+  --type III \
+  --df-method "${DF_METHOD_EXPECT}" \
+  --standardize none \
+  --diagnostics TRUE \
+  --emmeans none \
+  --contrasts none \
+  --p-adjust none \
+  --conf-level 0.95 \
+  --optimizer bobyqa \
+  --maxfun 100000 \
+  --reml TRUE \
+  --fixed-rows gt0 \
+  --diagnostics-rows gt0 \
+  --std-beta absent
+
+echo "[PASS] mixed_models rds input (log)" | tee -a "${LOG_FILE}"
+
+start_count="$(log_count "${RDATA_LOG_PATH}")"
+run_ok "mixed_models rdata input" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --rdata "${RDATA_PATH}" \
+  --df "${RDATA_DF_NAME}" \
+  --formula "score ~ time + group3 + (1|id)"
+expect_log "${RDATA_LOG_PATH}" "${start_count}" \
+  --formula "score ~ time + group3 + (1|id)" \
+  --random "(1|id)" \
+  --type III \
+  --df-method "${DF_METHOD_EXPECT}" \
+  --standardize none \
+  --diagnostics TRUE \
+  --emmeans none \
+  --contrasts none \
+  --p-adjust none \
+  --conf-level 0.95 \
+  --optimizer bobyqa \
+  --maxfun 100000 \
+  --reml TRUE \
+  --fixed-rows gt0 \
+  --diagnostics-rows gt0 \
+  --std-beta absent
+
+echo "[PASS] mixed_models rdata input (log)" | tee -a "${LOG_FILE}"
+
+if [ "${HAS_SAV}" -eq 1 ]; then
+  start_count="$(log_count "${SAV_LOG_PATH}")"
+  run_ok "mixed_models sav input" \
+    Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+    --sav "${SAV_PATH}" \
+    --formula "score ~ time + group3 + (1|id)"
+  expect_log "${SAV_LOG_PATH}" "${start_count}" \
+    --formula "score ~ time + group3 + (1|id)" \
+    --random "(1|id)" \
+    --type III \
+    --df-method "${DF_METHOD_EXPECT}" \
+    --standardize none \
+    --diagnostics TRUE \
+    --emmeans none \
+    --contrasts none \
+    --p-adjust none \
+    --conf-level 0.95 \
+    --optimizer bobyqa \
+    --maxfun 100000 \
+    --reml TRUE \
+    --fixed-rows gt0 \
+    --diagnostics-rows gt0 \
+    --std-beta absent
+  echo "[PASS] mixed_models sav input (log)" | tee -a "${LOG_FILE}"
+fi
+
+start_count="$(log_count "${LOG_PATH}")"
+run_ok "mixed_models option normalization" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --parquet "${PARQUET_PATH}" \
+  --formula "score ~ time + group3 + x1 + (1|id)" \
+  --type IV \
+  --df-method bogus \
+  --standardize weird \
+  --conf-level 2 \
+  --maxfun -10 \
+  --max-shapiro-n 2 \
+  --digits 4 \
+  --user-prompt "edge prompt"
+expect_log_main "${start_count}" \
+  --formula "score ~ time + group3 + x1 + (1|id)" \
+  --random "(1|id)" \
+  --type III \
+  --df-method "${DF_METHOD_EXPECT}" \
+  --standardize none \
+  --diagnostics TRUE \
+  --emmeans none \
+  --contrasts none \
+  --p-adjust none \
+  --conf-level 0.95 \
+  --optimizer bobyqa \
+  --maxfun 100000 \
+  --reml TRUE \
+  --fixed-rows gt0 \
+  --diagnostics-rows gt0 \
+  --std-beta absent \
+  --digits 4 \
+  --user-prompt "edge prompt" \
+  --shapiro absent
+
+echo "[PASS] mixed_models option normalization (log)" | tee -a "${LOG_FILE}"
+
+reset_report() {
+  rm -f "${APA_REPORT_PATH}"
+}
+
+TEMPLATE_DEFAULT_ORIG="$(get_config_value templates.mixed_models.default)"
+TEMPLATE_EMMEANS_ORIG="$(get_config_value templates.mixed_models.emmeans)"
+TEMPLATE_DEFAULT_TMP="${TMP_BASE}/mixed_models_default_template.md"
+TEMPLATE_EMMEANS_TMP="${TMP_BASE}/mixed_models_emmeans_template.md"
+
+reset_report
+run_ok "mixed_models template baseline" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --parquet "${PARQUET_PATH}" \
+  --formula "score ~ time + group3 + x1 + (1|id)" \
+  --log FALSE
+
+if [ ! -f "${APA_REPORT_PATH}" ]; then
+  echo "[FAIL] missing report: ${APA_REPORT_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+
+assert_contains "${APA_REPORT_PATH}" "Mixed Models"
+assert_contains "${APA_REPORT_PATH}" "Fixed effects estimates."
+assert_contains "${APA_REPORT_PATH}" "**Narrative**"
+
+if [ "${HAS_EMMEANS}" -eq 1 ]; then
+  reset_report
+  run_ok "mixed_models emmeans template baseline" \
+    Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+    --parquet "${PARQUET_PATH}" \
+    --formula "score ~ time * group3 + x1 + (1|id)" \
+    --emmeans "time*group3" \
+    --contrasts pairwise \
+    --p-adjust holm \
+    --log FALSE
+
+  assert_contains "${APA_REPORT_PATH}" "Mixed Models: Marginal Means"
+  assert_contains "${APA_REPORT_PATH}" "Estimated marginal means and contrasts."
+fi
+
+cp "$(resolve_template_source "${TEMPLATE_DEFAULT_ORIG}")" "${TEMPLATE_DEFAULT_TMP}"
+cp "$(resolve_template_source "${TEMPLATE_EMMEANS_ORIG}")" "${TEMPLATE_EMMEANS_TMP}"
+
+sed -i 's/title: "Mixed Models"/title: "Mixed Models TEMPLATE TEST"/' "${TEMPLATE_DEFAULT_TMP}"
+sed -i 's/table_title: "Fixed effects estimates\."/table_title: "Fixed effects estimates TEST."/' "${TEMPLATE_DEFAULT_TMP}"
+sed -i 's/note_prefix: "\*Note\.\*"/note_prefix: "*Note-TEST.*"/' "${TEMPLATE_DEFAULT_TMP}"
+sed -i 's/narrative_heading: "\*\*Narrative\*\*"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_DEFAULT_TMP}"
+
+sed -i 's/title: "Mixed Models: Marginal Means"/title: "Mixed Models: Marginal Means TEMPLATE TEST"/' "${TEMPLATE_EMMEANS_TMP}"
+sed -i 's/table_title: "Estimated marginal means and contrasts\."/table_title: "Estimated marginal means TEST."/' "${TEMPLATE_EMMEANS_TMP}"
+sed -i 's/note_prefix: "\*Note\.\*"/note_prefix: "*Note-TEST.*"/' "${TEMPLATE_EMMEANS_TMP}"
+sed -i 's/narrative_heading: "\*\*Narrative\*\*"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_EMMEANS_TMP}"
+
+set_config_value templates.mixed_models.default "${TEMPLATE_DEFAULT_TMP}"
+set_config_value templates.mixed_models.emmeans "${TEMPLATE_EMMEANS_TMP}"
+
+reset_report
+run_ok "mixed_models template modified" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --parquet "${PARQUET_PATH}" \
+  --formula "score ~ time + group3 + x1 + (1|id)" \
+  --log FALSE
+
+assert_contains "${APA_REPORT_PATH}" "Mixed Models TEMPLATE TEST"
+assert_contains "${APA_REPORT_PATH}" "Fixed effects estimates TEST."
+assert_contains "${APA_REPORT_PATH}" "*Note-TEST.*"
+assert_contains "${APA_REPORT_PATH}" "**Narrative TEST**"
+
+if [ "${HAS_EMMEANS}" -eq 1 ]; then
+  reset_report
+  run_ok "mixed_models emmeans template modified" \
+    Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+    --parquet "${PARQUET_PATH}" \
+    --formula "score ~ time * group3 + x1 + (1|id)" \
+    --emmeans "time*group3" \
+    --contrasts pairwise \
+    --p-adjust holm \
+    --log FALSE
+
+  assert_contains "${APA_REPORT_PATH}" "Mixed Models: Marginal Means TEMPLATE TEST"
+  assert_contains "${APA_REPORT_PATH}" "Estimated marginal means TEST."
+  assert_contains "${APA_REPORT_PATH}" "*Note-TEST.*"
+  assert_contains "${APA_REPORT_PATH}" "**Narrative TEST**"
+else
+  echo "[WARN] skipping emmeans template tests (emmeans not installed)" | tee -a "${LOG_FILE}"
+fi
+
+set_config_value templates.mixed_models.default "${TEMPLATE_DEFAULT_ORIG}"
+set_config_value templates.mixed_models.emmeans "${TEMPLATE_EMMEANS_ORIG}"
+
+before_log="$(log_count "${LOG_PATH}")"
+run_ok "mixed_models log disabled" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --parquet "${PARQUET_PATH}" \
+  --formula "score ~ time + group3 + (1|id)" \
+  --log FALSE
+after_log="$(log_count "${LOG_PATH}")"
+assert_log_unchanged "${before_log}" "${after_log}" "mixed_models log disabled"
+
+run_expect_invalid "mixed_models missing random" invalid_input \
   Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
   --parquet "${PARQUET_PATH}" \
   --dv score \
   --fixed time,group3
 
-run_expect_status "mixed_models missing dv" invalid_input \
+run_expect_invalid "mixed_models missing dv" invalid_input \
   Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
   --parquet "${PARQUET_PATH}" \
   --fixed time \
   --random "1|id"
 
-run_expect_status "mixed_models missing variable" invalid_input \
+run_expect_invalid "mixed_models missing variable" invalid_input \
   Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
   --parquet "${PARQUET_PATH}" \
   --formula "score ~ time + missing_var + (1|id)"
 
-run_expect_status "mixed_models nonnumeric dv" invalid_input \
+run_expect_invalid "mixed_models nonnumeric dv" invalid_input \
   Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
   --parquet "${PARQUET_PATH}" \
   --dv gender \
   --fixed time \
   --random "1|id"
+
+run_expect_invalid "mixed_models formula missing random" invalid_input \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --parquet "${PARQUET_PATH}" \
+  --formula "score ~ time + group3"
+
+run_expect_invalid "mixed_models invalid formula" invalid_input \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --parquet "${PARQUET_PATH}" \
+  --formula "score ~ time + (1|id"
+
+run_expect_fail "mixed_models rdata missing df" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --rdata "${RDATA_PATH}" \
+  --formula "score ~ time + (1|id)"
+
+run_expect_fail "mixed_models rds not dataframe" \
+  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
+  --rds "${RDS_BAD_PATH}" \
+  --formula "score ~ time + (1|id)"
 
 EMPTY_DATA_PATH="${TMP_BASE}/mixed_models_empty.csv"
 Rscript - "${MIXED_DATA_PATH}" "${EMPTY_DATA_PATH}" <<'RS'
@@ -315,7 +1031,7 @@ RS
 run_ok "init workspace (empty)" Rscript "${R_SCRIPT_DIR}/init_workspace.R" --csv "${EMPTY_DATA_PATH}"
 
 EMPTY_LOG_PATH="${WORKSPACE_DIR}/mixed_models_empty/analysis_log.jsonl"
-run_expect_status_log "${EMPTY_LOG_PATH}" "mixed_models no complete cases" invalid_input \
+run_expect_invalid_log "${EMPTY_LOG_PATH}" "mixed_models no complete cases" invalid_input \
   Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
   --parquet "${WORKSPACE_DIR}/mixed_models_empty/mixed_models_empty.parquet" \
   --formula "score ~ time + (1|id)"

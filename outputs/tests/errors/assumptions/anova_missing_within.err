@@ -1,4 +1,0 @@
-Error in run_anova_assumptions(df, opts, settings) : 
-  Unknown within variables: missing
-Calls: main -> run_anova_assumptions
-Execution halted

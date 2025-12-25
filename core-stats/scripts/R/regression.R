@@ -471,7 +471,8 @@ safe_fit_model <- function(formula, data, family, link) {
   if (family == "gaussian") {
     return(tryCatch(lm(formula, data = data), error = function(e) NULL))
   }
-  fam <- build_family(family, link)
+  fam <- tryCatch(build_family(family, link), error = function(e) NULL)
+  if (is.null(fam)) return(NULL)
   tryCatch(glm(formula, data = data, family = fam), error = function(e) NULL)
 }
 

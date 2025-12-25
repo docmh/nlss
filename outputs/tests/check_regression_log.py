@@ -4,16 +4,75 @@ import sys
 from pathlib import Path
 
 
+def parse_arg(value):
+    if value in (None, "", "-"):
+        return None
+    return value
+
+
 def parse_int(value):
     if value in (None, "", "-"):
         return None
-    return int(value)
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_float(value):
+    if value in (None, "", "-"):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def parse_bool(value):
     if value in (None, "", "-"):
         return None
-    return value.lower() in ("1", "true", "yes", "y")
+    val = str(value).strip().lower()
+    if val in ("1", "true", "yes", "y", "t"):
+        return True
+    if val in ("0", "false", "no", "n", "f"):
+        return False
+    return None
+
+
+def parse_list(value):
+    if value in (None, "", "-"):
+        return None
+    items = [item.strip() for item in str(value).split(",")]
+    items = [item for item in items if item]
+    return items or None
+
+
+def parse_kv_args(args):
+    extra = {}
+    for arg in args:
+        if "=" not in arg:
+            continue
+        key, value = arg.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if key:
+            extra[key] = value
+    return extra
+
+
+def has_non_null(rows, key):
+    for row in rows:
+        if row.get(key) is not None:
+            return True
+    return False
+
+
+def has_interaction_term(rows):
+    for row in rows:
+        term = row.get("term")
+        if isinstance(term, str) and (":" in term or "*" in term):
+            return True
+    return False
 
 
 def load_entries(path, start_count):
@@ -33,12 +92,14 @@ def fail(message):
 
 
 def main():
-    if len(sys.argv) != 14:
+    if len(sys.argv) < 14:
         fail(
             "Usage: check_regression_log.py <log_path> <start_count> <expected_status> "
             "<expected_family> <expected_stat_label> <min_models> <min_groups> "
             "<min_comparisons> <expect_beta> <expect_expb> <expect_boot> "
-            "<expect_interaction> <expect_diagnostics>"
+            "<expect_interaction> <expect_diagnostics> "
+            "[link=...] [conf_level=...] [digits=...] [center=...] [standardize=...] "
+            "[bootstrap_samples=...] [user_prompt=...] [terms=...] [no_terms=...] [group=...]"
         )
 
     log_path = Path(sys.argv[1])
@@ -54,6 +115,17 @@ def main():
     expect_boot = parse_bool(sys.argv[11])
     expect_interaction = parse_bool(sys.argv[12])
     expect_diagnostics = parse_bool(sys.argv[13])
+    extra = parse_kv_args(sys.argv[14:])
+    expect_link = parse_arg(extra.get("link"))
+    expect_conf_level = parse_float(parse_arg(extra.get("conf_level")))
+    expect_digits = parse_int(parse_arg(extra.get("digits")))
+    expect_center = parse_arg(extra.get("center"))
+    expect_standardize = parse_arg(extra.get("standardize"))
+    expect_boot_samples = parse_int(parse_arg(extra.get("bootstrap_samples")))
+    expect_user_prompt = parse_arg(extra.get("user_prompt"))
+    expect_terms = parse_list(parse_arg(extra.get("terms")))
+    expect_no_terms = parse_list(parse_arg(extra.get("no_terms")))
+    expect_group = parse_arg(extra.get("group"))
 
     if not log_path.exists():
         fail(f"Missing log: {log_path}")
@@ -85,8 +157,10 @@ def main():
     if not summary:
         fail("summary_df is empty")
 
+    options = entry.get("options", {}) or {}
+
     if expected_family not in (None, "", "-"):
-        family = entry.get("options", {}).get("family")
+        family = options.get("family")
         if family != expected_family:
             fail(f"Expected family {expected_family}, got {family}")
 
@@ -109,23 +183,32 @@ def main():
             fail(f"Expected at least {min_comparisons} comparison(s), got {len(comparisons)}")
 
     if expect_beta is True:
-        if not any(row.get("beta") is not None for row in coefficients):
+        if not has_non_null(coefficients, "beta"):
             fail("Expected non-null beta values")
+    if expect_beta is False:
+        if has_non_null(coefficients, "beta"):
+            fail("Expected beta values to be null")
 
     if expect_expb is True:
-        if not any(row.get("exp_b") is not None for row in coefficients):
+        if not has_non_null(coefficients, "exp_b"):
             fail("Expected non-null exp_b values")
+    if expect_expb is False:
+        if has_non_null(coefficients, "exp_b"):
+            fail("Expected exp_b values to be null")
 
     if expect_boot is True:
-        if not any(row.get("boot_ci_low") is not None for row in coefficients):
+        if not has_non_null(coefficients, "boot_ci_low"):
             fail("Expected non-null bootstrap CI values")
+    if expect_boot is False:
+        if has_non_null(coefficients, "boot_ci_low"):
+            fail("Expected bootstrap CI values to be null")
 
     if expect_interaction is True:
-        if not any(
-            isinstance(row.get("term"), str) and (":" in row.get("term") or "*" in row.get("term"))
-            for row in coefficients
-        ):
+        if not has_interaction_term(coefficients):
             fail("Expected interaction term in coefficients_df")
+    if expect_interaction is False:
+        if has_interaction_term(coefficients):
+            fail("Expected no interaction terms in coefficients_df")
 
     if expect_diagnostics is True:
         if not diagnostics:
@@ -134,6 +217,63 @@ def main():
     if expect_diagnostics is False:
         if diagnostics:
             fail("Expected diagnostics_df to be empty")
+
+    if expect_link is not None:
+        if options.get("link") != expect_link:
+            fail(f"Expected link {expect_link}, got {options.get('link')}")
+
+    if expect_conf_level is not None:
+        conf_val = options.get("conf_level")
+        try:
+            if abs(float(conf_val) - expect_conf_level) > 1e-6:
+                fail(f"Expected conf_level {expect_conf_level}, got {conf_val}")
+        except (TypeError, ValueError):
+            fail(f"Expected conf_level {expect_conf_level}, got {conf_val}")
+
+    if expect_digits is not None:
+        digits_val = options.get("digits")
+        try:
+            if int(digits_val) != expect_digits:
+                fail(f"Expected digits {expect_digits}, got {digits_val}")
+        except (TypeError, ValueError):
+            fail(f"Expected digits {expect_digits}, got {digits_val}")
+
+    if expect_center is not None:
+        if options.get("center") != expect_center:
+            fail(f"Expected center {expect_center}, got {options.get('center')}")
+
+    if expect_standardize is not None:
+        if options.get("standardize") != expect_standardize:
+            fail(f"Expected standardize {expect_standardize}, got {options.get('standardize')}")
+
+    if expect_boot_samples is not None:
+        sample_val = options.get("bootstrap_samples")
+        try:
+            if int(sample_val) != expect_boot_samples:
+                fail(f"Expected bootstrap_samples {expect_boot_samples}, got {sample_val}")
+        except (TypeError, ValueError):
+            fail(f"Expected bootstrap_samples {expect_boot_samples}, got {sample_val}")
+
+    if expect_user_prompt is not None:
+        user_prompt = entry.get("user_prompt")
+        if user_prompt != expect_user_prompt:
+            fail(f"Expected user_prompt {expect_user_prompt}, got {user_prompt}")
+
+    if expect_terms is not None:
+        term_values = {row.get("term") for row in coefficients if row.get("term") is not None}
+        for term in expect_terms:
+            if term not in term_values:
+                fail(f"Expected term {term} in coefficients_df")
+
+    if expect_no_terms is not None:
+        term_values = {row.get("term") for row in coefficients if row.get("term") is not None}
+        for term in expect_no_terms:
+            if term in term_values:
+                fail(f"Expected term {term} to be absent in coefficients_df")
+
+    if expect_group is not None:
+        if options.get("group") != expect_group:
+            fail(f"Expected group {expect_group}, got {options.get('group')}")
 
 
 if __name__ == "__main__":
