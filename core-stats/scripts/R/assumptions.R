@@ -2311,52 +2311,103 @@ run_sem_assumptions <- function(df, opts, settings) {
     }
   }
 
-  if (settings$mardia && isTRUE(settings$packages$mvn) && !is.null(cont_complete)) {
-    if (nrow(cont_complete) > 2 && ncol(cont_complete) > 1) {
+  mardia_rows <- 0
+  mardia_note <- NULL
+  if (settings$mardia && isTRUE(settings$packages$mvn)) {
+    if (!is.null(cont_complete) && nrow(cont_complete) > 2 && ncol(cont_complete) > 1) {
       mvn_res <- tryCatch(
         MVN::mvn(cont_complete, mvnTest = "mardia", multivariatePlot = "none"),
         error = function(e) NULL
       )
       if (!is.null(mvn_res) && !is.null(mvn_res$multivariateNormality)) {
         mvn_tbl <- mvn_res$multivariateNormality
-        label_col <- NULL
-        if ("Test" %in% names(mvn_tbl)) label_col <- "Test"
-        labels <- if (!is.null(label_col)) as.character(mvn_tbl[[label_col]]) else rownames(mvn_tbl)
-        stat_col <- NULL
-        if ("Statistic" %in% names(mvn_tbl)) stat_col <- "Statistic"
-        if (is.null(stat_col) && "statistic" %in% names(mvn_tbl)) stat_col <- "statistic"
-        p_col <- NULL
-        if ("p value" %in% names(mvn_tbl)) p_col <- "p value"
-        if (is.null(p_col) && "p.value" %in% names(mvn_tbl)) p_col <- "p.value"
-        if (is.null(p_col) && "p" %in% names(mvn_tbl)) p_col <- "p"
-
-        if (!is.null(labels) && !is.null(stat_col) && !is.null(p_col)) {
-          for (i in seq_along(labels)) {
-            label <- labels[i]
-            if (!grepl("Mardia", label, ignore.case = TRUE)) next
-            stat_val <- extract_first_numeric(mvn_tbl[[stat_col]][i])
-            p_val <- extract_first_numeric(mvn_tbl[[p_col]][i])
-            test_label <- if (grepl("skew", label, ignore.case = TRUE)) "Mardia (skew)" else "Mardia (kurtosis)"
-            decision <- decision_from_p(p_val, settings$alpha)
-            rows[[length(rows) + 1]] <- make_check_row(
-              analysis_type = "sem",
-              model = toupper(sem_type),
-              assumption = "Multivariate normality",
-              test = test_label,
-              target = "Indicators",
-              group = "",
-              statistic = stat_val,
-              df1 = NA_real_,
-              df2 = NA_real_,
-              p = p_val,
-              value = NA_real_,
-              n = nrow(cont_complete),
-              decision = decision,
-              note = ""
-            )
-          }
+        if (!is.data.frame(mvn_tbl)) {
+          mvn_tbl <- tryCatch(as.data.frame(mvn_tbl, stringsAsFactors = FALSE), error = function(e) NULL)
         }
+        if (!is.null(mvn_tbl)) {
+          label_col <- NULL
+          if ("Test" %in% names(mvn_tbl)) label_col <- "Test"
+          if (is.null(label_col) && "test" %in% names(mvn_tbl)) label_col <- "test"
+          labels <- if (!is.null(label_col)) as.character(mvn_tbl[[label_col]]) else rownames(mvn_tbl)
+          if (is.null(labels) || length(labels) == 0) labels <- rep("", nrow(mvn_tbl))
+
+          stat_col <- NULL
+          if ("Statistic" %in% names(mvn_tbl)) stat_col <- "Statistic"
+          if (is.null(stat_col) && "statistic" %in% names(mvn_tbl)) stat_col <- "statistic"
+          p_col <- NULL
+          if ("p value" %in% names(mvn_tbl)) p_col <- "p value"
+          if (is.null(p_col) && "p.value" %in% names(mvn_tbl)) p_col <- "p.value"
+          if (is.null(p_col) && "p" %in% names(mvn_tbl)) p_col <- "p"
+
+          if (!is.null(stat_col) && !is.null(p_col)) {
+            for (i in seq_along(labels)) {
+              label <- labels[i]
+              if (is.na(label)) label <- ""
+              label_lower <- tolower(label)
+              is_mardia <- grepl("mardia", label_lower) ||
+                grepl("skew", label_lower) || grepl("kurt", label_lower) ||
+                (nrow(mvn_tbl) <= 2 && !nzchar(label))
+              if (!is_mardia) next
+              stat_val <- extract_first_numeric(mvn_tbl[[stat_col]][i])
+              p_val <- extract_first_numeric(mvn_tbl[[p_col]][i])
+              test_label <- if (grepl("skew", label_lower)) {
+                "Mardia (skew)"
+              } else if (grepl("kurt", label_lower)) {
+                "Mardia (kurtosis)"
+              } else {
+                "Mardia"
+              }
+              decision <- decision_from_p(p_val, settings$alpha)
+              rows[[length(rows) + 1]] <- make_check_row(
+                analysis_type = "sem",
+                model = toupper(sem_type),
+                assumption = "Multivariate normality",
+                test = test_label,
+                target = "Indicators",
+                group = "",
+                statistic = stat_val,
+                df1 = NA_real_,
+                df2 = NA_real_,
+                p = p_val,
+                value = NA_real_,
+                n = nrow(cont_complete),
+                decision = decision,
+                note = ""
+              )
+              mardia_rows <- mardia_rows + 1
+            }
+          } else {
+            mardia_note <- "Mardia results missing statistic or p-value columns."
+          }
+        } else {
+          mardia_note <- "Mardia results could not be parsed."
+        }
+      } else {
+        mardia_note <- "Mardia test failed or returned no results."
       }
+    } else if (!is.null(cont_complete)) {
+      mardia_note <- "Mardia not assessed (insufficient complete data)."
+    } else {
+      mardia_note <- "Mardia not assessed (no continuous indicators)."
+    }
+
+    if (mardia_rows == 0 && !is.null(mardia_note)) {
+      rows[[length(rows) + 1]] <- make_check_row(
+        analysis_type = "sem",
+        model = toupper(sem_type),
+        assumption = "Multivariate normality",
+        test = "Mardia",
+        target = "Indicators",
+        group = "",
+        statistic = NA_real_,
+        df1 = NA_real_,
+        df2 = NA_real_,
+        p = NA_real_,
+        value = NA_real_,
+        n = if (!is.null(cont_complete)) nrow(cont_complete) else NA_real_,
+        decision = "",
+        note = mardia_note
+      )
     }
   }
 
@@ -2531,7 +2582,7 @@ run_sem_assumptions <- function(df, opts, settings) {
   list(checks = checks_df, model = model_syntax, sem_type = sem_type, vars = model_vars)
 }
 
-build_note_tokens <- function(analysis_type, settings, homogeneity_tests) {
+build_note_tokens <- function(analysis_type, settings, homogeneity_tests, checks_df = NULL) {
   homogeneity_label <- if (length(homogeneity_tests) == 0) {
     "None."
   } else {
@@ -2586,14 +2637,29 @@ build_note_tokens <- function(analysis_type, settings, homogeneity_tests) {
     )
     note_default <- paste(parts[!is.null(parts) & nzchar(parts)], collapse = " ")
   } else if (analysis_type == "sem") {
+    mardia_present <- FALSE
+    mardia_failed <- FALSE
+    if (!is.null(checks_df) && nrow(checks_df) > 0) {
+      mardia_rows <- checks_df[checks_df$assumption == "Multivariate normality", , drop = FALSE]
+      if (nrow(mardia_rows) > 0) {
+        mardia_present <- TRUE
+        if (all(is.na(mardia_rows$p)) || any(nzchar(mardia_rows$note))) {
+          mardia_failed <- TRUE
+        }
+      }
+    }
     parts <- c(
       if (settings$normality != "none") {
         paste0("Univariate normality assessed with Shapiro-Wilk (alpha = ", settings$alpha, ").")
       } else {
         "Univariate normality not assessed."
       },
-      if (settings$mardia && isTRUE(settings$packages$mvn)) {
+      if (settings$mardia && isTRUE(settings$packages$mvn) && mardia_present && !mardia_failed) {
         "Multivariate normality assessed with Mardia."
+      } else if (settings$mardia && isTRUE(settings$packages$mvn) && mardia_present && mardia_failed) {
+        "Mardia test attempted but results were unavailable."
+      } else if (settings$mardia && isTRUE(settings$packages$mvn) && !mardia_present) {
+        "Mardia test requested but no results were returned."
       } else if (settings$mardia) {
         "Mardia test not available (MVN missing)."
       } else {
@@ -2834,7 +2900,7 @@ main <- function() {
   checks_df <- result$checks
   if (is.null(checks_df) || nrow(checks_df) == 0) stop("No assumptions could be computed.")
 
-  note_tokens <- build_note_tokens(analysis, settings, homogeneity_tests)
+  note_tokens <- build_note_tokens(analysis, settings, homogeneity_tests, checks_df)
   apa_report_path <- file.path(out_dir, "apa_report.md")
   narrative_rows <- build_assumptions_narrative_rows(checks_df, digits)
   apa_text <- paste(vapply(narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
