@@ -1,5 +1,5 @@
 ---
-name: descriptive-stats-r
+name: descriptive-stats
 description: Descriptive statistics for numeric variables (mean, SD, median, range, skewness/kurtosis, missingness, CI) with optional grouping and APA-ready tables/narratives.
 ---
 

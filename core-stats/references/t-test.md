@@ -1,5 +1,5 @@
 ---
-name: t-test-r
+name: t-test
 description: One-sample, independent-samples, and paired-samples t-tests with APA-ready tables, narratives, and bootstrap options.
 ---
 

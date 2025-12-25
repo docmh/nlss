@@ -1,5 +1,5 @@
 ---
-name: mixed-models-r
+name: mixed-models
 description: Linear mixed-effects models with random effects, marginal means, diagnostics, and APA-ready outputs.
 ---
 

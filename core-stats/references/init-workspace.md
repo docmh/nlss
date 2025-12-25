@@ -1,5 +1,5 @@
 ---
-name: init-workspace-r
+name: init-workspace
 description: Initialize per-dataset workspace folders with scratchpad.md, apa_report.md, analysis_log.jsonl, and .parquet dataset copies plus environment metadata.
 ---
 

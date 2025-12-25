@@ -1,5 +1,5 @@
 ---
-name: missings-r
+name: missings
 description: Missing-data pattern summaries with automated handling decisions (listwise deletion, imputation, indicators, or drop) and APA-ready outputs.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: correlations-r
+name: correlations
 description: Correlation matrices or pairwise analyses (Pearson/Spearman/Kendall), cross/partial correlations with controls, p-value adjustments, and optional grouping, producing APA tables/narratives.
 ---
 

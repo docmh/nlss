@@ -1,5 +1,5 @@
 ---
-name: data-explorer-r
+name: data-explorer
 description: Data dictionary overview with variable names, types, inferred scale levels, missingness, and value counts to quickly assess datasets before analysis.
 ---
 

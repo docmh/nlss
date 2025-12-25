@@ -1,5 +1,5 @@
 ---
-name: assumptions-r
+name: assumptions
 description: Assumption checks for t-tests, ANOVA, and regression with APA-ready tables, narratives, and diagnostics.
 ---
 

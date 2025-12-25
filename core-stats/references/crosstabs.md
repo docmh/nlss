@@ -1,5 +1,5 @@
 ---
-name: crosstabs-r
+name: crosstabs
 description: Contingency tables for categorical variables with chi-square/Fisher tests, effect sizes (Cramer's V/phi), residuals, optional grouping, and APA-ready outputs.
 ---
 

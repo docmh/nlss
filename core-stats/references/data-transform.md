@@ -1,5 +1,5 @@
 ---
-name: data-transform-r
+name: data-transform
 description: Create or modify variables (calculate, standardize, recode, rename, drop) with safe prompts, updated datasets, and APA-ready change logs.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: anova-r
+name: anova
 description: Between-subjects, within-subjects, and mixed ANOVA with APA-ready tables, post-hoc comparisons, and assumptions logging.
 ---
 

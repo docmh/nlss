@@ -1,5 +1,5 @@
 ---
-name: scale-r
+name: scale
 description: Scale item analysis and reliability (alpha/omega), item-total correlations, reverse scoring, and grouped summaries with APA-ready outputs.
 ---
 

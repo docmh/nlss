@@ -1,5 +1,5 @@
 ---
-name: frequencies-r
+name: frequencies
 description: Frequency tables for categorical variables with counts, percentages, and optional grouping, producing APA-ready tables and narratives.
 ---
 

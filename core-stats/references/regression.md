@@ -1,5 +1,5 @@
 ---
-name: regression-r
+name: regression
 description: Multiple and hierarchical regression (OLS/GLM) with interactions, bootstrap CIs, and APA-ready tables/narratives.
 ---
 
