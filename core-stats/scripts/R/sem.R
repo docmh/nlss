@@ -400,8 +400,12 @@ normalize_std <- function(value, default = "std.all") {
 }
 
 normalize_model_syntax <- function(text) {
-  if (is.null(text) || !nzchar(text)) return("")
-  out <- gsub(";", "\n", text)
+  if (is.null(text)) return("")
+  if (length(text) > 1) text <- paste(text, collapse = "\n")
+  text <- as.character(text)
+  if (!nzchar(text)) return("")
+  out <- gsub("\r\n?", "\n", text)
+  out <- gsub(";", "\n", out)
   trimws(out)
 }
 
@@ -488,15 +492,82 @@ build_mediation_model <- function(x, mediators, y, covariates, serial = FALSE) {
 }
 
 extract_model_vars <- function(model_syntax) {
-  if (!requireNamespace("lavaan", quietly = TRUE)) return(character(0))
-  table <- tryCatch(lavaan::lavaanify(model_syntax, auto = FALSE), error = function(e) NULL)
-  if (is.null(table)) return(character(0))
-  relevant_ops <- table$op %in% c("=~", "~", "~~")
-  latent_vars <- unique(table$lhs[table$op == "=~"])
-  vars <- unique(c(table$lhs[relevant_ops], table$rhs[relevant_ops]))
-  vars <- setdiff(vars, latent_vars)
+  if (is.null(model_syntax)) return(character(0))
+  if (length(model_syntax) > 1) model_syntax <- paste(model_syntax, collapse = "\n")
+  if (!nzchar(model_syntax)) return(character(0))
+
+  vars <- character(0)
+  latent_vars <- character(0)
+  if (requireNamespace("lavaan", quietly = TRUE)) {
+    table <- tryCatch(lavaan::lavaanify(model_syntax, auto = FALSE), error = function(e) NULL)
+    if (is.null(table) || nrow(table) == 0) {
+      table <- tryCatch(lavaan::lavaanify(model_syntax, auto = TRUE), error = function(e) NULL)
+    }
+    if (!is.null(table) && nrow(table) > 0) {
+      relevant_ops <- table$op %in% c("=~", "~", "~~")
+      latent_vars <- unique(table$lhs[table$op == "=~"])
+      vars <- unique(c(table$lhs[relevant_ops], table$rhs[relevant_ops]))
+      vars <- setdiff(vars, latent_vars)
+      vars <- vars[nzchar(vars)]
+      vars <- setdiff(vars, "1")
+    }
+  }
+  if (length(vars) > 0) return(vars)
+
+  text <- gsub("\r\n?", "\n", model_syntax)
+  lines <- unlist(strsplit(text, "\n", fixed = TRUE))
+  lines <- trimws(lines)
+  lines <- sub("#.*$", "", lines)
+  lines <- trimws(lines)
+  lines <- lines[nzchar(lines)]
+
+  extract_terms <- function(expr) {
+    expr <- trimws(expr)
+    if (!nzchar(expr)) return(character(0))
+    expr <- gsub("-", "+-", expr, fixed = TRUE)
+    parts <- unlist(strsplit(expr, "+", fixed = TRUE))
+    parts <- trimws(parts)
+    parts <- parts[nzchar(parts)]
+    out <- character(0)
+    for (part in parts) {
+      part <- trimws(part)
+      if (!nzchar(part)) next
+      part <- sub("^[^\\*]+\\*", "", part)
+      part <- gsub("[()]", "", part)
+      if (!nzchar(part)) next
+      tokens <- regmatches(part, gregexpr("[A-Za-z\\.][A-Za-z0-9_\\.]*", part, perl = TRUE))[[1]]
+      if (length(tokens) > 0) out <- c(out, tokens)
+    }
+    out
+  }
+
+  for (line in lines) {
+    if (!nzchar(line)) next
+    if (grepl(":=", line, fixed = TRUE)) next
+    op <- NULL
+    if (grepl("=~", line, fixed = TRUE)) {
+      op <- "=~"
+    } else if (grepl("~~", line, fixed = TRUE)) {
+      op <- "~~"
+    } else if (grepl("~", line, fixed = TRUE)) {
+      op <- "~"
+    }
+    if (is.null(op)) next
+    parts <- strsplit(line, op, fixed = TRUE)[[1]]
+    if (length(parts) < 2) next
+    lhs <- trimws(parts[1])
+    rhs <- trimws(paste(parts[-1], collapse = op))
+    if (op == "=~") {
+      latent_vars <- c(latent_vars, extract_terms(lhs))
+      vars <- c(vars, extract_terms(rhs))
+    } else {
+      vars <- c(vars, extract_terms(lhs), extract_terms(rhs))
+    }
+  }
+
+  vars <- unique(vars)
   vars <- vars[nzchar(vars)]
-  vars <- setdiff(vars, "1")
+  vars <- setdiff(vars, c("1", latent_vars))
   vars
 }
 
@@ -940,18 +1011,18 @@ main <- function() {
   group_equal <- resolve_parse_list(opts$`group-equal`)
 
   model_text <- ""
-  if (!is.null(opts$`model-file`) && nzchar(opts$`model-file`)) {
-    model_path <- as.character(opts$`model-file`)
+  if (!is.null(opts[["model-file"]]) && nzchar(opts[["model-file"]])) {
+    model_path <- as.character(opts[["model-file"]])
     if (!file.exists(model_path)) {
       emit_input_issue(out_dir, opts, paste0("Model file not found: ", model_path))
     }
     model_text <- paste(readLines(model_path, warn = FALSE), collapse = "\n")
   }
-  if (!nzchar(model_text) && !is.null(opts$model) && nzchar(opts$model)) {
-    model_text <- as.character(opts$model)
+  if (!nzchar(model_text) && !is.null(opts[["model"]]) && nzchar(opts[["model"]])) {
+    model_text <- as.character(opts[["model"]])
   }
-  if (!nzchar(model_text) && !is.null(opts$paths) && nzchar(opts$paths)) {
-    model_text <- as.character(opts$paths)
+  if (!nzchar(model_text) && !is.null(opts[["paths"]]) && nzchar(opts[["paths"]])) {
+    model_text <- as.character(opts[["paths"]])
   }
 
   factors_text <- if (!is.null(opts$factors)) as.character(opts$factors) else ""
@@ -991,6 +1062,14 @@ main <- function() {
   }
 
   model_vars <- extract_model_vars(model_syntax)
+  if (length(model_vars) == 0) {
+    tokens <- regmatches(model_syntax, gregexpr("[A-Za-z\\.][A-Za-z0-9_\\.]*", model_syntax, perl = TRUE))[[1]]
+    tokens <- unique(tokens)
+    tokens <- tokens[nzchar(tokens)]
+    if (length(tokens) > 0) {
+      model_vars <- intersect(tokens, names(df))
+    }
+  }
   missing_vars <- setdiff(model_vars, names(df))
   if (length(missing_vars) > 0) {
     emit_input_issue(out_dir, opts, paste0("Missing variables: ", paste(missing_vars, collapse = ", ")))

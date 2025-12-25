@@ -109,6 +109,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `sem` | `core-stats/scripts/R/sem.R` | Structural equation modeling (SEM), CFA, mediation, path analysis, invariance. | Yes (`sem/default-template.md`, `sem/cfa-template.md`, `sem/mediation-template.md`, `sem/invariance-template.md`) |
 | `anova` | `core-stats/scripts/R/anova.R` | Between-, within-, and mixed ANOVA with post-hoc comparisons. | Yes (`anova/default-template.md`, `anova/posthoc-template.md`) |
 | `t-test` | `core-stats/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
+| `nonparametric` | `core-stats/scripts/R/nonparametric.R` | Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests. | Yes (`nonparametric/default-template.md`, `nonparametric/posthoc-template.md`) |
 | `init-workspace` | `core-stats/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
 
 Reference docs:
@@ -126,6 +127,7 @@ Reference docs:
 - `core-stats/references/sem.md`
 - `core-stats/references/anova.md`
 - `core-stats/references/t-test.md`
+- `core-stats/references/nonparametric.md`
 - `core-stats/references/init-workspace.md`
 
 ## Basic usage by module
@@ -197,6 +199,13 @@ Rscript core-stats/scripts/R/assumptions.R \
   --csv data.csv --analysis mixed_models --formula "score ~ time + (1|id)"
 Rscript core-stats/scripts/R/assumptions.R \
   --csv data.csv --analysis sem --factors "F1=item1,item2;F2=item3,item4"
+```
+
+### Nonparametric tests
+
+```bash
+Rscript core-stats/scripts/R/nonparametric.R \
+  --csv data.csv --vars score --group condition --test mann_whitney
 ```
 
 ### Regression

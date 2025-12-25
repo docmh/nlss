@@ -107,6 +107,18 @@ get_builtin_config <- function() {
         bootstrap = FALSE,
         bootstrap_samples = 1000
       ),
+      nonparametric = list(
+        vars_default = "numeric",
+        test = "auto",
+        mu = 0.0,
+        alternative = "two.sided",
+        conf_level = 0.95,
+        exact = "auto",
+        continuity = TRUE,
+        posthoc = "none",
+        p_adjust = "holm",
+        effect_size = "r"
+      ),
       anova = list(
         type = "II",
         effect_size = "partial_eta",
@@ -235,6 +247,10 @@ get_builtin_config <- function() {
       ),
       t_test = list(
         default = "t-test/default-template.md"
+      ),
+      nonparametric = list(
+        default = "nonparametric/default-template.md",
+        posthoc = "nonparametric/posthoc-template.md"
       ),
       anova = list(
         default = "anova/default-template.md",

@@ -1,6 +1,6 @@
 ---
 name: core-stats
-description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, assumption checks, scale reliability, data exploration, missingness handling, data transforms, workspace initialization) from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, data exploration, missingness handling, data transforms, workspace initialization) from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -150,5 +150,6 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [sem](references/sem.md): Structural equation modeling (SEM), CFA, path analysis, mediation, and invariance with APA outputs.
 - [anova](references/anova.md): Between-subjects, within-subjects, and mixed ANOVA with APA outputs and post-hoc comparisons.
 - [t-test](references/t-test.md): One-sample, independent-samples, and paired-samples t-tests with APA outputs.
+- [nonparametric](references/nonparametric.md): Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests with APA outputs.
 - [missings](references/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.
 - [init-workspace](references/init-workspace.md): Initialize per-dataset workspace folders with scratchpad.md, apa_report.md, analysis_log.jsonl, and .parquet dataset copies.

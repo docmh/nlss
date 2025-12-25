@@ -684,8 +684,12 @@ normalize_std <- function(value, default = "std.all") {
 }
 
 normalize_model_syntax <- function(text) {
-  if (is.null(text) || !nzchar(text)) return("")
-  out <- gsub(";", "\n", text)
+  if (is.null(text)) return("")
+  if (length(text) > 1) text <- paste(text, collapse = "\n")
+  text <- as.character(text)
+  if (!nzchar(text)) return("")
+  out <- gsub("\r\n?", "\n", text)
+  out <- gsub(";", "\n", out)
   trimws(out)
 }
 
@@ -772,15 +776,82 @@ build_mediation_model <- function(x, mediators, y, covariates, serial = FALSE) {
 }
 
 extract_model_vars <- function(model_syntax) {
-  if (!requireNamespace("lavaan", quietly = TRUE)) return(character(0))
-  table <- tryCatch(lavaan::lavaanify(model_syntax, auto = FALSE), error = function(e) NULL)
-  if (is.null(table)) return(character(0))
-  relevant_ops <- table$op %in% c("=~", "~", "~~")
-  latent_vars <- unique(table$lhs[table$op == "=~"])
-  vars <- unique(c(table$lhs[relevant_ops], table$rhs[relevant_ops]))
-  vars <- setdiff(vars, latent_vars)
+  if (is.null(model_syntax)) return(character(0))
+  if (length(model_syntax) > 1) model_syntax <- paste(model_syntax, collapse = "\n")
+  if (!nzchar(model_syntax)) return(character(0))
+
+  vars <- character(0)
+  latent_vars <- character(0)
+  if (requireNamespace("lavaan", quietly = TRUE)) {
+    table <- tryCatch(lavaan::lavaanify(model_syntax, auto = FALSE), error = function(e) NULL)
+    if (is.null(table) || nrow(table) == 0) {
+      table <- tryCatch(lavaan::lavaanify(model_syntax, auto = TRUE), error = function(e) NULL)
+    }
+    if (!is.null(table) && nrow(table) > 0) {
+      relevant_ops <- table$op %in% c("=~", "~", "~~")
+      latent_vars <- unique(table$lhs[table$op == "=~"])
+      vars <- unique(c(table$lhs[relevant_ops], table$rhs[relevant_ops]))
+      vars <- setdiff(vars, latent_vars)
+      vars <- vars[nzchar(vars)]
+      vars <- setdiff(vars, "1")
+    }
+  }
+  if (length(vars) > 0) return(vars)
+
+  text <- gsub("\r\n?", "\n", model_syntax)
+  lines <- unlist(strsplit(text, "\n", fixed = TRUE))
+  lines <- trimws(lines)
+  lines <- sub("#.*$", "", lines)
+  lines <- trimws(lines)
+  lines <- lines[nzchar(lines)]
+
+  extract_terms <- function(expr) {
+    expr <- trimws(expr)
+    if (!nzchar(expr)) return(character(0))
+    expr <- gsub("-", "+-", expr, fixed = TRUE)
+    parts <- unlist(strsplit(expr, "+", fixed = TRUE))
+    parts <- trimws(parts)
+    parts <- parts[nzchar(parts)]
+    out <- character(0)
+    for (part in parts) {
+      part <- trimws(part)
+      if (!nzchar(part)) next
+      part <- sub("^[^\\*]+\\*", "", part)
+      part <- gsub("[()]", "", part)
+      if (!nzchar(part)) next
+      tokens <- regmatches(part, gregexpr("[A-Za-z\\.][A-Za-z0-9_\\.]*", part, perl = TRUE))[[1]]
+      if (length(tokens) > 0) out <- c(out, tokens)
+    }
+    out
+  }
+
+  for (line in lines) {
+    if (!nzchar(line)) next
+    if (grepl(":=", line, fixed = TRUE)) next
+    op <- NULL
+    if (grepl("=~", line, fixed = TRUE)) {
+      op <- "=~"
+    } else if (grepl("~~", line, fixed = TRUE)) {
+      op <- "~~"
+    } else if (grepl("~", line, fixed = TRUE)) {
+      op <- "~"
+    }
+    if (is.null(op)) next
+    parts <- strsplit(line, op, fixed = TRUE)[[1]]
+    if (length(parts) < 2) next
+    lhs <- trimws(parts[1])
+    rhs <- trimws(paste(parts[-1], collapse = op))
+    if (op == "=~") {
+      latent_vars <- c(latent_vars, extract_terms(lhs))
+      vars <- c(vars, extract_terms(rhs))
+    } else {
+      vars <- c(vars, extract_terms(lhs), extract_terms(rhs))
+    }
+  }
+
+  vars <- unique(vars)
   vars <- vars[nzchar(vars)]
-  vars <- setdiff(vars, "1")
+  vars <- setdiff(vars, c("1", latent_vars))
   vars
 }
 
@@ -2145,14 +2216,14 @@ run_sem_assumptions <- function(df, opts, settings) {
   rows <- list()
   sem_type <- settings$sem_type
   model_text <- ""
-  if (!is.null(opts$model) && !is.logical(opts$model) && nzchar(opts$model)) {
-    model_text <- as.character(opts$model)
+  if (!is.null(opts[["model"]]) && !is.logical(opts[["model"]]) && nzchar(opts[["model"]])) {
+    model_text <- as.character(opts[["model"]])
   }
-  if (!nzchar(model_text) && !is.null(opts$paths) && !is.logical(opts$paths) && nzchar(opts$paths)) {
-    model_text <- as.character(opts$paths)
+  if (!nzchar(model_text) && !is.null(opts[["paths"]]) && !is.logical(opts[["paths"]]) && nzchar(opts[["paths"]])) {
+    model_text <- as.character(opts[["paths"]])
   }
-  if (!nzchar(model_text) && !is.null(opts$`model-file`) && !is.logical(opts$`model-file`) && nzchar(opts$`model-file`)) {
-    model_path <- as.character(opts$`model-file`)
+  if (!nzchar(model_text) && !is.null(opts[["model-file"]]) && !is.logical(opts[["model-file"]]) && nzchar(opts[["model-file"]])) {
+    model_path <- as.character(opts[["model-file"]])
     if (!file.exists(model_path)) stop(paste0("Model file not found: ", model_path))
     model_text <- paste(readLines(model_path, warn = FALSE), collapse = "\n")
   }
@@ -2185,6 +2256,14 @@ run_sem_assumptions <- function(df, opts, settings) {
   }
   model_syntax <- normalize_model_syntax(model_text)
   model_vars <- extract_model_vars(model_syntax)
+  if (length(model_vars) == 0) {
+    tokens <- regmatches(model_syntax, gregexpr("[A-Za-z\\.][A-Za-z0-9_\\.]*", model_syntax, perl = TRUE))[[1]]
+    tokens <- unique(tokens)
+    tokens <- tokens[nzchar(tokens)]
+    if (length(tokens) > 0) {
+      model_vars <- intersect(tokens, names(df))
+    }
+  }
   if (length(model_vars) == 0 && nzchar(factors_text)) {
     factors <- parse_factor_spec(factors_text)
     model_vars <- unique(unlist(factors))
@@ -2660,7 +2739,7 @@ main <- function() {
   if (analysis == "auto") {
     if (!is.null(opts$formula) || !is.null(opts$random) || !is.null(opts$fixed)) {
       analysis <- "mixed_models"
-    } else if (!is.null(opts$model) || !is.null(opts$`model-file`) || !is.null(opts$paths) ||
+    } else if (!is.null(opts[["model"]]) || !is.null(opts[["model-file"]]) || !is.null(opts[["paths"]]) ||
                !is.null(opts$factors) || !is.null(opts$x) || !is.null(opts$m) || !is.null(opts$y) ||
                !is.null(opts$ordered) || !is.null(opts$`group-equal`) || !is.null(opts$invariance) ||
                !is.null(opts$group)) {
@@ -2826,13 +2905,13 @@ main <- function() {
     random = if (!is.null(opts$random)) opts$random else NULL,
     model = if (analysis == "sem" && !is.null(result$model)) {
       result$model
-    } else if (!is.null(opts$model)) {
-      opts$model
+    } else if (!is.null(opts[["model"]])) {
+      opts[["model"]]
     } else {
       NULL
     },
-    "model-file" = if (!is.null(opts$`model-file`)) opts$`model-file` else NULL,
-    paths = if (!is.null(opts$paths)) opts$paths else NULL,
+    "model-file" = if (!is.null(opts[["model-file"]])) opts[["model-file"]] else NULL,
+    paths = if (!is.null(opts[["paths"]])) opts[["paths"]] else NULL,
     factors = if (!is.null(opts$factors)) opts$factors else NULL,
     ordered = if (!is.null(opts$ordered)) opts$ordered else NULL,
     "group-equal" = if (!is.null(opts$`group-equal`)) opts$`group-equal` else NULL,
@@ -2904,7 +2983,12 @@ main <- function() {
         linearity = linearity,
         homoscedasticity = homoscedasticity,
         vif = vif,
+        vif_warn = vif_warn,
+        vif_high = vif_high,
         durbin_watson = durbin_watson,
+        outlier_z = outlier_z,
+        cook_multiplier = cook_multiplier,
+        max_shapiro_n = max_shapiro_n,
         outliers = outliers,
         influence = influence,
         random_effects = random_effects,
