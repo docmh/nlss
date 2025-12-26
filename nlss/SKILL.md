@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -20,6 +20,7 @@ Central guidance for all statistic skills in this repo, plus shared conventions 
 ## Metaskills Overview
 
 Metaskills are Markdown pseudoscripts that orchestrate subskills based on user intent (for example, "describe the sample"). The agent is the runner: it starts with a dataset inspection, asks clarifying questions when needed, and then runs the listed subskills while updating the dataset scratchpad.
+NLSS-first principle: prefer existing subskills whenever they cover the request; only use custom script generation as a last resort.
 
 ## Stateful workspace workflow (required)
 
@@ -95,6 +96,7 @@ Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <v
 
 - Metaskills live as Markdown pseudoscripts under `nlss/references/metaskills/` and are selected by the agent from the user prompt or an explicitly named metaskill.
 - The agent inspects the dataset first, infers candidate variables, and asks clarifying questions only when needed.
+- Enforce the NLSS-first principle: only use `generate-r-script` when the request is out of NLSS scope and explicit permission is granted; save generated scripts to `<workspace-root>/<dataset-name>/scripts/` and document the path in `scratchpad.md`.
 - Each metaskill step calls the existing subskill scripts so templates, JSONL logs, and workspace conventions are reused.
 - The agent writes a plan to `scratchpad.md` and marks progress after each step.
 
@@ -195,6 +197,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 ### Available Metaskills
 
 - [describe-sample](references/metaskills/describe-sample.md): Sample overview using missingness summaries, descriptive stats, and frequency tables.
+- [generate-r-script](references/metaskills/generate-r-script.md): Generate a custom R script for analyses not covered by NLSS (permission required).
 - [check-instruments](references/metaskills/check-instruments.md): Scale/item analysis and reliability checks for survey instruments.
 - [test-hypotheses](references/metaskills/test-hypotheses.md): Map hypotheses to tests with clarifications, run the appropriate analyses, and report APA-ready outputs.
 - explore-data (planned): Data exploration with distributions, outliers, correlations, and plots.

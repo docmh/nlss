@@ -128,6 +128,7 @@ Metaskill specs live under `nlss/references/metaskills/` and are executed by the
 
 Available metaskills:
 - `describe-sample`: `nlss/references/metaskills/describe-sample.md`
+- `generate-r-script`: `nlss/references/metaskills/generate-r-script.md`
 - `check-instruments`: `nlss/references/metaskills/check-instruments.md`
 - `test-hypotheses`: `nlss/references/metaskills/test-hypotheses.md`
 
@@ -152,6 +153,7 @@ Reference docs:
 - `nlss/references/subskills/init-workspace.md`
 - `nlss/references/subskills/metaskill-runner.md`
 - `nlss/references/metaskills/describe-sample.md`
+- `nlss/references/metaskills/generate-r-script.md`
 - `nlss/references/metaskills/check-instruments.md`
 - `nlss/references/metaskills/test-hypotheses.md`
 
