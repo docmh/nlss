@@ -161,25 +161,25 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 ## Subskills
 
-- [descriptive-stats](references/descriptive-stats.md): Numeric descriptive statistics with optional grouping, missingness, distribution metrics, and APA tables/narratives.
-- [frequencies](references/frequencies.md): Categorical frequency tables with percentages, grouping, and APA-ready tables/narratives.
-- [crosstabs](references/crosstabs.md): Contingency tables with chi-square/Fisher tests, effect sizes, residuals, and APA outputs.
-- [correlations](references/correlations.md): Correlation matrices, cross/partial correlations, p-adjustments, optional grouping, and APA outputs.
-- [scale](references/scale.md): Scale item analysis and reliability (alpha/omega), reverse scoring, grouped results, APA outputs.
-- [reliability](references/reliability.md): Inter-rater and test-retest reliability (ICC, kappa, correlations) with APA outputs.
-- [data-explorer](references/data-explorer.md): Data dictionary summaries (types, levels, missingness, value counts) with APA output.
-- [plot](references/plot.md): APA-ready figures (histograms, bar charts, box/violin, scatter/line, QQ, correlation heatmaps) with numbered captions.
-- [data-transform](references/data-transform.md): Create/modify variables (compute, recode, standardize, rename, drop) with change logs and updated datasets.
-- [assumptions](references/assumptions.md): Assumption checks for t-tests, ANOVA, and regression (including diagnostics).
-- [regression](references/regression.md): Multiple and hierarchical regression with interactions, bootstrap options, and APA outputs.
-- [mixed-models](references/mixed-models.md): Linear mixed-effects models with random effects, marginal means, and APA outputs.
-- [sem](references/sem.md): Structural equation modeling (SEM), CFA, path analysis, mediation, and invariance with APA outputs.
-- [anova](references/anova.md): Between-subjects, within-subjects, and mixed ANOVA with APA outputs and post-hoc comparisons.
-- [t-test](references/t-test.md): One-sample, independent-samples, and paired-samples t-tests with APA outputs.
-- [nonparametric](references/nonparametric.md): Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests with APA outputs.
-- [missings](references/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.
-- [init-workspace](references/init-workspace.md): Initialize per-dataset workspace folders with scratchpad.md, apa_report.md, analysis_log.jsonl, and .parquet dataset copies.
-- [metaskill-runner](references/metaskill-runner.md): Log metaskill activations to apa_report.md and analysis_log.jsonl.
+- [descriptive-stats](references/subskills/descriptive-stats.md): Numeric descriptive statistics with optional grouping, missingness, distribution metrics, and APA tables/narratives.
+- [frequencies](references/subskills/frequencies.md): Categorical frequency tables with percentages, grouping, and APA-ready tables/narratives.
+- [crosstabs](references/subskills/crosstabs.md): Contingency tables with chi-square/Fisher tests, effect sizes, residuals, and APA outputs.
+- [correlations](references/subskills/correlations.md): Correlation matrices, cross/partial correlations, p-adjustments, optional grouping, and APA outputs.
+- [scale](references/subskills/scale.md): Scale item analysis and reliability (alpha/omega), reverse scoring, grouped results, APA outputs.
+- [reliability](references/subskills/reliability.md): Inter-rater and test-retest reliability (ICC, kappa, correlations) with APA outputs.
+- [data-explorer](references/subskills/data-explorer.md): Data dictionary summaries (types, levels, missingness, value counts) with APA output.
+- [plot](references/subskills/plot.md): APA-ready figures (histograms, bar charts, box/violin, scatter/line, QQ, correlation heatmaps) with numbered captions.
+- [data-transform](references/subskills/data-transform.md): Create/modify variables (compute, recode, standardize, rename, drop) with change logs and updated datasets.
+- [assumptions](references/subskills/assumptions.md): Assumption checks for t-tests, ANOVA, and regression (including diagnostics).
+- [regression](references/subskills/regression.md): Multiple and hierarchical regression with interactions, bootstrap options, and APA outputs.
+- [mixed-models](references/subskills/mixed-models.md): Linear mixed-effects models with random effects, marginal means, and APA outputs.
+- [sem](references/subskills/sem.md): Structural equation modeling (SEM), CFA, path analysis, mediation, and invariance with APA outputs.
+- [anova](references/subskills/anova.md): Between-subjects, within-subjects, and mixed ANOVA with APA outputs and post-hoc comparisons.
+- [t-test](references/subskills/t-test.md): One-sample, independent-samples, and paired-samples t-tests with APA outputs.
+- [nonparametric](references/subskills/nonparametric.md): Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests with APA outputs.
+- [missings](references/subskills/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.
+- [init-workspace](references/subskills/init-workspace.md): Initialize per-dataset workspace folders with scratchpad.md, apa_report.md, analysis_log.jsonl, and .parquet dataset copies.
+- [metaskill-runner](references/subskills/metaskill-runner.md): Log metaskill activations to apa_report.md and analysis_log.jsonl.
 
 ## Metaskills
 

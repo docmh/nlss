@@ -131,25 +131,25 @@ Available metaskills:
 - `check-instruments`: `nlss/references/metaskills/check-instruments.md`
 
 Reference docs:
-- `nlss/references/descriptive-stats.md`
-- `nlss/references/frequencies.md`
-- `nlss/references/crosstabs.md`
-- `nlss/references/correlations.md`
-- `nlss/references/scale.md`
-- `nlss/references/reliability.md`
-- `nlss/references/data-explorer.md`
-- `nlss/references/plot.md`
-- `nlss/references/data-transform.md`
-- `nlss/references/missings.md`
-- `nlss/references/assumptions.md`
-- `nlss/references/regression.md`
-- `nlss/references/mixed-models.md`
-- `nlss/references/sem.md`
-- `nlss/references/anova.md`
-- `nlss/references/t-test.md`
-- `nlss/references/nonparametric.md`
-- `nlss/references/init-workspace.md`
-- `nlss/references/metaskill-runner.md`
+- `nlss/references/subskills/descriptive-stats.md`
+- `nlss/references/subskills/frequencies.md`
+- `nlss/references/subskills/crosstabs.md`
+- `nlss/references/subskills/correlations.md`
+- `nlss/references/subskills/scale.md`
+- `nlss/references/subskills/reliability.md`
+- `nlss/references/subskills/data-explorer.md`
+- `nlss/references/subskills/plot.md`
+- `nlss/references/subskills/data-transform.md`
+- `nlss/references/subskills/missings.md`
+- `nlss/references/subskills/assumptions.md`
+- `nlss/references/subskills/regression.md`
+- `nlss/references/subskills/mixed-models.md`
+- `nlss/references/subskills/sem.md`
+- `nlss/references/subskills/anova.md`
+- `nlss/references/subskills/t-test.md`
+- `nlss/references/subskills/nonparametric.md`
+- `nlss/references/subskills/init-workspace.md`
+- `nlss/references/subskills/metaskill-runner.md`
 - `nlss/references/metaskills/describe-sample.md`
 - `nlss/references/metaskills/check-instruments.md`
 
