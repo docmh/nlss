@@ -126,6 +126,9 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 
 Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations.
 
+Available metaskills:
+- `describe-sample`: `nlss/references/metaskills/describe-sample.md`
+
 Reference docs:
 - `nlss/references/descriptive-stats.md`
 - `nlss/references/frequencies.md`
@@ -146,6 +149,7 @@ Reference docs:
 - `nlss/references/nonparametric.md`
 - `nlss/references/init-workspace.md`
 - `nlss/references/metaskill-runner.md`
+- `nlss/references/metaskills/describe-sample.md`
 
 ## Basic usage by module
 

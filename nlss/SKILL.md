@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts) covering descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample) covering descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -193,7 +193,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 ### Available Metaskills
 
-- describe-sample (planned): Sample overview using missingness, descriptive stats, and frequency tables.
+- [describe-sample](references/metaskills/describe-sample.md): Sample overview using missingness summaries, descriptive stats, and frequency tables.
 - check-instruments (planned): Scale/item analysis and reliability checks for survey instruments.
 - explore-data (planned): Data exploration with distributions, outliers, correlations, and plots.
 - handle-missings (planned): Missingness analysis and handling with patterns, methods, and updated datasets.
