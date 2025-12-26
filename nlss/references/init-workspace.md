@@ -31,6 +31,8 @@ Input paths must point to local files that R can access. URLs or cloud share lin
 powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\init_workspace.R> --csv <path to CSV>
 ```
 
+Note: For input paths with non-ASCII characters (for example, umlauts), the wrapper prefers Windows Rscript when available. Set `NLSS_FORCE_WSL=1` to keep WSL, or `NLSS_SKIP_WSL=1` to always skip WSL. If a path arrives with mangled characters (for example `?`), the wrapper attempts to repair it by matching on-disk names.
+
 ### CSV input
 
 ```bash

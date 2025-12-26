@@ -53,6 +53,8 @@ powershell -ExecutionPolicy Bypass -File nlss/scripts/run_rscript.ps1 `
 - Lists use comma-separated values with no spaces: `x1,x2,x3`.
 - Quote values that contain spaces or semicolons (for example `--blocks "x1,x2;x3,mediator"`).
 - Relative paths are resolved from the current PowerShell working directory; use absolute paths when in doubt.
+- For paths with non-ASCII characters (for example, umlauts), the wrapper prefers Windows Rscript when available; set `NLSS_FORCE_WSL=1` to keep WSL, or `NLSS_SKIP_WSL=1` to always skip WSL.
+- If a path arrives with mangled characters (for example `?`), the wrapper attempts to repair it by matching on-disk names.
 
 Examples:
 
@@ -107,6 +109,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `crosstabs` | `nlss/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
 | `correlations` | `nlss/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`) |
 | `scale` | `nlss/scripts/R/scale.R` | Item analysis and reliability (alpha/omega) for scales. | Yes (`scale/default-template.md`) |
+| `reliability` | `nlss/scripts/R/reliability.R` | Inter-rater/test-retest reliability (ICC, kappa, correlations). | Yes (`reliability/default-template.md`) |
 | `data-explorer` | `nlss/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Yes (`data-explorer/default-template.md`) |
 | `plot` | `nlss/scripts/R/plot.R` | APA-ready figures (histogram, bar, box/violin, scatter/line, QQ, correlation heatmaps). | Yes (`plot/default-template.md`) |
 | `data-transform` | `nlss/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Yes (`data-transform/default-template.md`) |
@@ -126,6 +129,7 @@ Reference docs:
 - `nlss/references/crosstabs.md`
 - `nlss/references/correlations.md`
 - `nlss/references/scale.md`
+- `nlss/references/reliability.md`
 - `nlss/references/data-explorer.md`
 - `nlss/references/plot.md`
 - `nlss/references/data-transform.md`
@@ -176,6 +180,13 @@ Rscript nlss/scripts/R/correlations.R \
 ```bash
 Rscript nlss/scripts/R/scale.R \
   --csv data.csv --vars item1,item2,item3 --group condition
+```
+
+### Reliability analysis
+
+```bash
+Rscript nlss/scripts/R/reliability.R \
+  --csv data.csv --analysis icc --vars rater1,rater2,rater3
 ```
 
 ### Data exploration

@@ -100,6 +100,18 @@ get_builtin_config <- function() {
         reverse_min = NULL,
         reverse_max = NULL
       ),
+      reliability = list(
+        analysis = "icc",
+        format = "wide",
+        missing = "complete",
+        conf_level = 0.95,
+        icc_model = "twoway-random",
+        icc_type = "agreement",
+        icc_unit = "single",
+        kappa_weight = "none",
+        method = "pearson",
+        coerce = FALSE
+      ),
       crosstabs = list(
         percent = "all",
         apa_percent = "row",
@@ -271,6 +283,9 @@ get_builtin_config <- function() {
       ),
       scale = list(
         default = "scale/default-template.md"
+      ),
+      reliability = list(
+        default = "reliability/default-template.md"
       ),
       t_test = list(
         default = "t-test/default-template.md"

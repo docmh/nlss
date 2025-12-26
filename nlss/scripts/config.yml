@@ -58,6 +58,17 @@ modules:
     coerce: false
     reverse_min: null
     reverse_max: null
+  reliability:
+    analysis: "icc"
+    format: "wide"
+    missing: "complete"
+    conf_level: 0.95
+    icc_model: "twoway-random"
+    icc_type: "agreement"
+    icc_unit: "single"
+    kappa_weight: "none"
+    method: "pearson"
+    coerce: false
   crosstabs:
     percent: "all"
     apa_percent: "row"
@@ -208,6 +219,8 @@ templates:
     grouped: "crosstabs/grouped-template.md"
   scale:
     default: "scale/default-template.md"
+  reliability:
+    default: "reliability/default-template.md"
   t_test:
     default: "t-test/default-template.md"
   nonparametric:

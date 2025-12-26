@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, data exploration, plotting, missingness handling, data transforms, workspace initialization) from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, workspace initialization) from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -57,6 +57,8 @@ If the script path is omitted, the wrapper falls back to the default configured 
 - Lists use comma-separated values with no spaces: `x1,x2,x3`.
 - Quote values that contain spaces or semicolons (for example `--blocks "x1,x2;x3,mediator"`).
 - Relative paths are resolved from the current PowerShell working directory; use absolute paths when in doubt.
+- For paths with non-ASCII characters (for example, umlauts), the wrapper prefers Windows Rscript when available; set `NLSS_FORCE_WSL=1` to keep WSL, or `NLSS_SKIP_WSL=1` to always skip WSL.
+- If a path arrives with mangled characters (for example `?`), the wrapper attempts to repair it by matching on-disk names.
 
 Examples:
 
@@ -142,6 +144,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [crosstabs](references/crosstabs.md): Contingency tables with chi-square/Fisher tests, effect sizes, residuals, and APA outputs.
 - [correlations](references/correlations.md): Correlation matrices, cross/partial correlations, p-adjustments, optional grouping, and APA outputs.
 - [scale](references/scale.md): Scale item analysis and reliability (alpha/omega), reverse scoring, grouped results, APA outputs.
+- [reliability](references/reliability.md): Inter-rater and test-retest reliability (ICC, kappa, correlations) with APA outputs.
 - [data-explorer](references/data-explorer.md): Data dictionary summaries (types, levels, missingness, value counts) with APA output.
 - [plot](references/plot.md): APA-ready figures (histograms, bar charts, box/violin, scatter/line, QQ, correlation heatmaps) with numbered captions.
 - [data-transform](references/data-transform.md): Create/modify variables (compute, recode, standardize, rename, drop) with change logs and updated datasets.
