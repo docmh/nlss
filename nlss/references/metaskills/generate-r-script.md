@@ -65,7 +65,7 @@ generate R script using state-of-the-art methods:
 
 save script to <workspace-root>/<dataset-name>/scripts/custom_<YYYYMMDD>_<intent>.R
 update scratchpad.md with script path and rationale
-append # Synopsis to apa_report.md and write report_<YYYYMMDD>_generate-r-script_<intent>.md
+append # Synopsis to report_canonical.md and write report_<YYYYMMDD>_generate-r-script_<intent>.md
 log metaskill finalization with metaskill-runner --phase finalization
 ```
 
@@ -93,7 +93,7 @@ Include the following where applicable:
 
 - `analysis_log.jsonl`: Metaskill activation and finalization entries via `metaskill-runner`.
 - `scratchpad.md`: Plan, clarifications, and the saved script path.
-- `apa_report.md`: Includes a final `# Synopsis` describing the generated script and rationale.
+- `report_canonical.md`: Includes a final `# Synopsis` describing the generated script and rationale.
 - `scripts/custom_<YYYYMMDD>_<intent>.R`: The generated script in the dataset workspace folder.
 - `report_<YYYYMMDD>_generate-r-script_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 

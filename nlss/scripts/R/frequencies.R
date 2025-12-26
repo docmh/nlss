@@ -762,7 +762,7 @@ main <- function() {
   if (length(vars) == 0) stop("No variables available for frequency analysis.")
 
   summary_df <- build_summary(df, vars, group_var)
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
   apa_table <- format_apa_table(summary_df, digits)
   apa_text <- format_apa_text(summary_df, digits)
   use_group_template <- !is.null(group_var)

@@ -1565,7 +1565,7 @@ main <- function() {
     assumption_note
   )
 
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
   apa_text <- format_apa_text(summary_df, digits, effect_size_label)
   apa_table <- format_apa_table(summary_df, digits, note_tokens$note_default, effect_size_label)
   template_override <- resolve_template_override(opts$template, module = "anova")

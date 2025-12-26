@@ -14,7 +14,7 @@ Create a data dictionary-style overview with variable names, inferred measuremen
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Optionally select variables; default is all columns.
 3. Run `scripts/R/data_explorer.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
-4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
+4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/data_explorer.R`
 
@@ -74,12 +74,12 @@ Rscript <path to scripts/R/data_explorer.R> --interactive
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 
-- `apa_report.md`: APA 7 report containing analysis type, tables, and narrative text.
+- `report_canonical.md`: APA 7 report containing analysis type, tables, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Template (YAML)
 
-Use the Markdown template at `nlss/assets/data-explorer/default-template.md` when assembling a data exploration report. If the template exists, `data_explorer.R` uses it for `apa_report.md`.
+Use the Markdown template at `nlss/assets/data-explorer/default-template.md` when assembling a data exploration report. If the template exists, `data_explorer.R` uses it for `report_canonical.md`.
 
 - The template path can be overridden via `templates.data_explorer.default` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:

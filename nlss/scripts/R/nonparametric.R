@@ -1743,7 +1743,7 @@ main <- function() {
     p_adjust = p_adjust
   )
 
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
   narrative_conf <- if (uses_wilcox) conf_level else NA
   apa_text <- format_apa_text(summary_df, digits, narrative_conf)
   apa_table <- format_apa_table(summary_df, digits, note_tokens$note_default)

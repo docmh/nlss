@@ -1009,7 +1009,7 @@ main <- function() {
     resolve_get_template_path("scale.default", "scale/default-template.md")
   }
   template_meta <- resolve_get_template_meta(template_path)
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
 
   omega_statuses <- character(0)
   if (!is.null(reliability_df$omega_status)) {

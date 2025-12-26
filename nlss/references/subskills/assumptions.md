@@ -14,7 +14,7 @@ Run assumption and diagnostic checks for t-tests, ANOVA (between, within, mixed)
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose the analysis family (`ttest`, `anova`, `regression`, `mixed_models`, or `sem`) and specify variables.
 3. Run `scripts/R/assumptions.R` with the correct flags, or use the PowerShell wrapper on Windows.
-4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) for reporting or downstream modules.
+4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for reporting or downstream modules.
 
 ## Script: `scripts/R/assumptions.R`
 
@@ -139,7 +139,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 ## Outputs
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `apa_report.md`: APA 7 report containing analysis flags, table, and narrative.
+- `report_canonical.md`: APA 7 report containing analysis flags, table, and narrative.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 - Diagnostics include normality tests, homogeneity tests, sphericity (when applicable), regression diagnostics (VIF, Breusch-Pagan, Durbin-Watson, outliers, influence), mixed-model checks (singularity, convergence, random-effects normality, optional DHARMa/performance/influence.ME), and SEM checks (univariate/multivariate normality, Mahalanobis outliers, collinearity, Heywood cases, convergence).
 

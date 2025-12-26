@@ -18,7 +18,7 @@ This metaskill guides the agent to describe a sample by inspecting the dataset, 
 5. Ask clarifying questions when needed (grouping variable, key demographics, Likert handling), and explicitly propose a demographic-first summary as the default.
 6. Write a plan to `scratchpad.md`, then execute subskills in order.
 7. Update `scratchpad.md` with decisions and completion notes.
-8. Log finalization, append a `# Synopsis` to `apa_report.md`, and generate `report_<YYYYMMDD>_describe-sample_<intent>.md`.
+8. Log finalization, append a `# Synopsis` to `report_canonical.md`, and generate `report_<YYYYMMDD>_describe-sample_<intent>.md`.
 
 ## Execution (Agent-run)
 
@@ -83,7 +83,7 @@ if user requests missingness handling:
   run missings --vars all --method <chosen>
 
 update scratchpad.md with decisions and completion
-append # Synopsis to apa_report.md and write report_<YYYYMMDD>_describe-sample_<intent>.md
+append # Synopsis to report_canonical.md and write report_<YYYYMMDD>_describe-sample_<intent>.md
 log metaskill finalization with metaskill-runner --phase finalization
 ```
 
@@ -97,7 +97,7 @@ log metaskill finalization with metaskill-runner --phase finalization
 
 ## Outputs
 
-- `apa_report.md`: APA-ready outputs from the subskills (descriptive stats, frequencies, and optional crosstabs) plus a final `# Synopsis`.
+- `report_canonical.md`: APA-ready outputs from the subskills (descriptive stats, frequencies, and optional crosstabs) plus a final `# Synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
 - `report_<YYYYMMDD>_describe-sample_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.

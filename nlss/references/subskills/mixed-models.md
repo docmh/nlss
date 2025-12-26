@@ -15,7 +15,7 @@ Fit linear mixed-effects models (LMM) for clustered or longitudinal data using `
 2. Specify the model using `--formula` or `--dv` + `--fixed` + `--random`.
 3. Optionally request estimated marginal means (`--emmeans`) and pairwise contrasts.
 4. Run `scripts/R/mixed_models.R` with the correct flags, or use the PowerShell wrapper on Windows.
-5. Use outputs (`apa_report.md`, `analysis_log.jsonl`) for APA reporting.
+5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
 
 ## Script: `scripts/R/mixed_models.R`
 
@@ -93,7 +93,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 ## Outputs
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `apa_report.md`: APA 7 report containing fixed effects and narrative summaries.
+- `report_canonical.md`: APA 7 report containing fixed effects and narrative summaries.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `fixed_effects_df`, `random_effects_df`, `fit_df`, `r2_df`, `icc_df`, `anova_df`, `emmeans_df`, `contrasts_df`, and `diagnostics_df`.
 
 ## APA 7 Templates (YAML)

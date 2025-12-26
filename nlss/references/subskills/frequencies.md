@@ -14,7 +14,7 @@ Generate frequency tables in base R for categorical variables and return an APA 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose variables for frequency tables and an optional grouping variable.
 3. Run `scripts/R/frequencies.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
-4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
+4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/frequencies.R`
 
@@ -74,12 +74,12 @@ Rscript <path to scripts/R/frequencies.R> --interactive
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 
-- `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Templates
 
-Use the Markdown templates in `nlss/assets/frequencies` when assembling frequency reports. If the template exists, `frequencies.R` uses it for `apa_report.md`.
+Use the Markdown templates in `nlss/assets/frequencies` when assembling frequency reports. If the template exists, `frequencies.R` uses it for `report_canonical.md`.
 When `--group` is provided, the grouped template is selected; otherwise the default template is used.
 
 ### YAML template controls

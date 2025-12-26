@@ -14,7 +14,7 @@ Analyze missing-data patterns for selected variables, choose a handling strategy
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose variables for missingness analysis.
 3. Run `scripts/R/missings.R` with the correct flags (or use the PowerShell wrapper on Windows).
-4. Use outputs (workspace `<workspace-root>/<dataset-name>/<dataset-name>.parquet`, `apa_report.md`, `analysis_log.jsonl`) in your response.
+4. Use outputs (workspace `<workspace-root>/<dataset-name>/<dataset-name>.parquet`, `report_canonical.md`, `analysis_log.jsonl`) in your response.
 
 ## Script: `scripts/R/missings.R`
 
@@ -86,14 +86,14 @@ Rscript <path to scripts/R/missings.R> --interactive
 - `<workspace-root>/<dataset-name>/<dataset-name>.parquet`: Workspace dataset copy updated in place (preferred; backup created before overwrite).
 - `<workspace-root>/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet`: Backup of the previous parquet before overwrites.
 - `missing_handled_data.rds`: Fallback output only if no workspace `.parquet` copy is available (written in the dataset workspace).
-- `apa_report.md`: APA 7 report containing analysis type, tables, and narrative text.
+- `report_canonical.md`: APA 7 report containing analysis type, tables, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 Undo: replace `<workspace-root>/<dataset-name>/<dataset-name>.parquet` with the most recent backup in `<workspace-root>/<dataset-name>/backup/`.
 
 ## APA 7 Templates
 
-Use the Markdown template at `nlss/assets/missings/default-template.md` when assembling missingness reports. If the template exists, `missings.R` uses it for `apa_report.md`.
+Use the Markdown template at `nlss/assets/missings/default-template.md` when assembling missingness reports. If the template exists, `missings.R` uses it for `report_canonical.md`.
 
 ### YAML template controls
 

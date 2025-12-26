@@ -15,7 +15,7 @@ Compute correlations for numeric variables (pairwise or matrix), with optional g
 2. Choose variables: full matrix via `--vars` (or default numeric columns), or cross-correlation via `--x` and `--y`.
 3. Choose correlation method (Pearson/Spearman/Kendall), missing-data handling, and any control variables.
 4. Run `scripts/R/correlations.R` with the correct flags, or use the PowerShell wrapper on Windows.
-5. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
+5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/correlations.R`
 
@@ -101,12 +101,12 @@ Rscript <path to scripts/R/correlations.R> --interactive
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 
-- `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Templates
 
-Use the Markdown templates in `nlss/assets/correlations` when assembling correlation reports. If the template exists, it must be used for `apa_report.md`.
+Use the Markdown templates in `nlss/assets/correlations` when assembling correlation reports. If the template exists, it must be used for `report_canonical.md`.
 
 - Use `nlss/assets/correlations/default-template.md` for correlation matrices created from `--vars` (or default numeric columns).
 - Use `nlss/assets/correlations/cross-correlation-template.md` for cross-correlations created from `--x` and `--y`.

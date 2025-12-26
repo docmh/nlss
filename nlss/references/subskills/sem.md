@@ -15,7 +15,7 @@ Run SEM/CFA/path/mediation models with lavaan and produce APA 7-style tables and
 2. Provide a lavaan model (`--model` / `--model-file`) or use a builder (`--factors`, `--dv`/`--ivs`, or `--x`/`--m`/`--y`).
 3. Choose estimator, missing handling, SE/CI, and fit indices.
 4. Run `scripts/R/sem.R` with the correct flags, or use the PowerShell wrapper on Windows.
-5. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
+5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/sem.R`
 
@@ -97,7 +97,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 ## Outputs
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Template (YAML)

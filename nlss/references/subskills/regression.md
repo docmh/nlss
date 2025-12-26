@@ -15,7 +15,7 @@ Run linear regression (OLS) or generalized linear models (binomial/logistic, Poi
 2. Specify the dependent variable and predictors (either `--ivs` or hierarchical `--blocks`).
 3. Optionally add `--interactions`, `--center`, and bootstrap options.
 4. Run `scripts/R/regression.R` with the correct flags, or use the PowerShell wrapper on Windows.
-5. Use outputs (`apa_report.md`, `analysis_log.jsonl`) for APA reporting.
+5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
 
 ## Script: `scripts/R/regression.R`
 
@@ -103,7 +103,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 ## Outputs
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `apa_report.md`: APA 7 report containing regression coefficients and narrative summaries.
+- `report_canonical.md`: APA 7 report containing regression coefficients and narrative summaries.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `coefficients_df`, `summary_df`, `comparisons_df`, and `diagnostics_df` (Shapiro-Wilk residual checks for OLS).
 
 ## APA 7 Templates (YAML)

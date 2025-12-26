@@ -16,7 +16,7 @@ Post-hoc behavior: Tukey HSD is used for between-subjects factors; paired t-test
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose a design (between/within/mixed) and specify variables.
 3. Run `scripts/R/anova.R` with the correct flags, or use the PowerShell wrapper on Windows.
-4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) for APA reporting and diagnostics.
+4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting and diagnostics.
 
 ## Script: `scripts/R/anova.R`
 
@@ -97,7 +97,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 ## Outputs
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `apa_report.md`: APA 7 report containing the ANOVA table and narrative.
+- `report_canonical.md`: APA 7 report containing the ANOVA table and narrative.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `summary_df`, `posthoc_df`, and `assumptions_df`.
 - When `--bootstrap TRUE`, `summary_df` includes `boot_ci_low` and `boot_ci_high` for the selected effect size.
 - Assumption diagnostics (Shapiro-Wilk residual normality, homogeneity tests, and Mauchly for sphericity when applicable) are recorded in `analysis_log.jsonl`.

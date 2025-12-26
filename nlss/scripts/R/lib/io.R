@@ -335,7 +335,7 @@ build_manifest_dataset_entry <- function(row, workspace_root) {
     name = label,
     parquet = make_relative_path(copy_path, workspace_root),
     analysis_log = make_relative_path(file.path(dataset_dir, "analysis_log.jsonl"), workspace_root),
-    apa_report = make_relative_path(file.path(dataset_dir, "apa_report.md"), workspace_root),
+    apa_report = make_relative_path(file.path(dataset_dir, "report_canonical.md"), workspace_root),
     scratchpad = make_relative_path(file.path(dataset_dir, "scratchpad.md"), workspace_root),
     backup_dir = make_relative_path(file.path(dataset_dir, "backup"), workspace_root)
   )

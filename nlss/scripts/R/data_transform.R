@@ -1099,7 +1099,7 @@ analysis_flags <- list(
   "overwrite-vars" = resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE)
 )
 resolve_append_apa_report(
-  file.path(out_dir, "apa_report.md"),
+  file.path(out_dir, "report_canonical.md"),
   "Data transformation",
   apa_table,
   apa_text,

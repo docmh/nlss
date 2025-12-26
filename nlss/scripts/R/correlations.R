@@ -1101,7 +1101,7 @@ main <- function() {
     digits = digits
   )
 
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
   apa_table <- format_apa_table(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
   apa_text <- format_apa_text(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
   template_meta <- resolve_get_template_meta(template_path)

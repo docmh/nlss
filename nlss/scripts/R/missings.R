@@ -905,7 +905,7 @@ main <- function() {
   }
   patterns_table <- build_patterns_table_body(patterns_df, digits, pattern_spec)
 
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
   table_start <- as.integer(resolve_get_next_table_number(apa_report_path))
   narrative_rows <- build_narrative_rows(summary_df, digits)
   template_context <- list(

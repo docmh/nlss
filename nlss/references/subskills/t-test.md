@@ -14,7 +14,7 @@ Run one-sample, independent-samples, or paired-samples t-tests in base R and gen
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose the t-test type and specify variables (one-sample/independent) or paired measures (paired).
 3. Run `scripts/R/t_test.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
-4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) for APA reporting.
+4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
 
 ## Script: `scripts/R/t_test.R`
 
@@ -93,7 +93,7 @@ Rscript <path to scripts/R/t_test.R> --interactive
 ## Outputs
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 - Diagnostics (Shapiro-Wilk per sample and variance tests for independent samples) are included in the JSONL output.
 - Invalid input conditions (e.g., incompatible flags) are logged with `results.status = invalid_input`.

@@ -465,7 +465,7 @@ template_context <- list(
   )
 )
 
-apa_report_path <- file.path(out_dir, "apa_report.md")
+apa_report_path <- file.path(out_dir, "report_canonical.md")
 resolve_append_apa_report(
   apa_report_path,
   analysis_label,

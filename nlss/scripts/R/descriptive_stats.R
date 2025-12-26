@@ -639,7 +639,7 @@ main <- function() {
   if (length(vars) == 0) stop("No numeric variables available for analysis.")
 
   summary_df <- build_summary(df, vars, group_var, digits)
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
   apa_table <- format_apa_table(summary_df, digits)
   apa_text <- format_apa_text(summary_df, digits)
   template_override <- resolve_template_override(opts$template, module = "descriptive_stats")

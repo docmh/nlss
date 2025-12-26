@@ -783,7 +783,7 @@ for (target in targets) {
   )
 
   resolve_append_apa_report(
-    file.path(target$out_dir, "apa_report.md"),
+    file.path(target$out_dir, "report_canonical.md"),
     "Workspace initialization",
     apa_table,
     apa_text,
@@ -801,7 +801,7 @@ for (target in targets) {
       results = list(
         workspace_dir = env_info$workspace_path,
         scratchpad_path = normalize_path(scratchpad_path),
-        apa_report_path = normalize_path(file.path(target$out_dir, "apa_report.md")),
+        apa_report_path = normalize_path(file.path(target$out_dir, "report_canonical.md")),
         datasets = target$summary_df
       ),
       options = list(

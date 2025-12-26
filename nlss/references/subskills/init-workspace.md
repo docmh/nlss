@@ -1,6 +1,6 @@
 ---
 name: init-workspace
-description: Initialize per-dataset workspace folders with scratchpad.md, apa_report.md, analysis_log.jsonl, and .parquet dataset copies plus environment metadata.
+description: Initialize per-dataset workspace folders with scratchpad.md, report_canonical.md, analysis_log.jsonl, and .parquet dataset copies plus environment metadata.
 ---
 
 # Init Workspace (Base R)
@@ -9,7 +9,7 @@ description: Initialize per-dataset workspace folders with scratchpad.md, apa_re
 
 Create dataset workspace folders under the workspace root (current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir`):
 
-- For each dataset, a subfolder `<workspace-root>/<dataset-name>/` containing `scratchpad.md`, `apa_report.md`, `analysis_log.jsonl`, and `<dataset-name>.parquet`.
+- For each dataset, a subfolder `<workspace-root>/<dataset-name>/` containing `scratchpad.md`, `report_canonical.md`, `analysis_log.jsonl`, and `<dataset-name>.parquet`.
 - An appended `analysis_log.jsonl` entry (module: `init_workspace`) per dataset when logging is enabled.
 - If no datasets are provided, a placeholder folder `<workspace-root>/workspace/` is created with a scratchpad and APA report noting that no datasets were supplied.
 - `nlss-workspace.yml` is created/updated in the workspace root to track datasets and `active_dataset`.
@@ -86,7 +86,7 @@ Rscript <path to scripts/R/init_workspace.R> --interactive
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 - `scratchpad.md`: YAML front matter plus dataset planning sections (written inside each dataset workspace).
-- `apa_report.md`: APA-style workspace summary using a YAML template plus front matter (per dataset workspace).
+- `report_canonical.md`: APA-style workspace summary using a YAML template plus front matter (per dataset workspace).
 - `<dataset-name>.parquet`: One copy per referenced dataset, stored in `<workspace-root>/<dataset-name>/`.
 - `analysis_log.jsonl`: Appended entry with module `init_workspace` and dataset summary (per dataset workspace).
 - `nlss-workspace.yml`: Workspace manifest in the workspace root (tracks dataset paths and `active_dataset`).

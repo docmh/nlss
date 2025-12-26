@@ -14,7 +14,7 @@ Generate descriptive statistics in base R for psychology coursework or reports, 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose numeric variables and optional grouping variable.
 3. Run `scripts/R/descriptive_stats.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
-4. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
+4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/descriptive_stats.R`
 
@@ -73,12 +73,12 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 
-- `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Template (YAML)
 
-Use the Markdown template at `nlss/assets/descriptive-stats/default-template.md` when assembling a descriptive statistics report. If the template exists, it must be used for `apa_report.md`.
+Use the Markdown template at `nlss/assets/descriptive-stats/default-template.md` when assembling a descriptive statistics report. If the template exists, it must be used for `report_canonical.md`.
 
 - The template path can be overridden via `templates.descriptive_stats.default` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:

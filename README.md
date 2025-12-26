@@ -37,7 +37,7 @@ If you are on Windows, ensure `Rscript.exe` is on your PATH or set `RSCRIPT` to 
 
 ## Quick start
 
-Outputs always go to the dataset workspace at `<workspace-root>/<dataset-name>/` and are not user-overridable. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml`; if no manifest is present, scripts fall back to `defaults.output_dir` in `nlss/scripts/config.yml`. Each run writes `apa_report.md` and, when logging is enabled, appends to `analysis_log.jsonl` inside that dataset folder.
+Outputs always go to the dataset workspace at `<workspace-root>/<dataset-name>/` and are not user-overridable. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml`; if no manifest is present, scripts fall back to `defaults.output_dir` in `nlss/scripts/config.yml`. Each run writes `report_canonical.md` and, when logging is enabled, appends to `analysis_log.jsonl` inside that dataset folder.
 
 ### Windows (PowerShell wrapper; WSL first, Windows fallback)
 
@@ -91,7 +91,7 @@ Rscript nlss/scripts/R/descriptive_stats.R \
 
 nlss is stateful. The workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir`), and each dataset gets its own subfolder.
 
-- Run `nlss/scripts/R/init_workspace.R` to create `<workspace-root>/<dataset-name>/scratchpad.md`, `apa_report.md`, `analysis_log.jsonl`, a parquet workspace copy, and `nlss-workspace.yml` in the workspace root.
+- Run `nlss/scripts/R/init_workspace.R` to create `<workspace-root>/<dataset-name>/scratchpad.md`, `report_canonical.md`, `analysis_log.jsonl`, a parquet workspace copy, and `nlss-workspace.yml` in the workspace root.
 - For any input dataset (CSV/SAV/RDS/RData/Parquet), the workspace copy lives at `<workspace-root>/<dataset-name>/<dataset-name>.parquet`.
 - All subskills read from the workspace parquet copy (prefer `--parquet` pointing to the workspace file or rely on auto-copy).
 - When running from a dataset folder without input flags, scripts select that dataset; otherwise they load `active_dataset` from the manifest.
@@ -124,7 +124,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `init-workspace` | `nlss/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
 | `metaskill-runner` | `nlss/scripts/R/metaskill_runner.R` | Log metaskill activations (intent + dataset) for traceability. | Yes (`metaskill-runner/default-template.md`) |
 
-Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations and finalizations. Metaskill completion appends a `# Synopsis` to `apa_report.md` and writes `report_<YYYYMMDD>_<metaskill>_<intent>.md` in the dataset workspace.
+Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations and finalizations. Metaskill completion appends a `# Synopsis` to `report_canonical.md` and writes `report_<YYYYMMDD>_<metaskill>_<intent>.md` in the dataset workspace.
 
 Available metaskills:
 - `describe-sample`: `nlss/references/metaskills/describe-sample.md`
@@ -159,7 +159,7 @@ Reference docs:
 
 ## Basic usage by module
 
-Each run writes `apa_report.md` in the output directory and appends to `analysis_log.jsonl` when logging is enabled.
+Each run writes `report_canonical.md` in the output directory and appends to `analysis_log.jsonl` when logging is enabled.
 
 ### Descriptive statistics
 
@@ -316,7 +316,7 @@ Defaults live in `nlss/scripts/config.yml` and are loaded via `nlss/scripts/R/li
 
 ## APA template logic (YAML)
 
-Templates are Markdown files under `nlss/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, plotting, data transformation, missingness handling, assumptions, regression, SEM, ANOVA, and t-tests).
+Templates are Markdown files under `nlss/assets/<subskill>/` with YAML front matter. They drive `report_canonical.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, plotting, data transformation, missingness handling, assumptions, regression, SEM, ANOVA, and t-tests).
 
 Key YAML fields:
 

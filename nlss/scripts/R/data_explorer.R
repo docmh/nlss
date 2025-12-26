@@ -1070,7 +1070,7 @@ main <- function() {
     )
   }
 
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
   apa_tables <- paste(
     format_apa_overview_table(overview_df, digits),
     "\n",

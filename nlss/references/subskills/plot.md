@@ -7,14 +7,14 @@ description: Plot figures (histograms, bar charts, box/violin, scatter/line, QQ,
 
 ## Overview
 
-Generate APA-ready figures (with numbered captions) and save plot images to a `plots/` subfolder inside the dataset workspace. Each run appends a figure block to `apa_report.md` and adds an entry to `analysis_log.jsonl`.
+Generate APA-ready figures (with numbered captions) and save plot images to a `plots/` subfolder inside the dataset workspace. Each run appends a figure block to `report_canonical.md` and adds an entry to `analysis_log.jsonl`.
 
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose a plot type and variables.
 3. Run `scripts/R/plot.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
-4. Use outputs (`apa_report.md`, figure images in `plots/`, and `analysis_log.jsonl`) to craft the response.
+4. Use outputs (`report_canonical.md`, figure images in `plots/`, and `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/plot.R`
 
@@ -63,7 +63,7 @@ Rscript <path to scripts/R/plot.R> --interactive
 - `--theme` and `--palette` control styling (defaults: `modules.plot.theme`, `modules.plot.palette`).
 - `--format` / `--width` / `--height` / `--dpi` control image output (defaults: `modules.plot.format`, `modules.plot.width`, `modules.plot.height`, `modules.plot.dpi`).
 - `--file-prefix` / `--file-suffix` customize filenames (default prefix: `modules.plot.file_prefix`).
-- `--figure-number` overrides the starting figure number (otherwise computed from `apa_report.md`).
+- `--figure-number` overrides the starting figure number (otherwise computed from `report_canonical.md`).
 - `--overwrite` allows overwriting existing plot files (default: `FALSE`).
 - `--digits` controls rounding (default: `defaults.digits`).
 - `--template` selects a template key or file path (optional).
@@ -74,12 +74,12 @@ Rscript <path to scripts/R/plot.R> --interactive
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 - Plot images are saved in `<workspace-root>/<dataset-name>/plots/` with a figure-numbered filename (for example `figure-001-histogram-age.png`).
-- `apa_report.md`: APA-ready figure blocks with **Figure N** numbering (independent from table numbering).
+- `report_canonical.md`: APA-ready figure blocks with **Figure N** numbering (independent from table numbering).
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA Figure Template (YAML)
 
-Use the Markdown template at `nlss/assets/plot/default-template.md` when assembling plot reports. If the template exists, `plot.R` uses it for `apa_report.md`.
+Use the Markdown template at `nlss/assets/plot/default-template.md` when assembling plot reports. If the template exists, `plot.R` uses it for `report_canonical.md`.
 
 - The template path can be overridden via `templates.plot.default` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:

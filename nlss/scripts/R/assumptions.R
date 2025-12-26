@@ -2901,7 +2901,7 @@ main <- function() {
   if (is.null(checks_df) || nrow(checks_df) == 0) stop("No assumptions could be computed.")
 
   note_tokens <- build_note_tokens(analysis, settings, homogeneity_tests, checks_df)
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
   narrative_rows <- build_assumptions_narrative_rows(checks_df, digits)
   apa_text <- paste(vapply(narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
   apa_table <- format_apa_table(checks_df, digits, note_tokens$note_default)

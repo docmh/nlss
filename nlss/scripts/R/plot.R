@@ -1248,7 +1248,7 @@ main <- function() {
   figure_start <- resolve_parse_integer(opts$`figure-number`, default = NULL)
   if (is.null(figure_start)) {
     if (exists("get_next_figure_number", mode = "function")) {
-      figure_start <- get("get_next_figure_number", mode = "function")(file.path(out_dir, "apa_report.md"))
+      figure_start <- get("get_next_figure_number", mode = "function")(file.path(out_dir, "report_canonical.md"))
     } else {
       figure_start <- 1
     }
@@ -1350,7 +1350,7 @@ main <- function() {
   )
 
   resolve_append_apa_figure_report(
-    file.path(out_dir, "apa_report.md"),
+    file.path(out_dir, "report_canonical.md"),
     "Plots",
     figure_body,
     analysis_flags = analysis_flags,
@@ -1360,7 +1360,7 @@ main <- function() {
   )
 
   cat("Wrote:\n")
-  cat("- ", file.path(out_dir, "apa_report.md"), "\n", sep = "")
+  cat("- ", file.path(out_dir, "report_canonical.md"), "\n", sep = "")
   for (row in figure_rows) {
     cat("- ", file.path(out_dir, row$figure_path), "\n", sep = "")
   }

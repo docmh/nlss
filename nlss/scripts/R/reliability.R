@@ -1286,7 +1286,7 @@ main <- function() {
     resolve_get_template_path("reliability.default", "reliability/default-template.md")
   }
   template_meta <- resolve_get_template_meta(template_path)
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
 
   note_tokens <- build_reliability_note_tokens(
     summary_df,

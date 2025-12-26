@@ -28,12 +28,12 @@ Metaskills are Markdown pseudoscripts that orchestrate subskills based on user i
 Treat the workspace root as the current working directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir` from `scripts/config.yml`). It should only contain dataset subfolders.
 
 1. Ensure the workspace root exists (manifest in current dir, parent, or child; fallback to `defaults.output_dir`).
-2. For each dataset, ensure a dataset workspace folder exists at `<workspace-root>/<dataset-name>/` containing `scratchpad.md` and `apa_report.md`. If missing, run the `init-workspace` subskill first.
+2. For each dataset, ensure a dataset workspace folder exists at `<workspace-root>/<dataset-name>/` containing `scratchpad.md` and `report_canonical.md`. If missing, run the `init-workspace` subskill first.
 3. Confirm a workspace copy exists as `<workspace-root>/<dataset-name>/<dataset-name>.parquet` (dataset name = filename stem or `--df`, sanitized). If missing, create it via `init-workspace` before running analyses.
 4. All subskills must operate on the workspace `.parquet` copy (prefer `--parquet` pointing to the workspace copy, or rely on auto-copy behavior).
 5. Direct workspace runs (no input flags) should load the dataset from the current dataset folder if applicable; otherwise use `active_dataset` from the manifest.
 6. Workspaces must be non-nested and unique per parent folder; if nested or sibling manifests are detected, stop and ask the user to resolve them.
-7. Before running any `.R` analysis script, check the dataset’s `analysis_log.jsonl` for an exact prior run (same module + same command/flags + same input dataset; ignore differences in `--user-prompt`). When searching JSONL logs in PowerShell, use single quotes for the pattern and path; do not backslash-escape quotes (PowerShell treats `\` literally). Examples: `rg -F '"module"' -- 'C:\path\to\analysis_log.jsonl'` or `rg -F '"module":"scale"' -- 'C:\path\to\analysis_log.jsonl'`. If a match exists, do not rerun; report results from the prior outputs (`apa_report.md` and the matching log entry) instead.
+7. Before running any `.R` analysis script, check the dataset’s `analysis_log.jsonl` for an exact prior run (same module + same command/flags + same input dataset; ignore differences in `--user-prompt`). When searching JSONL logs in PowerShell, use single quotes for the pattern and path; do not backslash-escape quotes (PowerShell treats `\` literally). Examples: `rg -F '"module"' -- 'C:\path\to\analysis_log.jsonl'` or `rg -F '"module":"scale"' -- 'C:\path\to\analysis_log.jsonl'`. If a match exists, do not rerun; report results from the prior outputs (`report_canonical.md` and the matching log entry) instead.
 8. For metaskills, inspect the dataset first and write a step-by-step plan to `scratchpad.md` before running subskills; update the plan after each step.
 9. Before analysis: read and update the dataset’s `scratchpad.md` with the analysis plan and dataset considerations.
 10. After analysis: update the dataset’s `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
@@ -99,7 +99,7 @@ Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <v
 - The agent inspects the dataset first, infers candidate variables, and asks clarifying questions only when needed.
 - Enforce the NLSS-first principle: only use `generate-r-script` when the request is out of NLSS scope and explicit permission is granted; save generated scripts to `<workspace-root>/<dataset-name>/scripts/` and document the path in `scratchpad.md`.
 - Each metaskill step calls the existing subskill scripts so templates, JSONL logs, and workspace conventions are reused.
-- On completion, log metaskill finalization, append a `# Synopsis` section to `apa_report.md`, and generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` with APA 7-ready, journal-ready narrative, tables, and plots when helpful.
+- On completion, log metaskill finalization, append a `# Synopsis` section to `report_canonical.md`, and generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` with APA 7-ready, journal-ready narrative, tables, and plots when helpful.
 - The agent writes a plan to `scratchpad.md` and marks progress after each step.
 
 ## Common inputs (data sources)
@@ -141,12 +141,12 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 
 - Use the workspace root in the current directory, its parent, or a one-level child if `nlss-workspace.yml` is present; otherwise fall back to `defaults.output_dir` from `scripts/config.yml`.
 - The output directory is fixed to the resolved workspace root and is not user-overridable.
-- Each analysis appends `apa_report.md` (APA table + narrative) and `analysis_log.jsonl` inside `<workspace-root>/<dataset-name>/` when logging is enabled.
+- Each analysis appends `report_canonical.md` (APA table + narrative) and `analysis_log.jsonl` inside `<workspace-root>/<dataset-name>/` when logging is enabled.
 - The agent logs a meta entry in `analysis_log.jsonl` and each subskill run logs its own entry as usual.
-- Metaskill finalization appends a `# Synopsis` section to `apa_report.md` and creates `report_<YYYYMMDD>_<metaskill>_<intent>.md` inside the dataset workspace.
+- Metaskill finalization appends a `# Synopsis` section to `report_canonical.md` and creates `report_<YYYYMMDD>_<metaskill>_<intent>.md` inside the dataset workspace.
 - When `defaults.log_nlss_checksum` is true, log entries include a `checksum` field that XOR-combines the `nlss/` folder checksum with a checksum of the log entry content (excluding the checksum field), so it can be reverted for tamper checks.
 - Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`.
-- For `apa_report.md`, templates in `nlss/assets` must always be used when available.
+- For `report_canonical.md`, templates in `nlss/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
 
 ## APA Template System (YAML)
@@ -184,8 +184,8 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [t-test](references/subskills/t-test.md): One-sample, independent-samples, and paired-samples t-tests with APA outputs.
 - [nonparametric](references/subskills/nonparametric.md): Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests with APA outputs.
 - [missings](references/subskills/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.
-- [init-workspace](references/subskills/init-workspace.md): Initialize per-dataset workspace folders with scratchpad.md, apa_report.md, analysis_log.jsonl, and .parquet dataset copies.
-- [metaskill-runner](references/subskills/metaskill-runner.md): Log metaskill activations to apa_report.md and analysis_log.jsonl.
+- [init-workspace](references/subskills/init-workspace.md): Initialize per-dataset workspace folders with scratchpad.md, report_canonical.md, analysis_log.jsonl, and .parquet dataset copies.
+- [metaskill-runner](references/subskills/metaskill-runner.md): Log metaskill activations to report_canonical.md and analysis_log.jsonl.
 
 ## Metaskills
 

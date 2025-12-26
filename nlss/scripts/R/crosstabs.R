@@ -1231,7 +1231,7 @@ main <- function() {
     digits = digits
   )
 
-  apa_report_path <- file.path(out_dir, "apa_report.md")
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
   apa_table <- format_apa_table(
     cells_df,
     digits,

@@ -19,7 +19,7 @@ Compute reliability for ratings or repeated measurements:
 2. Choose `--analysis` (icc/kappa/test_retest).
 3. Choose `--format` (wide/long) and supply the required variables.
 4. Run `scripts/R/reliability.R` with the correct flags, or use the PowerShell wrapper on Windows.
-5. Use outputs (`apa_report.md`, `analysis_log.jsonl`) to craft the response.
+5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/reliability.R`
 
@@ -82,12 +82,12 @@ Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis te
 ## Outputs
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `apa_report.md`: APA 7 report with reliability table and narrative.
+- `report_canonical.md`: APA 7 report with reliability table and narrative.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 ## APA 7 Templates
 
-Use the Markdown template at `nlss/assets/reliability/default-template.md` when assembling reliability reports. If the template exists, it must be used for `apa_report.md`.
+Use the Markdown template at `nlss/assets/reliability/default-template.md` when assembling reliability reports. If the template exists, it must be used for `report_canonical.md`.
 
 - Template paths can be overridden via `templates.reliability.default` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:

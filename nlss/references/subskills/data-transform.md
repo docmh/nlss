@@ -19,7 +19,7 @@ Create or modify variables in a data frame: derive new variables, transform or s
    - `--recode` for value mapping.
    - `--rename` and `--drop` for column management.
 3. Run `scripts/R/data_transform.R` with appropriate flags or the Windows wrapper.
-4. Use outputs (workspace `<workspace-root>/<dataset-name>/<dataset-name>.parquet`, `apa_report.md`, `analysis_log.jsonl`) in your response.
+4. Use outputs (workspace `<workspace-root>/<dataset-name>/<dataset-name>.parquet`, `report_canonical.md`, `analysis_log.jsonl`) in your response.
 
 ## Script: `scripts/R/data_transform.R`
 
@@ -130,14 +130,14 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 - `<workspace-root>/<dataset-name>/<dataset-name>.parquet`: Workspace dataset copy updated in place (preferred; backup created before overwrite).
 - `<workspace-root>/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet`: Backup of the previous parquet before overwrites.
 - `transformed_data.rds`: Fallback output only if no workspace `.parquet` copy is available (written in the dataset workspace).
-- `apa_report.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 Undo: replace `<workspace-root>/<dataset-name>/<dataset-name>.parquet` with the most recent backup in `<workspace-root>/<dataset-name>/backup/`.
 
 ## APA 7 Templates
 
-Use the Markdown template at `nlss/assets/data-transform/default-template.md` when assembling data transformation reports. If the template exists, `data_transform.R` uses it for `apa_report.md`.
+Use the Markdown template at `nlss/assets/data-transform/default-template.md` when assembling data transformation reports. If the template exists, `data_transform.R` uses it for `report_canonical.md`.
 
 ### YAML template controls
 
