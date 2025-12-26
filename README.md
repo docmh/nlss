@@ -122,6 +122,9 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `t-test` | `nlss/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
 | `nonparametric` | `nlss/scripts/R/nonparametric.R` | Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests. | Yes (`nonparametric/default-template.md`, `nonparametric/posthoc-template.md`) |
 | `init-workspace` | `nlss/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
+| `metaskill-runner` | `nlss/scripts/R/metaskill_runner.R` | Log metaskill activations (intent + dataset) for traceability. | Yes (`metaskill-runner/default-template.md`) |
+
+Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations.
 
 Reference docs:
 - `nlss/references/descriptive-stats.md`
@@ -142,6 +145,7 @@ Reference docs:
 - `nlss/references/t-test.md`
 - `nlss/references/nonparametric.md`
 - `nlss/references/init-workspace.md`
+- `nlss/references/metaskill-runner.md`
 
 ## Basic usage by module
 
@@ -215,6 +219,13 @@ Rscript nlss/scripts/R/data_transform.R \
 ```bash
 Rscript nlss/scripts/R/missings.R \
   --csv data.csv --vars age,score,stress
+```
+
+### Metaskill activation logging
+
+```bash
+Rscript nlss/scripts/R/metaskill_runner.R \
+  --csv data.csv --meta sample-description --intent "describe the sample"
 ```
 
 ### Assumptions checks

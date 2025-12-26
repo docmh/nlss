@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, workspace initialization) from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts) covering descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -17,6 +17,10 @@ metadata:
 
 Central guidance for all statistic skills in this repo, plus shared conventions for running R scripts and placing outputs.
 
+## Metaskills Overview
+
+Metaskills are Markdown pseudoscripts that orchestrate subskills based on user intent (for example, "describe the sample"). The agent is the runner: it starts with a dataset inspection, asks clarifying questions when needed, and then runs the listed subskills while updating the dataset scratchpad.
+
 ## Stateful workspace workflow (required)
 
 Treat the workspace root as the current working directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir` from `scripts/config.yml`). It should only contain dataset subfolders.
@@ -28,8 +32,9 @@ Treat the workspace root as the current working directory, its parent, or a one-
 5. Direct workspace runs (no input flags) should load the dataset from the current dataset folder if applicable; otherwise use `active_dataset` from the manifest.
 6. Workspaces must be non-nested and unique per parent folder; if nested or sibling manifests are detected, stop and ask the user to resolve them.
 7. Before running any `.R` analysis script, check the dataset’s `analysis_log.jsonl` for an exact prior run (same module + same command/flags + same input dataset; ignore differences in `--user-prompt`). When searching JSONL logs in PowerShell, use single quotes for the pattern and path; do not backslash-escape quotes (PowerShell treats `\` literally). Examples: `rg -F '"module"' -- 'C:\path\to\analysis_log.jsonl'` or `rg -F '"module":"scale"' -- 'C:\path\to\analysis_log.jsonl'`. If a match exists, do not rerun; report results from the prior outputs (`apa_report.md` and the matching log entry) instead.
-8. Before analysis: read and update the dataset’s `scratchpad.md` with the analysis plan and dataset considerations.
-9. After analysis: update the dataset’s `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
+8. For metaskills, inspect the dataset first and write a step-by-step plan to `scratchpad.md` before running subskills; update the plan after each step.
+9. Before analysis: read and update the dataset’s `scratchpad.md` with the analysis plan and dataset considerations.
+10. After analysis: update the dataset’s `scratchpad.md` again with decisions, transformations, missing-handling actions, and derived variables/scales.
 
 Note: `data-transform` and `missings` update the workspace `.parquet` copy in place and create a backup at `<workspace-root>/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet` before overwriting. Undo = replace the current parquet with the latest backup.
 
@@ -86,6 +91,13 @@ Example:
 Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables>
 ```
 
+## Metaskills Execution
+
+- Metaskills live as Markdown pseudoscripts under `nlss/references/metaskills/` and are selected by the agent from the user prompt or an explicitly named metaskill.
+- The agent inspects the dataset first, infers candidate variables, and asks clarifying questions only when needed.
+- Each metaskill step calls the existing subskill scripts so templates, JSONL logs, and workspace conventions are reused.
+- The agent writes a plan to `scratchpad.md` and marks progress after each step.
+
 ## Common inputs (data sources)
 
 All scripts accept one of the following input types:
@@ -101,6 +113,14 @@ Notes:
 
 - Inputs must be local filesystem paths accessible to R. URLs or cloud share links are not supported; download first.
 - On Windows, the PowerShell wrapper converts Windows paths to WSL paths automatically; for WSL direct runs use `/mnt/<drive>/...`.
+
+## Metaskill Inputs
+
+Metaskills use the same data sources as subskills (CSV/SAV/RDS/RData/Parquet or workspace context). The agent should capture:
+
+- User intent (prompt text or explicit metaskill name).
+- Dataset source (file path or workspace context).
+- Any clarifications (grouping variables, Likert handling, etc.) provided in the prompt or follow-ups.
 
 ## Common flags
 
@@ -118,6 +138,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - Use the workspace root in the current directory, its parent, or a one-level child if `nlss-workspace.yml` is present; otherwise fall back to `defaults.output_dir` from `scripts/config.yml`.
 - The output directory is fixed to the resolved workspace root and is not user-overridable.
 - Each analysis appends `apa_report.md` (APA table + narrative) and `analysis_log.jsonl` inside `<workspace-root>/<dataset-name>/` when logging is enabled.
+- The agent logs a meta entry in `analysis_log.jsonl` and each subskill run logs its own entry as usual.
 - Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`.
 - For `apa_report.md`, templates in `nlss/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
@@ -136,6 +157,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - Base tokens available in all templates: `analysis_label`, `analysis_flags`, `table_number`, `table_body`, `note_body`, `note_default`, `narrative`, `narrative_default`.
 - Module-specific tokens (e.g., correlation CI labels or cross-tab test fragments) are documented in each subskill reference.
 - Modules without template mappings fall back to the built-in APA report format (no YAML template).
+- Metaskills do not define APA templates directly; APA output is produced by their underlying subskills.
 
 ## Subskills
 
@@ -157,3 +179,25 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [nonparametric](references/nonparametric.md): Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests with APA outputs.
 - [missings](references/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.
 - [init-workspace](references/init-workspace.md): Initialize per-dataset workspace folders with scratchpad.md, apa_report.md, analysis_log.jsonl, and .parquet dataset copies.
+- [metaskill-runner](references/metaskill-runner.md): Log metaskill activations to apa_report.md and analysis_log.jsonl.
+
+## Metaskills
+
+### General Approach
+
+- Run the specified pseudoscript and ask clarifying questions if needed.
+- Inspect the dataset first to infer likely variable candidates and defaults.
+- Log the metaskill activation using the `metaskill-runner` subskill.
+- Execute the listed subskills in order, reusing the workspace `.parquet` copy.
+- Update the dataset `scratchpad.md` with the plan and progress after each step.
+
+### Available Metaskills
+
+- describe-sample (planned): Sample overview using missingness, descriptive stats, and frequency tables.
+- check-instruments (planned): Scale/item analysis and reliability checks for survey instruments.
+- explore-data (planned): Data exploration with distributions, outliers, correlations, and plots.
+- handle-missings (planned): Missingness analysis and handling with patterns, methods, and updated datasets.
+- transform-data (planned): Data transformation with variable creation, recoding, and standardization.
+- check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression).
+- test-hypotheses (planned): Hypothesis testing using t-tests, ANOVA, regression, or SEM as appropriate.
+- full-analysis (planned): Comprehensive analysis from data exploration to hypothesis testing with full reporting.

@@ -254,6 +254,11 @@ get_builtin_config <- function() {
       ),
       init_workspace = list(
         agent = "Codex"
+      ),
+      metaskill_runner = list(
+        meta_default = "",
+        analysis_label = "Metaskill activation",
+        note_default = "This entry logs metaskill activation only; analyses are logged separately."
       )
     ),
     templates = list(
@@ -324,6 +329,9 @@ get_builtin_config <- function() {
       init_workspace = list(
         default = "init-workspace/default-template.md",
         scratchpad = "scratchpad/default-template.md"
+      ),
+      metaskill_runner = list(
+        default = "metaskill-runner/default-template.md"
       )
     )
   )

@@ -199,6 +199,10 @@ modules:
     max_patterns: 10
   init_workspace:
     agent: "Codex"
+  metaskill_runner:
+    meta_default: ""
+    analysis_label: "Metaskill activation"
+    note_default: "This entry logs metaskill activation only; analyses are logged separately."
 templates:
   descriptive_stats:
     default: "descriptive-stats/default-template.md"
@@ -250,3 +254,5 @@ templates:
   init_workspace:
     default: "init-workspace/default-template.md"
     scratchpad: "scratchpad/default-template.md"
+  metaskill_runner:
+    default: "metaskill-runner/default-template.md"
