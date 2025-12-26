@@ -718,8 +718,8 @@ build_plot_base <- function(df, request, opts, digits) {
           graphics::plot(dens, col = grDevices::adjustcolor("#4C72B0", alpha.f = alpha), main = title, xlab = x)
         }
       } else {
-        graphics::qqnorm(plot_df[[x]], main = title)
-        graphics::qqline(plot_df[[x]], col = "red")
+        stats::qqnorm(plot_df[[x]], main = title)
+        stats::qqline(plot_df[[x]], col = "red")
       }
       if (!is.null(subtitle) && nzchar(subtitle)) {
         graphics::mtext(subtitle, side = 3, line = 0.2, cex = 0.8)
