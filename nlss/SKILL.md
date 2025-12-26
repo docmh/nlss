@@ -20,7 +20,8 @@ Central guidance for all statistic skills in this repo, plus shared conventions 
 ## Metaskills Overview
 
 Metaskills are Markdown pseudoscripts that orchestrate subskills based on user intent (for example, "describe the sample"). The agent is the runner: it starts with a dataset inspection, asks clarifying questions when needed, and then runs the listed subskills while updating the dataset scratchpad.
-NLSS-first principle: prefer existing subskills whenever they cover the request; only use custom script generation as a last resort.
+
+**NLSS-first principle:** for reliability and auditability, prefer existing subskills whenever they cover the request; only use custom script generation as a last resort.
 
 ## Stateful workspace workflow (required)
 
