@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample and check-instruments) covering descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -195,9 +195,9 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 - [describe-sample](references/metaskills/describe-sample.md): Sample overview using missingness summaries, descriptive stats, and frequency tables.
 - [check-instruments](references/metaskills/check-instruments.md): Scale/item analysis and reliability checks for survey instruments.
+- [test-hypotheses](references/metaskills/test-hypotheses.md): Map hypotheses to tests with clarifications, run the appropriate analyses, and report APA-ready outputs.
 - explore-data (planned): Data exploration with distributions, outliers, correlations, and plots.
 - handle-missings (planned): Missingness analysis and handling with patterns, methods, and updated datasets.
 - transform-data (planned): Data transformation with variable creation, recoding, and standardization.
 - check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression).
-- test-hypotheses (planned): Hypothesis testing using t-tests, ANOVA, regression, or SEM as appropriate.
 - full-analysis (planned): Comprehensive analysis from data exploration to hypothesis testing with full reporting.
