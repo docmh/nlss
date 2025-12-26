@@ -15,7 +15,7 @@ This metaskill guides the agent to describe a sample by inspecting the dataset, 
 2. Ensure a dataset workspace exists (run `init-workspace` if missing).
 3. Log activation with `metaskill-runner`.
 4. Inspect the dataset to infer numeric vs categorical variables and candidate grouping variables.
-5. Ask clarifying questions when needed (grouping variable, key demographics, Likert handling).
+5. Ask clarifying questions when needed (grouping variable, key demographics, Likert handling), and explicitly propose a demographic-first summary as the default.
 6. Write a plan to `scratchpad.md`, then execute subskills in order.
 7. Update `scratchpad.md` with decisions and completion notes.
 8. Log finalization, append a `# Synopsis` to `apa_report.md`, and generate `report_<YYYYMMDD>_describe-sample_<intent>.md`.
@@ -50,6 +50,7 @@ powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path
 - Which demographic variables should be highlighted?
 - Should Likert/ordinal variables be treated as numeric or categorical?
 - Should missingness be summarized only, or handled (imputation/drop/indicator)?
+If unclear, suggest a demographic-first summary (age, gender, education, employment, etc.) as the default.
 
 ## Procedure (pseudocode)
 
@@ -68,6 +69,8 @@ if group_candidates not empty:
   ask user to confirm grouping variable (or none)
 
 ask user to confirm key demographics and Likert handling
+if request is vague:
+  propose demographic-first summary as default (age, gender, education, employment)
 
 write plan to scratchpad.md
 
@@ -89,6 +92,7 @@ log metaskill finalization with metaskill-runner --phase finalization
 - Use config defaults for subskills unless the user specifies otherwise (e.g., `defaults.digits`, `modules.descriptive_stats.vars_default`, `modules.frequencies.vars_default`).
 - Treat factor/character variables as categorical; treat numeric variables with low cardinality (for example <= 10 unique values) as categorical unless the user prefers numeric summaries.
 - Exclude obvious identifiers (for example `id`, `uuid`) from both numeric and categorical summaries unless explicitly requested.
+- When the request is ambiguous, default to a demographic-first summary and state this as the proposed focus.
 - Do not run `missings` unless the user requests missingness handling; it updates the workspace parquet copy in place and creates a backup.
 
 ## Outputs
