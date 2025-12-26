@@ -41,6 +41,7 @@ get_builtin_config <- function() {
         header = TRUE
       ),
       log = TRUE,
+      log_nlss_checksum = TRUE,
       digits = 2,
       interactive = FALSE
     ),

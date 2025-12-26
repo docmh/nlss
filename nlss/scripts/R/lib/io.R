@@ -469,6 +469,83 @@ resolve_nlss_skill_path <- function() {
   ""
 }
 
+resolve_nlss_root_dir <- function() {
+  path <- resolve_nlss_skill_path()
+  if (!nzchar(path)) return("")
+  normalize_path(dirname(path))
+}
+
+list_nlss_files <- function(root_dir) {
+  if (is.null(root_dir) || !nzchar(root_dir) || !dir.exists(root_dir)) return(character(0))
+  files <- list.files(root_dir, recursive = TRUE, full.names = TRUE, all.files = FALSE)
+  if (length(files) == 0) return(character(0))
+  info <- file.info(files)
+  files <- files[!is.na(info$isdir) & !info$isdir]
+  if (length(files) == 0) return(character(0))
+  vapply(files, normalize_path, character(1))
+}
+
+build_nlss_checksum <- function(root_dir, files) {
+  if (length(files) == 0) return(NULL)
+  rel_paths <- vapply(files, function(path) make_relative_path(path, root_dir), character(1))
+  order_idx <- order(rel_paths)
+  files <- files[order_idx]
+  rel_paths <- rel_paths[order_idx]
+  md5s <- tools::md5sum(files)
+  md5s <- md5s[files]
+  lines <- paste(rel_paths, unname(md5s), sep = " ")
+  temp_manifest <- tempfile(pattern = "nlss-checksum-", fileext = ".txt")
+  on.exit(unlink(temp_manifest), add = TRUE)
+  writeLines(lines, temp_manifest, useBytes = TRUE)
+  digest <- tools::md5sum(temp_manifest)
+  list(
+    algorithm = "md5",
+    value = unname(digest[[1]]),
+    files = length(files)
+  )
+}
+
+hex_to_raw <- function(hex) {
+  if (is.null(hex) || !nzchar(hex)) return(raw(0))
+  hex <- tolower(as.character(hex))
+  if (nchar(hex) %% 2 != 0) return(raw(0))
+  bytes <- substring(hex, seq(1, nchar(hex), 2), seq(2, nchar(hex), 2))
+  as.raw(strtoi(bytes, 16L))
+}
+
+raw_to_hex <- function(raw_vec) {
+  if (length(raw_vec) == 0) return("")
+  paste(sprintf("%02x", as.integer(raw_vec)), collapse = "")
+}
+
+xor_hex <- function(left, right) {
+  left_raw <- hex_to_raw(left)
+  right_raw <- hex_to_raw(right)
+  if (length(left_raw) == 0 || length(right_raw) == 0) return("")
+  if (length(left_raw) != length(right_raw)) return("")
+  raw_to_hex(as.raw(bitwXor(as.integer(left_raw), as.integer(right_raw))))
+}
+
+compute_log_entry_checksum <- function(json_text) {
+  temp_path <- tempfile(pattern = "nlss-entry-", fileext = ".json")
+  on.exit(unlink(temp_path), add = TRUE)
+  writeLines(json_text, temp_path, useBytes = TRUE)
+  digest <- tools::md5sum(temp_path)
+  unname(digest[[1]])
+}
+
+get_nlss_checksum <- function() {
+  if (exists("nlss_checksum", envir = nlss_log_cache, inherits = FALSE)) {
+    return(nlss_log_cache$nlss_checksum)
+  }
+  root_dir <- resolve_nlss_root_dir()
+  if (!nzchar(root_dir)) return(NULL)
+  files <- list_nlss_files(root_dir)
+  checksum <- build_nlss_checksum(root_dir, files)
+  nlss_log_cache$nlss_checksum <- checksum
+  checksum
+}
+
 read_nlss_frontmatter <- function(path) {
   if (is.null(path) || !nzchar(path) || !file.exists(path)) return(character(0))
   lines <- readLines(path, warn = FALSE)
@@ -537,6 +614,12 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     return(invisible(FALSE))
   }
 
+  log_checksum_default <- resolve_config_value("defaults.log_nlss_checksum", FALSE)
+  checksum <- NULL
+  if (resolve_parse_bool(log_checksum_default, default = FALSE)) {
+    checksum <- get_nlss_checksum()
+  }
+
   entry <- list(
     timestamp_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     nlss_version = get_nlss_version(),
@@ -549,6 +632,20 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     results = results,
     options = options
   )
+
+  if (!is.null(checksum) && !is.null(checksum$value) && nzchar(checksum$value)) {
+    entry_json <- jsonlite::toJSON(
+      entry,
+      auto_unbox = TRUE,
+      null = "null",
+      na = "null",
+      dataframe = "rows",
+      digits = NA
+    )
+    entry_checksum <- compute_log_entry_checksum(entry_json)
+    combined <- xor_hex(checksum$value, entry_checksum)
+    if (nzchar(combined)) entry$checksum <- combined
+  }
 
   json <- jsonlite::toJSON(
     entry,

@@ -6,6 +6,7 @@ defaults:
     sep: ","
     header: true
   log: true
+  log_nlss_checksum: true
   digits: 2
   interactive: false
 modules:

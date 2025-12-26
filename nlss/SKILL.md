@@ -139,6 +139,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - The output directory is fixed to the resolved workspace root and is not user-overridable.
 - Each analysis appends `apa_report.md` (APA table + narrative) and `analysis_log.jsonl` inside `<workspace-root>/<dataset-name>/` when logging is enabled.
 - The agent logs a meta entry in `analysis_log.jsonl` and each subskill run logs its own entry as usual.
+- When `defaults.log_nlss_checksum` is true, log entries include a `checksum` field that XOR-combines the `nlss/` folder checksum with a checksum of the log entry content (excluding the checksum field), so it can be reverted for tamper checks.
 - Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`.
 - For `apa_report.md`, templates in `nlss/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
