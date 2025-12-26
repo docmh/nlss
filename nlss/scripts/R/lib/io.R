@@ -452,7 +452,7 @@ nlss_log_cache <- new.env(parent = emptyenv())
 
 resolve_nlss_skill_path <- function() {
   script_dir <- if (exists("resolve_script_dir", mode = "function")) {
-    resolve_script_dir()
+    get("resolve_script_dir", mode = "function")()
   } else {
     getwd()
   }
