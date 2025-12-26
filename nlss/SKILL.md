@@ -201,6 +201,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [generate-r-script](references/metaskills/generate-r-script.md): Generate a custom R script for analyses not covered by NLSS (permission required).
 - [check-instruments](references/metaskills/check-instruments.md): Scale/item analysis and reliability checks for survey instruments.
 - [test-hypotheses](references/metaskills/test-hypotheses.md): Map hypotheses to tests with clarifications, run the appropriate analyses, and report APA-ready outputs.
+- plan-power (planned): Power analysis for t-tests, ANOVA, regression, correlations, and SEM.
 - explore-data (planned): Data exploration with distributions, outliers, correlations, and plots.
 - handle-missings (planned): Missingness analysis and handling with patterns, methods, and updated datasets.
 - transform-data (planned): Data transformation with variable creation, recoding, and standardization.
