@@ -128,6 +128,7 @@ Metaskill specs live under `nlss/references/metaskills/` and are executed by the
 
 Available metaskills:
 - `describe-sample`: `nlss/references/metaskills/describe-sample.md`
+- `check-instruments`: `nlss/references/metaskills/check-instruments.md`
 
 Reference docs:
 - `nlss/references/descriptive-stats.md`
@@ -150,6 +151,7 @@ Reference docs:
 - `nlss/references/init-workspace.md`
 - `nlss/references/metaskill-runner.md`
 - `nlss/references/metaskills/describe-sample.md`
+- `nlss/references/metaskills/check-instruments.md`
 
 ## Basic usage by module
 
