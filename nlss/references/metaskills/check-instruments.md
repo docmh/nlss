@@ -18,10 +18,11 @@ This metaskill guides the agent through instrument checks for surveys or questio
 5. Ask clarifying questions (scale definitions, reverse-coded items, scoring method, reliability type).
 6. Write a plan to `scratchpad.md`, then execute subskills in order.
 7. Update `scratchpad.md` with decisions and completion notes.
+8. Log finalization, append a `# Synopsis` to `apa_report.md`, and generate `report_<YYYYMMDD>_check-instruments_<intent>.md`.
 
 ## Execution (Agent-run)
 
-There is no dedicated script for this metaskill. The agent runs subskills and logs activation using `metaskill-runner`.
+There is no dedicated script for this metaskill. The agent runs subskills and logs activation/finalization using `metaskill-runner`.
 
 ### Logging activation
 
@@ -87,6 +88,8 @@ optional:
   run missings --vars <items> --method <chosen> (only if user requests handling)
 
 update scratchpad.md with decisions and completion
+append # Synopsis to apa_report.md and write report_<YYYYMMDD>_check-instruments_<intent>.md
+log metaskill finalization with metaskill-runner --phase finalization
 ```
 
 ## Default Rules and Decision Logic
@@ -98,9 +101,10 @@ update scratchpad.md with decisions and completion
 
 ## Outputs
 
-- `apa_report.md`: APA-ready outputs from `scale`, `reliability`, and optional `correlations`.
-- `analysis_log.jsonl`: A metaskill activation entry from `metaskill-runner`, plus the underlying subskill logs.
+- `apa_report.md`: APA-ready outputs from `scale`, `reliability`, and optional `correlations`, plus a final `# Synopsis`.
+- `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
+- `report_<YYYYMMDD>_check-instruments_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
 
@@ -111,7 +115,7 @@ This metaskill does not define its own APA template. It relies on the templates 
 - `scale` uses `nlss/assets/scale/default-template.md`.
 - `reliability` uses `nlss/assets/reliability/default-template.md`.
 - `correlations` uses `nlss/assets/correlations/default-template.md` when requested.
-- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation logging.
+- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation/finalization logging.
 
 ## APA 7 Reporting Guidance
 

@@ -259,7 +259,7 @@ get_builtin_config <- function() {
       metaskill_runner = list(
         meta_default = "",
         analysis_label = "Metaskill activation",
-        note_default = "This entry logs metaskill activation only; analyses are logged separately."
+        note_default = "This entry logs metaskill activation/finalization only; analyses are logged separately."
       )
     ),
     templates = list(

@@ -124,7 +124,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `init-workspace` | `nlss/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
 | `metaskill-runner` | `nlss/scripts/R/metaskill_runner.R` | Log metaskill activations (intent + dataset) for traceability. | Yes (`metaskill-runner/default-template.md`) |
 
-Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations.
+Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations and finalizations. Metaskill completion appends a `# Synopsis` to `apa_report.md` and writes `report_<YYYYMMDD>_<metaskill>_<intent>.md` in the dataset workspace.
 
 Available metaskills:
 - `describe-sample`: `nlss/references/metaskills/describe-sample.md`

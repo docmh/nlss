@@ -16,7 +16,7 @@ source_lib("io.R")
 source_lib("formatting.R")
 
 print_usage <- function() {
-  cat("Metaskill activation logger (base R)\n")
+  cat("Metaskill activation/finalization logger (base R)\n")
   cat("\n")
   cat("Usage:\n")
   cat("  Rscript metaskill_runner.R --csv data.csv --meta sample-description\n")
@@ -33,6 +33,7 @@ print_usage <- function() {
   cat("  --parquet PATH       Parquet input file\n")
   cat("  --df NAME            Data frame object name in RData\n")
   cat("  --meta NAME          Metaskill name (required)\n")
+  cat("  --phase TEXT         Phase label (activation/finalization; optional)\n")
   cat("  --intent TEXT        Short intent summary (optional)\n")
   cat("  --notes TEXT         Additional notes (optional)\n")
   cat("  --label TEXT         Analysis label override (optional)\n")
@@ -69,6 +70,7 @@ interactive_options <- function() {
   }
 
   opts$meta <- resolve_prompt("Metaskill name")
+  opts$phase <- resolve_prompt("Phase (activation/finalization)", "activation")
   opts$intent <- resolve_prompt("Intent (optional)", "")
   opts$notes <- resolve_prompt("Notes (optional)", "")
   opts$label <- resolve_prompt("Analysis label (optional)", "")
@@ -403,13 +405,22 @@ if (!nzchar(meta_name)) {
 }
 intent <- if (!is.null(opts$intent)) trimws(as.character(opts$intent)) else ""
 notes <- if (!is.null(opts$notes)) trimws(as.character(opts$notes)) else ""
+phase <- if (!is.null(opts$phase)) trimws(as.character(opts$phase)) else ""
+if (!nzchar(phase)) phase <- "activation"
 analysis_label <- if (!is.null(opts$label)) trimws(as.character(opts$label)) else ""
 if (!nzchar(analysis_label)) {
   analysis_label <- resolve_config_value("modules.metaskill_runner.analysis_label", "Metaskill activation")
+  if (!nzchar(analysis_label)) {
+    analysis_label <- "Metaskill activation"
+  }
+  phase_lower <- tolower(phase)
+  if (analysis_label == "Metaskill activation" && phase_lower %in% c("finalization", "finalise", "finalize", "completion", "complete", "completed", "finish", "finished")) {
+    analysis_label <- "Metaskill finalization"
+  }
 }
 note_default <- resolve_config_value(
   "modules.metaskill_runner.note_default",
-  "This entry logs metaskill activation only; analyses are logged separately."
+  "This entry logs metaskill activation/finalization only; analyses are logged separately."
 )
 
 df <- resolve_load_dataframe(opts)
@@ -439,7 +450,8 @@ apa_text <- build_activation_text(meta_name, intent, dataset_label, timestamp)
 analysis_flags <- list(
   metaskill = meta_name,
   intent = intent,
-  dataset = dataset_label
+  dataset = dataset_label,
+  phase = phase
 )
 
 template_context <- list(
@@ -448,6 +460,7 @@ template_context <- list(
     intent = intent,
     dataset = dataset_label,
     timestamp = timestamp,
+    phase = phase,
     notes = notes
   )
 )
@@ -475,12 +488,14 @@ if (resolve_parse_bool(opts$log, default = log_default)) {
       status = "ok",
       metaskill = meta_name,
       intent = intent,
+      phase = phase,
       dataset = dataset_label,
       timestamp = timestamp,
       apa_report_path = resolve_normalize_path(apa_report_path)
     ),
     options = list(
       meta = meta_name,
+      phase = phase,
       intent = intent,
       notes = notes,
       label = analysis_label,
@@ -490,5 +505,5 @@ if (resolve_parse_bool(opts$log, default = log_default)) {
   )
 }
 
-cat("Metaskill activation logged.\n")
+cat("Metaskill ", phase, " logged.\n", sep = "")
 cat("- ", apa_report_path, "\n", sep = "")

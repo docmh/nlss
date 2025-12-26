@@ -63,8 +63,10 @@ generate R script using state-of-the-art methods:
   include diagnostics, effect sizes, and APA-aligned outputs
   avoid destructive writes unless explicitly requested
 
-save script to <workspace-root>/<dataset-name>/scripts/custom_<date>_<intent>.R
+save script to <workspace-root>/<dataset-name>/scripts/custom_<YYYYMMDD>_<intent>.R
 update scratchpad.md with script path and rationale
+append # Synopsis to apa_report.md and write report_<YYYYMMDD>_generate-r-script_<intent>.md
+log metaskill finalization with metaskill-runner --phase finalization
 ```
 
 ## Default Rules and Decision Logic
@@ -75,7 +77,7 @@ update scratchpad.md with script path and rationale
 - Prefer transparent, reproducible code (set seed when stochastic methods are used).
 - Include assumptions checks and effect size reporting appropriate to the method.
 - Record a short “out of scope” justification in `scratchpad.md` before generating the script.
-- Use the naming convention `custom_<date>_<intent>.R` for saved scripts (ASCII, no spaces).
+- Use the naming convention `custom_<YYYYMMDD>_<intent>.R` for saved scripts (ASCII, no spaces).
 
 ## Minimum diagnostics checklist
 
@@ -89,9 +91,11 @@ Include the following where applicable:
 
 ## Outputs
 
-- `analysis_log.jsonl`: Metaskill activation entry via `metaskill-runner`.
+- `analysis_log.jsonl`: Metaskill activation and finalization entries via `metaskill-runner`.
 - `scratchpad.md`: Plan, clarifications, and the saved script path.
-- `scripts/custom_<date>_<intent>.R`: The generated script in the dataset workspace folder.
+- `apa_report.md`: Includes a final `# Synopsis` describing the generated script and rationale.
+- `scripts/custom_<YYYYMMDD>_<intent>.R`: The generated script in the dataset workspace folder.
+- `report_<YYYYMMDD>_generate-r-script_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
 

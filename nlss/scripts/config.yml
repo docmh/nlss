@@ -203,7 +203,7 @@ modules:
   metaskill_runner:
     meta_default: ""
     analysis_label: "Metaskill activation"
-    note_default: "This entry logs metaskill activation only; analyses are logged separately."
+    note_default: "This entry logs metaskill activation/finalization only; analyses are logged separately."
 templates:
   descriptive_stats:
     default: "descriptive-stats/default-template.md"

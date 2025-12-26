@@ -17,10 +17,11 @@ This metaskill helps the agent test hypotheses (H1, H2, H3, ...) when the initia
 4. Parse hypotheses and ask clarifying questions for each H (variables, direction, design).
 5. Write a plan to `scratchpad.md`, then execute subskills in order.
 6. Update `scratchpad.md` with decisions, assumptions checks, and completion notes.
+7. Log finalization, append a `# Synopsis` to `apa_report.md`, and generate `report_<YYYYMMDD>_test-hypotheses_<intent>.md`.
 
 ## Execution (Agent-run)
 
-There is no dedicated script for this metaskill. The agent runs subskills and logs activation using `metaskill-runner`.
+There is no dedicated script for this metaskill. The agent runs subskills and logs activation/finalization using `metaskill-runner`.
 
 ### Logging activation
 
@@ -84,6 +85,8 @@ optional:
   run correlations among composite scores if needed
 
 update scratchpad.md with results summary and decisions
+append # Synopsis to apa_report.md and write report_<YYYYMMDD>_test-hypotheses_<intent>.md
+log metaskill finalization with metaskill-runner --phase finalization
 ```
 
 ## Default Rules and Decision Logic
@@ -95,9 +98,10 @@ update scratchpad.md with results summary and decisions
 
 ## Outputs
 
-- `apa_report.md`: APA-ready outputs from the selected subskills (t-tests, ANOVA, regression, correlations, SEM, etc.).
-- `analysis_log.jsonl`: A metaskill activation entry from `metaskill-runner`, plus the underlying subskill logs.
+- `apa_report.md`: APA-ready outputs from the selected subskills (t-tests, ANOVA, regression, correlations, SEM, etc.) plus a final `# Synopsis`.
+- `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
 - `scratchpad.md`: Hypothesis clarifications, plan, assumptions, and completion notes.
+- `report_<YYYYMMDD>_test-hypotheses_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
 
@@ -106,7 +110,7 @@ Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>
 This metaskill does not define its own APA template. It relies on the templates configured for the subskills it invokes:
 
 - `t-test`, `anova`, `nonparametric`, `regression`, `correlations`, `mixed-models`, `sem`, and `assumptions`.
-- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation logging.
+- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation/finalization logging.
 
 ## APA 7 Reporting Guidance
 

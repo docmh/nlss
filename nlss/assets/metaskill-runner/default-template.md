@@ -1,7 +1,7 @@
 ---
 tokens:
-  title: "Metaskill Activation"
-  table_title: "Activation details."
+  title: "Metaskill Log"
+  table_title: "Log details."
   note_prefix: "*Note.*"
   narrative_heading: "**Narrative**"
 table:
