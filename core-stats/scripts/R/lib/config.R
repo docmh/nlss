@@ -57,6 +57,30 @@ get_builtin_config <- function() {
         max_levels = 20,
         top_n = 10
       ),
+      plot = list(
+        type = "auto",
+        vars_default = "numeric",
+        stat = "count",
+        percent_base = "total",
+        bins = 30,
+        binwidth = NULL,
+        bw = NULL,
+        smooth = "none",
+        se = TRUE,
+        span = 0.75,
+        summary = "none",
+        theme = "minimal",
+        palette = "default",
+        alpha = 0.7,
+        position = "dodge",
+        format = "png",
+        width = 7,
+        height = 5,
+        dpi = 300,
+        na_action = "omit",
+        figure_digits = 3,
+        file_prefix = "figure"
+      ),
       correlations = list(
         vars_default = "numeric",
         method = "pearson",
@@ -230,6 +254,9 @@ get_builtin_config <- function() {
       ),
       data_explorer = list(
         default = "data-explorer/default-template.md"
+      ),
+      plot = list(
+        default = "plot/default-template.md"
       ),
       data_transform = list(
         default = "data-transform/default-template.md"

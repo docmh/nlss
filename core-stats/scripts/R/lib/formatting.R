@@ -261,6 +261,10 @@ get_template_path <- function(analysis_label) {
     path <- resolve_template_path("data_explorer.default", "data-explorer/default-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
   }
+  if (label == "plot" || label == "plots" || label == "figure" || label == "figures") {
+    path <- resolve_template_path("plot.default", "plot/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
   if (label == "data transformation" || label == "data transform") {
     path <- resolve_template_path("data_transform.default", "data-transform/default-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
@@ -551,6 +555,30 @@ renumber_tables <- function(text, start_number) {
   list(text = text, count = length(replacements))
 }
 
+extract_figure_numbers <- function(text) {
+  matches <- gregexpr("Figure\\s+[0-9]+", text, perl = TRUE)
+  if (matches[[1]][1] == -1) return(integer(0))
+  values <- regmatches(text, matches)[[1]]
+  nums <- suppressWarnings(as.integer(sub("Figure\\s+", "", values)))
+  nums[!is.na(nums)]
+}
+
+get_next_figure_number <- function(path) {
+  if (!file.exists(path)) return(1)
+  text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  nums <- extract_figure_numbers(text)
+  if (length(nums) == 0) return(1)
+  max(nums) + 1
+}
+
+renumber_figures <- function(text, start_number) {
+  matches <- gregexpr("Figure\\s+[0-9]+", text, perl = TRUE)
+  if (matches[[1]][1] == -1) return(list(text = text, count = 0))
+  replacements <- sprintf("Figure %d", seq_along(matches[[1]]) + start_number - 1)
+  regmatches(text, matches) <- list(replacements)
+  list(text = text, count = length(replacements))
+}
+
 trim_trailing_whitespace <- function(text) {
   sub("[\r\n[:space:]]+$", "", text)
 }
@@ -653,6 +681,55 @@ format_template_report <- function(template_path, analysis_label, analysis_flags
   render_template_tokens(template, c(meta_tokens, base_tokens))
 }
 
+format_template_figure_report <- function(template_path, analysis_label, analysis_flags, figure_number, figure_body, template_context = NULL) {
+  template_data <- parse_template_file(template_path)
+  template <- template_data$body
+  meta <- template_data$meta
+  flags_text <- format_analysis_flags(analysis_flags)
+  if (!nzchar(flags_text)) flags_text <- "None."
+  base_tokens <- list(
+    analysis_label = analysis_label,
+    analysis_flags = flags_text,
+    figure_number = as.character(figure_number),
+    figure_body = figure_body,
+    narrative = figure_body,
+    narrative_default = figure_body
+  )
+  ctx_tokens <- list()
+  narrative_rows <- NULL
+  if (is.list(template_context)) {
+    if (!is.null(template_context$tokens)) {
+      ctx_tokens <- normalize_token_map(template_context$tokens)
+    }
+    if (!is.null(template_context$narrative_rows)) {
+      narrative_rows <- template_context$narrative_rows
+    }
+  }
+  if (length(ctx_tokens) > 0) {
+    base_tokens[names(ctx_tokens)] <- ctx_tokens
+  }
+  if (is.list(meta) && "narrative" %in% names(meta)) {
+    row_template <- meta$narrative$row_template
+    if (!is.null(row_template) && nzchar(row_template)) {
+      join <- if (!is.null(meta$narrative$join)) as.character(meta$narrative$join) else "\n"
+      drop_empty <- if (!is.null(meta$narrative$drop_empty)) isTRUE(meta$narrative$drop_empty) else TRUE
+      narrative <- render_narrative_rows(row_template, narrative_rows, base_tokens, join = join, drop_empty = drop_empty)
+      if (nzchar(narrative)) {
+        base_tokens$narrative <- narrative
+      }
+    } else if (!is.null(meta$narrative$template) && nzchar(meta$narrative$template)) {
+      narrative <- render_template_tokens(meta$narrative$template, base_tokens)
+      base_tokens$narrative <- narrative
+    }
+  }
+  meta_tokens <- list()
+  if (is.list(meta) && "tokens" %in% names(meta)) {
+    meta_tokens <- normalize_token_map(meta$tokens)
+  }
+  meta_tokens <- expand_template_tokens(meta_tokens, base_tokens)
+  render_template_tokens(template, c(meta_tokens, base_tokens))
+}
+
 format_apa_report <- function(analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, table_start = 1, template_context = NULL) {
   flags_text <- format_analysis_flags(analysis_flags)
   if (!is.null(template_path) && file.exists(template_path)) {
@@ -669,6 +746,24 @@ format_apa_report <- function(analysis_label, apa_table, apa_text, analysis_flag
     apa_table,
     "\n\n## APA Narrative\n\n",
     apa_text,
+    "\n"
+  )
+}
+
+format_apa_figure_report <- function(analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, figure_number = 1, template_context = NULL) {
+  flags_text <- format_analysis_flags(analysis_flags)
+  if (!is.null(template_path) && file.exists(template_path)) {
+    return(format_template_figure_report(template_path, analysis_label, analysis_flags, figure_number, figure_body, template_context = template_context))
+  }
+  analysis_block <- analysis_label
+  if (nzchar(flags_text)) {
+    analysis_block <- paste0(analysis_label, "\n", flags_text)
+  }
+  paste0(
+    "# APA Report\n\n",
+    "Analysis: ", analysis_block, "\n\n",
+    "## APA Figure\n\n",
+    figure_body,
     "\n"
   )
 }
@@ -690,6 +785,31 @@ append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysi
     analysis_flags = analysis_flags,
     template_path = resolved_template,
     table_start = table_start,
+    template_context = template_context
+  )
+  if (file.exists(path)) {
+    info <- file.info(path)
+    if (!is.na(info$size) && info$size > 0) {
+      report <- paste0("\n\n---\n\n", report)
+    }
+  }
+  con <- file(path, open = "a", encoding = "UTF-8")
+  on.exit(close(con), add = TRUE)
+  cat(report, file = con, sep = "")
+}
+
+append_apa_figure_report <- function(path, analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, template_context = NULL, figure_start = NULL) {
+  figure_number <- if (is.null(figure_start)) get_next_figure_number(path) else as.integer(figure_start)
+  resolved_template <- template_path
+  if (is.null(resolved_template)) {
+    resolved_template <- get_template_path(analysis_label)
+  }
+  report <- format_apa_figure_report(
+    analysis_label,
+    figure_body,
+    analysis_flags = analysis_flags,
+    template_path = resolved_template,
+    figure_number = figure_number,
     template_context = template_context
   )
   if (file.exists(path)) {

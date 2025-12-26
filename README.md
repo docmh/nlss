@@ -1,11 +1,11 @@
-# Core-Stats
+# NLSS - Natural Language Statistics Suite
 
 R-based statistics helpers that produce an APA 7-ready report plus machine-readable JSONL logs. The repo is organized as "subskills" with a shared workflow and consistent output locations.
 
 ## Requirements and system support
 
 - R 4.4+ (base R is enough for CSV/APA outputs).
-- Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), and `arrow` (parquet workspace copies).
+- Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), `arrow` (parquet workspace copies), and `ggplot2` (plot subskill).
 - Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `car` for Type II/III ANOVA sums of squares; `lme4` for mixed models; `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `performance` for R2/ICC; `lavaan` for SEM/CFA/mediation.
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
@@ -14,7 +14,7 @@ R-based statistics helpers that produce an APA 7-ready report plus machine-reada
 Install the R dependencies:
 
 ```bash
-Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','haven','foreign','car','lme4','lmerTest','emmeans','performance','lavaan'))"
+Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','car','lme4','lmerTest','emmeans','performance','lavaan'))"
 ```
 
 ## Install
@@ -101,6 +101,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `correlations` | `core-stats/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`) |
 | `scale` | `core-stats/scripts/R/scale.R` | Item analysis and reliability (alpha/omega) for scales. | Yes (`scale/default-template.md`) |
 | `data-explorer` | `core-stats/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Yes (`data-explorer/default-template.md`) |
+| `plot` | `core-stats/scripts/R/plot.R` | APA-ready figures (histogram, bar, box/violin, scatter/line, QQ, correlation heatmaps). | Yes (`plot/default-template.md`) |
 | `data-transform` | `core-stats/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Yes (`data-transform/default-template.md`) |
 | `missings` | `core-stats/scripts/R/missings.R` | Missing-data patterns, handling decisions, and transformed datasets. | Yes (`missings/default-template.md`) |
 | `assumptions` | `core-stats/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, regression, mixed models, and SEM. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`, `assumptions/mixed-models-template.md`, `assumptions/sem-template.md`) |
@@ -119,6 +120,7 @@ Reference docs:
 - `core-stats/references/correlations.md`
 - `core-stats/references/scale.md`
 - `core-stats/references/data-explorer.md`
+- `core-stats/references/plot.md`
 - `core-stats/references/data-transform.md`
 - `core-stats/references/missings.md`
 - `core-stats/references/assumptions.md`
@@ -174,6 +176,13 @@ Rscript core-stats/scripts/R/scale.R \
 ```bash
 Rscript core-stats/scripts/R/data_explorer.R \
   --csv data.csv --vars age,score --max-levels 15 --top-n 8
+```
+
+### Plots
+
+```bash
+Rscript core-stats/scripts/R/plot.R \
+  --csv data.csv --type scatter --x age --y score --group condition
 ```
 
 ### Data transformation
@@ -254,6 +263,7 @@ Rscript core-stats/scripts/R/init_workspace.R \
 
 All scripts write to the dataset workspace at `<workspace-root>/<dataset-name>/` and do not accept a custom output directory. Workspace root is the current directory, its parent, or a one-level child containing `core-stats-workspace.yml` (fallback: `defaults.output_dir` in `core-stats/scripts/config.yml`).
 Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`; `data_transform` and `missings` update these copies in place and create backups in `<workspace-root>/<dataset-name>/backup/`.
+Plots are saved under `<workspace-root>/<dataset-name>/plots/` with figure-numbered filenames.
 
 ## Configuration logic
 
@@ -267,7 +277,7 @@ Defaults live in `core-stats/scripts/config.yml` and are loaded via `core-stats/
 
 ## APA template logic (YAML)
 
-Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, data transformation, missingness handling, assumptions, regression, SEM, ANOVA, and t-tests).
+Templates are Markdown files under `core-stats/assets/<subskill>/` with YAML front matter. They drive `apa_report.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, plotting, data transformation, missingness handling, assumptions, regression, SEM, ANOVA, and t-tests).
 
 Key YAML fields:
 

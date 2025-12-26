@@ -234,6 +234,21 @@ resolve_select_variables <- function(df, vars, group_var = NULL, default = "nume
   requested
 }
 
+resolve_get_levels <- function(vec) {
+  if (exists("get_levels", mode = "function")) {
+    return(get("get_levels", mode = "function")(vec))
+  }
+  if (is.factor(vec)) {
+    return(as.character(levels(vec)))
+  }
+  values <- unique(vec[!is.na(vec)])
+  if (length(values) == 0) return(character(0))
+  if (is.numeric(values)) {
+    return(as.character(sort(values)))
+  }
+  as.character(sort(values))
+}
+
 resolve_get_template_path <- function(key, default_relative = NULL) {
   if (exists("resolve_template_path", mode = "function")) {
     return(get("resolve_template_path", mode = "function")(key, default_relative))
@@ -552,7 +567,7 @@ build_group_summary <- function(values, groups, digits) {
 
 get_group_levels <- function(vec) {
   if (is.factor(vec)) vec <- droplevels(vec)
-  get_levels(vec)
+  resolve_get_levels(vec)
 }
 
 build_within_summary <- function(df, within_vars, digits) {
@@ -1667,7 +1682,7 @@ main <- function() {
       emit_input_issue(out_dir, opts, "Grouping variable not found.", details = list(group = opts$group))
     }
     group_vals <- df[[opts$group]]
-    levels <- get_levels(group_vals)
+    levels <- get_group_levels(group_vals)
     if (length(levels) != 2) {
       emit_input_issue(
         out_dir,

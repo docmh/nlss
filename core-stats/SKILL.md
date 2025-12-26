@@ -1,6 +1,6 @@
 ---
 name: core-stats
-description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, data exploration, missingness handling, data transforms, workspace initialization) from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R (descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, data exploration, plotting, missingness handling, data transforms, workspace initialization) from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -11,7 +11,7 @@ metadata:
   style: APA 7
 ---
 
-# Statistic Skills (Shared Workflow)
+# NLSS - Natural Language Statistics Suite
 
 ## Overview
 
@@ -143,6 +143,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [correlations](references/correlations.md): Correlation matrices, cross/partial correlations, p-adjustments, optional grouping, and APA outputs.
 - [scale](references/scale.md): Scale item analysis and reliability (alpha/omega), reverse scoring, grouped results, APA outputs.
 - [data-explorer](references/data-explorer.md): Data dictionary summaries (types, levels, missingness, value counts) with APA output.
+- [plot](references/plot.md): APA-ready figures (histograms, bar charts, box/violin, scatter/line, QQ, correlation heatmaps) with numbered captions.
 - [data-transform](references/data-transform.md): Create/modify variables (compute, recode, standardize, rename, drop) with change logs and updated datasets.
 - [assumptions](references/assumptions.md): Assumption checks for t-tests, ANOVA, and regression (including diagnostics).
 - [regression](references/regression.md): Multiple and hierarchical regression with interactions, bootstrap options, and APA outputs.
