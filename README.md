@@ -10,7 +10,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 - R 4.4+ (base R is enough for CSV/APA outputs).
 - Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), `arrow` (parquet workspace copies), and `ggplot2` (plot subskill).
-- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `car` for Type II/III ANOVA sums of squares; `lme4` for mixed models; `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `performance` for R2/ICC; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power.
+- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `lme4` for mixed models; `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `performance` for R2/ICC; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power.
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
 - Optional: WSL if you want the wrapper to run Linux Rscript first and fall back to Windows Rscript.
@@ -18,13 +18,13 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 Install the R dependencies:
 
 ```bash
-Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','car','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower'))"
+Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower'))"
 ```
 
 Or install them interactively in R:
 
 ```r
-install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','car','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower'))
+install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower'))
 ```
 
 
@@ -108,7 +108,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 
 | Subskill | Script | Purpose | APA template |
 | --- | --- | --- | --- |
-| `descriptive-stats` | `nlss/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. | Yes (`descriptive-stats/default-template.md`) |
+| `descriptive-stats` | `nlss/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. | Yes (`descriptive-stats/default-template.md`, `descriptive-stats/robust-template.md`, `descriptive-stats/distribution-template.md`) |
 | `frequencies` | `nlss/scripts/R/frequencies.R` | Frequency tables for categorical variables. | Yes (`frequencies/default-template.md`, `frequencies/grouped-template.md`) |
 | `crosstabs` | `nlss/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
 | `correlations` | `nlss/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics, bootstrap CIs, Fisher r-to-z comparisons. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`, `correlations/matrix-template.md`, `correlations/comparison-template.md`) |
@@ -118,6 +118,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `plot` | `nlss/scripts/R/plot.R` | APA-ready figures (histogram, bar, box/violin, scatter/line, QQ, correlation heatmaps). | Yes (`plot/default-template.md`) |
 | `data-transform` | `nlss/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Yes (`data-transform/default-template.md`) |
 | `missings` | `nlss/scripts/R/missings.R` | Missing-data patterns, handling decisions, and transformed datasets. | Yes (`missings/default-template.md`) |
+| `impute` | `nlss/scripts/R/impute.R` | Imputation into new columns with optional mice/VIM engines. | Yes (`impute/default-template.md`) |
 | `assumptions` | `nlss/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, regression, mixed models, and SEM. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`, `assumptions/mixed-models-template.md`, `assumptions/sem-template.md`) |
 | `regression` | `nlss/scripts/R/regression.R` | Multiple and hierarchical regression (OLS/GLM) with interactions and bootstrap CIs. | Yes (`regression/default-template.md`) |
 | `power` | `nlss/scripts/R/power.R` | Power analysis for t-tests, ANOVA, correlations, regression, and SEM. | Yes (`power/default-template.md`) |
@@ -153,6 +154,7 @@ Reference docs:
 - `nlss/references/subskills/plot.md`
 - `nlss/references/subskills/data-transform.md`
 - `nlss/references/subskills/missings.md`
+- `nlss/references/subskills/impute.md`
 - `nlss/references/subskills/assumptions.md`
 - `nlss/references/subskills/regression.md`
 - `nlss/references/subskills/power.md`
@@ -337,7 +339,7 @@ Defaults live in `nlss/scripts/config.yml` and are loaded via `nlss/scripts/R/li
 
 ## APA template logic (YAML)
 
-Templates are Markdown files under `nlss/assets/<subskill>/` with YAML front matter. They drive `report_canonical.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, plotting, data transformation, missingness handling, assumptions, regression, power, SEM, ANOVA, and t-tests).
+Templates are Markdown files under `nlss/assets/<subskill>/` with YAML front matter. They drive `report_canonical.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, plotting, data transformation, missingness handling, imputation, assumptions, regression, power, SEM, ANOVA, and t-tests).
 
 Key YAML fields:
 

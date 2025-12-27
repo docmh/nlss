@@ -1,6 +1,6 @@
 ---
 name: descriptive-stats
-description: Descriptive statistics for numeric variables (mean, SD, median, range, skewness/kurtosis, missingness, CI) with optional grouping and APA-ready tables/narratives.
+description: Descriptive statistics for numeric variables (mean, SD, median, range, robust metrics, percentiles, outliers, missingness, CI) with optional grouping and APA-ready tables/narratives.
 ---
 
 # Descriptive Stats (Base R, APA 7)
@@ -69,6 +69,9 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 - `--vars` defaults to `modules.descriptive_stats.vars_default` (typically numeric columns) if omitted.
 - `--group` is optional and produces grouped summaries.
 - `--digits` controls rounding (default: `defaults.digits`).
+- `--trim` controls the trimmed mean proportion (default: `modules.descriptive_stats.trim`).
+- `--iqr-multiplier` sets the Tukey IQR multiplier for outlier counts (default: `modules.descriptive_stats.iqr_multiplier`).
+- `--outlier-z` sets the z-threshold for outlier counts (default: `modules.descriptive_stats.outlier_z`).
 - `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
@@ -84,9 +87,10 @@ Subskills append to `report_canonical.md` and do not create separate report file
 
 ## APA 7 Template (YAML)
 
-Use the Markdown template at `nlss/assets/descriptive-stats/default-template.md` when assembling a descriptive statistics report. If the template exists, it must be used for `report_canonical.md`.
+Use the Markdown templates under `nlss/assets/descriptive-stats` when assembling a descriptive statistics report. If a template exists, it must be used for `report_canonical.md`.
+Available templates include `default-template.md`, `robust-template.md`, and `distribution-template.md`.
 
-- The template path can be overridden via `templates.descriptive_stats.default` in `nlss/scripts/config.yml`.
+- The template path can be overridden via `templates.descriptive_stats.default`, `templates.descriptive_stats.robust`, and `templates.descriptive_stats.distribution` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
   - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).
@@ -96,7 +100,7 @@ Use the Markdown template at `nlss/assets/descriptive-stats/default-template.md`
 
 Available column keys for `table.columns` include:
 
-`variable`, `group`, `n`, `missing_n`, `missing_pct`, `mean`, `sd`, `min`, `max`, `median`, `se`, `ci_low`, `ci_high`, `skewness`, `kurtosis`, `total_n`.
+`variable`, `group`, `n`, `missing_n`, `missing_pct`, `mean`, `sd`, `median`, `min`, `max`, `variance`, `range`, `q1`, `q3`, `iqr`, `mad`, `cv`, `trimmed_mean`, `p5`, `p10`, `p90`, `p95`, `outliers_tukey`, `outliers_z`, `mode`, `n_unique`, `se`, `ci_low`, `ci_high`, `skewness`, `kurtosis`, `total_n`.
 
 Use `drop_if_empty: true` to remove a column if all values are blank.
 
@@ -104,16 +108,21 @@ Use `drop_if_empty: true` to remove a column if all values are blank.
 
 Available note tokens include:
 
-`note_default`, `note_abbrev`, `missing_note`.
+`note_default`, `note_abbrev`, `missing_note`, `trim_note`, `robust_note`, `percentile_note`, `outlier_note`, `cv_note`, `mode_note`.
+
+Additional template tokens include `trim`, `trim_pct`, `iqr_multiplier`, and `outlier_z`.
 
 ### Narrative tokens
 
 Use `narrative.row_template` for per-row lines. Available row tokens include:
 
-`label`, `variable`, `group`, `n`, `missing_n`, `missing_pct`, `mean`, `sd`, `min`, `max`, `ci_low`, `ci_high`, `full_sentence`.
+`label`, `variable`, `group`, `n`, `missing_n`, `missing_pct`, `mean`, `sd`, `median`, `min`, `max`, `variance`, `range`, `q1`, `q3`, `iqr`, `mad`, `cv`, `trimmed_mean`, `p5`, `p10`, `p90`, `p95`, `outliers_tukey`, `outliers_z`, `mode`, `n_unique`, `se`, `ci_low`, `ci_high`, `full_sentence`.
 
 ## APA 7 Reporting Guidance
 
 - Use the narrative lines as the base: `Variable: M = x.xx, SD = x.xx, 95% CI [x.xx, x.xx], n = xx, missing = x (x.x%).`
 - If `n < 2` or SD is missing, state that variability cannot be estimated.
 - When grouped, report each group separately before any overall comparison.
+- CV is computed as `SD / |M|` and is omitted when `M = 0`.
+- Mode is only reported when a single most frequent value exists; ties are omitted.
+- Outlier counts use Tukey fences (`iqr_multiplier` x IQR) and `|z| > outlier_z`.

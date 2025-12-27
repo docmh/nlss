@@ -47,7 +47,10 @@ get_builtin_config <- function() {
     ),
     modules = list(
       descriptive_stats = list(
-        vars_default = "numeric"
+        vars_default = "numeric",
+        trim = 0.1,
+        iqr_multiplier = 1.5,
+        outlier_z = 3
       ),
       frequencies = list(
         vars_default = "non-numeric",
@@ -260,6 +263,20 @@ get_builtin_config <- function() {
           convergence = TRUE
         )
       ),
+      impute = list(
+        vars_default = "all",
+        engine = "auto",
+        numeric_method = "median",
+        categorical_method = "mode",
+        skew_threshold = 1,
+        suffix = "_imp",
+        indicator = FALSE,
+        indicator_suffix = "_miss",
+        m = 5,
+        maxit = 5,
+        k = 5,
+        seed = NULL
+      ),
       missings = list(
         vars_default = "all",
         method = "auto",
@@ -283,7 +300,9 @@ get_builtin_config <- function() {
     ),
     templates = list(
       descriptive_stats = list(
-        default = "descriptive-stats/default-template.md"
+        default = "descriptive-stats/default-template.md",
+        robust = "descriptive-stats/robust-template.md",
+        distribution = "descriptive-stats/distribution-template.md"
       ),
       frequencies = list(
         default = "frequencies/default-template.md",
@@ -347,6 +366,9 @@ get_builtin_config <- function() {
         regression = "assumptions/regression-template.md",
         mixed_models = "assumptions/mixed-models-template.md",
         sem = "assumptions/sem-template.md"
+      ),
+      impute = list(
+        default = "impute/default-template.md"
       ),
       missings = list(
         default = "missings/default-template.md"

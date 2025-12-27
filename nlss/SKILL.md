@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, explore-data, plan-power, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, power analysis, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, explore-data, plan-power, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, power analysis, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, imputation, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -147,6 +147,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - Use the workspace root in the current directory, its parent, or a one-level child if `nlss-workspace.yml` is present; otherwise fall back to `defaults.output_dir` from `scripts/config.yml`.
 - The output directory is fixed to the resolved workspace root and is not user-overridable.
 - Each analysis appends `report_canonical.md` (APA table + narrative) and `analysis_log.jsonl` inside `<workspace-root>/<dataset-name>/` when logging is enabled.
+- All artifacts (reports, tables, figures, scripts) must be created inside the dataset workspace folder; do not create files or folders outside the workspace root.
 - Subskills do not create separate report files; they only extend `report_canonical.md`. Standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 - The agent logs a meta entry in `analysis_log.jsonl` and each subskill run logs its own entry as usual.
 - Metaskill finalization appends a `# Synopsis` section to `report_canonical.md` and creates `report_<YYYYMMDD>_<metaskill>_<intent>.md` inside the dataset workspace.
@@ -173,7 +174,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 ## Subskills
 
-- [descriptive-stats](references/subskills/descriptive-stats.md): Numeric descriptive statistics with optional grouping, missingness, distribution metrics, and APA tables/narratives.
+- [descriptive-stats](references/subskills/descriptive-stats.md): Numeric descriptives with grouping, missingness, robust/percentile/outlier metrics, and APA templates (default/robust/distribution).
 - [frequencies](references/subskills/frequencies.md): Categorical frequency tables with percentages, grouping, and APA-ready tables/narratives.
 - [crosstabs](references/subskills/crosstabs.md): Contingency tables with chi-square/Fisher tests, effect sizes, residuals, and APA outputs.
 - [correlations](references/subskills/correlations.md): Correlation and cross-correlation matrices, partial correlations, p-adjustments, bootstrap CIs, Fisher r-to-z tests, optional grouping, and APA outputs.
@@ -191,6 +192,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [t-test](references/subskills/t-test.md): One-sample, independent-samples, and paired-samples t-tests with APA outputs.
 - [nonparametric](references/subskills/nonparametric.md): Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests with APA outputs.
 - [missings](references/subskills/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.
+- [impute](references/subskills/impute.md): Imputation into new _imp columns with optional mice/VIM engines and APA outputs.
 - [init-workspace](references/subskills/init-workspace.md): Initialize per-dataset workspace folders with scratchpad.md, report_canonical.md, analysis_log.jsonl, and .parquet dataset copies.
 - [metaskill-runner](references/subskills/metaskill-runner.md): Log metaskill activations to report_canonical.md and analysis_log.jsonl.
 
@@ -203,6 +205,14 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - Log the metaskill activation using the `metaskill-runner` subskill.
 - Execute the listed subskills in order, reusing the workspace `.parquet` copy.
 - Update the dataset `scratchpad.md` with the plan and progress after each step.
+
+### Metaskill Report Requirements
+
+- `report_canonical.md` is an audit trail; never copy it as the final metaskill report.
+- `report_<YYYYMMDD>_<metaskill>_<intent>.md` must be newly written, APA 7–aligned, and journal-ready.
+- Synthesize results across subskills with interpretation; do not just list outputs.
+- Include APA tables and figures when they improve comprehension; reference them in text with captions.
+- Keep all metaskill artifacts inside the dataset workspace folder; never write outside the workspace root.
 
 ### Available Metaskills
 

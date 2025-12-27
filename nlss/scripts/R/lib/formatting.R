@@ -15,6 +15,8 @@ humanize_flag_name <- function(name) {
     "vars" = "Variables",
     "group" = "Grouping variable",
     "digits" = "Rounding digits",
+    "trim" = "Trim proportion",
+    "iqr-multiplier" = "IQR multiplier",
     "method" = "Method",
     "missing" = "Missing handling",
     "format" = "Input format",

@@ -101,7 +101,14 @@ Include the following where applicable:
 - `scripts/custom_<YYYYMMDD>_<intent>.R`: The generated script in the dataset workspace folder.
 - `report_<YYYYMMDD>_generate-r-script_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
+### Final report requirements
+
+- Do not copy `report_canonical.md`; write a new narrative report.
+- Synthesize results across subskills; include tables/figures with captions and in-text references.
+- Keep the report APA 7-ready and suitable for journal submission.
+
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
+All artifacts (reports, tables, figures, scripts) must be created inside the dataset workspace folder; do not write outside the workspace root.
 
 ## APA 7 Templates
 

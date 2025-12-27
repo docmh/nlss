@@ -19,7 +19,8 @@ ensure_out_dir <- function(path) {
 }
 
 escape_regex <- function(text) {
-  gsub("([\\.^$|()\\[\\]{}*+?\\\\])", "\\\\\\1", as.character(text))
+  # Use PCRE to avoid TRE brace parsing failures in some R builds.
+  gsub("([\\.^$|()\\[\\]{}*+?\\\\])", "\\\\\\1", as.character(text), perl = TRUE)
 }
 
 get_workspace_manifest_name <- function() {

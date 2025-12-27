@@ -12,6 +12,9 @@ defaults:
 modules:
   descriptive_stats:
     vars_default: "numeric"
+    trim: 0.1
+    iqr_multiplier: 1.5
+    outlier_z: 3
   frequencies:
     vars_default: "non-numeric"
     include_numeric: false
@@ -216,6 +219,19 @@ modules:
     indicator_suffix: "_miss"
     skew_threshold: 1
     max_patterns: 10
+  impute:
+    vars_default: "all"
+    engine: "auto"
+    numeric_method: "median"
+    categorical_method: "mode"
+    skew_threshold: 1
+    suffix: "_imp"
+    indicator: false
+    indicator_suffix: "_miss"
+    m: 5
+    maxit: 5
+    k: 5
+    seed: null
   init_workspace:
     agent: "Codex"
   metaskill_runner:
@@ -225,6 +241,8 @@ modules:
 templates:
   descriptive_stats:
     default: "descriptive-stats/default-template.md"
+    robust: "descriptive-stats/robust-template.md"
+    distribution: "descriptive-stats/distribution-template.md"
   frequencies:
     default: "frequencies/default-template.md"
     grouped: "frequencies/grouped-template.md"
@@ -272,6 +290,8 @@ templates:
     regression: "assumptions/regression-template.md"
     mixed_models: "assumptions/mixed-models-template.md"
     sem: "assumptions/sem-template.md"
+  impute:
+    default: "impute/default-template.md"
   missings:
     default: "missings/default-template.md"
   init_workspace:

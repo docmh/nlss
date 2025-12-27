@@ -39,6 +39,9 @@ print_usage <- function() {
   cat("  --vars LIST          Comma-separated variable names (default: all numeric)\n")
   cat("  --group NAME         Grouping variable name (optional)\n")
   cat("  --digits N           Rounding digits (default: 2)\n")
+  cat("  --trim VALUE         Trim proportion for trimmed mean (default: 0.1)\n")
+  cat("  --iqr-multiplier N   IQR multiplier for Tukey outliers (default: 1.5)\n")
+  cat("  --outlier-z N        Z threshold for outlier counts (default: 3)\n")
   cat("  --template REF       Template path or template key (optional)\n")
   cat("  --user-prompt TEXT   Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE     Write analysis_log.jsonl (default: TRUE)\n")
@@ -76,6 +79,12 @@ interactive_options <- function() {
   opts$group <- resolve_prompt("Grouping variable (blank for none)", "")
   digits_default <- resolve_config_value("defaults.digits", 2)
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
+  trim_default <- resolve_config_value("modules.descriptive_stats.trim", 0.1)
+  opts$trim <- resolve_prompt("Trim proportion (0-0.5)", as.character(trim_default))
+  iqr_default <- resolve_config_value("modules.descriptive_stats.iqr_multiplier", 1.5)
+  opts$`iqr-multiplier` <- resolve_prompt("IQR multiplier", as.character(iqr_default))
+  outlier_default <- resolve_config_value("modules.descriptive_stats.outlier_z", 3)
+  opts$`outlier-z` <- resolve_prompt("Outlier z threshold", as.character(outlier_default))
   opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
@@ -334,7 +343,18 @@ calc_kurtosis <- function(x, mean_x, sd_x) {
   term1 * sum(((x - mean_x) / sd_x)^4) - term2
 }
 
-summarize_vector <- function(vec, total_n, digits) {
+calc_mode <- function(x, min_count = 2) {
+  if (length(x) == 0) return(NA_real_)
+  tab <- table(x, useNA = "no")
+  if (length(tab) == 0) return(NA_real_)
+  max_count <- max(tab)
+  if (max_count < min_count) return(NA_real_)
+  modes <- as.numeric(names(tab)[tab == max_count])
+  if (length(modes) != 1) return(NA_real_)
+  modes[1]
+}
+
+summarize_vector <- function(vec, total_n, digits, trim = 0.1, iqr_multiplier = 1.5, outlier_z = 3) {
   missing_n <- sum(is.na(vec))
   x <- vec[!is.na(vec)]
   n <- length(x)
@@ -349,6 +369,22 @@ summarize_vector <- function(vec, total_n, digits) {
       median = NA_real_,
       min = NA_real_,
       max = NA_real_,
+      variance = NA_real_,
+      range = NA_real_,
+      q1 = NA_real_,
+      q3 = NA_real_,
+      iqr = NA_real_,
+      mad = NA_real_,
+      cv = NA_real_,
+      trimmed_mean = NA_real_,
+      p5 = NA_real_,
+      p10 = NA_real_,
+      p90 = NA_real_,
+      p95 = NA_real_,
+      outliers_tukey = NA_real_,
+      outliers_z = NA_real_,
+      mode = NA_real_,
+      n_unique = NA_real_,
       se = NA_real_,
       ci_low = NA_real_,
       ci_high = NA_real_,
@@ -359,9 +395,36 @@ summarize_vector <- function(vec, total_n, digits) {
 
   mean_x <- mean(x)
   sd_x <- if (n > 1) sd(x) else NA_real_
+  variance_x <- if (n > 1) var(x) else NA_real_
   median_x <- median(x)
   min_x <- min(x)
   max_x <- max(x)
+  range_x <- max_x - min_x
+  q <- quantile(x, probs = c(0.05, 0.1, 0.25, 0.75, 0.9, 0.95), names = FALSE, type = 7)
+  p5_x <- q[1]
+  p10_x <- q[2]
+  q1_x <- q[3]
+  q3_x <- q[4]
+  p90_x <- q[5]
+  p95_x <- q[6]
+  iqr_x <- q3_x - q1_x
+  mad_x <- mad(x, constant = 1.4826, na.rm = TRUE)
+  trim_x <- mean(x, trim = trim)
+  cv_x <- if (!is.na(sd_x) && !is.na(mean_x) && mean_x != 0) sd_x / abs(mean_x) else NA_real_
+  outlier_tukey_count <- if (!is.na(iqr_x)) {
+    lower <- q1_x - iqr_multiplier * iqr_x
+    upper <- q3_x + iqr_multiplier * iqr_x
+    sum(x < lower | x > upper)
+  } else {
+    NA_real_
+  }
+  outlier_z_count <- if (!is.na(sd_x) && sd_x > 0) {
+    sum(abs((x - mean_x) / sd_x) > outlier_z)
+  } else {
+    NA_real_
+  }
+  mode_x <- calc_mode(x)
+  n_unique <- length(unique(x))
   se_x <- if (!is.na(sd_x)) sd_x / sqrt(n) else NA_real_
   if (!is.na(se_x) && n > 1) {
     tcrit <- qt(0.975, df = n - 1)
@@ -384,6 +447,22 @@ summarize_vector <- function(vec, total_n, digits) {
     median = median_x,
     min = min_x,
     max = max_x,
+    variance = variance_x,
+    range = range_x,
+    q1 = q1_x,
+    q3 = q3_x,
+    iqr = iqr_x,
+    mad = mad_x,
+    cv = cv_x,
+    trimmed_mean = trim_x,
+    p5 = p5_x,
+    p10 = p10_x,
+    p90 = p90_x,
+    p95 = p95_x,
+    outliers_tukey = outlier_tukey_count,
+    outliers_z = outlier_z_count,
+    mode = mode_x,
+    n_unique = n_unique,
     se = se_x,
     ci_low = ci_low,
     ci_high = ci_high,
@@ -392,7 +471,7 @@ summarize_vector <- function(vec, total_n, digits) {
   )
 }
 
-build_summary <- function(df, vars, group_var = NULL, digits = 2) {
+build_summary <- function(df, vars, group_var = NULL, digits = 2, trim = 0.1, iqr_multiplier = 1.5, outlier_z = 3) {
   rows <- list()
   if (!is.null(group_var) && group_var != "") {
     group_vec <- df[[group_var]]
@@ -401,7 +480,14 @@ build_summary <- function(df, vars, group_var = NULL, digits = 2) {
       idx <- if (is.na(g)) is.na(group_vec) else group_vec == g
       sub_df <- df[idx, , drop = FALSE]
       for (var in vars) {
-        stats <- summarize_vector(sub_df[[var]], length(sub_df[[var]]), digits)
+        stats <- summarize_vector(
+          sub_df[[var]],
+          length(sub_df[[var]]),
+          digits,
+          trim = trim,
+          iqr_multiplier = iqr_multiplier,
+          outlier_z = outlier_z
+        )
         row <- c(
           list(
             variable = var,
@@ -415,7 +501,14 @@ build_summary <- function(df, vars, group_var = NULL, digits = 2) {
     }
   } else {
     for (var in vars) {
-      stats <- summarize_vector(df[[var]], length(df[[var]]), digits)
+      stats <- summarize_vector(
+        df[[var]],
+        length(df[[var]]),
+        digits,
+        trim = trim,
+        iqr_multiplier = iqr_multiplier,
+        outlier_z = outlier_z
+      )
       row <- c(
         list(
           variable = var,
@@ -524,7 +617,7 @@ build_descriptive_table_body <- function(df, digits, table_spec = NULL) {
         cell <- row[[key]][1]
         if (key %in% c("variable", "group")) {
           val <- resolve_as_cell_text(cell)
-        } else if (key %in% c("n", "missing_n", "total_n")) {
+        } else if (key %in% c("n", "missing_n", "total_n", "outliers_tukey", "outliers_z", "n_unique")) {
           val <- ifelse(is.na(cell), "", as.character(cell))
         } else if (key == "missing_pct") {
           val <- format_num(cell, digits)
@@ -591,8 +684,26 @@ build_descriptive_narrative_rows <- function(df, digits) {
       missing_pct = missing_pct_str,
       mean = mean_str,
       sd = sd_str,
+      se = ifelse(is.na(row$se), "NA", format(row$se, nsmall = digits, trim = TRUE)),
+      median = ifelse(is.na(row$median), "NA", format(row$median, nsmall = digits, trim = TRUE)),
       min = ifelse(is.na(row$min), "NA", format(row$min, nsmall = digits, trim = TRUE)),
       max = ifelse(is.na(row$max), "NA", format(row$max, nsmall = digits, trim = TRUE)),
+      variance = ifelse(is.na(row$variance), "NA", format(row$variance, nsmall = digits, trim = TRUE)),
+      range = ifelse(is.na(row$range), "NA", format(row$range, nsmall = digits, trim = TRUE)),
+      q1 = ifelse(is.na(row$q1), "NA", format(row$q1, nsmall = digits, trim = TRUE)),
+      q3 = ifelse(is.na(row$q3), "NA", format(row$q3, nsmall = digits, trim = TRUE)),
+      iqr = ifelse(is.na(row$iqr), "NA", format(row$iqr, nsmall = digits, trim = TRUE)),
+      mad = ifelse(is.na(row$mad), "NA", format(row$mad, nsmall = digits, trim = TRUE)),
+      cv = ifelse(is.na(row$cv), "NA", format(row$cv, nsmall = digits, trim = TRUE)),
+      trimmed_mean = ifelse(is.na(row$trimmed_mean), "NA", format(row$trimmed_mean, nsmall = digits, trim = TRUE)),
+      p5 = ifelse(is.na(row$p5), "NA", format(row$p5, nsmall = digits, trim = TRUE)),
+      p10 = ifelse(is.na(row$p10), "NA", format(row$p10, nsmall = digits, trim = TRUE)),
+      p90 = ifelse(is.na(row$p90), "NA", format(row$p90, nsmall = digits, trim = TRUE)),
+      p95 = ifelse(is.na(row$p95), "NA", format(row$p95, nsmall = digits, trim = TRUE)),
+      outliers_tukey = ifelse(is.na(row$outliers_tukey), "NA", as.character(row$outliers_tukey)),
+      outliers_z = ifelse(is.na(row$outliers_z), "NA", as.character(row$outliers_z)),
+      mode = ifelse(is.na(row$mode), "NA", format(row$mode, nsmall = digits, trim = TRUE)),
+      n_unique = ifelse(is.na(row$n_unique), "NA", as.character(row$n_unique)),
       ci_low = ci_low_str,
       ci_high = ci_high_str,
       full_sentence = line
@@ -601,12 +712,25 @@ build_descriptive_narrative_rows <- function(df, digits) {
   rows
 }
 
-build_descriptive_note_tokens <- function() {
+build_descriptive_note_tokens <- function(trim = 0.1, iqr_multiplier = 1.5, outlier_z = 3) {
   abbrev_note <- "M = mean; SD = standard deviation."
   missing_note <- "Missing values excluded per variable."
+  trim_pct <- format(round(trim * 100, 1), nsmall = 1, trim = TRUE)
+  trim_note <- paste0("Trimmed mean uses ", trim_pct, "% trimming.")
+  robust_note <- "Median (Mdn), IQR, and MAD summarize robust location and spread."
+  percentile_note <- "Percentiles reported: 5th, 10th, 90th, 95th."
+  outlier_note <- paste0("Outliers flagged by Tukey fences (", format(iqr_multiplier, trim = TRUE), "xIQR) and |z| > ", format(outlier_z, trim = TRUE), ".")
+  cv_note <- "CV = SD / |M|."
+  mode_note <- "Mode reported only when a single most frequent value exists."
   list(
     note_abbrev = abbrev_note,
     missing_note = missing_note,
+    trim_note = trim_note,
+    robust_note = robust_note,
+    percentile_note = percentile_note,
+    outlier_note = outlier_note,
+    cv_note = cv_note,
+    mode_note = mode_note,
     note_default = paste(abbrev_note, missing_note)
   )
 }
@@ -627,7 +751,22 @@ main <- function() {
   digits_default <- resolve_config_value("defaults.digits", 2)
   log_default <- resolve_config_value("defaults.log", TRUE)
   vars_default <- resolve_config_value("modules.descriptive_stats.vars_default", "numeric")
+  trim_default <- resolve_config_value("modules.descriptive_stats.trim", 0.1)
+  iqr_default <- resolve_config_value("modules.descriptive_stats.iqr_multiplier", 1.5)
+  outlier_default <- resolve_config_value("modules.descriptive_stats.outlier_z", 3)
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
+  trim <- if (!is.null(opts$trim)) as.numeric(opts$trim) else trim_default
+  iqr_multiplier <- if (!is.null(opts$`iqr-multiplier`)) as.numeric(opts$`iqr-multiplier`) else iqr_default
+  outlier_z <- if (!is.null(opts$`outlier-z`)) as.numeric(opts$`outlier-z`) else outlier_default
+  if (is.na(trim) || trim < 0 || trim >= 0.5) {
+    stop("Trim must be between 0 (inclusive) and 0.5 (exclusive).")
+  }
+  if (is.na(iqr_multiplier) || iqr_multiplier <= 0) {
+    stop("IQR multiplier must be greater than 0.")
+  }
+  if (is.na(outlier_z) || outlier_z <= 0) {
+    stop("Outlier z threshold must be greater than 0.")
+  }
   df <- resolve_load_dataframe(opts)
   out_dir <- resolve_get_workspace_out_dir(df)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
@@ -638,7 +777,7 @@ main <- function() {
   vars <- resolve_select_variables(df, opts$vars, group_var, default = vars_default)
   if (length(vars) == 0) stop("No numeric variables available for analysis.")
 
-  summary_df <- build_summary(df, vars, group_var, digits)
+  summary_df <- build_summary(df, vars, group_var, digits, trim = trim, iqr_multiplier = iqr_multiplier, outlier_z = outlier_z)
   apa_report_path <- file.path(out_dir, "report_canonical.md")
   apa_table <- format_apa_table(summary_df, digits)
   apa_text <- format_apa_text(summary_df, digits)
@@ -650,13 +789,17 @@ main <- function() {
   }
   template_meta <- resolve_get_template_meta(template_path)
   table_body <- build_descriptive_table_body(summary_df, digits, template_meta$table)
-  note_tokens <- build_descriptive_note_tokens()
+  note_tokens <- build_descriptive_note_tokens(trim = trim, iqr_multiplier = iqr_multiplier, outlier_z = outlier_z)
   narrative_rows <- build_descriptive_narrative_rows(summary_df, digits)
   template_context <- list(
     tokens = c(
       list(
         table_body = table_body,
-        narrative_default = apa_text
+        narrative_default = apa_text,
+        trim = trim,
+        trim_pct = format(round(trim * 100, 1), nsmall = 1, trim = TRUE),
+        iqr_multiplier = iqr_multiplier,
+        outlier_z = outlier_z
       ),
       note_tokens
     ),
@@ -665,7 +808,10 @@ main <- function() {
   analysis_flags <- list(
     vars = vars,
     group = if (!is.null(group_var) && group_var != "") group_var else "None",
-    digits = digits
+    digits = digits,
+    trim = trim,
+    `iqr-multiplier` = iqr_multiplier,
+    `outlier-z` = outlier_z
   )
   resolve_append_apa_report(
     apa_report_path,
@@ -688,7 +834,7 @@ main <- function() {
       prompt = ctx$prompt,
       commands = ctx$commands,
       results = list(summary_df = summary_df),
-      options = list(digits = digits, vars = vars, group = group_var),
+      options = list(digits = digits, vars = vars, group = group_var, trim = trim, iqr_multiplier = iqr_multiplier, outlier_z = outlier_z),
       user_prompt = resolve_get_user_prompt(opts)
     )
   }
