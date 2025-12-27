@@ -9,6 +9,10 @@ description: Assumption checks for t-tests, ANOVA, regression, mixed models, and
 
 Run assumption and diagnostic checks for t-tests, ANOVA (between, within, mixed), regression (including multiple and hierarchical models), mixed models, and SEM/CFA/mediation/path models. The script outputs APA-ready tables/narratives plus a machine-readable JSONL log.
 
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
@@ -137,6 +141,8 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - Missing values are handled listwise per test or model.
 
 ## Outputs
+
+Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 - `report_canonical.md`: APA 7 report containing analysis flags, table, and narrative.

@@ -1,5 +1,9 @@
 # AGENTS
 
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
 ## Metaskill Implementation Guide
 
 Metaskills are Markdown pseudoscripts executed by the agent (there is no separate runner). Use them to orchestrate subskills based on user intent and to document the plan/decisions in the dataset scratchpad.
@@ -96,6 +100,7 @@ New subskills should use the YAML template system for `report_canonical.md`:
 ### Outputs
 
 - Always provide machine-readable output for `analysis_log.jsonl` plus human-readable APA-ready output for `report_canonical.md` inside each dataset workspace folder.
+- Subskills extend `report_canonical.md` only and do not create standalone report files; only metaskills create `report_<YYYYMMDD>_<metaskill>_<intent>.md`.
 - Append new logs if the output files already exist in the dataset workspace.
 - Include assumptions/diagnostics outputs when applicable (e.g., residual checks, normality tests).
 - Default outputs should always land in `<workspace-root>/<dataset-name>/`, including interactive mode (workspace root = current directory, parent, or one-level child with `nlss-workspace.yml`; fallback to `defaults.output_dir`).

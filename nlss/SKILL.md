@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, power analysis, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, plan-power, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, power analysis, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -16,6 +16,10 @@ metadata:
 ## Overview
 
 Central guidance for all statistic skills in this repo, plus shared conventions for running R scripts and placing outputs.
+
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
 
 ## Metaskills Overview
 
@@ -142,6 +146,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - Use the workspace root in the current directory, its parent, or a one-level child if `nlss-workspace.yml` is present; otherwise fall back to `defaults.output_dir` from `scripts/config.yml`.
 - The output directory is fixed to the resolved workspace root and is not user-overridable.
 - Each analysis appends `report_canonical.md` (APA table + narrative) and `analysis_log.jsonl` inside `<workspace-root>/<dataset-name>/` when logging is enabled.
+- Subskills do not create separate report files; they only extend `report_canonical.md`. Standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 - The agent logs a meta entry in `analysis_log.jsonl` and each subskill run logs its own entry as usual.
 - Metaskill finalization appends a `# Synopsis` section to `report_canonical.md` and creates `report_<YYYYMMDD>_<metaskill>_<intent>.md` inside the dataset workspace.
 - When `defaults.log_nlss_checksum` is true, log entries include a `checksum` field that XOR-combines the `nlss/` folder checksum with a checksum of the log entry content (excluding the checksum field), so it can be reverted for tamper checks.
@@ -200,11 +205,11 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 ### Available Metaskills
 
-- [describe-sample](references/metaskills/describe-sample.md): Sample overview using missingness summaries, descriptive stats, and frequency tables.
+- [describe-sample](references/metaskills/describe-sample.md): Demographic-first sample description with inferred variables, descriptive stats, and frequency tables for vague "describe the sample" requests.
 - [generate-r-script](references/metaskills/generate-r-script.md): Generate a custom R script for analyses not covered by NLSS (permission required).
-- [check-instruments](references/metaskills/check-instruments.md): Scale/item analysis and reliability checks for survey instruments.
-- [test-hypotheses](references/metaskills/test-hypotheses.md): Map hypotheses to tests with clarifications, run the appropriate analyses, and report APA-ready outputs.
-- plan-power (planned): Power analysis for t-tests, ANOVA, regression, correlations, and SEM.
+- [check-instruments](references/metaskills/check-instruments.md): Instrument quality checks via item analysis, reverse scoring, and reliability (alpha/omega, ICC/kappa) with defaults for vague requests.
+- [test-hypotheses](references/metaskills/test-hypotheses.md): Map vague hypotheses to tests with clarifications, run the appropriate analyses, and report APA-ready outputs.
+- [plan-power](references/metaskills/plan-power.md): A priori power analysis to plan minimal sample size for t-tests, ANOVA, regression, correlations, and SEM.
 - explore-data (planned): Data exploration with distributions, outliers, correlations, and plots.
 - handle-missings (planned): Missingness analysis and handling with patterns, methods, and updated datasets.
 - transform-data (planned): Data transformation with variable creation, recoding, and standardization.

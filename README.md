@@ -2,6 +2,10 @@
 
 R-based statistics helpers that produce an APA 7-ready report plus machine-readable JSONL logs. The repo is organized as "subskills" with a shared workflow and consistent output locations.
 
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
 ## Requirements and system support
 
 - R 4.4+ (base R is enough for CSV/APA outputs).
@@ -131,6 +135,7 @@ Available metaskills:
 - `describe-sample`: `nlss/references/metaskills/describe-sample.md`
 - `generate-r-script`: `nlss/references/metaskills/generate-r-script.md`
 - `check-instruments`: `nlss/references/metaskills/check-instruments.md`
+- `plan-power`: `nlss/references/metaskills/plan-power.md`
 - `test-hypotheses`: `nlss/references/metaskills/test-hypotheses.md`
 
 Utilities:
@@ -160,6 +165,7 @@ Reference docs:
 - `nlss/references/metaskills/describe-sample.md`
 - `nlss/references/metaskills/generate-r-script.md`
 - `nlss/references/metaskills/check-instruments.md`
+- `nlss/references/metaskills/plan-power.md`
 - `nlss/references/metaskills/test-hypotheses.md`
 - `nlss/references/utilities/calc.md`
 
@@ -313,7 +319,7 @@ Rscript nlss/scripts/R/init_workspace.R \
 
 ## Where outputs go
 
-All scripts write to the dataset workspace at `<workspace-root>/<dataset-name>/` and do not accept a custom output directory. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir` in `nlss/scripts/config.yml`).
+All scripts write to the dataset workspace at `<workspace-root>/<dataset-name>/` and do not accept a custom output directory. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir` in `nlss/scripts/config.yml`). Subskills only extend `report_canonical.md` and never create standalone report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`; `data_transform` and `missings` update these copies in place and create backups in `<workspace-root>/<dataset-name>/backup/`.
 Plots are saved under `<workspace-root>/<dataset-name>/plots/` with figure-numbered filenames.
 

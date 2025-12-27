@@ -11,6 +11,10 @@ This metaskill is a last resort and is used only when the requested analysis is 
 
 The agent should use state-of-the-art methods in psychological and social science research (appropriate models, effect sizes, diagnostics, and APA-aligned reporting conventions) when generating scripts.
 
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
 ## Intent/Triggers
 
 Use this metaskill when:

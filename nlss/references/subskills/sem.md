@@ -9,6 +9,10 @@ description: Structural equation modeling (SEM), CFA, path analysis, mediation, 
 
 Run SEM/CFA/path/mediation models with lavaan and produce APA 7-style tables and narrative text. Supports multi-group models, robust estimators, bootstrap CIs, and invariance sequences.
 
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
@@ -95,6 +99,8 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--user-prompt`: original AI prompt for logging.
 
 ## Outputs
+
+Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 - `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.

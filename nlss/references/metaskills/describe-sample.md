@@ -7,7 +7,20 @@ description: Describe the sample with missingness summaries, numeric descriptive
 
 ## Overview
 
-This metaskill guides the agent to describe a sample by inspecting the dataset, clarifying key variables, and running the appropriate subskills. It logs the metaskill activation and produces APA-ready outputs via the underlying subskills.
+This metaskill guides the agent to describe a sample by inspecting the dataset, clarifying key variables, and running the appropriate subskills. It is designed to handle vague requests like "describe the demographics" by inferring likely demographic variables, confirming assumptions, and producing APA-ready outputs via the underlying subskills.
+
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
+## Intent/Triggers
+
+Use this metaskill when the user asks for sample or demographic descriptions, for example:
+
+- "Please take this dataset and describe the demographics of our sample."
+- "Provide a sample description."
+- "Summarize participant characteristics."
+- "Describe age, gender, education, and employment."
 
 ## Core Workflow
 
@@ -36,21 +49,24 @@ Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta d
 powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\metaskill_runner.R> --csv <path to CSV file> --meta describe-sample
 ```
 
-## Inputs and Clarifications
+## Inputs/Clarifications
 
 ### Inputs
 
 - Data sources: CSV, SAV, RDS, RData, Parquet, or workspace dataset.
 - Optional grouping variable for comparisons.
 - Optional list of key demographic variables to prioritize.
+- Optional grouping variable for comparisons (condition, site, cohort).
 
 ### Clarifying questions
 
 - Which variable defines the groups or conditions (if any)?
-- Which demographic variables should be highlighted?
-- Should Likert/ordinal variables be treated as numeric or categorical?
+- Which demographic variables should be highlighted or excluded?
+- Do any variables represent outcomes or scale scores that should not be treated as demographics?
+- Should ordinal demographics (education, income) be treated as categorical or numeric?
 - Should missingness be summarized only, or handled (imputation/drop/indicator)?
-If unclear, suggest a demographic-first summary (age, gender, education, employment, etc.) as the default.
+
+If unclear, suggest a demographic-first summary (age, gender/sex, education, employment, income, marital status, ethnicity/race, country, language) as the default.
 
 ## Procedure (pseudocode)
 
@@ -63,19 +79,22 @@ run metaskill-runner --meta describe-sample --intent <user intent>
 inspect dataset:
   numeric_vars = numeric columns minus IDs
   categorical_vars = factors/characters or low-cardinality numeric
+  demographic_candidates = name patterns (age, gender, sex, edu, income, employ, marital, race, ethnicity, country, language)
   group_candidates = categorical_vars that look like condition/group/site
 
 if group_candidates not empty:
   ask user to confirm grouping variable (or none)
 
-ask user to confirm key demographics and Likert handling
+ask user to confirm key demographics and ordinal handling
 if request is vague:
-  propose demographic-first summary as default (age, gender, education, employment)
+  propose demographic-first summary as default (age, gender/sex, education, employment, income, marital status, ethnicity/race)
+  if demographics are unclear:
+    run data-explorer --vars <demographic_candidates> to summarize levels and ranges
 
 write plan to scratchpad.md
 
-run descriptive-stats --vars <numeric_vars> [--group <group_var>]
-run frequencies --vars <categorical_vars> [--group <group_var>]
+run descriptive-stats --vars <numeric_demographics> [--group <group_var>]
+run frequencies --vars <categorical_demographics> [--group <group_var>]
 if group_var and key categorical vars:
   run crosstabs --row <key categorical> --col <group_var>
 
@@ -91,7 +110,9 @@ log metaskill finalization with metaskill-runner --phase finalization
 
 - Use config defaults for subskills unless the user specifies otherwise (e.g., `defaults.digits`, `modules.descriptive_stats.vars_default`, `modules.frequencies.vars_default`).
 - Treat factor/character variables as categorical; treat numeric variables with low cardinality (for example <= 10 unique values) as categorical unless the user prefers numeric summaries.
-- Exclude obvious identifiers (for example `id`, `uuid`) from both numeric and categorical summaries unless explicitly requested.
+- Exclude obvious identifiers (for example `id`, `uuid`, `timestamp`) and derived outcomes (`*_score`, `*_total`, `*_sum`, `*_mean`) from demographic summaries unless explicitly requested.
+- If demographics are not specified, infer them by name patterns and value ranges, then confirm with the user; prioritize age, gender/sex, education, employment, income, marital status, ethnicity/race, country, and language.
+- If ordinal demographics (education/income) are ambiguous, default to categorical reporting.
 - When the request is ambiguous, default to a demographic-first summary and state this as the proposed focus.
 - Do not run `missings` unless the user requests missingness handling; it updates the workspace parquet copy in place and creates a backup.
 
@@ -104,6 +125,12 @@ log metaskill finalization with metaskill-runner --phase finalization
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
 
+## Finalization
+
+- Log completion with `metaskill-runner --phase finalization`.
+- Append a `# Synopsis` section to `report_canonical.md`.
+- Write `report_<YYYYMMDD>_describe-sample_<intent>.md` using an ASCII slug for `<intent>`.
+
 ## APA 7 Templates
 
 This metaskill does not define its own APA template. It relies on the templates configured for the subskills it invokes:
@@ -111,6 +138,7 @@ This metaskill does not define its own APA template. It relies on the templates 
 - `descriptive-stats` uses `nlss/assets/descriptive-stats/default-template.md`.
 - `frequencies` uses `nlss/assets/frequencies/default-template.md` (or grouped template when `--group` is used).
 - `crosstabs` uses `nlss/assets/crosstabs/default-template.md` (or grouped template when `--group` is used).
+- `data-explorer` uses `nlss/assets/data-explorer/default-template.md` when requested.
 - `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation/finalization logging.
 
 ## APA 7 Reporting Guidance

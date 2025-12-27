@@ -9,6 +9,10 @@ description: Lightweight calculator CLI for evaluating numeric expressions to de
 
 Evaluate simple numeric expressions from the CLI to derive parameters for subskill flags (for example, alpha adjustments or effect size conversions) without loading a dataset or writing workspace outputs.
 
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
 ## Intent/Triggers
 
 Use this utility when the request is a quick numeric computation rather than a statistical analysis.

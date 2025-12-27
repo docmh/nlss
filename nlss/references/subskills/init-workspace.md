@@ -15,6 +15,10 @@ Create dataset workspace folders under the workspace root (current directory, it
 - `nlss-workspace.yml` is created/updated in the workspace root to track datasets and `active_dataset`.
 - Nested or sibling workspace manifests are not allowed; the script stops if another manifest is detected in an ancestor, descendant, or sibling folder.
 
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
 ## Core Workflow
 
 1. Provide one or more datasets (CSV/SAV/RDS/RData/Parquet) or run without data.
@@ -83,6 +87,8 @@ Rscript <path to scripts/R/init_workspace.R> --interactive
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
 ## Outputs
+
+Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 - `scratchpad.md`: YAML front matter plus dataset planning sections (written inside each dataset workspace).

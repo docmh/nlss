@@ -9,6 +9,10 @@ description: Linear mixed-effects models with random effects, marginal means, di
 
 Fit linear mixed-effects models (LMM) for clustered or longitudinal data using `lme4`. Outputs include fixed effects, random-effects variance components, model fit statistics, optional estimated marginal means/contrasts, and diagnostics. This subskill is for observed-variable mixed-effects modeling only.
 
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
@@ -91,6 +95,8 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--contrasts` is ignored when `--emmeans` is not set.
 
 ## Outputs
+
+Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 - `report_canonical.md`: APA 7 report containing fixed effects and narrative summaries.

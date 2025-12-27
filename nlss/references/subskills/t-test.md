@@ -9,6 +9,10 @@ description: One-sample, independent-samples, and paired-samples t-tests with AP
 
 Run one-sample, independent-samples, or paired-samples t-tests in base R and generate APA 7-ready tables and narratives. Outputs include means, standard deviations, mean differences, t, df, p, and Cohen's d. Optional bootstrap confidence intervals are available.
 
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
@@ -91,6 +95,8 @@ Rscript <path to scripts/R/t_test.R> --interactive
 - Missing values are removed listwise per test (within each variable or pair).
 
 ## Outputs
+
+Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 - `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.

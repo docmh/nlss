@@ -9,6 +9,10 @@ description: Map vague hypotheses to appropriate tests through clarifications, t
 
 This metaskill helps the agent test hypotheses (H1, H2, H3, ...) when the initial request is vague. The agent gathers the missing details, selects the appropriate subskills, and logs the metaskill activation before running analyses.
 
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).

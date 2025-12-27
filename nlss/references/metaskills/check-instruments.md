@@ -7,14 +7,27 @@ description: Check survey instruments by inspecting items, handling reverse scor
 
 ## Overview
 
-This metaskill guides the agent through instrument checks for surveys or questionnaires. It focuses on item inspection, reverse scoring, scale construction, and reliability reporting using existing subskills.
+This metaskill guides the agent through instrument quality checks for surveys or questionnaires, especially when the request is vague (for example, "check the quality of the instruments"). It focuses on item inspection, reverse scoring, scale construction, and reliability reporting using existing subskills.
+
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions, select the appropriate analysis, document decisions, and produce a detailed, APA 7-aligned, journal-ready report.
+
+## Intent/Triggers
+
+Use this metaskill when the user asks for instrument quality, reliability, or scale checks, for example:
+
+- "Please take this dataset and figure out the quality of used instruments."
+- "Check the reliability of our questionnaires."
+- "Assess scale quality for these survey items."
+- "Run item analysis and reliability."
 
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).
 2. Ensure a dataset workspace exists (run `init-workspace` if missing).
 3. Log activation with `metaskill-runner`.
-4. Inspect items to confirm scales, item ranges, and missingness.
+4. Inspect items to infer candidate instruments, item ranges, and missingness (use `data-explorer` if helpful).
 5. Ask clarifying questions (scale definitions, reverse-coded items, scoring method, reliability type).
 6. Write a plan to `scratchpad.md`, then execute subskills in order.
 7. Update `scratchpad.md` with decisions and completion notes.
@@ -36,24 +49,28 @@ Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta c
 powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\metaskill_runner.R> --csv <path to CSV file> --meta check-instruments
 ```
 
-## Inputs and Clarifications
+## Inputs/Clarifications
 
 ### Inputs
 
 - Data sources: CSV, SAV, RDS, RData, Parquet, or workspace dataset.
-- Scale definitions (items per scale).
+- Scale definitions (items per scale) or naming conventions for item groups.
 - Reverse-coded items and min/max for item scales.
 - Scoring method (sum vs mean).
 - Reliability type: internal consistency (alpha/omega) vs test-retest/ICC/kappa.
+- Optional grouping variable (condition, cohort, site).
 
 ### Clarifying questions
 
-- Which items belong to each scale?
+- Which instruments or scales are in the dataset, and which items belong to each scale?
+- Do item names share prefixes that map to scales (for example PHQ9_1..PHQ9_9)?
 - Which items are reverse-coded, and what are the min/max values?
 - Should scale scores use sum or mean?
 - Is reliability internal consistency (alpha/omega) only, or do you need ICC/kappa/test-retest?
+- Is this cross-sectional, test-retest, or multi-rater data (any ID/time/rater variables)?
 - Should analyses be grouped (e.g., by condition or cohort)?
 - Should missingness be summarized only, or handled (listwise/impute/indicator/drop)?
+If the request is vague, propose a default: infer item groups by prefix and Likert range, run internal consistency (alpha/omega), and report item diagnostics plus missingness summaries.
 
 ## Procedure (pseudocode)
 
@@ -65,7 +82,9 @@ run metaskill-runner --meta check-instruments --intent <user intent>
 
 inspect dataset:
   confirm item ranges and missingness
-  flag candidate scales/items from user list
+  flag candidate scales/items from user list or naming patterns
+  if unclear, run data-explorer to summarize candidate Likert items
+  write candidate groups and assumptions to scratchpad.md
 
 ask user to confirm:
   scale definitions, reverse-coded items, min/max
@@ -84,6 +103,7 @@ if test-retest or inter-rater reliability requested:
                   [--group <group_var>]
 
 optional:
+  run data-explorer --vars <item_candidates> if item ranges or types are still unclear
   run correlations --vars <scale_scores> [--group <group_var>]
   run missings --vars <items> --method <chosen> (only if user requests handling)
 
@@ -96,17 +116,26 @@ log metaskill finalization with metaskill-runner --phase finalization
 
 - Use config defaults for subskills unless the user specifies otherwise (for example `modules.scale.score`, `modules.scale.omega`).
 - Treat Likert items as numeric by default unless the user prefers categorical handling.
-- Exclude identifiers (for example `id`, `uuid`) from scale analyses unless explicitly requested.
+- Exclude identifiers (for example `id`, `uuid`) and precomputed totals (for example `*_total`, `*_sum`, `*_mean`) from item lists unless requested.
+- If scale definitions are missing, infer candidate groups by shared name prefixes and similar value ranges; require at least 3 items per group and mark them as provisional in `scratchpad.md`.
+- If reverse-coded items are unknown, do not reverse by default; flag negative item-total correlations for review.
 - Do not run `missings` unless the user requests missingness handling; it updates the workspace parquet copy in place and creates a backup.
+- "Quality" here means reliability and item diagnostics; validity evidence (factor analysis, IRT) is out of scope unless the user requests it explicitly.
 
 ## Outputs
 
-- `report_canonical.md`: APA-ready outputs from `scale`, `reliability`, and optional `correlations`, plus a final `# Synopsis`.
+- `report_canonical.md`: APA-ready outputs from `scale`, `reliability`, optional `data-explorer`/`correlations`, plus a final `# Synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
 - `report_<YYYYMMDD>_check-instruments_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
+
+## Finalization
+
+- Log completion with `metaskill-runner --phase finalization`.
+- Append a `# Synopsis` section to `report_canonical.md`.
+- Write `report_<YYYYMMDD>_check-instruments_<intent>.md` using an ASCII slug for `<intent>`.
 
 ## APA 7 Templates
 
@@ -115,6 +144,7 @@ This metaskill does not define its own APA template. It relies on the templates 
 - `scale` uses `nlss/assets/scale/default-template.md`.
 - `reliability` uses `nlss/assets/reliability/default-template.md`.
 - `correlations` uses `nlss/assets/correlations/default-template.md` when requested.
+- `data-explorer` uses `nlss/assets/data-explorer/default-template.md` when requested.
 - `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation/finalization logging.
 
 ## APA 7 Reporting Guidance
