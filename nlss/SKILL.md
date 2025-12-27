@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
   author: Prof. Dr. Mike Hammes, ISM International School of Management, Germany (mike.hammes@ism.de)
-  version: 0.1.0
+  version: 1.0.0
   created: 2025-12-20
   updated: 2025-12-27
   backend: R
