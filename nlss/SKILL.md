@@ -15,7 +15,7 @@ metadata:
 
 ## Overview
 
-Central guidance for all statistic skills in this repo, plus shared conventions for running R scripts and placing outputs.
+Central guidance for NLSS as an assistant researcher, plus shared conventions for running R scripts and placing outputs.
 
 ## Assistant Researcher Model
 
