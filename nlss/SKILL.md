@@ -7,6 +7,7 @@ metadata:
   author: Prof. Dr. Mike Hammes, ISM International School of Management, Germany (mike.hammes@ism.de)
   version: 0.1.0
   created: 2025-12-20
+  updated: 2025-12-27
   backend: R
   style: APA 7
 ---
