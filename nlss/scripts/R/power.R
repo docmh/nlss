@@ -822,7 +822,6 @@ main <- function() {
   }
 
   effect_size_input <- parse_numeric(opts$`effect-size`, NA_real_)
-  effect_metric_calc <- effect_metric_input
   effect_size_calc <- effect_size_input
   conversion_note <- ""
   effect_source <- if (estimate_effect) "estimated" else "user"
@@ -831,7 +830,6 @@ main <- function() {
   if (analysis == "sem") {
     effect_metric_input <- "rmsea"
     if (is.na(effect_size_input)) effect_size_input <- rmsea1
-    effect_metric_calc <- "rmsea"
     effect_size_calc <- effect_size_input
   }
   if (analysis != "anova") groups <- NA_real_
@@ -867,7 +865,6 @@ main <- function() {
       }
       effect_metric_input <- "d"
       effect_size_input <- est$d
-      effect_metric_calc <- "d"
       effect_size_calc <- abs(est$d)
       if (is_scalar_number(est$n)) {
         n_total <- if (is.na(n_total)) est$n else n_total
@@ -887,7 +884,6 @@ main <- function() {
       }
       effect_metric_input <- "r"
       effect_size_input <- est$r
-      effect_metric_calc <- "r"
       effect_size_calc <- abs(est$r)
       if (is.na(n_total) && is_scalar_number(est$n)) {
         n_total <- est$n
@@ -904,7 +900,6 @@ main <- function() {
       effect_size_input <- est$r2
       r2_value <- est$r2
       converted <- coerce_effect_size("r2", est$r2)
-      effect_metric_calc <- converted$metric
       effect_size_calc <- converted$value
       conversion_note <- converted$note
       if (is.na(n_total) && is_scalar_number(est$n)) {
@@ -921,7 +916,6 @@ main <- function() {
       effect_metric_input <- "eta2"
       effect_size_input <- est$eta2
       converted <- coerce_effect_size("eta2", est$eta2)
-      effect_metric_calc <- converted$metric
       effect_size_calc <- converted$value
       conversion_note <- converted$note
       if (is.na(n_total) && is_scalar_number(est$n)) {
@@ -936,7 +930,6 @@ main <- function() {
     }
     if (analysis %in% c("anova", "regression")) {
       converted <- coerce_effect_size(effect_metric_input, effect_size_input)
-      effect_metric_calc <- converted$metric
       effect_size_calc <- converted$value
       if (nzchar(converted$note)) conversion_note <- converted$note
       if (analysis == "regression" && effect_metric_input == "r2") r2_value <- effect_size_input
