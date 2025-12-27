@@ -136,6 +136,7 @@ Available metaskills:
 - `generate-r-script`: `nlss/references/metaskills/generate-r-script.md`
 - `check-instruments`: `nlss/references/metaskills/check-instruments.md`
 - `plan-power`: `nlss/references/metaskills/plan-power.md`
+- `explore-data`: `nlss/references/metaskills/explore-data.md`
 - `test-hypotheses`: `nlss/references/metaskills/test-hypotheses.md`
 
 Utilities:
@@ -166,6 +167,7 @@ Reference docs:
 - `nlss/references/metaskills/generate-r-script.md`
 - `nlss/references/metaskills/check-instruments.md`
 - `nlss/references/metaskills/plan-power.md`
+- `nlss/references/metaskills/explore-data.md`
 - `nlss/references/metaskills/test-hypotheses.md`
 - `nlss/references/utilities/calc.md`
 

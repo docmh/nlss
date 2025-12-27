@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, plan-power, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, power analysis, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, explore-data, plan-power, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, power analysis, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -210,7 +210,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [check-instruments](references/metaskills/check-instruments.md): Instrument quality checks via item analysis, reverse scoring, and reliability (alpha/omega, ICC/kappa) with defaults for vague requests.
 - [test-hypotheses](references/metaskills/test-hypotheses.md): Map vague hypotheses to tests with clarifications, run the appropriate analyses, and report APA-ready outputs.
 - [plan-power](references/metaskills/plan-power.md): A priori power analysis to plan minimal sample size for t-tests, ANOVA, regression, correlations, and SEM.
-- explore-data (planned): Data exploration with distributions, outliers, correlations, and plots.
+- [explore-data](references/metaskills/explore-data.md): Dataset overview with variable summaries, missingness, distributions, and correlations for vague "overview" requests.
 - handle-missings (planned): Missingness analysis and handling with patterns, methods, and updated datasets.
 - transform-data (planned): Data transformation with variable creation, recoding, and standardization.
 - check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression).
