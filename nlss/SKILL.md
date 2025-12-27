@@ -211,7 +211,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [test-hypotheses](references/metaskills/test-hypotheses.md): Map vague hypotheses to tests with clarifications, run the appropriate analyses, and report APA-ready outputs.
 - [plan-power](references/metaskills/plan-power.md): A priori power analysis to plan minimal sample size for t-tests, ANOVA, regression, correlations, and SEM.
 - [explore-data](references/metaskills/explore-data.md): Dataset overview with variable summaries, missingness, distributions, and correlations for vague "overview" requests.
-- clean-data (planned): Data cleaning with outlier detection, invalid value handling, and data integrity checks, missingness summaries and handling.
+- prepare-data (planned): Data cleaning and preparation (missing handling, transformations) based on dataset inspection and user intent.
 - check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression).
 - full-analysis (planned): Comprehensive analysis from data exploration to hypothesis testing with full reporting.
 
