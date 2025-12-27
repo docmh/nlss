@@ -1,0 +1,179 @@
+---
+name: prepare-data
+description: Prepare a dataset for analysis by auditing variables, handling missingness, recoding/transforming fields, and documenting all changes with APA-ready outputs.
+---
+
+# Prepare Data (Agent-run, APA 7)
+
+## Overview
+
+This metaskill guides the agent through data preparation when the request is vague (for example, "make this data ready for analysis"). It emphasizes dataset inspection, clear decisions about missingness and coding, and transparent documentation of any transformations or exclusions.
+
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+
+## Intent/Triggers
+
+Use this metaskill when the user asks for data cleaning or preparation, for example:
+
+- "Please make this data ready for analysis."
+- "Clean this dataset before running models."
+- "Prepare the data (missingness, recodes, transformations)."
+- "Get the data into analysis-ready form."
+
+## Core Workflow
+
+1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).
+2. Ensure a dataset workspace exists (run `init-workspace` if missing).
+3. Log activation with `metaskill-runner`.
+4. Inspect the dataset to infer variable types, IDs, suspicious codes, and candidate analysis variables; summarize candidates in `scratchpad.md`.
+5. Ask clarifying questions on missingness handling, recodes, exclusions, and overwrites.
+6. Write a step-by-step plan to `scratchpad.md`, then execute subskills in order.
+7. Update `scratchpad.md` after each step with progress, decisions, and transformations.
+8. Log finalization, append a `# Synopsis` to `report_canonical.md`, and generate `report_<YYYYMMDD>_prepare-data_<intent>.md`.
+
+## Execution (Agent-run)
+
+There is no dedicated script for this metaskill. The agent runs subskills and logs activation/finalization using `metaskill-runner`.
+
+### Logging activation
+
+```bash
+Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta prepare-data --intent "prepare data for analysis"
+```
+
+### Windows wrapper (WSL first, Windows fallback)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\metaskill_runner.R> --csv <path to CSV file> --meta prepare-data
+```
+
+## Inputs/Clarifications
+
+### Inputs
+
+- Data sources: CSV, SAV, RDS, RData, Parquet, or workspace dataset.
+- Optional list of variables to prioritize or exclude.
+- Optional planned analysis (outcomes, predictors, grouping variables).
+
+### Clarifying questions
+
+- What analysis is planned (outcomes, predictors, grouping variables)?
+- Are there known missing value codes (e.g., 99, -9, 999) that should be converted to NA?
+- Which missingness strategy should be used (auto, listwise, impute, indicator, drop), and should we preserve originals?
+- Are there required recodes (category merging, reverse coding, binary indicators)?
+- Should any variables be renamed, standardized, or transformed (log, sqrt, z-score)?
+- Are there exclusion criteria (range checks, invalid cases) or outliers to flag?
+- Is it acceptable to overwrite variables or drop columns, or should new variables be created instead?
+
+If unclear, propose a default: audit all variables first, convert known missing codes to NA, prefer new variables (no overwrite), and use `missings --method auto` only after explicit approval.
+
+## Procedure (pseudocode)
+
+```
+if workspace missing:
+  run init-workspace
+
+run metaskill-runner --meta prepare-data --intent <user intent>
+
+inspect dataset:
+  numeric_vars = numeric columns minus IDs
+  categorical_vars = factors/characters or low-cardinality numeric
+  id_candidates = names like id, uuid, subject, timestamp
+  suspicious_codes = common missing codes (e.g., 99, -9, 999)
+
+write candidate summary to scratchpad.md
+
+ask user to confirm:
+  analysis variables, grouping, missingness strategy
+  recodes/transforms, exclusions, and overwrite/drop rules
+
+write plan to scratchpad.md
+
+run data-explorer --vars <all non-id vars> [--max-levels <n>] [--top-n <n>]
+
+if missingness handling approved:
+  run missings --vars <analysis vars> --method <chosen>
+  if user requests multiple imputation or new *_imp columns:
+    run impute --vars <analysis vars> --method <chosen>
+
+if recodes/transforms approved:
+  run data-transform --recode/--transform/--standardize/--calc
+  if dropping columns or overwriting variables:
+    include --confirm-drop and/or --confirm-overwrite
+
+if scale prep requested (reverse scoring, scores):
+  run scale --vars <items> [--reverse <items>]
+  run data-transform --calc <scale_score> if scores must be written
+
+if post-clean checks requested:
+  run descriptive-stats --vars <numeric_vars> [--template distribution|robust]
+  run frequencies --vars <categorical_vars>
+
+update scratchpad.md after each step
+finalize scratchpad.md with decisions and completion summary
+append # Synopsis to report_canonical.md and write report_<YYYYMMDD>_prepare-data_<intent>.md
+log metaskill finalization with metaskill-runner --phase finalization
+```
+
+## Default Rules and Decision Logic
+
+- Use config defaults for subskills unless the user specifies otherwise.
+- Treat factor/character variables as categorical; treat numeric variables with low cardinality (for example <= 10 unique values) as categorical unless the user prefers numeric summaries.
+- Exclude obvious identifiers and timestamps from transformations and missingness handling unless explicitly requested.
+- Do not overwrite variables or drop columns without explicit approval; prefer new variables with suffixes.
+- Run `missings` only after the user approves a handling strategy; it updates the workspace parquet copy and creates a backup.
+- Use `impute` when the user requests multiple imputation or new `_imp` columns; otherwise use `missings` for simple handling.
+- For outliers, default to flagging or documenting them rather than removing cases unless the user specifies removal criteria.
+- If the dataset is very wide, ask the user to prioritize variables or domains.
+
+## Outputs
+
+- `report_canonical.md`: APA-ready outputs from the subskills (data-explorer, missings, data-transform, optional descriptive/frequency checks) plus a final `# Synopsis`.
+- `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
+- `scratchpad.md`: Plan, clarifications, and completion notes.
+- `report_<YYYYMMDD>_prepare-data_<intent>.md`: APA 7-ready, journal-ready narrative report with tables/figures as needed.
+
+### Final report requirements
+
+- Do not copy `report_canonical.md`; write a new narrative report.
+- Use `nlss/assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
+- Use standard journal subsections when they fit (Methods: Participants/Measures/Procedure/Analytic Strategy; Results: Preliminary/Primary/Secondary; Discussion: Summary/Limitations/Implications/Future Directions), but rename or replace them when the metaskill warrants it.
+- Synthesize results across subskills with interpretation; integrate tables/figures with captions and in-text references.
+- Craft tables and figures specifically for the report rather than copying them from `report_canonical.md`.
+- Keep the report APA 7-ready and suitable for journal submission.
+
+Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
+All artifacts (reports, tables, figures) must be created inside the dataset workspace folder; do not write outside the workspace root.
+
+## Finalization
+
+- Log completion with `metaskill-runner --phase finalization`.
+- Append a `# Synopsis` section to `report_canonical.md`.
+- Write `report_<YYYYMMDD>_prepare-data_<intent>.md` using an ASCII slug for `<intent>`.
+
+## APA 7 Templates
+
+This metaskill does not define its own APA template. It relies on the templates configured for the subskills it invokes:
+
+- `data-explorer` uses `nlss/assets/data-explorer/default-template.md`.
+- `missings` uses `nlss/assets/missings/default-template.md`.
+- `data-transform` uses `nlss/assets/data-transform/default-template.md`.
+- `impute` uses `nlss/assets/impute/default-template.md` (if used).
+- `descriptive-stats` uses `nlss/assets/descriptive-stats/default-template.md` (or distribution/robust templates when requested).
+- `frequencies` uses `nlss/assets/frequencies/default-template.md`.
+- `scale` uses `nlss/assets/scale/default-template.md` (if used).
+- `plot` uses `nlss/assets/plot/default-template.md` (if visuals are requested).
+- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation/finalization logging.
+
+## APA 7 Reporting Guidance
+
+- Report missingness patterns and the chosen handling strategy (listwise, impute, indicator, drop), including any thresholds.
+- Document recodes, transformations, standardizations, and variable creation (with justification).
+- Note any exclusions or outlier handling and whether cases were removed or only flagged.
+- Summarize the resulting dataset readiness for the intended analysis (variables retained, scales computed, coding decisions).
+
+## Parquet support
+
+Parquet input/output requires the R package `arrow` (install with `install.packages("arrow")`).

@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, explore-data, plan-power, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, power analysis, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, imputation, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, explore-data, prepare-data, plan-power, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, power analysis, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, imputation, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.5.2, Windows, WSL (Ubuntu), Linux, Codex/GPT-5.2-Codex
 metadata:
@@ -224,7 +224,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [test-hypotheses](references/metaskills/test-hypotheses.md): Map vague hypotheses to tests with clarifications, run the appropriate analyses, and report APA-ready outputs.
 - [plan-power](references/metaskills/plan-power.md): A priori power analysis to plan minimal sample size for t-tests, ANOVA, regression, correlations, and SEM.
 - [explore-data](references/metaskills/explore-data.md): Dataset overview with variable summaries, missingness, distributions, and correlations for vague "overview" requests.
-- prepare-data (planned): Data cleaning and preparation (missing handling, transformations) based on dataset inspection and user intent.
+- [prepare-data](references/metaskills/prepare-data.md): Data cleaning and preparation (missing handling, recodes, transformations) based on dataset inspection and user intent.
 - check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression).
 - full-analysis (planned): Comprehensive analysis from data exploration to hypothesis testing with full reporting.
 
