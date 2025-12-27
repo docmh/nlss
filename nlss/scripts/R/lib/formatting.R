@@ -18,10 +18,16 @@ humanize_flag_name <- function(name) {
     "method" = "Method",
     "missing" = "Missing handling",
     "format" = "Input format",
+    "output-format" = "Output format",
     "alternative" = "Alternative hypothesis",
     "controls" = "Control variables",
+    "r0" = "Test value (r0)",
+    "expr" = "Expressions",
+    "set" = "Constants",
+    "unsafe" = "Unsafe evaluation",
     "p-adjust" = "P-value adjustment",
     "conf-level" = "Confidence level",
+    "compare-groups" = "Compare groups",
     "coerce" = "Coerce non-numeric",
     "reverse" = "Reverse-scored items",
     "reverse-min" = "Reverse min",
@@ -80,7 +86,21 @@ humanize_flag_name <- function(name) {
     "conf-level" = "Confidence level",
     "type" = "Sum of squares type",
     "effect-size" = "Effect size",
+    "effect-metric" = "Effect metric",
     "posthoc" = "Post-hoc method",
+    "power" = "Power",
+    "t-type" = "t-test type",
+    "ratio" = "Group size ratio",
+    "n" = "Total N",
+    "n-total" = "Total N",
+    "n-per-group" = "N per group",
+    "n1" = "N1",
+    "n2" = "N2",
+    "groups" = "Groups (k)",
+    "u" = "Predictors (u)",
+    "rmsea0" = "RMSEA0",
+    "rmsea1" = "RMSEA1",
+    "estimate-effect" = "Estimate effect",
     "covariates" = "Covariates",
     "ordered" = "Ordered variables",
     "model" = "Model",
@@ -268,6 +288,10 @@ get_template_path <- function(analysis_label) {
   }
   if (label == "plot" || label == "plots" || label == "figure" || label == "figures") {
     path <- resolve_template_path("plot.default", "plot/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label == "calc" || label == "calculator" || label == "calculation") {
+    path <- resolve_template_path("calc.default", "calc/default-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
   }
   if (label == "data transformation" || label == "data transform") {

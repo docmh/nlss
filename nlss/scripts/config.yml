@@ -50,6 +50,9 @@ modules:
     controls: null
     p_adjust: "none"
     conf_level: 0.95
+    bootstrap: false
+    bootstrap_samples: 1000
+    compare_groups: false
     coerce: false
   scale:
     vars_default: "numeric"
@@ -127,6 +130,21 @@ modules:
     standardize: "none"
     bootstrap: false
     bootstrap_samples: 1000
+  power:
+    analysis: "ttest"
+    mode: "apriori"
+    effect_metric: "auto"
+    alpha: 0.05
+    power: 0.8
+    alternative: "two.sided"
+    t_type: "two-sample"
+    ratio: 1
+    mu: 0.0
+    groups: 2
+    u: 1
+    rmsea0: 0.05
+    rmsea1: 0.08
+    estimate_effect: false
   mixed_models:
     reml: true
     type: "III"
@@ -219,6 +237,8 @@ templates:
   correlations:
     default: "correlations/default-template.md"
     cross: "correlations/cross-correlation-template.md"
+    matrix: "correlations/matrix-template.md"
+    comparison: "correlations/comparison-template.md"
   crosstabs:
     default: "crosstabs/default-template.md"
     grouped: "crosstabs/grouped-template.md"
@@ -236,6 +256,8 @@ templates:
     posthoc: "anova/posthoc-template.md"
   regression:
     default: "regression/default-template.md"
+  power:
+    default: "power/default-template.md"
   mixed_models:
     default: "mixed-models/default-template.md"
     emmeans: "mixed-models/emmeans-template.md"
@@ -257,3 +279,5 @@ templates:
     scratchpad: "scratchpad/default-template.md"
   metaskill_runner:
     default: "metaskill-runner/default-template.md"
+  calc:
+    default: "calc/default-template.md"

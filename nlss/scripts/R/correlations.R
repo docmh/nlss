@@ -46,6 +46,11 @@ print_usage <- function() {
   cat("  --controls LIST        Comma-separated control variables for partial correlations\n")
   cat("  --p-adjust TYPE        none/bonferroni/holm/hochberg/hommel/BH/BY/fdr (default: none)\n")
   cat("  --conf-level VALUE     Confidence level for Fisher CI (default: 0.95)\n")
+  cat("  --bootstrap TRUE/FALSE  Bootstrap confidence intervals (default: FALSE)\n")
+  cat("  --bootstrap-samples N   Bootstrap resamples (default: 1000)\n")
+  cat("  --seed N                Random seed for bootstrap (optional)\n")
+  cat("  --r0 VALUE             Fisher r-to-z test value (optional)\n")
+  cat("  --compare-groups TRUE/FALSE Compare correlations between two groups (default: FALSE)\n")
   cat("  --coerce TRUE/FALSE    Coerce non-numeric vars to numeric (default: FALSE)\n")
   cat("  --digits N             Rounding digits (default: 2)\n")
   cat("  --template REF         Template path or template key (optional)\n")
@@ -94,6 +99,9 @@ interactive_options <- function() {
   opts$controls <- prompt("Control variables (comma-separated, blank for none)", "")
   adjust_default <- resolve_config_value("modules.correlations.p_adjust", "none")
   conf_default <- resolve_config_value("modules.correlations.conf_level", 0.95)
+  bootstrap_default <- resolve_config_value("modules.correlations.bootstrap", FALSE)
+  bootstrap_samples_default <- resolve_config_value("modules.correlations.bootstrap_samples", 1000)
+  compare_groups_default <- resolve_config_value("modules.correlations.compare_groups", FALSE)
   coerce_default <- resolve_config_value("modules.correlations.coerce", FALSE)
   digits_default <- resolve_config_value("defaults.digits", 2)
   opts$`p-adjust` <- prompt(
@@ -101,6 +109,11 @@ interactive_options <- function() {
     adjust_default
   )
   opts$`conf-level` <- prompt("Confidence level", as.character(conf_default))
+  opts$bootstrap <- prompt("Bootstrap TRUE/FALSE", ifelse(isTRUE(bootstrap_default), "TRUE", "FALSE"))
+  opts$`bootstrap-samples` <- prompt("Bootstrap samples", as.character(bootstrap_samples_default))
+  opts$seed <- prompt("Bootstrap seed (optional)", "")
+  opts$r0 <- prompt("Fisher r-to-z test value (r0; optional)", "")
+  opts$`compare-groups` <- prompt("Compare groups TRUE/FALSE", ifelse(isTRUE(compare_groups_default), "TRUE", "FALSE"))
   opts$coerce <- prompt("Coerce non-numeric TRUE/FALSE", ifelse(isTRUE(coerce_default), "TRUE", "FALSE"))
   opts$digits <- prompt("Rounding digits", as.character(digits_default))
   opts$template <- prompt("Template (path or key; blank for default)", "")
@@ -420,6 +433,58 @@ calc_ci <- function(r, n, conf_level) {
   c(ci[1], ci[2])
 }
 
+bootstrap_ci_cor <- function(df_use, var1, var2, controls, method, conf_level, n_boot) {
+  n <- nrow(df_use)
+  if (n < 3 || n_boot <= 0) return(c(NA_real_, NA_real_))
+  stats <- numeric(n_boot)
+  for (i in seq_len(n_boot)) {
+    idx <- sample.int(n, size = n, replace = TRUE)
+    boot_df <- df_use[idx, , drop = FALSE]
+    if (length(controls) > 0) {
+      partial_data <- prepare_partial(boot_df, var1, var2, controls, method)
+      stats[i] <- suppressWarnings(cor(partial_data$x, partial_data$y, method = "pearson", use = "complete.obs"))
+    } else {
+      stats[i] <- suppressWarnings(cor(boot_df[[var1]], boot_df[[var2]], method = method, use = "complete.obs"))
+    }
+  }
+  alpha <- (1 - conf_level) / 2
+  quantile(stats, probs = c(alpha, 1 - alpha), na.rm = TRUE)
+}
+
+is_valid_fisher_r <- function(value) {
+  !is.na(value) && is.finite(value) && abs(value) < 1
+}
+
+calc_z_p_value <- function(z_value, alternative) {
+  if (is.na(z_value)) return(NA_real_)
+  if (alternative == "greater") return(1 - pnorm(z_value))
+  if (alternative == "less") return(pnorm(z_value))
+  2 * pnorm(-abs(z_value))
+}
+
+fisher_z_test_r0 <- function(r, n, r0, alternative, controls_n = 0) {
+  if (!is_valid_fisher_r(r) || !is_valid_fisher_r(r0) || is.na(n) || n <= (controls_n + 3)) {
+    return(list(z = NA_real_, p = NA_real_))
+  }
+  z_r <- atanh(r)
+  z_0 <- atanh(r0)
+  se <- 1 / sqrt(n - controls_n - 3)
+  z_val <- (z_r - z_0) / se
+  list(z = z_val, p = calc_z_p_value(z_val, alternative))
+}
+
+fisher_z_test_independent <- function(r1, n1, r2, n2, alternative, controls_n = 0) {
+  if (!is_valid_fisher_r(r1) || !is_valid_fisher_r(r2) || is.na(n1) || is.na(n2) ||
+      n1 <= (controls_n + 3) || n2 <= (controls_n + 3)) {
+    return(list(z = NA_real_, p = NA_real_))
+  }
+  z1 <- atanh(r1)
+  z2 <- atanh(r2)
+  se <- sqrt(1 / (n1 - controls_n - 3) + 1 / (n2 - controls_n - 3))
+  z_val <- (z1 - z2) / se
+  list(z = z_val, p = calc_z_p_value(z_val, alternative))
+}
+
 get_complete_rows <- function(df) {
   if (nrow(df) == 0) return(logical(0))
   idx <- complete.cases(df)
@@ -439,6 +504,10 @@ build_pairs <- function(vars) {
   }
   combo <- combn(vars, 2)
   data.frame(var1 = combo[1, ], var2 = combo[2, ], stringsAsFactors = FALSE)
+}
+
+make_pair_key <- function(var1, var2) {
+  paste(pmin(var1, var2), pmax(var1, var2), sep = "||")
 }
 
 build_cross_pairs <- function(x_vars, y_vars) {
@@ -487,7 +556,8 @@ safe_cor_test <- function(x, y, method, alternative, conf_level) {
 }
 
 compute_pair <- function(df_sub, var1, var2, group_label, method, alternative,
-                         conf_level, missing_method, controls, complete_idx) {
+                         conf_level, missing_method, controls, complete_idx,
+                         bootstrap, bootstrap_samples) {
   total_n <- nrow(df_sub)
   pair_vars <- unique(c(var1, var2, controls))
   if (missing_method == "complete" && !is.null(complete_idx)) {
@@ -506,6 +576,8 @@ compute_pair <- function(df_sub, var1, var2, group_label, method, alternative,
   p_val <- NA_real_
   ci_low <- NA_real_
   ci_high <- NA_real_
+  boot_ci_low <- NA_real_
+  boot_ci_high <- NA_real_
 
   if (n_used >= 3) {
     if (length(controls) > 0) {
@@ -526,6 +598,12 @@ compute_pair <- function(df_sub, var1, var2, group_label, method, alternative,
     }
   }
 
+  if (bootstrap && n_used >= 3 && bootstrap_samples > 0) {
+    boot_ci <- bootstrap_ci_cor(df_use, var1, var2, controls, method, conf_level, bootstrap_samples)
+    boot_ci_low <- boot_ci[1]
+    boot_ci_high <- boot_ci[2]
+  }
+
   data.frame(
     var1 = var1,
     var2 = var2,
@@ -542,6 +620,8 @@ compute_pair <- function(df_sub, var1, var2, group_label, method, alternative,
     p_value = p_val,
     ci_low = ci_low,
     ci_high = ci_high,
+    boot_ci_low = boot_ci_low,
+    boot_ci_high = boot_ci_high,
     stringsAsFactors = FALSE
   )
 }
@@ -608,6 +688,13 @@ format_p <- function(p_value) {
   paste("=", p_txt)
 }
 
+format_p_matrix <- function(p_value) {
+  if (is.na(p_value)) return("")
+  if (p_value < 0.001) return("< .001")
+  p_txt <- format(round(p_value, 3), nsmall = 3, trim = TRUE)
+  sub("^0", "", p_txt)
+}
+
 method_title <- function(method, partial) {
   base <- switch(method,
                  pearson = "Pearson",
@@ -626,7 +713,7 @@ method_text <- function(method, partial) {
   if (partial) paste("partial", base) else base
 }
 
-format_apa_table <- function(summary_df, digits, conf_level, adjust_method, missing_method, alternative) {
+format_apa_table <- function(summary_df, digits, conf_level, adjust_method, missing_method, alternative, bootstrap, bootstrap_samples) {
   display <- summary_df
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
@@ -639,9 +726,13 @@ format_apa_table <- function(summary_df, digits, conf_level, adjust_method, miss
   ci_label <- paste0(round(conf_level * 100), "% CI")
   include_p_adj <- adjust_method != "none"
   has_ci <- any(!is.na(display$ci_low))
+  has_boot_ci <- any(!is.na(display$boot_ci_low))
+  has_r0 <- any(!is.na(display$z_r0)) || any(!is.na(display$p_r0)) || any(!is.na(display$r0))
 
   headers <- c("Variable 1", "Variable 2", "r")
+  if (has_r0) headers <- c(headers, "r0", "z (r0)", "p (r0)")
   if (has_ci) headers <- c(headers, ci_label)
+  if (has_boot_ci) headers <- c(headers, "Boot CI")
   headers <- c(headers, "p")
   if (include_p_adj) headers <- c(headers, "p_adj")
   headers <- c(headers, "n")
@@ -668,8 +759,19 @@ format_apa_table <- function(summary_df, digits, conf_level, adjust_method, miss
         row$var2,
         ifelse(is.na(row$r), "", format_r(row$r, digits))
       )
+      if (has_r0) {
+        row_vals <- c(
+          row_vals,
+          ifelse(is.na(row$r0), "", format_r(row$r0, digits)),
+          ifelse(is.na(row$z_r0), "", format_num(row$z_r0, digits)),
+          ifelse(is.na(row$p_r0), "", format_p(row$p_r0))
+        )
+      }
       if (has_ci) {
         row_vals <- c(row_vals, ifelse(is.na(row$ci_low), "", format_ci(row$ci_low, row$ci_high, digits)))
+      }
+      if (has_boot_ci) {
+        row_vals <- c(row_vals, ifelse(is.na(row$boot_ci_low), "", format_ci(row$boot_ci_low, row$boot_ci_high, digits)))
       }
       row_vals <- c(row_vals, ifelse(is.na(p_val), "", format_p(p_val)))
       if (include_p_adj) row_vals <- c(row_vals, ifelse(is.na(p_adj), "", format_p(p_adj)))
@@ -690,6 +792,18 @@ format_apa_table <- function(summary_df, digits, conf_level, adjust_method, miss
     if (has_ci) {
       note_parts <- c(note_parts, paste(ci_label, "computed via Fisher's z.", sep = " "))
     }
+    if (bootstrap) {
+      note_parts <- c(note_parts, paste0("Bootstrap CIs use ", bootstrap_samples, " resamples."))
+    }
+    r0_values <- unique(display$r0[!is.na(display$r0)])
+    if (length(r0_values) > 0) {
+      r0_text <- format(r0_values[1], trim = TRUE)
+      r0_note <- paste0("Fisher r-to-z tests compare correlations against r0 = ", r0_text, ".")
+      if (method != "pearson") {
+        r0_note <- paste0(r0_note, " Approximation used for ", method, " correlations.")
+      }
+      note_parts <- c(note_parts, r0_note)
+    }
     md <- paste0(md, "\n", paste(note_parts, collapse = " "), "\n")
     sections <- c(sections, md)
   }
@@ -697,7 +811,7 @@ format_apa_table <- function(summary_df, digits, conf_level, adjust_method, miss
   paste(sections, collapse = "\n\n")
 }
 
-format_apa_text <- function(summary_df, digits, conf_level, adjust_method, missing_method, alternative) {
+format_apa_text <- function(summary_df, digits, conf_level, adjust_method, missing_method, alternative, bootstrap, bootstrap_samples) {
   display <- summary_df
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
@@ -752,6 +866,14 @@ format_apa_text <- function(summary_df, digits, conf_level, adjust_method, missi
   if (adjust_method != "none") {
     note_parts <- c(note_parts, paste0("p-values adjusted using ", adjust_label(adjust_method), "."))
   }
+  if (bootstrap) {
+    note_parts <- c(note_parts, paste0("Bootstrap CIs use ", bootstrap_samples, " resamples."))
+  }
+  r0_values <- unique(display$r0[!is.na(display$r0)])
+  if (length(r0_values) > 0) {
+    r0_text <- format_r(r0_values[1], digits)
+    note_parts <- c(note_parts, paste0("Fisher r-to-z tests compare correlations against r0 = ", r0_text, "."))
+  }
 
   paste(c(lines, paste(note_parts, collapse = " ")), collapse = "\n")
 }
@@ -771,6 +893,11 @@ format_r_cell <- function(value, digits) {
   format_r(value, digits)
 }
 
+format_z_cell <- function(value, digits) {
+  if (is.na(value)) return("")
+  format_num(value, digits)
+}
+
 build_correlations_table_body <- function(summary_df, digits, conf_level, adjust_method, table_spec = NULL) {
   display <- summary_df
   display$group <- as.character(display$group)
@@ -782,7 +909,11 @@ build_correlations_table_body <- function(summary_df, digits, conf_level, adjust
     list(key = "var1", label = "Variable 1"),
     list(key = "var2", label = "Variable 2"),
     list(key = "r", label = "r"),
+    list(key = "r0", label = "r0", drop_if_empty = TRUE),
+    list(key = "z_r0", label = "z (r0)", drop_if_empty = TRUE),
+    list(key = "p_r0", label = "p (r0)", drop_if_empty = TRUE),
     list(key = "ci", label = ci_label, drop_if_empty = TRUE),
+    list(key = "boot_ci", label = "Boot CI", drop_if_empty = TRUE),
     list(key = "p", label = "p"),
     list(key = "p_adj", label = "p_adj", drop_if_empty = TRUE),
     list(key = "n", label = "n")
@@ -807,14 +938,26 @@ build_correlations_table_body <- function(summary_df, digits, conf_level, adjust
         val <- resolve_as_cell_text(row$var2)
       } else if (key == "r") {
         val <- format_r_cell(row$r, digits)
+      } else if (key == "r0") {
+        val <- format_r_cell(row$r0, digits)
+      } else if (key == "z_r0") {
+        val <- format_z_cell(row$z_r0, digits)
+      } else if (key == "p_r0") {
+        val <- format_p_cell(row$p_r0)
       } else if (key == "ci") {
         val <- format_ci_cell(row$ci_low, row$ci_high, digits)
+      } else if (key == "boot_ci") {
+        val <- format_ci_cell(row$boot_ci_low, row$boot_ci_high, digits)
       } else if (key == "p") {
         val <- format_p_cell(row$p_value)
       } else if (key == "p_adj") {
         val <- format_p_cell(row$p_adjusted)
       } else if (key == "n") {
         val <- ifelse(is.na(row$n), "", as.character(row$n))
+      } else if (key == "boot_ci_low") {
+        val <- format_r_cell(row$boot_ci_low, digits)
+      } else if (key == "boot_ci_high") {
+        val <- format_r_cell(row$boot_ci_high, digits)
       } else if (key %in% names(row)) {
         cell <- row[[key]][1]
         if (is.numeric(cell)) {
@@ -838,7 +981,81 @@ build_correlations_table_body <- function(summary_df, digits, conf_level, adjust
   resolve_render_markdown_table(headers, rows)
 }
 
-build_correlations_note_tokens <- function(summary_df, conf_level, adjust_method, missing_method, alternative) {
+is_matrix_layout <- function(table_spec) {
+  if (is.null(table_spec)) return(FALSE)
+  if (!is.null(table_spec$layout)) {
+    return(tolower(as.character(table_spec$layout)) == "matrix")
+  }
+  if (!is.null(table_spec$matrix)) return(isTRUE(table_spec$matrix))
+  FALSE
+}
+
+resolve_matrix_diagonal <- function(table_spec, digits) {
+  if (!is.null(table_spec$diagonal)) {
+    diag_val <- as.character(table_spec$diagonal)
+    if (!is.na(diag_val)) return(diag_val)
+  }
+  if (!is.null(table_spec$diag)) {
+    diag_val <- as.character(table_spec$diag)
+    if (!is.na(diag_val)) return(diag_val)
+  }
+  format_r(1, digits)
+}
+
+build_correlations_matrix_table_body <- function(summary_df, vars, digits, adjust_method, table_spec = NULL) {
+  display <- summary_df
+  display$group <- as.character(display$group)
+  display$group[is.na(display$group)] <- "NA"
+
+  if (length(vars) == 0) {
+    vars <- unique(c(display$var1, display$var2))
+  }
+  vars <- vars[vars != ""]
+  vars <- vars[!is.na(vars)]
+  if (length(vars) == 0) return("")
+
+  diag_value <- resolve_matrix_diagonal(table_spec, digits)
+  groups <- unique(display$group)
+  use_group_label <- length(groups) > 1 || (length(groups) == 1 && nzchar(groups[1]))
+
+  sections <- character(0)
+  for (g in groups) {
+    subset <- display[display$group == g, , drop = FALSE]
+    key <- make_pair_key(subset$var1, subset$var2)
+    header <- c("", vars)
+    rows <- list()
+    for (i in seq_along(vars)) {
+      row_vals <- c(vars[i])
+      for (j in seq_along(vars)) {
+        cell <- ""
+        if (i == j) {
+          cell <- diag_value
+        } else {
+          row_idx <- match(make_pair_key(vars[i], vars[j]), key)
+          if (!is.na(row_idx)) {
+            row <- subset[row_idx, ]
+            if (i > j) {
+              cell <- format_r_cell(row$r, digits)
+            } else {
+              p_val <- if (adjust_method != "none" && !is.na(row$p_adjusted)) row$p_adjusted else row$p_value
+              cell <- format_p_matrix(p_val)
+            }
+          }
+        }
+        row_vals <- c(row_vals, cell)
+      }
+      rows[[length(rows) + 1]] <- row_vals
+    }
+    table_md <- resolve_render_markdown_table(header, rows)
+    if (use_group_label) {
+      table_md <- paste0("Group: ", g, "\n\n", table_md)
+    }
+    sections <- c(sections, table_md)
+  }
+  paste(sections, collapse = "\n\n")
+}
+
+build_correlations_note_tokens <- function(summary_df, conf_level, adjust_method, missing_method, alternative, bootstrap, bootstrap_samples) {
   display <- summary_df
   partial <- nrow(display) > 0 && any(display$partial)
   controls <- unique(display$controls[display$controls != ""])
@@ -857,7 +1074,18 @@ build_correlations_note_tokens <- function(summary_df, conf_level, adjust_method
   if (nrow(display) > 0 && any(!is.na(display$ci_low))) {
     ci_note <- paste(ci_label, "computed via Fisher's z.")
   }
-  parts <- c(tail_note, missing_note, partial_note, p_adjust_note, ci_note)
+  r0_note <- ""
+  method <- if (nrow(display) > 0) display$method[1] else ""
+  r0_values <- unique(display$r0[!is.na(display$r0)])
+  if (length(r0_values) > 0) {
+    r0_text <- format(r0_values[1], trim = TRUE)
+    r0_note <- paste0("Fisher r-to-z tests compare correlations against r0 = ", r0_text, ".")
+    if (nzchar(method) && method != "pearson") {
+      r0_note <- paste0(r0_note, " Approximation used for ", method, " correlations.")
+    }
+  }
+  boot_note <- if (bootstrap) paste0("Bootstrap CIs use ", bootstrap_samples, " resamples.") else ""
+  parts <- c(tail_note, missing_note, partial_note, p_adjust_note, ci_note, boot_note, r0_note)
   note_default <- paste(parts[nzchar(parts)], collapse = " ")
   list(
     ci_label = ci_label,
@@ -866,8 +1094,135 @@ build_correlations_note_tokens <- function(summary_df, conf_level, adjust_method
     partial_note = partial_note,
     p_adjust_note = p_adjust_note,
     ci_note = ci_note,
+    boot_note = boot_note,
+    r0_note = r0_note,
     note_default = note_default
   )
+}
+
+build_correlations_comparison_table_body <- function(compare_df, digits, table_spec = NULL) {
+  if (is.null(compare_df) || nrow(compare_df) == 0) return("")
+  default_columns <- list(
+    list(key = "group1", label = "Group 1"),
+    list(key = "group2", label = "Group 2"),
+    list(key = "var1", label = "Variable 1"),
+    list(key = "var2", label = "Variable 2"),
+    list(key = "r1", label = "r1"),
+    list(key = "r2", label = "r2"),
+    list(key = "n1", label = "n1"),
+    list(key = "n2", label = "n2"),
+    list(key = "z", label = "z"),
+    list(key = "p", label = "p")
+  )
+  columns <- resolve_normalize_table_columns(
+    if (!is.null(table_spec$columns)) table_spec$columns else NULL,
+    default_columns
+  )
+
+  rows <- list()
+  for (i in seq_len(nrow(compare_df))) {
+    row <- compare_df[i, , drop = FALSE]
+    row_vals <- character(0)
+    for (col in columns) {
+      key <- col$key
+      val <- ""
+      if (key == "group1") {
+        val <- resolve_as_cell_text(row$group1)
+      } else if (key == "group2") {
+        val <- resolve_as_cell_text(row$group2)
+      } else if (key == "var1") {
+        val <- resolve_as_cell_text(row$var1)
+      } else if (key == "var2") {
+        val <- resolve_as_cell_text(row$var2)
+      } else if (key == "r1") {
+        val <- format_r_cell(row$r1, digits)
+      } else if (key == "r2") {
+        val <- format_r_cell(row$r2, digits)
+      } else if (key == "n1") {
+        val <- ifelse(is.na(row$n1), "", as.character(row$n1))
+      } else if (key == "n2") {
+        val <- ifelse(is.na(row$n2), "", as.character(row$n2))
+      } else if (key == "z") {
+        val <- format_z_cell(row$z, digits)
+      } else if (key == "p") {
+        val <- format_p_cell(row$p_value)
+      } else if (key %in% names(row)) {
+        cell <- row[[key]][1]
+        if (is.numeric(cell)) {
+          val <- format_num(cell, digits)
+        } else {
+          val <- resolve_as_cell_text(cell)
+        }
+      }
+      row_vals <- c(row_vals, val)
+    }
+    rows[[length(rows) + 1]] <- row_vals
+  }
+
+  filtered <- resolve_drop_empty_columns(columns, rows)
+  columns <- filtered$columns
+  rows <- filtered$rows
+  headers <- vapply(columns, function(col) {
+    if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
+  }, character(1))
+  resolve_render_markdown_table(headers, rows)
+}
+
+build_correlations_comparison_note_tokens <- function(method, alternative, missing_method) {
+  tail_note <- if (alternative != "two.sided") "One-tailed tests." else "Two-tailed tests."
+  missing_note <- paste0("Missing values handled ", missing_method, ".")
+  method_note <- ""
+  if (method != "pearson") {
+    method_note <- paste0("Fisher r-to-z tests use an approximation for ", method, " correlations.")
+  }
+  parts <- c("Fisher r-to-z tests compare correlations between independent groups.", tail_note, missing_note, method_note)
+  note_default <- paste(parts[nzchar(parts)], collapse = " ")
+  list(
+    tail_note = tail_note,
+    missing_note = missing_note,
+    method_note = method_note,
+    note_default = note_default
+  )
+}
+
+build_correlations_comparison_narrative_rows <- function(compare_df, digits) {
+  if (is.null(compare_df) || nrow(compare_df) == 0) return(list())
+  rows <- list()
+  for (i in seq_len(nrow(compare_df))) {
+    row <- compare_df[i, , drop = FALSE]
+    label <- paste(row$var1, "with", row$var2)
+    z_text <- format_z_cell(row$z, digits)
+    p_text <- format_p_cell(row$p_value)
+    n1_text <- ifelse(is.na(row$n1), "NA", as.character(row$n1))
+    n2_text <- ifelse(is.na(row$n2), "NA", as.character(row$n2))
+    if (is.na(row$z) || is.na(row$p_value)) {
+      line <- paste0(
+        label, ": comparison could not be computed (n1 = ", n1_text,
+        ", n2 = ", n2_text, ")."
+      )
+    } else {
+      line <- paste0(
+        "Correlation between ", row$var1, " and ", row$var2,
+        " differed between ", row$group1, " and ", row$group2,
+        ", z = ", z_text, ", p ", p_text, "."
+      )
+    }
+    rows[[length(rows) + 1]] <- list(
+      label = label,
+      group1 = resolve_as_cell_text(row$group1),
+      group2 = resolve_as_cell_text(row$group2),
+      var1 = resolve_as_cell_text(row$var1),
+      var2 = resolve_as_cell_text(row$var2),
+      r1 = format_r_cell(row$r1, digits),
+      r2 = format_r_cell(row$r2, digits),
+      n1 = n1_text,
+      n2 = n2_text,
+      z = z_text,
+      p = p_text,
+      full_sentence = line
+    )
+  }
+  rows
 }
 
 build_correlations_narrative_rows <- function(summary_df, digits, conf_level, adjust_method) {
@@ -895,6 +1250,12 @@ build_correlations_narrative_rows <- function(summary_df, digits, conf_level, ad
     if (!is.na(row$ci_low) && !is.na(row$ci_high)) {
       ci_only <- format_ci(row$ci_low, row$ci_high, digits)
       ci_text <- paste0(", ", round(conf_level * 100), "% CI ", ci_only)
+    }
+    boot_ci_only <- ""
+    boot_ci_text <- ""
+    if (!is.na(row$boot_ci_low) && !is.na(row$boot_ci_high)) {
+      boot_ci_only <- format_ci(row$boot_ci_low, row$boot_ci_high, digits)
+      boot_ci_text <- paste0(", bootstrap CI ", boot_ci_only)
     }
 
     p_val <- if (adjust_method != "none" && !is.na(row$p_adjusted)) row$p_adjusted else row$p_value
@@ -925,8 +1286,13 @@ build_correlations_narrative_rows <- function(summary_df, digits, conf_level, ad
       var2 = resolve_as_cell_text(row$var2),
       stat_text = stat_text,
       r = r_text,
+      r0 = format_r_cell(row$r0, digits),
+      z_r0 = format_z_cell(row$z_r0, digits),
+      p_r0 = format_p_cell(row$p_r0),
       ci = ci_only,
       ci_text = ci_text,
+      boot_ci = boot_ci_only,
+      boot_ci_text = boot_ci_text,
       p = p_text,
       n = n_str,
       missing_n = missing_n_str,
@@ -954,6 +1320,9 @@ main <- function() {
   digits_default <- resolve_config_value("defaults.digits", 2)
   log_default <- resolve_config_value("defaults.log", TRUE)
   conf_default <- resolve_config_value("modules.correlations.conf_level", 0.95)
+  bootstrap_default <- resolve_config_value("modules.correlations.bootstrap", FALSE)
+  bootstrap_samples_default <- resolve_config_value("modules.correlations.bootstrap_samples", 1000)
+  compare_groups_default <- resolve_config_value("modules.correlations.compare_groups", FALSE)
   method_default <- resolve_config_value("modules.correlations.method", "pearson")
   missing_default <- resolve_config_value("modules.correlations.missing", "pairwise")
   alternative_default <- resolve_config_value("modules.correlations.alternative", "two.sided")
@@ -961,6 +1330,28 @@ main <- function() {
   coerce_default <- resolve_config_value("modules.correlations.coerce", FALSE)
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
   conf_level <- if (!is.null(opts$`conf-level`)) as.numeric(opts$`conf-level`) else conf_default
+  bootstrap <- resolve_parse_bool(opts$bootstrap, default = bootstrap_default)
+  bootstrap_samples <- if (!is.null(opts$`bootstrap-samples`)) as.numeric(opts$`bootstrap-samples`) else bootstrap_samples_default
+  if (is.na(bootstrap_samples) || bootstrap_samples <= 0) bootstrap_samples <- bootstrap_samples_default
+  seed <- if (!is.null(opts$seed) && opts$seed != "") opts$seed else NULL
+  if (!is.null(seed) && nzchar(seed)) {
+    set.seed(as.numeric(seed))
+  }
+  compare_groups <- resolve_parse_bool(opts$`compare-groups`, default = compare_groups_default)
+  r0_input <- NULL
+  if (isTRUE(opts$r0) || isTRUE(opts$rho0)) {
+    stop("r0 requires a numeric value.")
+  }
+  if (!is.null(opts$r0) && !is.logical(opts$r0) && opts$r0 != "") r0_input <- opts$r0
+  if (is.null(r0_input) && !is.null(opts$rho0) && !is.logical(opts$rho0) && opts$rho0 != "") {
+    r0_input <- opts$rho0
+  }
+  r0_value <- NULL
+  if (!is.null(r0_input) && nzchar(r0_input)) {
+    r0_value <- as.numeric(r0_input)
+    if (is.na(r0_value)) stop("Invalid r0 value.")
+    if (abs(r0_value) >= 1) stop("r0 must be between -1 and 1 (exclusive).")
+  }
   method <- normalize_method(opts$method, default = method_default)
   missing_method <- normalize_missing(opts$missing, default = missing_default)
   alternative <- normalize_alternative(opts$alternative, default = alternative_default)
@@ -970,6 +1361,9 @@ main <- function() {
   df <- resolve_load_dataframe(opts)
   out_dir <- resolve_get_workspace_out_dir(df)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
+  if (compare_groups && is.null(group_var)) {
+    stop("Group comparisons require --group.")
+  }
 
   vars <- resolve_parse_list(opts$vars)
   x_vars <- resolve_parse_list(opts$x)
@@ -1004,6 +1398,9 @@ main <- function() {
   if (length(controls) > 0 && method == "kendall") {
     stop("Partial correlations are not supported for Kendall's tau.")
   }
+  if ((compare_groups || !is.null(r0_value)) && method == "kendall") {
+    stop("Fisher r-to-z comparisons are not supported for Kendall's tau.")
+  }
 
   df <- coerce_dataframe(df, c(pairs$var1, pairs$var2, controls), coerce_flag)
   for (var in unique(c(pairs$var1, pairs$var2, controls))) {
@@ -1033,7 +1430,8 @@ main <- function() {
         row <- pairs[i, ]
         summary_list[[length(summary_list) + 1]] <- compute_pair(
           df_sub, row$var1, row$var2, group_label,
-          method, alternative, conf_level, missing_method, controls, complete_idx
+          method, alternative, conf_level, missing_method, controls, complete_idx,
+          bootstrap, bootstrap_samples
         )
       }
 
@@ -1050,7 +1448,8 @@ main <- function() {
       row <- pairs[i, ]
       summary_list[[length(summary_list) + 1]] <- compute_pair(
         df, row$var1, row$var2, "",
-        method, alternative, conf_level, missing_method, controls, complete_idx
+        method, alternative, conf_level, missing_method, controls, complete_idx,
+        bootstrap, bootstrap_samples
       )
     }
 
@@ -1076,6 +1475,53 @@ main <- function() {
     }
   }
 
+  summary_df$r0 <- if (!is.null(r0_value)) r0_value else NA_real_
+  summary_df$z_r0 <- NA_real_
+  summary_df$p_r0 <- NA_real_
+  if (!is.null(r0_value) && nrow(summary_df) > 0) {
+    for (i in seq_len(nrow(summary_df))) {
+      test <- fisher_z_test_r0(summary_df$r[i], summary_df$n[i], r0_value, alternative, length(controls))
+      summary_df$z_r0[i] <- test$z
+      summary_df$p_r0[i] <- test$p
+    }
+  }
+
+  comparison_df <- NULL
+  if (compare_groups) {
+    group_levels <- unique(df[[group_var]])
+    group_levels <- group_levels[!is.na(group_levels)]
+    if (length(group_levels) != 2) {
+      stop("Group comparisons require exactly two non-missing group levels.")
+    }
+    group1 <- as.character(group_levels[1])
+    group2 <- as.character(group_levels[2])
+    compare_rows <- list()
+    for (i in seq_len(nrow(pairs))) {
+      row <- pairs[i, ]
+      row1 <- summary_df[summary_df$group == group1 & summary_df$var1 == row$var1 & summary_df$var2 == row$var2, , drop = FALSE]
+      row2 <- summary_df[summary_df$group == group2 & summary_df$var1 == row$var1 & summary_df$var2 == row$var2, , drop = FALSE]
+      r1 <- ifelse(nrow(row1) > 0, row1$r[1], NA_real_)
+      r2 <- ifelse(nrow(row2) > 0, row2$r[1], NA_real_)
+      n1 <- ifelse(nrow(row1) > 0, row1$n[1], NA_real_)
+      n2 <- ifelse(nrow(row2) > 0, row2$n[1], NA_real_)
+      test <- fisher_z_test_independent(r1, n1, r2, n2, alternative, length(controls))
+      compare_rows[[length(compare_rows) + 1]] <- data.frame(
+        var1 = row$var1,
+        var2 = row$var2,
+        group1 = group1,
+        group2 = group2,
+        r1 = r1,
+        r2 = r2,
+        n1 = n1,
+        n2 = n2,
+        z = test$z,
+        p_value = test$p,
+        stringsAsFactors = FALSE
+      )
+    }
+    comparison_df <- do.call(rbind, compare_rows)
+  }
+
   use_cross_template <- length(x_vars) > 0 && length(y_vars) > 0
   template_override <- resolve_template_override(opts$template, module = "correlations")
   template_path <- if (!is.null(template_override)) {
@@ -1097,16 +1543,36 @@ main <- function() {
     controls = if (length(controls) > 0) controls else "None",
     "p-adjust" = adjust_method,
     "conf-level" = conf_level,
+    bootstrap = bootstrap,
+    "bootstrap-samples" = if (bootstrap) bootstrap_samples else NULL,
+    r0 = if (!is.null(r0_value)) r0_value else NULL,
+    "compare-groups" = if (compare_groups) compare_groups else NULL,
     coerce = coerce_flag,
     digits = digits
   )
 
   apa_report_path <- file.path(out_dir, "report_canonical.md")
-  apa_table <- format_apa_table(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
-  apa_text <- format_apa_text(summary_df, digits, conf_level, adjust_method, missing_method, alternative)
+  apa_table <- format_apa_table(summary_df, digits, conf_level, adjust_method, missing_method, alternative, bootstrap, bootstrap_samples)
+  apa_text <- format_apa_text(summary_df, digits, conf_level, adjust_method, missing_method, alternative, bootstrap, bootstrap_samples)
   template_meta <- resolve_get_template_meta(template_path)
-  table_body <- build_correlations_table_body(summary_df, digits, conf_level, adjust_method, template_meta$table)
-  note_tokens <- build_correlations_note_tokens(summary_df, conf_level, adjust_method, missing_method, alternative)
+  table_spec <- if (!is.null(template_meta$table)) template_meta$table else NULL
+  use_matrix <- is_matrix_layout(table_spec)
+  if (!is.null(r0_value) && use_matrix) {
+    template_path <- resolve_get_template_path("correlations.default", "correlations/default-template.md")
+    template_meta <- resolve_get_template_meta(template_path)
+    table_spec <- if (!is.null(template_meta$table)) template_meta$table else NULL
+    use_matrix <- FALSE
+  }
+  vars_for_matrix <- if (length(vars) > 0) vars else unique(c(summary_df$var1, summary_df$var2))
+  if (use_cross_template || !is.null(r0_value)) {
+    use_matrix <- FALSE
+  }
+  table_body <- if (use_matrix && length(vars_for_matrix) >= 2) {
+    build_correlations_matrix_table_body(summary_df, vars_for_matrix, digits, adjust_method, table_spec)
+  } else {
+    build_correlations_table_body(summary_df, digits, conf_level, adjust_method, table_spec)
+  }
+  note_tokens <- build_correlations_note_tokens(summary_df, conf_level, adjust_method, missing_method, alternative, bootstrap, bootstrap_samples)
   narrative_rows <- build_correlations_narrative_rows(summary_df, digits, conf_level, adjust_method)
   template_context <- list(
     tokens = c(
@@ -1128,6 +1594,57 @@ main <- function() {
     template_context = template_context
   )
 
+  if (!is.null(comparison_df) && nrow(comparison_df) > 0) {
+    comparison_template_path <- resolve_get_template_path(
+      "correlations.comparison",
+      "correlations/comparison-template.md"
+    )
+    comparison_meta <- resolve_get_template_meta(comparison_template_path)
+    comparison_table_body <- build_correlations_comparison_table_body(
+      comparison_df,
+      digits,
+      comparison_meta$table
+    )
+    comparison_note_tokens <- build_correlations_comparison_note_tokens(method, alternative, missing_method)
+    comparison_rows <- build_correlations_comparison_narrative_rows(comparison_df, digits)
+    comparison_lines <- vapply(comparison_rows, function(row) row$full_sentence, character(1))
+    comparison_text <- paste(comparison_lines, collapse = "\n")
+    comparison_table <- paste0(
+      "Table 1\nCorrelation comparisons\n\n",
+      comparison_table_body,
+      "\n\nNote. ",
+      comparison_note_tokens$note_default,
+      "\n"
+    )
+    comparison_context <- list(
+      tokens = c(
+        list(
+          table_body = comparison_table_body,
+          narrative_default = comparison_text
+        ),
+        comparison_note_tokens
+      ),
+      narrative_rows = comparison_rows
+    )
+    comparison_flags <- list(
+      group = if (!is.null(group_var)) group_var else "None",
+      method = method,
+      missing = missing_method,
+      alternative = alternative,
+      controls = if (length(controls) > 0) controls else "None",
+      "compare-groups" = compare_groups
+    )
+    resolve_append_apa_report(
+      apa_report_path,
+      "Correlation comparisons",
+      comparison_table,
+      comparison_text,
+      analysis_flags = comparison_flags,
+      template_path = comparison_template_path,
+      template_context = comparison_context
+    )
+  }
+
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
 
@@ -1138,15 +1655,19 @@ main <- function() {
       module = "correlations",
       prompt = ctx$prompt,
       commands = ctx$commands,
-      results = list(summary_df = summary_df, diagnostics_df = diagnostics_df),
+      results = list(summary_df = summary_df, diagnostics_df = diagnostics_df, comparison_df = comparison_df),
       options = list(
         digits = digits,
         conf_level = conf_level,
+        bootstrap = bootstrap,
+        bootstrap_samples = bootstrap_samples,
         method = method,
         missing = missing_method,
         alternative = alternative,
         p_adjust = adjust_method,
         coerce = coerce_flag,
+        r0 = r0_value,
+        compare_groups = compare_groups,
         vars = vars,
         x = x_vars,
         y = y_vars,

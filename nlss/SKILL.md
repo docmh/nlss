@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, power analysis, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
 license: Apache-2.0
 compatibility: R 4.0+, Windows, WSL (Ubuntu), Linux
 metadata:
@@ -170,7 +170,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [descriptive-stats](references/subskills/descriptive-stats.md): Numeric descriptive statistics with optional grouping, missingness, distribution metrics, and APA tables/narratives.
 - [frequencies](references/subskills/frequencies.md): Categorical frequency tables with percentages, grouping, and APA-ready tables/narratives.
 - [crosstabs](references/subskills/crosstabs.md): Contingency tables with chi-square/Fisher tests, effect sizes, residuals, and APA outputs.
-- [correlations](references/subskills/correlations.md): Correlation matrices, cross/partial correlations, p-adjustments, optional grouping, and APA outputs.
+- [correlations](references/subskills/correlations.md): Correlation and cross-correlation matrices, partial correlations, p-adjustments, bootstrap CIs, Fisher r-to-z tests, optional grouping, and APA outputs.
 - [scale](references/subskills/scale.md): Scale item analysis and reliability (alpha/omega), reverse scoring, grouped results, APA outputs.
 - [reliability](references/subskills/reliability.md): Inter-rater and test-retest reliability (ICC, kappa, correlations) with APA outputs.
 - [data-explorer](references/subskills/data-explorer.md): Data dictionary summaries (types, levels, missingness, value counts) with APA output.
@@ -178,6 +178,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [data-transform](references/subskills/data-transform.md): Create/modify variables (compute, recode, standardize, rename, drop) with change logs and updated datasets.
 - [assumptions](references/subskills/assumptions.md): Assumption checks for t-tests, ANOVA, and regression (including diagnostics).
 - [regression](references/subskills/regression.md): Multiple and hierarchical regression with interactions, bootstrap options, and APA outputs.
+- [power](references/subskills/power.md): Power analysis for t-tests, ANOVA, correlations, regression, and SEM with APA outputs.
 - [mixed-models](references/subskills/mixed-models.md): Linear mixed-effects models with random effects, marginal means, and APA outputs.
 - [sem](references/subskills/sem.md): Structural equation modeling (SEM), CFA, path analysis, mediation, and invariance with APA outputs.
 - [anova](references/subskills/anova.md): Between-subjects, within-subjects, and mixed ANOVA with APA outputs and post-hoc comparisons.
@@ -209,3 +210,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - transform-data (planned): Data transformation with variable creation, recoding, and standardization.
 - check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression).
 - full-analysis (planned): Comprehensive analysis from data exploration to hypothesis testing with full reporting.
+
+## Utilities
+
+- [calc](references/utilities/calc.md): Lightweight calculator CLI for quick numeric expressions.

@@ -90,6 +90,9 @@ get_builtin_config <- function() {
         controls = NULL,
         p_adjust = "none",
         conf_level = 0.95,
+        bootstrap = FALSE,
+        bootstrap_samples = 1000,
+        compare_groups = FALSE,
         coerce = FALSE
       ),
       scale = list(
@@ -175,6 +178,22 @@ get_builtin_config <- function() {
         standardize = "none",
         bootstrap = FALSE,
         bootstrap_samples = 1000
+      ),
+      power = list(
+        analysis = "ttest",
+        mode = "apriori",
+        effect_metric = "auto",
+        alpha = 0.05,
+        power = 0.8,
+        alternative = "two.sided",
+        t_type = "two-sample",
+        ratio = 1,
+        mu = 0.0,
+        groups = 2,
+        u = 1,
+        rmsea0 = 0.05,
+        rmsea1 = 0.08,
+        estimate_effect = FALSE
       ),
       mixed_models = list(
         reml = TRUE,
@@ -281,7 +300,9 @@ get_builtin_config <- function() {
       ),
       correlations = list(
         default = "correlations/default-template.md",
-        cross = "correlations/cross-correlation-template.md"
+        cross = "correlations/cross-correlation-template.md",
+        matrix = "correlations/matrix-template.md",
+        comparison = "correlations/comparison-template.md"
       ),
       crosstabs = list(
         default = "crosstabs/default-template.md",
@@ -306,6 +327,9 @@ get_builtin_config <- function() {
       ),
       regression = list(
         default = "regression/default-template.md"
+      ),
+      power = list(
+        default = "power/default-template.md"
       ),
       mixed_models = list(
         default = "mixed-models/default-template.md",
@@ -333,6 +357,9 @@ get_builtin_config <- function() {
       ),
       metaskill_runner = list(
         default = "metaskill-runner/default-template.md"
+      ),
+      calc = list(
+        default = "calc/default-template.md"
       )
     )
   )
