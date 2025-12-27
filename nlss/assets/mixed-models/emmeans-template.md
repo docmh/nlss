@@ -47,7 +47,7 @@ note:
   template: "{{note_default}}"
 narrative:
   row_template: "{{full_sentence}}"
-  join: "\n"
+  join: "\n\n"
   drop_empty: true
 ---
 # {{title}}
@@ -58,7 +58,7 @@ Analysis:
 
 **Table {{table_number}}**
 
-{{table_title}}
+*{{table_title}}*
 
 {{table_body}}
 

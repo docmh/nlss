@@ -377,6 +377,9 @@ get_builtin_config <- function() {
         default = "init-workspace/default-template.md",
         scratchpad = "scratchpad/default-template.md"
       ),
+      metaskill_report = list(
+        default = "metaskills/report-template.md"
+      ),
       metaskill_runner = list(
         default = "metaskill-runner/default-template.md"
       ),

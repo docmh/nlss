@@ -532,7 +532,7 @@ normalize_rows_tokens <- function(rows) {
   out
 }
 
-render_narrative_rows <- function(row_template, rows, base_tokens, join = "\n", drop_empty = TRUE) {
+render_narrative_rows <- function(row_template, rows, base_tokens, join = "\n\n", drop_empty = TRUE) {
   if (is.null(row_template) || !nzchar(row_template)) return("")
   rows_norm <- normalize_rows_tokens(rows)
   if (length(rows_norm) == 0) return("")
@@ -614,6 +614,26 @@ trim_trailing_whitespace <- function(text) {
   sub("[\r\n[:space:]]+$", "", text)
 }
 
+normalize_paragraph_breaks <- function(text) {
+  if (is.null(text) || length(text) == 0) return(text)
+  text <- as.character(text)
+  text <- paste(text, collapse = "\n")
+  if (!nzchar(text)) return(text)
+  text <- gsub("\r\n", "\n", text, fixed = TRUE)
+  gsub("([^\n])\n([^\n])", "\\1\n\n\\2", text, perl = TRUE)
+}
+
+normalize_narrative_tokens <- function(tokens) {
+  if (!is.list(tokens) || length(tokens) == 0) return(tokens)
+  if (!is.null(tokens$narrative_default)) {
+    tokens$narrative_default <- normalize_paragraph_breaks(tokens$narrative_default)
+  }
+  if (!is.null(tokens$narrative)) {
+    tokens$narrative <- normalize_paragraph_breaks(tokens$narrative)
+  }
+  tokens
+}
+
 split_table_note <- function(apa_table) {
   note_match <- regexpr("\nNote\\.", apa_table, perl = TRUE)
   if (note_match[1] == -1) {
@@ -659,7 +679,7 @@ format_template_report <- function(template_path, analysis_label, analysis_flags
   split <- split_table_note(apa_table)
   table_body <- strip_table_header(split$table)
   note_body <- format_note_body(split$note)
-  narrative_default <- apa_text
+  narrative_default <- normalize_paragraph_breaks(apa_text)
   base_tokens <- list(
     analysis_label = analysis_label,
     analysis_flags = flags_text,
@@ -675,6 +695,7 @@ format_template_report <- function(template_path, analysis_label, analysis_flags
   if (is.list(template_context)) {
     if (!is.null(template_context$tokens)) {
       ctx_tokens <- normalize_token_map(template_context$tokens)
+      ctx_tokens <- normalize_narrative_tokens(ctx_tokens)
     }
     if (!is.null(template_context$narrative_rows)) {
       narrative_rows <- template_context$narrative_rows
@@ -693,7 +714,7 @@ format_template_report <- function(template_path, analysis_label, analysis_flags
   if (is.list(meta) && "narrative" %in% names(meta)) {
     row_template <- meta$narrative$row_template
     if (!is.null(row_template) && nzchar(row_template)) {
-      join <- if (!is.null(meta$narrative$join)) as.character(meta$narrative$join) else "\n"
+      join <- if (!is.null(meta$narrative$join)) as.character(meta$narrative$join) else "\n\n"
       drop_empty <- if (!is.null(meta$narrative$drop_empty)) isTRUE(meta$narrative$drop_empty) else TRUE
       narrative <- render_narrative_rows(row_template, narrative_rows, base_tokens, join = join, drop_empty = drop_empty)
       if (nzchar(narrative)) {
@@ -742,7 +763,7 @@ format_template_figure_report <- function(template_path, analysis_label, analysi
   if (is.list(meta) && "narrative" %in% names(meta)) {
     row_template <- meta$narrative$row_template
     if (!is.null(row_template) && nzchar(row_template)) {
-      join <- if (!is.null(meta$narrative$join)) as.character(meta$narrative$join) else "\n"
+      join <- if (!is.null(meta$narrative$join)) as.character(meta$narrative$join) else "\n\n"
       drop_empty <- if (!is.null(meta$narrative$drop_empty)) isTRUE(meta$narrative$drop_empty) else TRUE
       narrative <- render_narrative_rows(row_template, narrative_rows, base_tokens, join = join, drop_empty = drop_empty)
       if (nzchar(narrative)) {
@@ -763,6 +784,7 @@ format_template_figure_report <- function(template_path, analysis_label, analysi
 
 format_apa_report <- function(analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, table_start = 1, template_context = NULL) {
   flags_text <- format_analysis_flags(analysis_flags)
+  apa_text <- normalize_paragraph_breaks(apa_text)
   if (!is.null(template_path) && file.exists(template_path)) {
     return(format_template_report(template_path, analysis_label, analysis_flags, table_start, apa_table, apa_text, template_context = template_context))
   }

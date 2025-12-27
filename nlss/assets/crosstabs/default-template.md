@@ -38,7 +38,7 @@ Analysis:
 
 **Table {{table_number}}**
 
-{{table_title}}
+*{{table_title}}*
 
 {{table_body}}
 

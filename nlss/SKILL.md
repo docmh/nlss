@@ -170,7 +170,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - Base tokens available in all templates: `analysis_label`, `analysis_flags`, `table_number`, `table_body`, `note_body`, `note_default`, `narrative`, `narrative_default`.
 - Module-specific tokens (e.g., correlation CI labels or cross-tab test fragments) are documented in each subskill reference.
 - Modules without template mappings fall back to the built-in APA report format (no YAML template).
-- Metaskills do not define APA templates directly; APA output is produced by their underlying subskills.
+- Metaskills do not define APA templates for `report_canonical.md`; APA output is produced by their underlying subskills. Final metaskill reports should follow `nlss/assets/metaskills/report-template.md` unless a different structure is warranted.
 
 ## Subskills
 
@@ -210,8 +210,10 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 - `report_canonical.md` is an audit trail; never copy it as the final metaskill report.
 - `report_<YYYYMMDD>_<metaskill>_<intent>.md` must be newly written, APA 7–aligned, and journal-ready.
+- Use `nlss/assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
+- Use standard journal subsections when they fit (Methods: Participants/Measures/Procedure/Analytic Strategy; Results: Preliminary/Primary/Secondary; Discussion: Summary/Limitations/Implications/Future Directions), but rename or replace them when the metaskill warrants it.
 - Synthesize results across subskills with interpretation; do not just list outputs.
-- Include APA tables and figures when they improve comprehension; reference them in text with captions.
+- Craft tables and figures specifically for the report; do not copy/paste from `report_canonical.md`. Include them only when they improve comprehension, and reference them in text with captions.
 - Keep all metaskill artifacts inside the dataset workspace folder; never write outside the workspace root.
 
 ### Available Metaskills

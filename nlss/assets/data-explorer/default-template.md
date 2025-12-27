@@ -41,7 +41,7 @@ levels_table:
       label: "Valid %"
 narrative:
   row_template: "{{full_sentence}}"
-  join: "\n"
+  join: "\n\n"
 ---
 # {{title}}
 
@@ -51,7 +51,7 @@ Analysis:
 
 **Table {{table_number}}**
 
-{{overview_table_title}}
+*{{overview_table_title}}*
 
 {{overview_table_body}}
 
@@ -59,7 +59,7 @@ Analysis:
 
 **Table {{table_number_next}}**
 
-{{levels_table_title}}
+*{{levels_table_title}}*
 
 {{levels_table_body}}
 

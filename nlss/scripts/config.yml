@@ -297,6 +297,8 @@ templates:
   init_workspace:
     default: "init-workspace/default-template.md"
     scratchpad: "scratchpad/default-template.md"
+  metaskill_report:
+    default: "metaskills/report-template.md"
   metaskill_runner:
     default: "metaskill-runner/default-template.md"
   calc:

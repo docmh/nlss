@@ -41,7 +41,7 @@ patterns_table:
       drop_if_empty: true
 narrative:
   row_template: "{{full_sentence}}"
-  join: "\n"
+  join: "\n\n"
 ---
 # {{title}}
 
@@ -51,7 +51,7 @@ Analysis:
 
 **Table {{table_number}}**
 
-{{summary_table_title}}
+*{{summary_table_title}}*
 
 {{summary_table_body}}
 
@@ -59,7 +59,7 @@ Analysis:
 
 **Table {{table_number_next}}**
 
-{{patterns_table_title}}
+*{{patterns_table_title}}*
 
 {{patterns_table_body}}
 

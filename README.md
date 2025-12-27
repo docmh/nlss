@@ -132,6 +132,8 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 
 Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations and finalizations. Metaskill completion appends a `# Synopsis` to `report_canonical.md` and writes `report_<YYYYMMDD>_<metaskill>_<intent>.md` in the dataset workspace.
 
+Default metaskill reports should follow `nlss/assets/metaskills/report-template.md` (APA-style paper sections). Omit Introduction and Keywords when no theoretical context is available, adjust subsections as needed, and design tables/figures specifically for the report rather than copying from `report_canonical.md`.
+
 Available metaskills:
 - `describe-sample`: `nlss/references/metaskills/describe-sample.md`
 - `generate-r-script`: `nlss/references/metaskills/generate-r-script.md`

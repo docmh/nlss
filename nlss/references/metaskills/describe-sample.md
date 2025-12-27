@@ -126,7 +126,10 @@ log metaskill finalization with metaskill-runner --phase finalization
 ### Final report requirements
 
 - Do not copy `report_canonical.md`; write a new narrative report.
-- Synthesize results across subskills; include tables/figures with captions and in-text references.
+- Use `nlss/assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
+- Use standard journal subsections when they fit (Methods: Participants/Measures/Procedure/Analytic Strategy; Results: Preliminary/Primary/Secondary; Discussion: Summary/Limitations/Implications/Future Directions), but rename or replace them when the metaskill warrants it.
+- Synthesize results across subskills with interpretation; integrate tables/figures with captions and in-text references.
+- Craft tables and figures specifically for the report rather than copying them from `report_canonical.md`.
 - Keep the report APA 7-ready and suitable for journal submission.
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
