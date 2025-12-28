@@ -21,8 +21,15 @@ table:
       label: "p"
     - key: "partial_eta_sq"
       label: "eta_p2"
+      drop_if_empty: true
     - key: "eta_sq"
       label: "eta_sq"
+      drop_if_empty: true
+    - key: "partial_omega_sq"
+      label: "omega_p2"
+      drop_if_empty: true
+    - key: "omega_sq"
+      label: "omega_sq"
       drop_if_empty: true
     - key: "boot_ci_low"
       label: "Boot CI low"

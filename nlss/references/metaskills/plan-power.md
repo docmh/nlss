@@ -1,6 +1,6 @@
 ---
 name: plan-power
-description: Plan minimal sample size via a priori power analysis by clarifying design, effect size, alpha, and target power, then run the power subskill with APA-ready outputs.
+description: Agent-run a priori power planning that clarifies design, effect size, alpha, and power (or estimates effect from pilot data) then runs the power subskill and reports APA-ready results.
 ---
 
 # Plan Power (Agent-run, APA 7)

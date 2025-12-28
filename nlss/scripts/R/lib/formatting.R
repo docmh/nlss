@@ -79,6 +79,7 @@ humanize_flag_name <- function(name) {
     "df-method" = "DF method",
     "emmeans" = "Marginal means",
     "contrasts" = "Contrasts",
+    "contrast-file" = "Contrast file",
     "optimizer" = "Optimizer",
     "maxfun" = "Optimizer maxfun",
     "estimator" = "Estimator",

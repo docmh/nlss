@@ -1,6 +1,6 @@
 ---
 name: calc
-description: Lightweight calculator CLI for evaluating numeric expressions to derive subskill parameters without dataset context.
+description: CLI calculator for safe evaluation of numeric expressions (with named constants) to derive analysis parameters; supports plain/json/csv output and optional logging, no dataset required.
 ---
 
 # Calc (Utility)

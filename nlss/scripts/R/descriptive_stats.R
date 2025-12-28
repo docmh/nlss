@@ -533,13 +533,16 @@ build_summary <- function(df, vars, group_var = NULL, digits = 2, trim = 0.1, iq
 format_apa_table <- function(df, digits) {
   display <- df
   display <- resolve_round_numeric(display, digits)
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
   if (all(display$group == "")) {
     display$group <- NULL
+    display$group_display <- NULL
   }
-  table_cols <- c("variable", "group", "n", "mean", "sd", "min", "max")
+  table_cols <- c("variable_display", "group_display", "n", "mean", "sd", "min", "max")
   table_cols <- table_cols[table_cols %in% names(display)]
   display <- display[, table_cols, drop = FALSE]
-  names(display) <- c("Variable", if ("group" %in% names(display)) "Group" else NULL,
+  names(display) <- c("Variable", if ("group_display" %in% names(display)) "Group" else NULL,
                       "n", "M", "SD", "Min", "Max")
   header <- "Table 1\nDescriptive statistics\n"
   md <- paste0(header, "\n| ", paste(names(display), collapse = " | "), " |\n")
@@ -555,12 +558,14 @@ format_apa_table <- function(df, digits) {
 
 format_apa_text <- function(df, digits) {
   display <- resolve_round_numeric(df, digits)
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
   lines <- character(0)
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
-    label <- row$variable
+    label <- row$variable_display
     if (row$group != "") {
-      label <- paste0("Group ", row$group, ", ", label)
+      label <- paste0("Group ", row$group_display, ", ", label)
     }
     missing_pct_str <- ifelse(
       is.na(row$missing_pct),
@@ -592,6 +597,8 @@ build_descriptive_table_body <- function(df, digits, table_spec = NULL) {
   display <- resolve_round_numeric(df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
 
   default_columns <- list(
     list(key = "variable", label = "Variable"),
@@ -616,7 +623,11 @@ build_descriptive_table_body <- function(df, digits, table_spec = NULL) {
       if (key %in% names(row)) {
         cell <- row[[key]][1]
         if (key %in% c("variable", "group")) {
-          val <- resolve_as_cell_text(cell)
+          if (key == "variable") {
+            val <- resolve_as_cell_text(row$variable_display[1])
+          } else {
+            val <- resolve_as_cell_text(row$group_display[1])
+          }
         } else if (key %in% c("n", "missing_n", "total_n", "outliers_tukey", "outliers_z", "n_unique")) {
           val <- ifelse(is.na(cell), "", as.character(cell))
         } else if (key == "missing_pct") {
@@ -644,12 +655,14 @@ build_descriptive_narrative_rows <- function(df, digits) {
   display <- resolve_round_numeric(df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
   rows <- list()
   for (i in seq_len(nrow(display))) {
     row <- display[i, , drop = FALSE]
-    label <- row$variable
+    label <- row$variable_display
     if (row$group != "") {
-      label <- paste0("Group ", row$group, ", ", label)
+      label <- paste0("Group ", row$group_display, ", ", label)
     }
     missing_pct_str <- ifelse(
       is.na(row$missing_pct),
@@ -677,8 +690,8 @@ build_descriptive_narrative_rows <- function(df, digits) {
 
     rows[[length(rows) + 1]] <- list(
       label = label,
-      variable = resolve_as_cell_text(row$variable),
-      group = resolve_as_cell_text(row$group),
+      variable = resolve_as_cell_text(row$variable_display),
+      group = resolve_as_cell_text(row$group_display),
       n = n_str,
       missing_n = missing_n_str,
       missing_pct = missing_pct_str,
@@ -778,6 +791,9 @@ main <- function() {
   if (length(vars) == 0) stop("No numeric variables available for analysis.")
 
   summary_df <- build_summary(df, vars, group_var, digits, trim = trim, iqr_multiplier = iqr_multiplier, outlier_z = outlier_z)
+  label_meta <- resolve_label_metadata(df)
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "variable")
+  summary_df <- add_group_label_column(summary_df, label_meta, group_var, group_col = "group")
   apa_report_path <- file.path(out_dir, "report_canonical.md")
   apa_table <- format_apa_table(summary_df, digits)
   apa_text <- format_apa_text(summary_df, digits)

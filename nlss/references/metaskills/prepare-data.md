@@ -1,6 +1,6 @@
 ---
 name: prepare-data
-description: Prepare a dataset for analysis by auditing variables, handling missingness, recoding/transforming fields, and documenting all changes with APA-ready outputs.
+description: Agent-run data preparation that audits variables, handles missingness (missings/impute), recodes/transforms/renames, optionally builds scales, documents changes, and produces APA-ready reports.
 ---
 
 # Prepare Data (Agent-run, APA 7)

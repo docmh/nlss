@@ -470,6 +470,22 @@ ensure_unique_name <- function(name, existing) {
   candidate
 }
 
+map_variable_labels <- function(vars, labels) {
+  if (length(vars) == 0) return(vars)
+  vapply(vars, function(name) resolve_variable_label(labels, name), character(1))
+}
+
+map_variable_list_label <- function(text, labels) {
+  if (is.null(text) || length(text) == 0 || is.na(text[1])) return("")
+  value <- as.character(text[1])
+  if (!nzchar(value)) return(value)
+  if (value %in% c("None", "Multiple")) return(value)
+  parts <- trimws(strsplit(value, ",", fixed = TRUE)[[1]])
+  if (length(parts) == 0) return(value)
+  mapped <- vapply(parts, function(part) resolve_variable_label(labels, part), character(1))
+  paste(mapped, collapse = ", ")
+}
+
 build_patterns_df <- function(df, vars, max_patterns) {
   if (length(vars) == 0 || nrow(df) == 0) {
     return(list(
@@ -544,7 +560,9 @@ build_missing_table_body <- function(summary_df, digits, table_spec = NULL) {
       for (col in columns) {
         key <- col$key
         val <- ""
-        if (key %in% c("variable", "type", "decision", "impute_method", "impute_value", "indicator")) {
+        if (key %in% c("variable", "indicator")) {
+          val <- resolve_row_display(row, key)
+        } else if (key %in% c("type", "decision", "impute_method", "impute_value")) {
           val <- resolve_as_cell_text(row[[key]][1])
         } else if (key %in% c("missing_n", "total_n")) {
           val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
@@ -600,8 +618,10 @@ build_patterns_table_body <- function(patterns_df, digits, table_spec = NULL) {
       for (col in columns) {
         key <- col$key
         val <- ""
-        if (key %in% c("pattern", "missing_vars")) {
+        if (key == "pattern") {
           val <- resolve_as_cell_text(row[[key]][1])
+        } else if (key == "missing_vars") {
+          val <- resolve_row_display(row, "missing_vars")
         } else if (key == "n" || key == "missing_count") {
           val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
         } else if (key == "pct_total") {
@@ -636,10 +656,12 @@ build_narrative_rows <- function(summary_df, digits) {
   rows <- list()
   if (nrow(summary_df) == 0) return(rows)
   for (i in seq_len(nrow(summary_df))) {
-    row <- summary_df[i, ]
+    row <- summary_df[i, , drop = FALSE]
+    var_display <- resolve_row_display(row, "variable")
+    indicator_display <- resolve_row_display(row, "indicator")
     missing_text <- ifelse(is.na(row$missing_pct), "NA", resolve_format_percent(row$missing_pct, digits))
     line <- paste0(
-      row$variable,
+      var_display,
       ": missing = ",
       row$missing_n,
       " (", missing_text, "%)."
@@ -652,17 +674,17 @@ build_narrative_rows <- function(summary_df, digits) {
     } else if (nzchar(row$impute_method)) {
       line <- paste0(line, " Impute ", row$impute_method, ".")
     }
-    if (nzchar(row$indicator)) {
-      line <- paste0(line, " Indicator: ", row$indicator, ".")
+    if (nzchar(indicator_display)) {
+      line <- paste0(line, " Indicator: ", indicator_display, ".")
     }
     rows[[length(rows) + 1]] <- list(
-      variable = row$variable,
+      variable = var_display,
       missing_n = row$missing_n,
       missing_pct = row$missing_pct,
       decision = row$decision,
       impute_method = row$impute_method,
       impute_value = row$impute_value,
-      indicator = row$indicator,
+      indicator = indicator_display,
       full_sentence = line
     )
   }
@@ -839,8 +861,20 @@ main <- function() {
     }
   }
 
+  label_meta <- resolve_label_metadata(df)
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "variable")
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "indicator")
+
   patterns_info <- build_patterns_df(df, vars, max_patterns)
   patterns_df <- patterns_info$patterns_df
+  if (nrow(patterns_df) > 0) {
+    patterns_df$missing_vars_label <- vapply(
+      patterns_df$missing_vars,
+      map_variable_list_label,
+      character(1),
+      labels = label_meta
+    )
+  }
 
   total_n <- nrow(df)
   complete_cases_n <- if (length(vars) > 0) sum(complete.cases(df[, vars, drop = FALSE])) else total_n
@@ -859,6 +893,10 @@ main <- function() {
     method_selected
   )
 
+  vars_display <- map_variable_labels(vars, label_meta)
+  drop_vars_display <- map_variable_labels(drop_vars, label_meta)
+  indicator_vars_display <- map_variable_labels(indicator_vars, label_meta)
+
   sentences <- c()
   if (!is.na(min_missing) && !is.na(max_missing)) {
     sentences <- c(sentences, sprintf("Missingness ranged from %s%% to %s%%.", resolve_format_percent(min_missing, digits), resolve_format_percent(max_missing, digits)))
@@ -871,10 +909,10 @@ main <- function() {
     sentences <- c(sentences, sprintf("Listwise deletion removed %d rows (%s%%).", rows_removed, resolve_format_percent(rows_removed / total_n * 100, digits)))
   }
   if (length(drop_vars) > 0) {
-    sentences <- c(sentences, paste0("Dropped variables (missing >= ", resolve_format_percent(drop_threshold * 100, digits), "%): ", paste(drop_vars, collapse = ", "), "."))
+    sentences <- c(sentences, paste0("Dropped variables (missing >= ", resolve_format_percent(drop_threshold * 100, digits), "%): ", paste(drop_vars_display, collapse = ", "), "."))
   }
   if (length(indicator_vars) > 0) {
-    sentences <- c(sentences, paste0("Missingness indicators added for: ", paste(indicator_vars, collapse = ", "), "."))
+    sentences <- c(sentences, paste0("Missingness indicators added for: ", paste(indicator_vars_display, collapse = ", "), "."))
   }
   apa_text <- paste(sentences, collapse = " ")
 
@@ -886,7 +924,7 @@ main <- function() {
   )
   pattern_note <- paste0(
     "Pattern order: ",
-    paste(vars, collapse = ", "),
+    paste(vars_display, collapse = ", "),
     ". M = missing, O = observed.",
     ifelse(patterns_info$truncated, " Other patterns grouped.", "")
   )

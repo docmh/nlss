@@ -529,6 +529,7 @@ format_logical_cell <- function(value) {
 
 build_overview_table_body <- function(df, digits, table_spec = NULL) {
   display <- resolve_round_numeric(df, digits)
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   default_columns <- list(
     list(key = "variable", label = "Variable"),
     list(key = "class", label = "Class"),
@@ -555,7 +556,11 @@ build_overview_table_body <- function(df, digits, table_spec = NULL) {
       if (key %in% names(row)) {
         cell <- row[[key]][1]
         if (key %in% c("variable", "class", "storage", "measurement_level", "measurement_note", "example_values", "levels_note")) {
-          val <- resolve_as_cell_text(cell)
+          if (key == "variable") {
+            val <- resolve_as_cell_text(row$variable_display[1])
+          } else {
+            val <- resolve_as_cell_text(cell)
+          }
         } else if (key %in% c("total_n", "valid_n", "missing_n", "unique_n")) {
           val <- ifelse(is.na(cell), "", as.character(cell))
         } else if (key == "missing_pct") {
@@ -600,6 +605,8 @@ build_levels_table_body <- function(df, digits, table_spec = NULL) {
     ))
   }
   display <- resolve_round_numeric(df, digits)
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$level_display <- if ("level_label" %in% names(display)) display$level_label else display$level
   default_columns <- list(
     list(key = "variable", label = "Variable"),
     list(key = "level", label = "Level"),
@@ -616,6 +623,7 @@ build_levels_table_body <- function(df, digits, table_spec = NULL) {
   for (idx in seq_len(nrow(combo_df))) {
     var <- combo_df$variable[idx]
     subset <- display[display$variable == var, , drop = FALSE]
+    var_label <- subset$variable_display[1]
     total_n <- subset$total_n[1]
     missing_n <- subset$missing_n[1]
     missing_pct <- subset$missing_pct[1]
@@ -626,7 +634,11 @@ build_levels_table_body <- function(df, digits, table_spec = NULL) {
         key <- col$key
         val <- ""
         if (key %in% c("variable", "level")) {
-          val <- resolve_as_cell_text(row[[key]][1])
+          if (key == "variable") {
+            val <- resolve_as_cell_text(row$variable_display[1])
+          } else {
+            val <- resolve_as_cell_text(row$level_display[1])
+          }
         } else if (key %in% c("n", "total_n", "missing_n")) {
           val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
         } else if (key %in% c("pct_total", "pct_valid", "missing_pct")) {
@@ -651,7 +663,7 @@ build_levels_table_body <- function(df, digits, table_spec = NULL) {
         key <- col$key
         val <- ""
         if (key == "variable") {
-          val <- resolve_as_cell_text(var)
+          val <- resolve_as_cell_text(var_label)
         } else if (key == "level") {
           val <- "Missing"
         } else if (key == "n") {
@@ -734,10 +746,17 @@ build_levels_note_tokens <- function(levels_df, overview_df, column_keys, top_n)
 }
 
 build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
+  overview_display <- overview_df
+  overview_display$variable_display <- if ("variable_label" %in% names(overview_display)) overview_display$variable_label else overview_display$variable
+  levels_display <- levels_df
+  if (nrow(levels_display) > 0) {
+    levels_display$variable_display <- if ("variable_label" %in% names(levels_display)) levels_display$variable_label else levels_display$variable
+    levels_display$level_display <- if ("level_label" %in% names(levels_display)) levels_display$level_label else levels_display$level
+  }
   rows <- list()
-  for (i in seq_len(nrow(overview_df))) {
-    row <- overview_df[i, , drop = FALSE]
-    label <- resolve_as_cell_text(row$variable)
+  for (i in seq_len(nrow(overview_display))) {
+    row <- overview_display[i, , drop = FALSE]
+    label <- resolve_as_cell_text(row$variable_display)
     total_n <- row$total_n
     valid_n <- row$valid_n
     missing_n <- row$missing_n
@@ -760,8 +779,8 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
 
     missing_text <- paste0("Missing = ", missing_n_str, " (", missing_pct_str, "%)")
     levels_text <- ""
-    if (nrow(levels_df) > 0) {
-      subset <- levels_df[levels_df$variable == row$variable[1], , drop = FALSE]
+    if (nrow(levels_display) > 0) {
+      subset <- levels_display[levels_display$variable == row$variable[1], , drop = FALSE]
       if (nrow(subset) > 0) {
         level_parts <- character(0)
         for (j in seq_len(nrow(subset))) {
@@ -770,7 +789,7 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
             level_parts,
             sprintf(
               "%s (n = %s, valid %% = %s)",
-              lv$level[1],
+              lv$level_display[1],
               ifelse(is.na(lv$n), "NA", as.character(lv$n)),
               ifelse(is.na(lv$pct_valid), "NA", resolve_format_percent(lv$pct_valid, digits))
             )
@@ -813,7 +832,7 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
 
     rows[[length(rows) + 1]] <- list(
       label = label,
-      variable = resolve_as_cell_text(row$variable),
+      variable = resolve_as_cell_text(row$variable_display),
       class = resolve_as_cell_text(row$class),
       storage = resolve_as_cell_text(row$storage),
       measurement_level = resolve_as_cell_text(row$measurement_level),
@@ -842,6 +861,7 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
 
 format_apa_overview_table <- function(df, digits) {
   display <- resolve_round_numeric(df, digits)
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   headers <- c("Variable", "Class", "Scale", "n", "Missing %", "Unique", "M", "SD", "Min", "Max")
   md <- paste0("Table 1\nVariable overview\n\n| ", paste(headers, collapse = " | "), " |\n")
   md <- paste0(md, "| ", paste(rep("---", length(headers)), collapse = " | "), " |\n")
@@ -849,7 +869,7 @@ format_apa_overview_table <- function(df, digits) {
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
     row_vals <- c(
-      row$variable,
+      row$variable_display,
       row$class,
       row$measurement_level,
       ifelse(is.na(row$valid_n), "", as.character(row$valid_n)),
@@ -873,6 +893,8 @@ format_apa_levels_table <- function(df, digits) {
   }
 
   display <- resolve_round_numeric(df, digits)
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$level_display <- if ("level_label" %in% names(display)) display$level_label else display$level
   headers <- c("Variable", "Level", "n", "%", "Valid %")
   md <- paste0("Table 2\nValue levels\n\n| ", paste(headers, collapse = " | "), " |\n")
   md <- paste0(md, "| ", paste(rep("---", length(headers)), collapse = " | "), " |\n")
@@ -881,11 +903,12 @@ format_apa_levels_table <- function(df, digits) {
   for (idx in seq_len(nrow(combo_df))) {
     var <- combo_df$variable[idx]
     subset <- display[display$variable == var, , drop = FALSE]
+    var_label <- subset$variable_display[1]
     for (i in seq_len(nrow(subset))) {
       row <- subset[i, ]
       row_vals <- c(
-        var,
-        row$level,
+        var_label,
+        row$level_display,
         ifelse(is.na(row$n), "", as.character(row$n)),
         resolve_format_percent(row$pct_total, digits),
         resolve_format_percent(row$pct_valid, digits)
@@ -897,7 +920,7 @@ format_apa_levels_table <- function(df, digits) {
     missing_pct <- subset$missing_pct[1]
     if (!is.na(missing_n) && missing_n > 0) {
       row_vals <- c(
-        var,
+        var_label,
         "Missing",
         as.character(missing_n),
         resolve_format_percent(missing_pct, digits),
@@ -912,10 +935,17 @@ format_apa_levels_table <- function(df, digits) {
 }
 
 format_apa_text <- function(overview_df, levels_df, digits) {
+  overview_display <- overview_df
+  overview_display$variable_display <- if ("variable_label" %in% names(overview_display)) overview_display$variable_label else overview_display$variable
+  levels_display <- levels_df
+  if (nrow(levels_display) > 0) {
+    levels_display$variable_display <- if ("variable_label" %in% names(levels_display)) levels_display$variable_label else levels_display$variable
+    levels_display$level_display <- if ("level_label" %in% names(levels_display)) levels_display$level_label else levels_display$level
+  }
   lines <- character(0)
-  for (i in seq_len(nrow(overview_df))) {
-    row <- overview_df[i, ]
-    label <- row$variable
+  for (i in seq_len(nrow(overview_display))) {
+    row <- overview_display[i, ]
+    label <- row$variable_display
     total_n <- row$total_n
     valid_n <- row$valid_n
     missing_n <- row$missing_n
@@ -948,8 +978,8 @@ format_apa_text <- function(overview_df, levels_df, digits) {
       )
     }
 
-    if (nrow(levels_df) > 0) {
-      subset <- levels_df[levels_df$variable == label, , drop = FALSE]
+    if (nrow(levels_display) > 0) {
+      subset <- levels_display[levels_display$variable == row$variable[1], , drop = FALSE]
       if (nrow(subset) > 0) {
         level_parts <- character(0)
         for (j in seq_len(nrow(subset))) {
@@ -958,7 +988,7 @@ format_apa_text <- function(overview_df, levels_df, digits) {
             level_parts,
             sprintf(
               "%s (n = %s, valid %% = %s)",
-              lv$level,
+              lv$level_display,
               ifelse(is.na(lv$n), "NA", as.character(lv$n)),
               ifelse(is.na(lv$pct_valid), "NA", resolve_format_percent(lv$pct_valid, digits))
             )
@@ -1069,6 +1099,10 @@ main <- function() {
       stringsAsFactors = FALSE
     )
   }
+  label_meta <- resolve_label_metadata(df)
+  overview_df <- add_variable_label_column(overview_df, label_meta, var_col = "variable")
+  levels_df <- add_variable_label_column(levels_df, label_meta, var_col = "variable")
+  levels_df <- add_value_label_column(levels_df, label_meta, var_col = "variable", value_col = "level")
 
   apa_report_path <- file.path(out_dir, "report_canonical.md")
   apa_tables <- paste(

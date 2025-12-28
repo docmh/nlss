@@ -1,6 +1,6 @@
 ---
 name: regression
-description: Multiple and hierarchical regression (OLS/GLM) with interactions, bootstrap CIs, and APA-ready tables/narratives.
+description: OLS/GLM regression (gaussian/binomial/poisson) with blocks, interactions, centering/standardization, grouped runs, bootstrap CIs, change stats, diagnostics, and APA outputs.
 ---
 
 # Regression (Base R, APA 7)
@@ -141,11 +141,11 @@ Available note tokens include:
 Use `narrative.row_template` for per-model lines. Available row tokens include:
 
 `full_sentence`, `model`, `group`, `n`, `f`, `df1`, `df2`, `p`, `r2`, `adj_r2`, `rmse`, `chisq`, `pseudo_r2`,
-`delta_r2`, `delta_f`, `delta_df1`, `delta_df2`, `delta_p`, `delta_deviance`, `delta_chisq`.
+`f2`, `delta_r2`, `delta_f2`, `delta_f`, `delta_df1`, `delta_df2`, `delta_p`, `delta_deviance`, `delta_chisq`.
 
 ## APA 7 Reporting Guidance
 
-- Report model fit (F/Chi-square, df, p, R2/pseudo R2) for each block.
+- Report model fit (F/Chi-square, df, p, R2/pseudo R2, f2) for each block.
 - Report unstandardized coefficients (b), SE, and p-values; include standardized betas when requested.
 - For logistic/Poisson models, report exp(b) as odds ratios or incidence rate ratios.
 - If hierarchical blocks are used, report change statistics (Delta R2 or Delta deviance).

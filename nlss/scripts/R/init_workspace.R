@@ -14,6 +14,7 @@ source(file.path(bootstrap_dir, "lib", "paths.R"))
 source_lib("cli.R")
 source_lib("config.R")
 source_lib("io.R")
+source_lib("data_utils.R")
 source_lib("formatting.R")
 
 print_usage <- function() {

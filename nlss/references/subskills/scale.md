@@ -1,6 +1,6 @@
 ---
 name: scale
-description: Scale item analysis and reliability (alpha/omega), item-total correlations, reverse scoring, and grouped summaries with APA-ready outputs.
+description: Scale item analysis with item stats, item-total and alpha-if-deleted, alpha/omega reliability, reverse scoring, scale scores, missing handling, grouping, and APA outputs.
 ---
 
 # Scale Analysis (Base R, APA 7)

@@ -428,6 +428,11 @@ format_apa_table <- function(df, digits) {
   display <- resolve_round_numeric(df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$level_display <- if ("level_label" %in% names(display)) display$level_label else display$level
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$group_display <- as.character(display$group_display)
+  display$group_display[is.na(display$group_display)] <- "NA"
   use_group <- !all(display$group == "")
 
   headers <- c("Variable", if (use_group) "Group", "Level", "n", "%", "Valid %")
@@ -439,12 +444,14 @@ format_apa_table <- function(df, digits) {
     var <- combo_df$variable[idx]
     grp <- combo_df$group[idx]
     subset <- display[display$variable == var & display$group == grp, , drop = FALSE]
+    var_label <- subset$variable_display[1]
+    grp_label <- subset$group_display[1]
     for (i in seq_len(nrow(subset))) {
       row <- subset[i, ]
       row_vals <- c(
-        var,
-        if (use_group) grp,
-        row$level,
+        var_label,
+        if (use_group) grp_label,
+        row$level_display,
         ifelse(is.na(row$n), "", as.character(row$n)),
         resolve_format_percent(row$pct_total, digits),
         resolve_format_percent(row$pct_valid, digits)
@@ -455,8 +462,8 @@ format_apa_table <- function(df, digits) {
     missing_pct <- subset$missing_pct[1]
     if (!is.na(missing_n) && missing_n > 0) {
       row_vals <- c(
-        var,
-        if (use_group) grp,
+        var_label,
+        if (use_group) grp_label,
         "Missing",
         as.character(missing_n),
         resolve_format_percent(missing_pct, digits),
@@ -474,6 +481,11 @@ format_apa_text <- function(df, digits) {
   display <- resolve_round_numeric(df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$level_display <- if ("level_label" %in% names(display)) display$level_label else display$level
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$group_display <- as.character(display$group_display)
+  display$group_display[is.na(display$group_display)] <- "NA"
   lines <- character(0)
   combo_df <- unique(display[, c("variable", "group")])
   for (idx in seq_len(nrow(combo_df))) {
@@ -483,10 +495,12 @@ format_apa_text <- function(df, digits) {
     total_n <- subset$total_n[1]
     missing_n <- subset$missing_n[1]
     missing_pct <- subset$missing_pct[1]
+    var_label <- subset$variable_display[1]
+    grp_label <- subset$group_display[1]
     label <- if (is.na(grp) || grp == "") {
-      var
+      var_label
     } else {
-      paste0("Group ", grp, ", ", var)
+      paste0("Group ", grp_label, ", ", var_label)
     }
     if (is.na(total_n) || total_n == 0) {
       line <- sprintf("%s: no observations available.", label)
@@ -513,7 +527,7 @@ format_apa_text <- function(df, digits) {
         level_parts,
         sprintf(
           "%s (n = %s, valid %% = %s)",
-          row$level,
+          row$level_display,
           ifelse(is.na(row$n), "NA", as.character(row$n)),
           ifelse(is.na(row$pct_valid), "NA", resolve_format_percent(row$pct_valid, digits))
         )
@@ -542,6 +556,11 @@ build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) 
   display <- resolve_round_numeric(summary_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$level_display <- if ("level_label" %in% names(display)) display$level_label else display$level
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$group_display <- as.character(display$group_display)
+  display$group_display[is.na(display$group_display)] <- "NA"
 
   default_columns <- list(
     list(key = "variable", label = "Variable"),
@@ -565,6 +584,8 @@ build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) 
     total_n <- subset$total_n[1]
     missing_n <- subset$missing_n[1]
     missing_pct <- subset$missing_pct[1]
+    var_label <- subset$variable_display[1]
+    grp_label <- subset$group_display[1]
 
     for (i in seq_len(nrow(subset))) {
       row <- subset[i, , drop = FALSE]
@@ -573,7 +594,13 @@ build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) 
         key <- col$key
         val <- ""
         if (key %in% c("variable", "group", "level")) {
-          val <- resolve_as_cell_text(row[[key]][1])
+          if (key == "variable") {
+            val <- resolve_as_cell_text(row$variable_display[1])
+          } else if (key == "group") {
+            val <- resolve_as_cell_text(row$group_display[1])
+          } else {
+            val <- resolve_as_cell_text(row$level_display[1])
+          }
         } else if (key %in% c("n", "total_n", "missing_n")) {
           val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
         } else if (key %in% c("pct_total", "pct_valid", "missing_pct")) {
@@ -597,9 +624,9 @@ build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) 
         key <- col$key
         val <- ""
         if (key == "variable") {
-          val <- resolve_as_cell_text(var)
+          val <- resolve_as_cell_text(var_label)
         } else if (key == "group") {
-          val <- resolve_as_cell_text(grp)
+          val <- resolve_as_cell_text(grp_label)
         } else if (key == "level") {
           val <- "Missing"
         } else if (key == "n") {
@@ -656,6 +683,11 @@ build_frequencies_narrative_rows <- function(summary_df, digits) {
   display <- resolve_round_numeric(summary_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$level_display <- if ("level_label" %in% names(display)) display$level_label else display$level
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$group_display <- as.character(display$group_display)
+  display$group_display[is.na(display$group_display)] <- "NA"
   rows <- list()
   combo_df <- unique(display[, c("variable", "group")])
   for (idx in seq_len(nrow(combo_df))) {
@@ -666,7 +698,9 @@ build_frequencies_narrative_rows <- function(summary_df, digits) {
     missing_n <- subset$missing_n[1]
     missing_pct <- subset$missing_pct[1]
     valid_n <- ifelse(is.na(total_n) || is.na(missing_n), NA, total_n - missing_n)
-    label <- if (grp == "") var else paste0("Group ", grp, ", ", var)
+    var_label <- subset$variable_display[1]
+    grp_label <- subset$group_display[1]
+    label <- if (grp == "") var_label else paste0("Group ", grp_label, ", ", var_label)
 
     total_n_str <- ifelse(is.na(total_n), "NA", as.character(total_n))
     missing_n_str <- ifelse(is.na(missing_n), "NA", as.character(missing_n))
@@ -694,7 +728,7 @@ build_frequencies_narrative_rows <- function(summary_df, digits) {
           level_parts,
           sprintf(
             "%s (n = %s, valid %% = %s)",
-            row$level[1],
+            row$level_display[1],
             ifelse(is.na(row$n), "NA", as.character(row$n)),
             ifelse(is.na(row$pct_valid), "NA", resolve_format_percent(row$pct_valid, digits))
           )
@@ -762,6 +796,10 @@ main <- function() {
   if (length(vars) == 0) stop("No variables available for frequency analysis.")
 
   summary_df <- build_summary(df, vars, group_var)
+  label_meta <- resolve_label_metadata(df)
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "variable")
+  summary_df <- add_value_label_column(summary_df, label_meta, var_col = "variable", value_col = "level")
+  summary_df <- add_group_label_column(summary_df, label_meta, group_var, group_col = "group")
   apa_report_path <- file.path(out_dir, "report_canonical.md")
   apa_table <- format_apa_table(summary_df, digits)
   apa_text <- format_apa_text(summary_df, digits)

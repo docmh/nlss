@@ -13,6 +13,7 @@ source(file.path(bootstrap_dir, "lib", "paths.R"))
 source_lib("cli.R")
 source_lib("config.R")
 source_lib("io.R")
+source_lib("data_utils.R")
 source_lib("formatting.R")
 
 print_usage <- function() {
@@ -717,6 +718,9 @@ format_apa_table <- function(summary_df, digits, conf_level, adjust_method, miss
   display <- summary_df
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$var1_display <- if ("var1_label" %in% names(display)) display$var1_label else display$var1
+  display$var2_display <- if ("var2_label" %in% names(display)) display$var2_label else display$var2
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
   use_group <- !all(display$group == "")
 
   partial <- nrow(display) > 0 && any(display$partial)
@@ -743,7 +747,7 @@ format_apa_table <- function(summary_df, digits, conf_level, adjust_method, miss
   for (g in groups) {
     subset <- display[display$group == g, , drop = FALSE]
     header <- paste0("Table 1\n", title)
-    if (use_group) header <- paste0(header, "\nGroup: ", g)
+    if (use_group) header <- paste0(header, "\nGroup: ", subset$group_display[1])
     md <- paste0(header, "\n\n| ", paste(headers, collapse = " | "), " |\n")
     md <- paste0(md, "| ", paste(rep("---", length(headers)), collapse = " | "), " |\n")
 
@@ -752,11 +756,11 @@ format_apa_table <- function(summary_df, digits, conf_level, adjust_method, miss
       p_val <- row$p_value
       p_adj <- row$p_adjusted
       row_vals <- c()
-      if (use_group) row_vals <- c(row_vals, g)
+      if (use_group) row_vals <- c(row_vals, row$group_display)
       row_vals <- c(
         row_vals,
-        row$var1,
-        row$var2,
+        row$var1_display,
+        row$var2_display,
         ifelse(is.na(row$r), "", format_r(row$r, digits))
       )
       if (has_r0) {
@@ -815,14 +819,17 @@ format_apa_text <- function(summary_df, digits, conf_level, adjust_method, missi
   display <- summary_df
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$var1_display <- if ("var1_label" %in% names(display)) display$var1_label else display$var1
+  display$var2_display <- if ("var2_label" %in% names(display)) display$var2_label else display$var2
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
   lines <- character(0)
 
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
     label <- if (row$group == "") {
-      paste(row$var1, "with", row$var2)
+      paste(row$var1_display, "with", row$var2_display)
     } else {
-      paste("Group", row$group, ",", row$var1, "with", row$var2)
+      paste("Group", row$group_display, ",", row$var1_display, "with", row$var2_display)
     }
 
     missing_pct <- ifelse(is.na(row$missing_pct), "NA", format_num(row$missing_pct, 1))
@@ -902,6 +909,9 @@ build_correlations_table_body <- function(summary_df, digits, conf_level, adjust
   display <- summary_df
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$var1_display <- if ("var1_label" %in% names(display)) display$var1_label else display$var1
+  display$var2_display <- if ("var2_label" %in% names(display)) display$var2_label else display$var2
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
 
   ci_label <- paste0(round(conf_level * 100), "% CI")
   default_columns <- list(
@@ -931,11 +941,11 @@ build_correlations_table_body <- function(summary_df, digits, conf_level, adjust
       key <- col$key
       val <- ""
       if (key == "group") {
-        val <- resolve_as_cell_text(row$group)
+        val <- resolve_as_cell_text(row$group_display)
       } else if (key == "var1") {
-        val <- resolve_as_cell_text(row$var1)
+        val <- resolve_as_cell_text(row$var1_display)
       } else if (key == "var2") {
-        val <- resolve_as_cell_text(row$var2)
+        val <- resolve_as_cell_text(row$var2_display)
       } else if (key == "r") {
         val <- format_r_cell(row$r, digits)
       } else if (key == "r0") {
@@ -1006,6 +1016,9 @@ build_correlations_matrix_table_body <- function(summary_df, vars, digits, adjus
   display <- summary_df
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$var1_display <- if ("var1_label" %in% names(display)) display$var1_label else display$var1
+  display$var2_display <- if ("var2_label" %in% names(display)) display$var2_label else display$var2
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
 
   if (length(vars) == 0) {
     vars <- unique(c(display$var1, display$var2))
@@ -1013,6 +1026,20 @@ build_correlations_matrix_table_body <- function(summary_df, vars, digits, adjus
   vars <- vars[vars != ""]
   vars <- vars[!is.na(vars)]
   if (length(vars) == 0) return("")
+
+  label_map <- list()
+  for (i in seq_len(nrow(display))) {
+    v1 <- display$var1[i]
+    v2 <- display$var2[i]
+    l1 <- display$var1_display[i]
+    l2 <- display$var2_display[i]
+    if (!is.null(v1) && nzchar(v1) && !is.null(l1) && nzchar(l1)) label_map[[v1]] <- l1
+    if (!is.null(v2) && nzchar(v2) && !is.null(l2) && nzchar(l2)) label_map[[v2]] <- l2
+  }
+  vars_display <- vapply(vars, function(v) {
+    lbl <- label_map[[v]]
+    if (is.null(lbl) || !nzchar(lbl)) v else lbl
+  }, character(1))
 
   diag_value <- resolve_matrix_diagonal(table_spec, digits)
   groups <- unique(display$group)
@@ -1022,10 +1049,10 @@ build_correlations_matrix_table_body <- function(summary_df, vars, digits, adjus
   for (g in groups) {
     subset <- display[display$group == g, , drop = FALSE]
     key <- make_pair_key(subset$var1, subset$var2)
-    header <- c("", vars)
+    header <- c("", vars_display)
     rows <- list()
     for (i in seq_along(vars)) {
-      row_vals <- c(vars[i])
+      row_vals <- c(vars_display[i])
       for (j in seq_along(vars)) {
         cell <- ""
         if (i == j) {
@@ -1048,7 +1075,8 @@ build_correlations_matrix_table_body <- function(summary_df, vars, digits, adjus
     }
     table_md <- resolve_render_markdown_table(header, rows)
     if (use_group_label) {
-      table_md <- paste0("Group: ", g, "\n\n", table_md)
+      group_label <- if (nrow(subset) > 0) subset$group_display[1] else g
+      table_md <- paste0("Group: ", group_label, "\n\n", table_md)
     }
     sections <- c(sections, table_md)
   }
@@ -1190,7 +1218,11 @@ build_correlations_comparison_narrative_rows <- function(compare_df, digits) {
   rows <- list()
   for (i in seq_len(nrow(compare_df))) {
     row <- compare_df[i, , drop = FALSE]
-    label <- paste(row$var1, "with", row$var2)
+    var1_label <- if ("var1_label" %in% names(row)) row$var1_label else row$var1
+    var2_label <- if ("var2_label" %in% names(row)) row$var2_label else row$var2
+    group1_label <- if ("group1_label" %in% names(row)) row$group1_label else row$group1
+    group2_label <- if ("group2_label" %in% names(row)) row$group2_label else row$group2
+    label <- paste(var1_label, "with", var2_label)
     z_text <- format_z_cell(row$z, digits)
     p_text <- format_p_cell(row$p_value)
     n1_text <- ifelse(is.na(row$n1), "NA", as.character(row$n1))
@@ -1202,17 +1234,17 @@ build_correlations_comparison_narrative_rows <- function(compare_df, digits) {
       )
     } else {
       line <- paste0(
-        "Correlation between ", row$var1, " and ", row$var2,
-        " differed between ", row$group1, " and ", row$group2,
+        "Correlation between ", var1_label, " and ", var2_label,
+        " differed between ", group1_label, " and ", group2_label,
         ", z = ", z_text, ", p ", p_text, "."
       )
     }
     rows[[length(rows) + 1]] <- list(
       label = label,
-      group1 = resolve_as_cell_text(row$group1),
-      group2 = resolve_as_cell_text(row$group2),
-      var1 = resolve_as_cell_text(row$var1),
-      var2 = resolve_as_cell_text(row$var2),
+      group1 = resolve_as_cell_text(group1_label),
+      group2 = resolve_as_cell_text(group2_label),
+      var1 = resolve_as_cell_text(var1_label),
+      var2 = resolve_as_cell_text(var2_label),
       r1 = format_r_cell(row$r1, digits),
       r2 = format_r_cell(row$r2, digits),
       n1 = n1_text,
@@ -1229,13 +1261,16 @@ build_correlations_narrative_rows <- function(summary_df, digits, conf_level, ad
   display <- summary_df
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$var1_display <- if ("var1_label" %in% names(display)) display$var1_label else display$var1
+  display$var2_display <- if ("var2_label" %in% names(display)) display$var2_label else display$var2
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
   rows <- list()
   for (i in seq_len(nrow(display))) {
     row <- display[i, , drop = FALSE]
     label <- if (row$group == "") {
-      paste(row$var1, "with", row$var2)
+      paste(row$var1_display, "with", row$var2_display)
     } else {
-      paste("Group", row$group, ",", row$var1, "with", row$var2)
+      paste("Group", row$group_display, ",", row$var1_display, "with", row$var2_display)
     }
 
     missing_pct_str <- ifelse(is.na(row$missing_pct), "NA", format_num(row$missing_pct, 1))
@@ -1281,9 +1316,9 @@ build_correlations_narrative_rows <- function(summary_df, digits, conf_level, ad
 
     rows[[length(rows) + 1]] <- list(
       label = label,
-      group = resolve_as_cell_text(row$group),
-      var1 = resolve_as_cell_text(row$var1),
-      var2 = resolve_as_cell_text(row$var2),
+      group = resolve_as_cell_text(row$group_display),
+      var1 = resolve_as_cell_text(row$var1_display),
+      var2 = resolve_as_cell_text(row$var2_display),
       stat_text = stat_text,
       r = r_text,
       r0 = format_r_cell(row$r0, digits),
@@ -1517,6 +1552,18 @@ main <- function() {
       )
     }
     comparison_df <- do.call(rbind, compare_rows)
+  }
+  label_meta <- resolve_label_metadata(df)
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "var1")
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "var2")
+  summary_df <- add_group_label_column(summary_df, label_meta, group_var, group_col = "group")
+  diagnostics_df <- add_variable_label_column(diagnostics_df, label_meta, var_col = "variable")
+  diagnostics_df <- add_group_label_column(diagnostics_df, label_meta, group_var, group_col = "group")
+  if (!is.null(comparison_df) && nrow(comparison_df) > 0) {
+    comparison_df <- add_variable_label_column(comparison_df, label_meta, var_col = "var1")
+    comparison_df <- add_variable_label_column(comparison_df, label_meta, var_col = "var2")
+    comparison_df <- add_group_label_column(comparison_df, label_meta, group_var, group_col = "group1")
+    comparison_df <- add_group_label_column(comparison_df, label_meta, group_var, group_col = "group2")
   }
 
   use_cross_template <- length(x_vars) > 0 && length(y_vars) > 0

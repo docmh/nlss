@@ -1,6 +1,6 @@
 ---
 name: crosstabs
-description: Contingency tables for categorical variables with chi-square/Fisher tests, effect sizes (Cramer's V/phi), residuals, optional grouping, and APA-ready outputs.
+description: Contingency tables for categorical row/col pairs with chi-square/Fisher tests, effect sizes, expected counts and residuals, optional grouping, and APA outputs.
 ---
 
 # Cross Tabulations (Base R, APA 7)
@@ -110,7 +110,7 @@ Use the Markdown templates in `nlss/assets/crosstabs` when assembling cross-tabu
 
 Available column keys for `table.columns` include:
 
-`row_var`, `col_var`, `group`, `row_level`, `col_level`, `n`, `pct_row`, `pct_col`, `pct_total`, `expected`, `std_resid`, `adj_resid`.
+`row_var`, `col_var`, `group`, `row_level`, `col_level`, `n`, `pct_row`, `pct_col`, `pct_total`, `phi`, `cramers_v`, `contingency_c`, `expected`, `std_resid`, `adj_resid`.
 
 Use `drop_if_empty: true` to remove a column if all values are blank (e.g., `group`, `expected`, `std_resid`, `adj_resid`).
 

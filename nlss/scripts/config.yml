@@ -120,6 +120,8 @@ modules:
     effect_size: "partial_eta"
     conf_level: 0.95
     posthoc: "tukey"
+    emmeans: "none"
+    contrasts: "none"
     p_adjust: "holm"
     sphericity: "auto"
     bootstrap: false
@@ -272,6 +274,7 @@ templates:
   anova:
     default: "anova/default-template.md"
     posthoc: "anova/posthoc-template.md"
+    contrasts: "anova/contrasts-template.md"
   regression:
     default: "regression/default-template.md"
   power:

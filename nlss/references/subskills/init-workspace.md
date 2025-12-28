@@ -1,6 +1,6 @@
 ---
 name: init-workspace
-description: Initialize per-dataset workspace folders with scratchpad.md, report_canonical.md, analysis_log.jsonl, and .parquet dataset copies plus environment metadata.
+description: Create workspace root and per-dataset folders with scratchpad.md, report_canonical.md, analysis_log.jsonl, parquet copies, and nlss-workspace.yml; supports multiple datasets and blocks nested manifests.
 ---
 
 # Init Workspace (Base R)

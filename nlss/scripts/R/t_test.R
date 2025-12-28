@@ -828,6 +828,10 @@ build_summary_paired <- function(df, x_vars, y_vars, alternative, conf_level, bo
 }
 
 format_apa_table <- function(summary_df, digits, note_text) {
+  display <- summary_df
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$group_1_display <- if ("group_1_label" %in% names(display)) display$group_1_label else display$group_1
+  display$group_2_display <- if ("group_2_label" %in% names(display)) display$group_2_label else display$group_2
   headers <- c(
     "Test",
     "Variable",
@@ -847,13 +851,13 @@ format_apa_table <- function(summary_df, digits, note_text) {
     "CI"
   )
   rows <- list()
-  for (i in seq_len(nrow(summary_df))) {
-    row <- summary_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     rows[[length(rows) + 1]] <- c(
       format_test_type(row$test_type),
-      row$variable,
-      row$group_1,
-      row$group_2,
+      row$variable_display,
+      row$group_1_display,
+      row$group_2_display,
       ifelse(is.na(row$n_1), "", as.character(row$n_1)),
       ifelse(is.na(row$n_2), "", as.character(row$n_2)),
       format_num(row$mean_1, digits),
@@ -877,9 +881,15 @@ format_apa_table <- function(summary_df, digits, note_text) {
 }
 
 format_apa_text <- function(summary_df, digits, conf_level, alternative, var_equal) {
+  display <- summary_df
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$measure_1_display <- if ("measure_1_label" %in% names(display)) display$measure_1_label else display$measure_1
+  display$measure_2_display <- if ("measure_2_label" %in% names(display)) display$measure_2_label else display$measure_2
+  display$group_1_display <- if ("group_1_label" %in% names(display)) display$group_1_label else display$group_1
+  display$group_2_display <- if ("group_2_label" %in% names(display)) display$group_2_label else display$group_2
   lines <- character(0)
-  for (i in seq_len(nrow(summary_df))) {
-    row <- summary_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     test_label <- switch(
       row$test_type,
       one_sample = "one-sample t-test",
@@ -889,7 +899,7 @@ format_apa_text <- function(summary_df, digits, conf_level, alternative, var_equ
     )
     if (is.na(row$t) || is.na(row$df)) {
       line <- sprintf("%s: %s could not be computed (n = %s).",
-                      row$variable,
+                      row$variable_display,
                       test_label,
                       ifelse(is.na(row$n_1), "NA", as.character(row$n_1)))
       lines <- c(lines, line)
@@ -902,7 +912,7 @@ format_apa_text <- function(summary_df, digits, conf_level, alternative, var_equ
     if (row$test_type == "one_sample") {
       line <- sprintf(
         "%s: %s against mu = %s, M = %s, SD = %s, t(%s) = %s, p %s, d = %s, %s%% CI %s.",
-        row$variable,
+        row$variable_display,
         test_label,
         format_stat(row$mu, digits),
         format_num(row$mean_1, digits),
@@ -918,14 +928,14 @@ format_apa_text <- function(summary_df, digits, conf_level, alternative, var_equ
       variance_text <- ifelse(var_equal, "equal variances assumed", "Welch correction")
       line <- sprintf(
         "%s: %s (%s; %s: M = %s, SD = %s, n = %s; %s: M = %s, SD = %s, n = %s), t(%s) = %s, p %s, d = %s, %s%% CI %s.",
-        row$variable,
+        row$variable_display,
         test_label,
         variance_text,
-        row$group_1,
+        row$group_1_display,
         format_num(row$mean_1, digits),
         format_num(row$sd_1, digits),
         ifelse(is.na(row$n_1), "NA", as.character(row$n_1)),
-        row$group_2,
+        row$group_2_display,
         format_num(row$mean_2, digits),
         format_num(row$sd_2, digits),
         ifelse(is.na(row$n_2), "NA", as.character(row$n_2)),
@@ -939,12 +949,12 @@ format_apa_text <- function(summary_df, digits, conf_level, alternative, var_equ
     } else {
       line <- sprintf(
         "%s: %s, %s (M = %s, SD = %s) vs %s (M = %s, SD = %s), t(%s) = %s, p %s, d = %s, %s%% CI %s.",
-        row$variable,
+        row$variable_display,
         test_label,
-        row$measure_1,
+        row$measure_1_display,
         format_num(row$mean_1, digits),
         format_num(row$sd_1, digits),
-        row$measure_2,
+        row$measure_2_display,
         format_num(row$mean_2, digits),
         format_num(row$sd_2, digits),
         format_num(row$df, digits),
@@ -961,6 +971,12 @@ format_apa_text <- function(summary_df, digits, conf_level, alternative, var_equ
 }
 
 build_ttest_table_body <- function(summary_df, digits, table_meta) {
+  display <- summary_df
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$measure_1_display <- if ("measure_1_label" %in% names(display)) display$measure_1_label else display$measure_1
+  display$measure_2_display <- if ("measure_2_label" %in% names(display)) display$measure_2_label else display$measure_2
+  display$group_1_display <- if ("group_1_label" %in% names(display)) display$group_1_label else display$group_1
+  display$group_2_display <- if ("group_2_label" %in% names(display)) display$group_2_label else display$group_2
   default_specs <- list(
     list(key = "test_type", label = "Test"),
     list(key = "variable", label = "Variable"),
@@ -988,15 +1004,15 @@ build_ttest_table_body <- function(summary_df, digits, table_meta) {
   )
   columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
-  for (i in seq_len(nrow(summary_df))) {
-    row <- summary_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     row_map <- list(
       test_type = format_test_type(row$test_type),
-      variable = row$variable,
-      measure_1 = row$measure_1,
-      measure_2 = row$measure_2,
-      group_1 = row$group_1,
-      group_2 = row$group_2,
+      variable = row$variable_display,
+      measure_1 = row$measure_1_display,
+      measure_2 = row$measure_2_display,
+      group_1 = row$group_1_display,
+      group_2 = row$group_2_display,
       n_1 = ifelse(is.na(row$n_1), "", as.character(row$n_1)),
       n_2 = ifelse(is.na(row$n_2), "", as.character(row$n_2)),
       mean_1 = format_num(row$mean_1, digits),
@@ -1043,20 +1059,26 @@ build_ttest_note_tokens <- function(alternative, conf_level, var_equal, bootstra
 }
 
 build_ttest_narrative_rows <- function(summary_df, digits, conf_level, alternative, var_equal) {
+  display <- summary_df
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$measure_1_display <- if ("measure_1_label" %in% names(display)) display$measure_1_label else display$measure_1
+  display$measure_2_display <- if ("measure_2_label" %in% names(display)) display$measure_2_label else display$measure_2
+  display$group_1_display <- if ("group_1_label" %in% names(display)) display$group_1_label else display$group_1
+  display$group_2_display <- if ("group_2_label" %in% names(display)) display$group_2_label else display$group_2
   rows <- list()
-  apa_text <- format_apa_text(summary_df, digits, conf_level, alternative, var_equal)
+  apa_text <- format_apa_text(display, digits, conf_level, alternative, var_equal)
   lines <- strsplit(apa_text, "\n", fixed = TRUE)[[1]]
-  for (i in seq_len(nrow(summary_df))) {
-    row <- summary_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     full_sentence <- if (i <= length(lines)) lines[i] else ""
     rows[[length(rows) + 1]] <- list(
       full_sentence = full_sentence,
       test_type = format_test_type(row$test_type),
-      variable = row$variable,
-      measure_1 = row$measure_1,
-      measure_2 = row$measure_2,
-      group_1 = row$group_1,
-      group_2 = row$group_2,
+      variable = row$variable_display,
+      measure_1 = row$measure_1_display,
+      measure_2 = row$measure_2_display,
+      group_1 = row$group_1_display,
+      group_2 = row$group_2_display,
       n_1 = row$n_1,
       n_2 = row$n_2,
       mean_1 = format_num(row$mean_1, digits),
@@ -1211,6 +1233,12 @@ main <- function() {
   summary_df <- result$summary
   diagnostics_df <- result$diagnostics
   if (nrow(summary_df) == 0) stop("No valid t-tests could be computed.")
+  label_meta <- resolve_label_metadata(df)
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "variable")
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "measure_1")
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "measure_2")
+  summary_df <- add_group_label_column(summary_df, label_meta, opts$group, group_col = "group_1")
+  summary_df <- add_group_label_column(summary_df, label_meta, opts$group, group_col = "group_2")
 
   mu_value <- if (!is.null(opts$mu)) as.numeric(opts$mu) else mu_default
   note_tokens <- build_ttest_note_tokens(

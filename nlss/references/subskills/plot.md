@@ -1,6 +1,6 @@
 ---
 name: plot
-description: Plot figures (histograms, bar charts, box/violin, scatter/line, QQ, correlation heatmaps) with APA-ready figure blocks, per-dataset figure numbering, and image files saved in a plots subfolder.
+description: APA-ready figures (histogram, bar, box/violin, scatter/line, QQ, correlation heatmap) with grouping/smoothing options, automatic figure numbering, and images saved to workspace plots/.
 ---
 
 # Plot (ggplot2, APA 7)

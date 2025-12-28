@@ -25,6 +25,15 @@ table:
     - key: "pct_total"
       label: "Total %"
       drop_if_empty: true
+    - key: "phi"
+      label: "phi"
+      drop_if_empty: true
+    - key: "cramers_v"
+      label: "Cramer's V"
+      drop_if_empty: true
+    - key: "contingency_c"
+      label: "C"
+      drop_if_empty: true
 note:
   template: "{{note_default}}"
 narrative:

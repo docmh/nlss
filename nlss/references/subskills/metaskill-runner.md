@@ -1,6 +1,6 @@
 ---
 name: metaskill-runner
-description: Log metaskill activation or finalization events (intent, dataset, timestamp) to report_canonical.md and analysis_log.jsonl for workspace tracking.
+description: Log metaskill activation/finalization (meta name, intent, phase, dataset, notes) to report_canonical.md and analysis_log.jsonl; no analysis is performed.
 ---
 
 # Metaskill Runner (Base R, APA 7)

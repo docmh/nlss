@@ -1,6 +1,6 @@
 ---
 name: missings
-description: Missing-data pattern summaries with automated handling decisions (listwise deletion, imputation, indicators, or drop) and APA-ready outputs.
+description: Missingness summaries and pattern tables with auto or manual handling (listwise, impute, indicator, drop), threshold rules, and in-place parquet updates with backups plus APA outputs.
 ---
 
 # Missings (Base R, APA 7)

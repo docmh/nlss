@@ -1,6 +1,6 @@
 ---
 name: reliability
-description: Inter-rater/test-retest reliability via ICC, kappa, and test-retest correlations with APA-ready outputs.
+description: Inter-rater/test-retest reliability with ICC (oneway/twoway, agreement/consistency), kappa (weighted), or test-retest correlations; wide/long formats, CIs, grouping, and APA outputs.
 ---
 
 # Reliability Analysis (Base R, APA 7)

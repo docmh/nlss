@@ -702,6 +702,95 @@ ensure_arrow <- function() {
   configure_arrow_defaults()
 }
 
+resolve_extract_label_metadata <- function(df) {
+  if (exists("extract_label_metadata", mode = "function")) {
+    return(get("extract_label_metadata", mode = "function")(df))
+  }
+  list()
+}
+
+resolve_merge_label_metadata <- function(primary, secondary) {
+  if (exists("merge_label_metadata", mode = "function")) {
+    return(get("merge_label_metadata", mode = "function")(primary, secondary))
+  }
+  if (is.null(primary) || length(primary) == 0) return(secondary)
+  if (is.null(secondary) || length(secondary) == 0) return(primary)
+  primary
+}
+
+resolve_attach_label_metadata <- function(df, metadata) {
+  if (exists("attach_label_metadata", mode = "function")) {
+    return(get("attach_label_metadata", mode = "function")(df, metadata))
+  }
+  if (!is.null(metadata) && length(metadata) > 0) {
+    attr(df, "nlss_labels") <- metadata
+  }
+  df
+}
+
+resolve_normalize_label_metadata <- function(metadata) {
+  if (exists("normalize_label_metadata", mode = "function")) {
+    return(get("normalize_label_metadata", mode = "function")(metadata))
+  }
+  metadata
+}
+
+serialize_label_metadata <- function(metadata) {
+  if (is.null(metadata) || length(metadata) == 0) return("")
+  if (!requireNamespace("jsonlite", quietly = TRUE)) return("")
+  jsonlite::toJSON(metadata, auto_unbox = TRUE, null = "null", digits = NA)
+}
+
+parse_label_metadata <- function(value) {
+  if (is.null(value) || length(value) == 0) return(list())
+  if (!requireNamespace("jsonlite", quietly = TRUE)) return(list())
+  if (is.raw(value)) {
+    value <- rawToChar(value)
+  }
+  if (!is.character(value)) return(list())
+  if (!nzchar(value[1])) return(list())
+  parsed <- tryCatch(jsonlite::fromJSON(value[1], simplifyVector = FALSE), error = function(e) list())
+  resolve_normalize_label_metadata(parsed)
+}
+
+get_arrow_table_metadata <- function(tbl) {
+  if (is.null(tbl) || !is.environment(tbl)) return(list())
+  if (!"metadata" %in% ls(envir = tbl)) return(list())
+  meta <- tryCatch(get("metadata", envir = tbl), error = function(e) list())
+  if (!is.list(meta)) return(list())
+  meta
+}
+
+replace_arrow_table_metadata <- function(tbl, metadata) {
+  if (is.null(tbl) || !is.environment(tbl)) return(tbl)
+  if (is.null(metadata) || !is.list(metadata)) return(tbl)
+  if ("ReplaceSchemaMetadata" %in% ls(envir = tbl)) {
+    fn <- get("ReplaceSchemaMetadata", envir = tbl)
+    if (is.function(fn)) return(fn(metadata))
+  }
+  tbl
+}
+
+table_to_data_frame <- function(tbl) {
+  if (is.null(tbl) || !is.environment(tbl)) return(as.data.frame(tbl, stringsAsFactors = FALSE))
+  if ("to_data_frame" %in% ls(envir = tbl)) {
+    fn <- get("to_data_frame", envir = tbl)
+    if (is.function(fn)) {
+      df <- fn()
+      return(as.data.frame(df, stringsAsFactors = FALSE))
+    }
+  }
+  as.data.frame(tbl, stringsAsFactors = FALSE)
+}
+
+read_parquet_label_metadata <- function(tbl) {
+  meta <- get_arrow_table_metadata(tbl)
+  if (length(meta) == 0) return(list())
+  label_json <- meta[["nlss:labels"]]
+  if (is.null(label_json)) return(list())
+  parse_label_metadata(label_json)
+}
+
 copy_parquet_to_temp <- function(path) {
   if (is.null(path) || !nzchar(path) || !file.exists(path)) return("")
   temp_path <- tempfile(pattern = "nlss-parquet-", fileext = ".parquet")
@@ -727,17 +816,31 @@ read_parquet_data <- function(path, lock_safe = FALSE) {
     if ("use_memory_map" %in% arg_names) extra$use_memory_map <- FALSE
     if ("use_mmap" %in% arg_names) extra$use_mmap <- FALSE
   }
-  df <- do.call(read_fun, c(list(path, as_data_frame = TRUE), extra))
-  df <- as.data.frame(df, stringsAsFactors = FALSE)
+  tbl <- do.call(read_fun, c(list(path, as_data_frame = FALSE), extra))
+  label_meta <- read_parquet_label_metadata(tbl)
+  df <- table_to_data_frame(tbl)
+  extracted <- resolve_extract_label_metadata(df)
+  merged <- resolve_merge_label_metadata(label_meta, extracted)
+  df <- resolve_attach_label_metadata(df, merged)
   if (nzchar(temp_path)) {
     try(unlink(temp_path), silent = TRUE)
   }
   df
 }
 
-write_parquet_data <- function(df, path) {
+write_parquet_data <- function(df, path, label_metadata = NULL) {
   ensure_arrow()
   path <- normalize_input_path(path)
+  label_metadata <- resolve_merge_label_metadata(label_metadata, resolve_extract_label_metadata(df))
+  label_json <- serialize_label_metadata(label_metadata)
+  if (nzchar(label_json)) {
+    tbl <- arrow::arrow_table(df)
+    meta <- get_arrow_table_metadata(tbl)
+    meta[["nlss:labels"]] <- label_json
+    tbl <- replace_arrow_table_metadata(tbl, meta)
+    arrow::write_parquet(tbl, path)
+    return(invisible(TRUE))
+  }
   arrow::write_parquet(df, path)
 }
 
@@ -746,8 +849,13 @@ load_or_create_parquet <- function(copy_path, read_source) {
     return(read_parquet_data(copy_path))
   }
   df <- read_source()
-  write_parquet_data(df, copy_path)
-  read_parquet_data(copy_path)
+  label_metadata <- resolve_extract_label_metadata(df)
+  write_parquet_data(df, copy_path, label_metadata = label_metadata)
+  df_out <- read_parquet_data(copy_path)
+  if (!is.null(label_metadata) && length(label_metadata) > 0) {
+    df_out <- resolve_attach_label_metadata(df_out, label_metadata)
+  }
+  df_out
 }
 
 sanitize_file_component <- function(value) {

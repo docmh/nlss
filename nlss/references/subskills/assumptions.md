@@ -1,6 +1,6 @@
 ---
 name: assumptions
-description: Assumption checks for t-tests, ANOVA, regression, mixed models, and SEM with APA-ready tables, narratives, and diagnostics.
+description: Assumption and diagnostic checks for t-tests, ANOVA, regression, mixed models, and SEM (normality, homogeneity, sphericity, VIF, influence, convergence) with APA outputs.
 ---
 
 # Assumptions Checks (APA 7)

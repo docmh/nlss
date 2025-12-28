@@ -1,6 +1,6 @@
 ---
 name: explore-data
-description: Explore a dataset with variable summaries, missingness, distributions, and correlations to provide an APA-ready overview from vague requests.
+description: Agent-run dataset overview using data-explorer, descriptives, frequencies, correlations, optional plots, and missingness summaries to produce an APA-ready audit.
 ---
 
 # Explore Data (Agent-run, APA 7)

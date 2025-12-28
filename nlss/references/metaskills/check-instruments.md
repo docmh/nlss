@@ -1,6 +1,6 @@
 ---
 name: check-instruments
-description: Check survey instruments by inspecting items, handling reverse scoring, and reporting reliability via scale and reliability subskills.
+description: Agent-run instrument checks that infer item groups, handle reverse scoring, run scale (alpha/omega) and reliability (ICC/kappa/test-retest), and report APA-ready results.
 ---
 
 # Check Instruments (Agent-run, APA 7)

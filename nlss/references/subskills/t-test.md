@@ -1,6 +1,6 @@
 ---
 name: t-test
-description: One-sample, independent-samples, and paired-samples t-tests with APA-ready tables, narratives, and bootstrap options.
+description: One-sample, independent, and paired t-tests with effect sizes (d), confidence intervals, variance/normality diagnostics, optional bootstrap CIs, and APA tables/narratives.
 ---
 
 # t-tests (Base R, APA 7)

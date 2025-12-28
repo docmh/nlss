@@ -167,6 +167,8 @@ get_builtin_config <- function() {
         effect_size = "partial_eta",
         conf_level = 0.95,
         posthoc = "tukey",
+        emmeans = "none",
+        contrasts = "none",
         p_adjust = "holm",
         sphericity = "auto",
         bootstrap = FALSE,
@@ -342,7 +344,8 @@ get_builtin_config <- function() {
       ),
       anova = list(
         default = "anova/default-template.md",
-        posthoc = "anova/posthoc-template.md"
+        posthoc = "anova/posthoc-template.md",
+        contrasts = "anova/contrasts-template.md"
       ),
       regression = list(
         default = "regression/default-template.md"

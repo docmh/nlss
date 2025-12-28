@@ -1,6 +1,6 @@
 ---
 name: generate-r-script
-description: Generate a custom R script for analyses not covered by NLSS, with explicit permission and documentation in the workspace scripts folder.
+description: Last-resort, permissioned custom R script generation for analyses outside NLSS, saved to workspace scripts/ with documented rationale and APA-aligned outputs.
 ---
 
 # Generate R Script (Agent-run)

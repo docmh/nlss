@@ -10,7 +10,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 - R 4.4+ (base R is enough for CSV/APA outputs).
 - Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), `arrow` (parquet workspace copies), and `ggplot2` (plot subskill).
-- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `lme4` for mixed models; `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `performance` for R2/ICC; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power.
+- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `lme4` + `performance` for mixed models (required when using mixed-models); `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power.
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
 - Optional: WSL if you want the wrapper to run Linux Rscript first and fall back to Windows Rscript.
@@ -122,9 +122,9 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `assumptions` | `nlss/scripts/R/assumptions.R` | Assumption checks for t-tests, ANOVA, regression, mixed models, and SEM. | Yes (`assumptions/ttest-template.md`, `assumptions/anova-template.md`, `assumptions/regression-template.md`, `assumptions/mixed-models-template.md`, `assumptions/sem-template.md`) |
 | `regression` | `nlss/scripts/R/regression.R` | Multiple and hierarchical regression (OLS/GLM) with interactions and bootstrap CIs. | Yes (`regression/default-template.md`) |
 | `power` | `nlss/scripts/R/power.R` | Power analysis for t-tests, ANOVA, correlations, regression, and SEM. | Yes (`power/default-template.md`) |
-| `mixed-models` | `nlss/scripts/R/mixed_models.R` | Linear mixed-effects models with random effects and marginal means. | Yes (`mixed-models/default-template.md`, `mixed-models/emmeans-template.md`) |
+| `mixed-models` | `nlss/scripts/R/mixed_models.R` | Linear mixed-effects models with random effects, marginal means, and planned contrasts. | Yes (`mixed-models/default-template.md`, `mixed-models/emmeans-template.md`) |
 | `sem` | `nlss/scripts/R/sem.R` | Structural equation modeling (SEM), CFA, mediation, path analysis, invariance. | Yes (`sem/default-template.md`, `sem/cfa-template.md`, `sem/mediation-template.md`, `sem/invariance-template.md`) |
-| `anova` | `nlss/scripts/R/anova.R` | Between-, within-, and mixed ANOVA with post-hoc comparisons. | Yes (`anova/default-template.md`, `anova/posthoc-template.md`) |
+| `anova` | `nlss/scripts/R/anova.R` | Between-, within-, and mixed ANOVA with post-hoc comparisons and planned contrasts. | Yes (`anova/default-template.md`, `anova/posthoc-template.md`, `anova/contrasts-template.md`) |
 | `t-test` | `nlss/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
 | `nonparametric` | `nlss/scripts/R/nonparametric.R` | Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests. | Yes (`nonparametric/default-template.md`, `nonparametric/posthoc-template.md`) |
 | `init-workspace` | `nlss/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |

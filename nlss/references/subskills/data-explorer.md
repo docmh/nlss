@@ -1,6 +1,6 @@
 ---
 name: data-explorer
-description: Data dictionary overview with variable names, types, inferred scale levels, missingness, and value counts to quickly assess datasets before analysis.
+description: Data dictionary overview with variable types/storage, inferred measurement levels, missingness, numeric summaries, and top-N value tables with truncation notes and APA outputs.
 ---
 
 # Data Explorer (Base R, APA 7)

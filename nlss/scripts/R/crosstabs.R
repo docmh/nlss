@@ -653,6 +653,33 @@ format_p <- function(p_value) {
   paste("=", p_txt)
 }
 
+attach_effect_sizes_to_cells <- function(cells_df, tests_df) {
+  if (is.null(cells_df) || nrow(cells_df) == 0) return(cells_df)
+  if (is.null(tests_df) || nrow(tests_df) == 0) return(cells_df)
+  if (!all(c("row_var", "col_var", "group") %in% names(cells_df))) return(cells_df)
+  if (!all(c("row_var", "col_var", "group") %in% names(tests_df))) return(cells_df)
+
+  cells_df$group <- as.character(cells_df$group)
+  tests_df$group <- as.character(tests_df$group)
+  cells_df$group[is.na(cells_df$group)] <- "NA"
+  tests_df$group[is.na(tests_df$group)] <- "NA"
+
+  cell_key <- paste(cells_df$row_var, cells_df$col_var, cells_df$group, sep = "|")
+  test_key <- paste(tests_df$row_var, tests_df$col_var, tests_df$group, sep = "|")
+  match_idx <- match(cell_key, test_key)
+
+  cells_df$phi <- ifelse(!is.na(match_idx), tests_df$phi[match_idx], NA_real_)
+  cells_df$cramers_v <- ifelse(!is.na(match_idx), tests_df$cramers_v[match_idx], NA_real_)
+  cells_df$contingency_c <- ifelse(!is.na(match_idx), tests_df$contingency_c[match_idx], NA_real_)
+
+  first_row <- !duplicated(cell_key)
+  cells_df$phi[!first_row] <- NA_real_
+  cells_df$cramers_v[!first_row] <- NA_real_
+  cells_df$contingency_c[!first_row] <- NA_real_
+
+  cells_df
+}
+
 get_percent_columns <- function(apa_percent) {
   if (apa_percent == "none") return(character(0))
   if (apa_percent == "all") return(c("pct_row", "pct_col", "pct_total"))
@@ -666,6 +693,13 @@ format_apa_table <- function(cells_df, digits, apa_percent, layout = "sectioned"
   display <- resolve_round_numeric(cells_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$row_var_display <- if ("row_var_label" %in% names(display)) display$row_var_label else display$row_var
+  display$col_var_display <- if ("col_var_label" %in% names(display)) display$col_var_label else display$col_var
+  display$row_level_display <- if ("row_level_label" %in% names(display)) display$row_level_label else display$row_level
+  display$col_level_display <- if ("col_level_label" %in% names(display)) display$col_level_label else display$col_level
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$group_display <- as.character(display$group_display)
+  display$group_display[is.na(display$group_display)] <- "NA"
 
   layout <- tolower(layout)
   if (!(layout %in% c("sectioned", "long"))) {
@@ -679,7 +713,9 @@ format_apa_table <- function(cells_df, digits, apa_percent, layout = "sectioned"
     include_group <- isTRUE(include_group) && !all(display$group == "")
     combos <- unique(display[, c("row_var", "col_var")])
     if (nrow(combos) == 1) {
-      header <- sprintf("Table 1\nCross-tabulation of %s by %s", combos$row_var[1], combos$col_var[1])
+      row_label <- display$row_var_display[1]
+      col_label <- display$col_var_display[1]
+      header <- sprintf("Table 1\nCross-tabulation of %s by %s", row_label, col_label)
     } else {
       header <- "Table 1\nCross-tabulation results"
     }
@@ -695,14 +731,14 @@ format_apa_table <- function(cells_df, digits, apa_percent, layout = "sectioned"
 
     for (i in seq_len(nrow(display))) {
       row <- display[i, ]
-      row_vals <- c(row$row_var, row$col_var)
+      row_vals <- c(row$row_var_display, row$col_var_display)
       if (include_group) {
-        row_vals <- c(row_vals, row$group)
+        row_vals <- c(row_vals, row$group_display)
       }
       row_vals <- c(
         row_vals,
-        row$row_level,
-        row$col_level,
+        row$row_level_display,
+        row$col_level_display,
         ifelse(is.na(row$n), "", as.character(row$n))
       )
       if (length(percent_cols) > 0) {
@@ -731,10 +767,12 @@ format_apa_table <- function(cells_df, digits, apa_percent, layout = "sectioned"
     col_var <- combos$col_var[idx]
     group <- combos$group[idx]
     subset <- display[display$row_var == row_var & display$col_var == col_var & display$group == group, , drop = FALSE]
-
-    header <- sprintf("Table 1\nCross-tabulation of %s by %s", row_var, col_var)
+    row_label <- subset$row_var_display[1]
+    col_label <- subset$col_var_display[1]
+    group_label <- subset$group_display[1]
+    header <- sprintf("Table 1\nCross-tabulation of %s by %s", row_label, col_label)
     if (use_group) {
-      header <- paste0(header, "\nGroup: ", group)
+      header <- paste0(header, "\nGroup: ", group_label)
     }
 
     headers <- c("Row", "Column", "n", percent_labels[percent_cols])
@@ -744,8 +782,8 @@ format_apa_table <- function(cells_df, digits, apa_percent, layout = "sectioned"
     for (i in seq_len(nrow(subset))) {
       row <- subset[i, ]
       row_vals <- c(
-        row$row_level,
-        row$col_level,
+        row$row_level_display,
+        row$col_level_display,
         ifelse(is.na(row$n), "", as.character(row$n))
       )
       if (length(percent_cols) > 0) {
@@ -776,6 +814,12 @@ format_apa_text <- function(tests_df, diagnostics_df, digits) {
   diagnostics$group <- as.character(diagnostics$group)
   tests$group[is.na(tests$group)] <- "NA"
   diagnostics$group[is.na(diagnostics$group)] <- "NA"
+  tests$row_var_display <- if ("row_var_label" %in% names(tests)) tests$row_var_label else tests$row_var
+  tests$col_var_display <- if ("col_var_label" %in% names(tests)) tests$col_var_label else tests$col_var
+  tests$group_display <- if ("group_label" %in% names(tests)) tests$group_label else tests$group
+  diagnostics$row_var_display <- if ("row_var_label" %in% names(diagnostics)) diagnostics$row_var_label else diagnostics$row_var
+  diagnostics$col_var_display <- if ("col_var_label" %in% names(diagnostics)) diagnostics$col_var_label else diagnostics$col_var
+  diagnostics$group_display <- if ("group_label" %in% names(diagnostics)) diagnostics$group_label else diagnostics$group
 
   combos <- unique(tests[, c("row_var", "col_var", "group")])
   lines <- character(0)
@@ -787,10 +831,13 @@ format_apa_text <- function(tests_df, diagnostics_df, digits) {
     row <- tests[tests$row_var == row_var & tests$col_var == col_var & tests$group == group, , drop = FALSE]
     diag_row <- diagnostics[diagnostics$row_var == row_var & diagnostics$col_var == col_var & diagnostics$group == group, , drop = FALSE]
 
+    row_label <- row$row_var_display[1]
+    col_label <- row$col_var_display[1]
+    group_label <- row$group_display[1]
     label <- if (group == "") {
-      sprintf("%s by %s", row_var, col_var)
+      sprintf("%s by %s", row_label, col_label)
     } else {
-      sprintf("Group %s, %s by %s", group, row_var, col_var)
+      sprintf("Group %s, %s by %s", group_label, row_label, col_label)
     }
 
     valid_n <- row$valid_n[1]
@@ -900,6 +947,13 @@ build_crosstabs_table_body <- function(cells_df, digits, table_spec = NULL) {
   display <- resolve_round_numeric(cells_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$row_var_display <- if ("row_var_label" %in% names(display)) display$row_var_label else display$row_var
+  display$col_var_display <- if ("col_var_label" %in% names(display)) display$col_var_label else display$col_var
+  display$row_level_display <- if ("row_level_label" %in% names(display)) display$row_level_label else display$row_level
+  display$col_level_display <- if ("col_level_label" %in% names(display)) display$col_level_label else display$col_level
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$group_display <- as.character(display$group_display)
+  display$group_display[is.na(display$group_display)] <- "NA"
 
   default_columns <- list(
     list(key = "row_var", label = "Row Variable"),
@@ -910,7 +964,10 @@ build_crosstabs_table_body <- function(cells_df, digits, table_spec = NULL) {
     list(key = "n", label = "n"),
     list(key = "pct_row", label = "Row %", drop_if_empty = TRUE),
     list(key = "pct_col", label = "Column %", drop_if_empty = TRUE),
-    list(key = "pct_total", label = "Total %", drop_if_empty = TRUE)
+    list(key = "pct_total", label = "Total %", drop_if_empty = TRUE),
+    list(key = "phi", label = "phi", drop_if_empty = TRUE),
+    list(key = "cramers_v", label = "Cramer's V", drop_if_empty = TRUE),
+    list(key = "contingency_c", label = "C", drop_if_empty = TRUE)
   )
   columns <- resolve_normalize_table_columns(
     if (!is.null(table_spec$columns)) table_spec$columns else NULL,
@@ -924,7 +981,19 @@ build_crosstabs_table_body <- function(cells_df, digits, table_spec = NULL) {
       key <- col$key
       val <- ""
       if (key %in% c("row_var", "col_var", "group", "row_level", "col_level")) {
-        val <- resolve_as_cell_text(row[[key]][1])
+        if (key == "row_var") {
+          val <- resolve_as_cell_text(row$row_var_display[1])
+        } else if (key == "col_var") {
+          val <- resolve_as_cell_text(row$col_var_display[1])
+        } else if (key == "group") {
+          val <- resolve_as_cell_text(row$group_display[1])
+        } else if (key == "row_level") {
+          val <- resolve_as_cell_text(row$row_level_display[1])
+        } else if (key == "col_level") {
+          val <- resolve_as_cell_text(row$col_level_display[1])
+        } else {
+          val <- resolve_as_cell_text(row[[key]][1])
+        }
       } else if (key == "n") {
         val <- ifelse(is.na(row$n), "", as.character(row$n))
       } else if (key %in% c("pct_row", "pct_col", "pct_total")) {
@@ -978,6 +1047,12 @@ build_crosstabs_narrative_rows <- function(tests_df, diagnostics_df, digits) {
   diagnostics$group <- as.character(diagnostics$group)
   tests$group[is.na(tests$group)] <- "NA"
   diagnostics$group[is.na(diagnostics$group)] <- "NA"
+  tests$row_var_display <- if ("row_var_label" %in% names(tests)) tests$row_var_label else tests$row_var
+  tests$col_var_display <- if ("col_var_label" %in% names(tests)) tests$col_var_label else tests$col_var
+  tests$group_display <- if ("group_label" %in% names(tests)) tests$group_label else tests$group
+  diagnostics$row_var_display <- if ("row_var_label" %in% names(diagnostics)) diagnostics$row_var_label else diagnostics$row_var
+  diagnostics$col_var_display <- if ("col_var_label" %in% names(diagnostics)) diagnostics$col_var_label else diagnostics$col_var
+  diagnostics$group_display <- if ("group_label" %in% names(diagnostics)) diagnostics$group_label else diagnostics$group
 
   combos <- unique(tests[, c("row_var", "col_var", "group")])
   rows <- list()
@@ -989,10 +1064,13 @@ build_crosstabs_narrative_rows <- function(tests_df, diagnostics_df, digits) {
     row <- tests[tests$row_var == row_var & tests$col_var == col_var & tests$group == group, , drop = FALSE]
     diag_row <- diagnostics[diagnostics$row_var == row_var & diagnostics$col_var == col_var & diagnostics$group == group, , drop = FALSE]
 
+    row_label <- row$row_var_display[1]
+    col_label <- row$col_var_display[1]
+    group_label <- row$group_display[1]
     label <- if (group == "") {
-      sprintf("%s by %s", row_var, col_var)
+      sprintf("%s by %s", row_label, col_label)
     } else {
-      sprintf("Group %s, %s by %s", group, row_var, col_var)
+      sprintf("Group %s, %s by %s", group_label, row_label, col_label)
     }
 
     valid_n <- row$valid_n[1]
@@ -1013,9 +1091,9 @@ build_crosstabs_narrative_rows <- function(tests_df, diagnostics_df, digits) {
       )
       rows[[length(rows) + 1]] <- list(
         label = label,
-        row_var = row_var,
-        col_var = col_var,
-        group = group,
+        row_var = row_label,
+        col_var = col_label,
+        group = group_label,
         valid_n = ifelse(is.na(valid_n), "NA", as.character(valid_n)),
         missing_n = ifelse(is.na(missing_n), "NA", as.character(missing_n)),
         missing_pct = ifelse(is.na(missing_pct), "NA", format_num(missing_pct, 1)),
@@ -1203,6 +1281,19 @@ main <- function() {
   cells_df <- do.call(rbind, cells_list)
   tests_df <- do.call(rbind, tests_list)
   diagnostics_df <- do.call(rbind, diag_list)
+  cells_df <- attach_effect_sizes_to_cells(cells_df, tests_df)
+  label_meta <- resolve_label_metadata(df)
+  cells_df <- add_variable_label_column(cells_df, label_meta, var_col = "row_var")
+  cells_df <- add_variable_label_column(cells_df, label_meta, var_col = "col_var")
+  cells_df <- add_value_label_column(cells_df, label_meta, var_col = "row_var", value_col = "row_level")
+  cells_df <- add_value_label_column(cells_df, label_meta, var_col = "col_var", value_col = "col_level")
+  cells_df <- add_group_label_column(cells_df, label_meta, group_var, group_col = "group")
+  tests_df <- add_variable_label_column(tests_df, label_meta, var_col = "row_var")
+  tests_df <- add_variable_label_column(tests_df, label_meta, var_col = "col_var")
+  tests_df <- add_group_label_column(tests_df, label_meta, group_var, group_col = "group")
+  diagnostics_df <- add_variable_label_column(diagnostics_df, label_meta, var_col = "row_var")
+  diagnostics_df <- add_variable_label_column(diagnostics_df, label_meta, var_col = "col_var")
+  diagnostics_df <- add_group_label_column(diagnostics_df, label_meta, group_var, group_col = "group")
 
   percent_label <- if (!is.null(opts$percent) && opts$percent != "") opts$percent else percent_default
   use_group_template <- !is.null(group_var)

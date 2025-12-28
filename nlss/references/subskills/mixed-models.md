@@ -1,13 +1,13 @@
 ---
 name: mixed-models
-description: Linear mixed-effects models with random effects, marginal means, diagnostics, and APA-ready outputs.
+description: Linear mixed-effects models (lme4) with formula or dv/fixed/random specs, random-effects reporting, optional emmeans/contrasts (including custom JSON), diagnostics, and APA outputs.
 ---
 
 # Mixed Models (LMM, APA 7)
 
 ## Overview
 
-Fit linear mixed-effects models (LMM) for clustered or longitudinal data using `lme4`. Outputs include fixed effects, random-effects variance components, model fit statistics, optional estimated marginal means/contrasts, and diagnostics. This subskill is for observed-variable mixed-effects modeling only.
+Fit linear mixed-effects models (LMM) for clustered or longitudinal data using `lme4`. Outputs include fixed effects, random-effects variance components, model fit statistics, optional estimated marginal means/contrasts (pairwise, built-in methods, or custom JSON), and diagnostics. This subskill is for observed-variable mixed-effects modeling only.
 
 ## Assistant Researcher Model
 
@@ -17,7 +17,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Specify the model using `--formula` or `--dv` + `--fixed` + `--random`.
-3. Optionally request estimated marginal means (`--emmeans`) and pairwise contrasts.
+3. Optionally request estimated marginal means (`--emmeans`) and contrasts (`--contrasts`, `--contrast-file` for custom JSON).
 4. Run `scripts/R/mixed_models.R` with the correct flags, or use the PowerShell wrapper on Windows.
 5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
 
@@ -47,6 +47,18 @@ Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --dv score -
 Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time*group + (1|id)" --emmeans time*group --contrasts pairwise
 ```
 
+### Planned contrasts (custom JSON)
+
+```bash
+Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time*group + (1|id)" --emmeans group3 --contrasts custom --contrast-file contrasts.json
+```
+
+### Built-in contrast method
+
+```bash
+Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time*group + (1|id)" --emmeans group3 --contrasts trt.vs.ctrl
+```
+
 ### Parquet input
 
 ```bash
@@ -72,7 +84,8 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--df-method` uses `modules.mixed_models.df_method` (`satterthwaite`, `kenward-roger`, `none`); df/p-values require `lmerTest`.
 - `--standardize` uses `modules.mixed_models.standardize` (`none`, `predictors`).
 - `--emmeans` uses `modules.mixed_models.emmeans` (`none` or a factor term such as `time*group`).
-- `--contrasts` uses `modules.mixed_models.contrasts` (`none`, `pairwise`) and requires `--emmeans`.
+- `--contrasts` uses `modules.mixed_models.contrasts` (`none`, `pairwise`, `custom`, or any `emmeans` method string) and requires `--emmeans` unless the contrast JSON specifies a `term`.
+- `--contrast-file` provides a JSON contrast spec (custom weights or a method plus optional arguments).
 - `--p-adjust` uses `modules.mixed_models.p_adjust`.
 - `--conf-level` uses `modules.mixed_models.conf_level`.
 - `--optimizer` uses `modules.mixed_models.optimizer`.
@@ -92,7 +105,33 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - Missing values are removed listwise across all variables referenced in the model.
 - `--formula` is recommended for complex random-effects structures.
 - If `--emmeans` is requested but the `emmeans` package is unavailable, marginal means are skipped and noted.
-- `--contrasts` is ignored when `--emmeans` is not set.
+- `--contrasts` is ignored when `--emmeans` is not set (unless the contrast JSON provides `term`).
+
+### Contrast JSON format
+
+Custom contrasts can be specified as named weight vectors. Weights may be ordered numeric arrays (matching the `emmeans` row order) or named weights keyed by level labels. For multi-factor terms, labels are rendered like `factor=level, factor2=level2` in the `emmeans` output.
+
+Example (custom weights):
+
+```json
+{
+  "term": "group3",
+  "contrasts": {
+    "A_vs_B": {"A": 1, "B": -1, "C": 0},
+    "A_vs_C": [1, 0, -1]
+  }
+}
+```
+
+Example (built-in method with args):
+
+```json
+{
+  "term": "group3",
+  "method": "trt.vs.ctrl",
+  "args": {"ref": "A"}
+}
+```
 
 ## Outputs
 
@@ -149,5 +188,5 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 ## Dependencies
 
 - Parquet input requires the R package `arrow`.
-- Mixed models require the R package `lme4`.
-- Optional: `lmerTest` for df/p-values, `emmeans` for marginal means/contrasts, `performance` for R2/ICC, and `car` for Type II/III omnibus tests.
+- Mixed models require the R packages `lme4` and `performance` (R2/ICC).
+- Optional: `lmerTest` for df/p-values, `emmeans` for marginal means/contrasts, and `car` for Type II/III omnibus tests.

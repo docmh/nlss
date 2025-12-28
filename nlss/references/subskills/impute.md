@@ -1,6 +1,6 @@
 ---
 name: impute
-description: Impute missing values (base R or optional mice/VIM engines) into new _imp columns with APA-ready outputs.
+description: Impute missing values into new _imp columns using simple methods or mice/VIM kNN, with per-variable method maps, optional indicators, parquet updates with backups, and APA outputs.
 ---
 
 # Impute (Base R with optional mice/VIM, APA 7)

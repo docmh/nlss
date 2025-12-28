@@ -1197,13 +1197,16 @@ build_posthoc_friedman <- function(df, within_vars, subject_id, alternative, con
 }
 
 format_apa_table <- function(summary_df, digits, note_text) {
+  display <- summary_df
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
   headers <- c("Test", "Variable", "Statistic", "df", "p", "Effect")
   rows <- list()
-  for (i in seq_len(nrow(summary_df))) {
-    row <- summary_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     rows[[length(rows) + 1]] <- c(
       resolve_as_cell_text(row$test_type),
-      resolve_as_cell_text(row$variable),
+      resolve_as_cell_text(row$variable_display),
       format_stat(row$statistic, digits),
       format_stat(row$df, digits),
       format_p(row$p),
@@ -1221,6 +1224,13 @@ format_apa_text <- function(summary_df, digits, conf_level) {
 }
 
 build_nonparam_table_body <- function(summary_df, digits, table_meta) {
+  display <- summary_df
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$measure_1_display <- if ("measure_1_label" %in% names(display)) display$measure_1_label else display$measure_1
+  display$measure_2_display <- if ("measure_2_label" %in% names(display)) display$measure_2_label else display$measure_2
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$group_1_display <- if ("group_1_label" %in% names(display)) display$group_1_label else display$group_1
+  display$group_2_display <- if ("group_2_label" %in% names(display)) display$group_2_label else display$group_2
   default_specs <- list(
     list(key = "test_type", label = "Test"),
     list(key = "variable", label = "Variable"),
@@ -1254,16 +1264,16 @@ build_nonparam_table_body <- function(summary_df, digits, table_meta) {
 
   columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
-  for (i in seq_len(nrow(summary_df))) {
-    row <- summary_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     row_tokens <- list(
       test_type = resolve_as_cell_text(row$test_type),
-      variable = resolve_as_cell_text(row$variable),
-      measure_1 = resolve_as_cell_text(row$measure_1),
-      measure_2 = resolve_as_cell_text(row$measure_2),
-      group = resolve_as_cell_text(row$group),
-      group_1 = resolve_as_cell_text(row$group_1),
-      group_2 = resolve_as_cell_text(row$group_2),
+      variable = resolve_as_cell_text(row$variable_display),
+      measure_1 = resolve_as_cell_text(row$measure_1_display),
+      measure_2 = resolve_as_cell_text(row$measure_2_display),
+      group = resolve_as_cell_text(row$group_display),
+      group_1 = resolve_as_cell_text(row$group_1_display),
+      group_2 = resolve_as_cell_text(row$group_2_display),
       n_1 = format_stat(row$n_1, digits),
       n_2 = format_stat(row$n_2, digits),
       n_total = format_stat(row$n_total, digits),
@@ -1303,9 +1313,16 @@ build_nonparam_table_body <- function(summary_df, digits, table_meta) {
 }
 
 build_nonparam_narrative_rows <- function(summary_df, digits, conf_level) {
+  display <- summary_df
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$measure_1_display <- if ("measure_1_label" %in% names(display)) display$measure_1_label else display$measure_1
+  display$measure_2_display <- if ("measure_2_label" %in% names(display)) display$measure_2_label else display$measure_2
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$group_1_display <- if ("group_1_label" %in% names(display)) display$group_1_label else display$group_1
+  display$group_2_display <- if ("group_2_label" %in% names(display)) display$group_2_label else display$group_2
   rows <- list()
-  for (i in seq_len(nrow(summary_df))) {
-    row <- summary_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     stat_label <- resolve_as_cell_text(row$stat_label)
     stat_val <- format_stat(row$statistic, digits)
     df_val <- format_stat(row$df, digits)
@@ -1331,10 +1348,10 @@ build_nonparam_narrative_rows <- function(summary_df, digits, conf_level) {
     full_sentence <- paste0(
       resolve_as_cell_text(row$test_type),
       " test for ",
-      if (nzchar(resolve_as_cell_text(row$variable))) resolve_as_cell_text(row$variable) else "the specified measures",
-      if (nzchar(resolve_as_cell_text(row$group))) paste0(" by ", resolve_as_cell_text(row$group)) else "",
-      if (nzchar(resolve_as_cell_text(row$group_1)) && nzchar(resolve_as_cell_text(row$group_2))) {
-        paste0(" (", resolve_as_cell_text(row$group_1), " vs ", resolve_as_cell_text(row$group_2), ")")
+      if (nzchar(resolve_as_cell_text(row$variable_display))) resolve_as_cell_text(row$variable_display) else "the specified measures",
+      if (nzchar(resolve_as_cell_text(row$group_display))) paste0(" by ", resolve_as_cell_text(row$group_display)) else "",
+      if (nzchar(resolve_as_cell_text(row$group_1_display)) && nzchar(resolve_as_cell_text(row$group_2_display))) {
+        paste0(" (", resolve_as_cell_text(row$group_1_display), " vs ", resolve_as_cell_text(row$group_2_display), ")")
       } else {
         ""
       },
@@ -1349,12 +1366,12 @@ build_nonparam_narrative_rows <- function(summary_df, digits, conf_level) {
 
     rows[[length(rows) + 1]] <- list(
       test_type = resolve_as_cell_text(row$test_type),
-      variable = resolve_as_cell_text(row$variable),
-      measure_1 = resolve_as_cell_text(row$measure_1),
-      measure_2 = resolve_as_cell_text(row$measure_2),
-      group = resolve_as_cell_text(row$group),
-      group_1 = resolve_as_cell_text(row$group_1),
-      group_2 = resolve_as_cell_text(row$group_2),
+      variable = resolve_as_cell_text(row$variable_display),
+      measure_1 = resolve_as_cell_text(row$measure_1_display),
+      measure_2 = resolve_as_cell_text(row$measure_2_display),
+      group = resolve_as_cell_text(row$group_display),
+      group_1 = resolve_as_cell_text(row$group_1_display),
+      group_2 = resolve_as_cell_text(row$group_2_display),
       n_1 = format_stat(row$n_1, digits),
       n_2 = format_stat(row$n_2, digits),
       n_total = format_stat(row$n_total, digits),
@@ -1412,6 +1429,11 @@ build_posthoc_note_tokens <- function(posthoc, p_adjust) {
 }
 
 build_posthoc_table_body <- function(posthoc_df, digits, table_meta) {
+  display <- posthoc_df
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$group_1_display <- if ("group_1_label" %in% names(display)) display$group_1_label else display$group_1
+  display$group_2_display <- if ("group_2_label" %in% names(display)) display$group_2_label else display$group_2
   default_specs <- list(
     list(key = "variable", label = "Variable"),
     list(key = "group", label = "Group", drop_if_empty = TRUE),
@@ -1435,13 +1457,13 @@ build_posthoc_table_body <- function(posthoc_df, digits, table_meta) {
 
   columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
-  for (i in seq_len(nrow(posthoc_df))) {
-    row <- posthoc_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     row_tokens <- list(
-      variable = resolve_as_cell_text(row$variable),
-      group = resolve_as_cell_text(row$group),
-      group_1 = resolve_as_cell_text(row$group_1),
-      group_2 = resolve_as_cell_text(row$group_2),
+      variable = resolve_as_cell_text(row$variable_display),
+      group = resolve_as_cell_text(row$group_display),
+      group_1 = resolve_as_cell_text(row$group_1_display),
+      group_2 = resolve_as_cell_text(row$group_2_display),
       n_1 = format_stat(row$n_1, digits),
       n_2 = format_stat(row$n_2, digits),
       median_1 = format_stat(row$median_1, digits),
@@ -1474,9 +1496,14 @@ build_posthoc_table_body <- function(posthoc_df, digits, table_meta) {
 }
 
 build_posthoc_narrative_rows <- function(posthoc_df, digits) {
+  display <- posthoc_df
+  display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$group_1_display <- if ("group_1_label" %in% names(display)) display$group_1_label else display$group_1
+  display$group_2_display <- if ("group_2_label" %in% names(display)) display$group_2_label else display$group_2
   rows <- list()
-  for (i in seq_len(nrow(posthoc_df))) {
-    row <- posthoc_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     stat_label <- resolve_as_cell_text(row$stat_label)
     stat_val <- format_stat(row$statistic, digits)
     p_txt <- format_p(row$p)
@@ -1489,9 +1516,9 @@ build_posthoc_narrative_rows <- function(posthoc_df, digits) {
 
     full_sentence <- paste0(
       "Pairwise comparison of ",
-      resolve_as_cell_text(row$group_1),
+      resolve_as_cell_text(row$group_1_display),
       " vs ",
-      resolve_as_cell_text(row$group_2),
+      resolve_as_cell_text(row$group_2_display),
       " yielded ",
       if (nzchar(stat_label)) paste0(stat_label, " = ", stat_val) else stat_val,
       ", p ",
@@ -1502,10 +1529,10 @@ build_posthoc_narrative_rows <- function(posthoc_df, digits) {
     )
 
     rows[[length(rows) + 1]] <- list(
-      variable = resolve_as_cell_text(row$variable),
-      group = resolve_as_cell_text(row$group),
-      group_1 = resolve_as_cell_text(row$group_1),
-      group_2 = resolve_as_cell_text(row$group_2),
+      variable = resolve_as_cell_text(row$variable_display),
+      group = resolve_as_cell_text(row$group_display),
+      group_1 = resolve_as_cell_text(row$group_1_display),
+      group_2 = resolve_as_cell_text(row$group_2_display),
       n_1 = format_stat(row$n_1, digits),
       n_2 = format_stat(row$n_2, digits),
       median_1 = format_stat(row$median_1, digits),
@@ -1731,6 +1758,19 @@ main <- function() {
   summary_df <- result$summary
   diagnostics_df <- result$diagnostics
   if (nrow(summary_df) == 0) stop("No valid nonparametric tests could be computed.")
+  label_meta <- resolve_label_metadata(df)
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "variable")
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "measure_1")
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "measure_2")
+  summary_df <- add_group_label_column(summary_df, label_meta, opts$group, group_col = "group")
+  summary_df <- add_group_label_column(summary_df, label_meta, opts$group, group_col = "group_1")
+  summary_df <- add_group_label_column(summary_df, label_meta, opts$group, group_col = "group_2")
+  if (!is.null(posthoc_df) && nrow(posthoc_df) > 0) {
+    posthoc_df <- add_variable_label_column(posthoc_df, label_meta, var_col = "variable")
+    posthoc_df <- add_group_label_column(posthoc_df, label_meta, opts$group, group_col = "group")
+    posthoc_df <- add_group_label_column(posthoc_df, label_meta, opts$group, group_col = "group_1")
+    posthoc_df <- add_group_label_column(posthoc_df, label_meta, opts$group, group_col = "group_2")
+  }
 
   uses_wilcox <- mode %in% c("wilcoxon_one_sample", "wilcoxon_paired", "mann_whitney")
   note_tokens <- build_nonparam_note_tokens(

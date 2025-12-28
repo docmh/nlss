@@ -1,6 +1,6 @@
 ---
 name: nonparametric
-description: Nonparametric group and repeated-measures tests (Wilcoxon signed-rank, Mann-Whitney U, Kruskal-Wallis, Friedman) with APA-ready tables, narratives, and post-hoc comparisons.
+description: Nonparametric tests (Wilcoxon one-sample/paired, Mann-Whitney, Kruskal-Wallis, Friedman) with auto selection, effect sizes, post-hoc pairwise tests, and APA outputs.
 ---
 
 # Nonparametric tests (Base R, APA 7)

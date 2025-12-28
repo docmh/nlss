@@ -628,6 +628,11 @@ ensure_unique_name <- function(name, existing) {
   candidate
 }
 
+map_variable_labels <- function(vars, labels) {
+  if (length(vars) == 0) return(vars)
+  vapply(vars, function(name) resolve_variable_label(labels, name), character(1))
+}
+
 resolve_method_for_var <- function(var, vec, method_map, numeric_method, categorical_method) {
   method <- if (var %in% names(method_map)) method_map[[var]] else if (is_numeric_type(vec)) numeric_method else categorical_method
   method <- normalize_method(method, default = method)
@@ -714,18 +719,19 @@ build_impute_table_body <- function(summary_df, digits, table_spec = NULL) {
     )
   } else {
     for (i in seq_len(nrow(summary_df))) {
+      row <- summary_df[i, , drop = FALSE]
       rows[[length(rows) + 1]] <- list(
-        variable = summary_df$variable[i],
-        type = summary_df$type[i],
-        missing_n = summary_df$missing_n[i],
-        missing_pct = resolve_format_percent(summary_df$missing_pct[i], digits),
-        engine = summary_df$engine[i],
-        method = summary_df$method[i],
-        impute_value = summary_df$impute_value[i],
-        imputed_n = summary_df$imputed_n[i],
-        target = summary_df$target[i],
-        indicator = summary_df$indicator[i],
-        note = summary_df$note[i]
+        variable = resolve_row_display(row, "variable"),
+        type = row$type,
+        missing_n = row$missing_n,
+        missing_pct = resolve_format_percent(row$missing_pct, digits),
+        engine = row$engine,
+        method = row$method,
+        impute_value = row$impute_value,
+        imputed_n = row$imputed_n,
+        target = resolve_row_display(row, "target"),
+        indicator = resolve_row_display(row, "indicator"),
+        note = row$note
       )
     }
   }
@@ -753,7 +759,7 @@ build_impute_table_body <- function(summary_df, digits, table_spec = NULL) {
   )
 }
 
-build_impute_note_tokens <- function(summary_df, engine_requested, engine_used, indicator, indicator_suffix, m, maxit, k, seed, ignored_map, skipped_vars) {
+build_impute_note_tokens <- function(summary_df, engine_requested, engine_used, indicator, indicator_suffix, m, maxit, k, seed, ignored_map, skipped_vars_display) {
   note_parts <- character(0)
   if (engine_requested == "auto" && engine_used != "auto") {
     note_parts <- c(note_parts, paste0("Engine auto-selected: ", engine_used, "."))
@@ -772,8 +778,8 @@ build_impute_note_tokens <- function(summary_df, engine_requested, engine_used, 
   if (!is.na(seed)) {
     note_parts <- c(note_parts, paste0("Random seed: ", seed, "."))
   }
-  if (length(skipped_vars) > 0) {
-    note_parts <- c(note_parts, paste0("All-missing variables left unimputed: ", paste(skipped_vars, collapse = ", "), "."))
+  if (length(skipped_vars_display) > 0) {
+    note_parts <- c(note_parts, paste0("All-missing variables left unimputed: ", paste(skipped_vars_display, collapse = ", "), "."))
   }
   if (ignored_map) {
     note_parts <- c(note_parts, "Method/value maps apply only to engine 'simple'.")
@@ -784,7 +790,7 @@ build_impute_note_tokens <- function(summary_df, engine_requested, engine_used, 
     indicator_note = if (indicator) paste0("Indicators use suffix '", indicator_suffix, "'.") else "",
     pool_note = if (engine_used == "mice") paste0("mice m = ", m, ", maxit = ", maxit, "; pooled to single imputed columns.") else "",
     seed_note = if (!is.na(seed)) paste0("Random seed: ", seed, ".") else "",
-    skipped_note = if (length(skipped_vars) > 0) paste0("All-missing variables left unimputed: ", paste(skipped_vars, collapse = ", "), ".") else "",
+    skipped_note = if (length(skipped_vars_display) > 0) paste0("All-missing variables left unimputed: ", paste(skipped_vars_display, collapse = ", "), ".") else "",
     map_note = if (ignored_map) "Method/value maps apply only to engine 'simple'." else ""
   )
 }
@@ -796,26 +802,29 @@ build_impute_narrative_rows <- function(summary_df, digits) {
     return(rows)
   }
   for (i in seq_len(nrow(summary_df))) {
-    row <- summary_df[i, ]
+    row <- summary_df[i, , drop = FALSE]
+    var_display <- resolve_row_display(row, "variable")
+    target_display <- resolve_row_display(row, "target")
+    indicator_display <- resolve_row_display(row, "indicator")
     missing_n <- row$missing_n
     missing_pct <- resolve_format_percent(row$missing_pct, digits)
     base <- ""
     if (missing_n == 0) {
-      base <- paste0(row$variable, " had no missing values; ", row$target, " mirrors the original.")
+      base <- paste0(var_display, " had no missing values; ", target_display, " mirrors the original.")
     } else if (row$imputed_n == 0 && row$note == "all missing") {
-      base <- paste0(row$variable, " had all values missing; no imputation was possible for ", row$target, ".")
+      base <- paste0(var_display, " had all values missing; no imputation was possible for ", target_display, ".")
     } else {
-      base <- paste0(row$variable, ": ", missing_n, " missing (", missing_pct, "%), imputed via ",
-                     row$method, " (", row$engine, ") into ", row$target, ".")
+      base <- paste0(var_display, ": ", missing_n, " missing (", missing_pct, "%), imputed via ",
+                     row$method, " (", row$engine, ") into ", target_display, ".")
     }
-    if (nzchar(row$indicator)) {
-      base <- paste0(base, " Indicator ", row$indicator, " added.")
+    if (nzchar(indicator_display)) {
+      base <- paste0(base, " Indicator ", indicator_display, " added.")
     }
     if (nzchar(row$note) && row$note != "all missing") {
       base <- paste0(base, " Note: ", row$note, ".")
     }
     rows[[length(rows) + 1]] <- list(
-      variable = row$variable,
+      variable = var_display,
       type = row$type,
       missing_n = row$missing_n,
       missing_pct = missing_pct,
@@ -823,8 +832,8 @@ build_impute_narrative_rows <- function(summary_df, digits) {
       method = row$method,
       impute_value = row$impute_value,
       imputed_n = row$imputed_n,
-      target = row$target,
-      indicator = row$indicator,
+      target = target_display,
+      indicator = indicator_display,
       note = row$note,
       full_sentence = trimws(base)
     )
@@ -1156,6 +1165,11 @@ main <- function() {
   }
 
   summary_df <- if (length(summary_rows) > 0) do.call(rbind, summary_rows) else data.frame()
+  label_meta <- resolve_label_metadata(df)
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "variable")
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "target")
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "indicator")
+  skipped_vars_display <- map_variable_labels(skipped_vars, label_meta)
 
   missing_range <- summary_df$missing_pct
   missing_range <- missing_range[!is.na(missing_range)]
@@ -1176,8 +1190,8 @@ main <- function() {
   if (indicator) {
     sentences <- c(sentences, "Missingness indicators were added for variables with missing values.")
   }
-  if (length(skipped_vars) > 0) {
-    sentences <- c(sentences, paste0("All-missing variables left unimputed: ", paste(skipped_vars, collapse = ", "), "."))
+  if (length(skipped_vars_display) > 0) {
+    sentences <- c(sentences, paste0("All-missing variables left unimputed: ", paste(skipped_vars_display, collapse = ", "), "."))
   }
   if (ignored_map) {
     sentences <- c(sentences, "Method/value maps apply only to engine 'simple'.")
@@ -1193,7 +1207,7 @@ main <- function() {
   template_meta <- resolve_get_template_meta(template_path)
   table_result <- build_impute_table_body(summary_df, digits, template_meta$table)
   narrative_rows <- build_impute_narrative_rows(summary_df, digits)
-  note_tokens <- build_impute_note_tokens(summary_df, engine_requested, engine_used, indicator, indicator_suffix, m, maxit, k, seed, ignored_map, skipped_vars)
+  note_tokens <- build_impute_note_tokens(summary_df, engine_requested, engine_used, indicator, indicator_suffix, m, maxit, k, seed, ignored_map, skipped_vars_display)
 
   apa_report_path <- file.path(out_dir, "report_canonical.md")
 

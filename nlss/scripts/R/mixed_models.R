@@ -15,6 +15,7 @@ source_lib("config.R")
 source_lib("io.R")
 source_lib("data_utils.R")
 source_lib("formatting.R")
+source_lib("contrast_utils.R")
 
 print_usage <- function() {
   cat("Mixed Models (lme4)\n")
@@ -44,7 +45,8 @@ print_usage <- function() {
   cat("  --df-method METHOD     satterthwaite/kenward-roger/none (default: satterthwaite)\n")
   cat("  --standardize TYPE     none/predictors (default: none)\n")
   cat("  --emmeans TERM         Term for marginal means (default: none)\n")
-  cat("  --contrasts TYPE       none/pairwise (default: none)\n")
+  cat("  --contrasts TYPE       none/pairwise/custom/<method> (default: none)\n")
+  cat("  --contrast-file PATH   JSON contrast spec for custom or method args\n")
   cat("  --p-adjust METHOD      P-value adjustment (default: holm)\n")
   cat("  --conf-level VALUE     Confidence level (default: 0.95)\n")
   cat("  --optimizer NAME       Optimizer (default: bobyqa)\n")
@@ -112,7 +114,11 @@ interactive_options <- function() {
   opts$`df-method` <- resolve_prompt("DF method (satterthwaite/kenward-roger/none)", df_method_default)
   opts$standardize <- resolve_prompt("Standardize (none/predictors)", standardize_default)
   opts$emmeans <- resolve_prompt("Marginal means term (none or term)", emmeans_default)
-  opts$contrasts <- resolve_prompt("Contrasts (none/pairwise)", contrasts_default)
+  opts$contrasts <- resolve_prompt("Contrasts (none/pairwise/custom/<method>)", contrasts_default)
+  contrast_mode <- normalize_contrast_mode(opts$contrasts, contrasts_default)
+  if (contrast_mode == "custom") {
+    opts$`contrast-file` <- resolve_prompt("Contrast JSON file", "")
+  }
   opts$`p-adjust` <- resolve_prompt("P-value adjustment", p_adjust_default)
   opts$`conf-level` <- resolve_prompt("Confidence level", as.character(conf_default))
   opts$optimizer <- resolve_prompt("Optimizer", optimizer_default)
@@ -422,11 +428,15 @@ normalize_df_method <- function(value, default = "satterthwaite") {
 }
 
 normalize_contrasts <- function(value, default = "none") {
+  if (exists("normalize_contrast_mode", mode = "function")) {
+    return(get("normalize_contrast_mode", mode = "function")(value, default))
+  }
   val <- if (!is.null(value) && value != "") value else default
   val <- tolower(val)
   if (val %in% c("none", "no", "false")) return("none")
   if (val %in% c("pairwise", "pairs")) return("pairwise")
-  default
+  if (val %in% c("custom", "json")) return("custom")
+  val
 }
 
 normalize_emmeans <- function(value, default = "none") {
@@ -640,10 +650,36 @@ extract_icc_df <- function(fit) {
   if (!requireNamespace("performance", quietly = TRUE)) return(data.frame())
   res <- tryCatch(performance::icc(fit), error = function(e) NULL)
   if (is.null(res)) return(data.frame())
+  icc_val <- resolve_icc_value(res)
+  if (is.na(icc_val)) return(data.frame())
   data.frame(
-    icc = res$ICC,
+    icc = icc_val,
     stringsAsFactors = FALSE
   )
+}
+
+resolve_icc_value <- function(res) {
+  if (!(is.data.frame(res) || is.list(res))) return(NA_real_)
+  keys <- names(res)
+  if (is.null(keys) || length(keys) == 0) return(NA_real_)
+  preferred <- c("ICC", "ICC_adjusted", "ICC_unadjusted", "ICC_conditional", "ICC_marginal")
+  for (key in preferred) {
+    if (key %in% keys) {
+      val <- res[[key]]
+      if (length(val) > 0) return(as.numeric(val[1]))
+    }
+  }
+  for (key in keys) {
+    if (grepl("^ICC", key, ignore.case = TRUE)) {
+      val <- res[[key]]
+      if (length(val) > 0) return(as.numeric(val[1]))
+    }
+  }
+  for (key in keys) {
+    val <- suppressWarnings(as.numeric(res[[key]]))
+    if (length(val) > 0 && !all(is.na(val))) return(val[1])
+  }
+  NA_real_
 }
 
 build_anova_df <- function(fit, type, df_method, has_lmerTest) {
@@ -712,6 +748,8 @@ build_diagnostics <- function(fit, max_shapiro_n) {
 }
 
 build_fixed_effects_table_body <- function(fixed_df, digits, table_meta) {
+  display <- fixed_df
+  display$term_display <- if ("term_label" %in% names(display)) display$term_label else display$term
   default_specs <- list(
     list(key = "model", label = "Model", drop_if_empty = TRUE),
     list(key = "term", label = "Effect"),
@@ -725,13 +763,13 @@ build_fixed_effects_table_body <- function(fixed_df, digits, table_meta) {
     list(key = "std_beta", label = "beta", drop_if_empty = TRUE)
   )
   columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
-  show_model <- length(unique(fixed_df$model)) > 1
+  show_model <- length(unique(display$model)) > 1
   rows <- list()
-  for (i in seq_len(nrow(fixed_df))) {
-    row <- fixed_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     row_map <- list(
       model = if (show_model) row$model else "",
-      term = row$term,
+      term = row$term_display,
       b = format_stat(row$estimate, digits),
       se = format_stat(row$se, digits),
       df = format_stat(row$df, digits),
@@ -755,6 +793,9 @@ build_fixed_effects_table_body <- function(fixed_df, digits, table_meta) {
 }
 
 build_emmeans_table_body <- function(emmeans_df, digits, table_meta) {
+  display <- emmeans_df
+  display$term_display <- if ("term_label" %in% names(display)) display$term_label else display$term
+  display$level_display <- if ("level_label" %in% names(display)) display$level_label else display$level
   default_specs <- list(
     list(key = "term", label = "Term"),
     list(key = "level", label = "Level", drop_if_empty = TRUE),
@@ -772,11 +813,11 @@ build_emmeans_table_body <- function(emmeans_df, digits, table_meta) {
   )
   columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
-  for (i in seq_len(nrow(emmeans_df))) {
-    row <- emmeans_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     row_map <- list(
-      term = row$term,
-      level = row$level,
+      term = row$term_display,
+      level = row$level_display,
       contrast = row$contrast,
       emmean = format_stat(row$emmean, digits),
       estimate = format_stat(row$estimate, digits),
@@ -803,12 +844,14 @@ build_emmeans_table_body <- function(emmeans_df, digits, table_meta) {
 }
 
 build_fixed_effects_narrative_rows <- function(fixed_df, digits) {
+  display <- fixed_df
+  display$term_display <- if ("term_label" %in% names(display)) display$term_label else display$term
   rows <- list()
-  if (nrow(fixed_df) == 0) return(rows)
-  for (i in seq_len(nrow(fixed_df))) {
-    row <- fixed_df[i, ]
+  if (nrow(display) == 0) return(rows)
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     if (row$term == "(Intercept)") next
-    term_label <- row$term
+    term_label <- row$term_display
     b_text <- format_stat(row$estimate, digits)
     se_text <- format_stat(row$se, digits)
     t_text <- format_stat(row$t, digits)
@@ -848,12 +891,15 @@ build_fixed_effects_narrative_rows <- function(fixed_df, digits) {
 }
 
 build_emmeans_narrative_rows <- function(emmeans_df, digits) {
+  display <- emmeans_df
+  display$term_display <- if ("term_label" %in% names(display)) display$term_label else display$term
+  display$level_display <- if ("level_label" %in% names(display)) display$level_label else display$level
   rows <- list()
-  if (nrow(emmeans_df) == 0) return(rows)
-  for (i in seq_len(nrow(emmeans_df))) {
-    row <- emmeans_df[i, ]
-    label <- if (nzchar(row$contrast)) row$contrast else row$level
-    if (!nzchar(label)) label <- row$term
+  if (nrow(display) == 0) return(rows)
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
+    label <- if (nzchar(row$contrast)) row$contrast else row$level_display
+    if (!nzchar(label)) label <- row$term_display
     estimate <- if (!is.na(row$emmean)) row$emmean else row$estimate
     est_text <- format_stat(estimate, digits)
     se_text <- format_stat(row$se, digits)
@@ -968,11 +1014,16 @@ build_mixed_models_note_tokens <- function(random_terms, conf_level, standardize
   )
 }
 
-build_emmeans_note_tokens <- function(conf_level, contrasts, p_adjust) {
+build_emmeans_note_tokens <- function(conf_level, contrast_label, p_adjust, contrast_file = "") {
   notes <- character(0)
   notes <- c(notes, sprintf("CI uses %s%% confidence.", round(conf_level * 100)))
-  if (contrasts != "none") {
-    notes <- c(notes, paste0("Contrasts: ", contrasts, ". P-value adjustment: ", p_adjust, "."))
+  if (contrast_label != "none") {
+    note <- paste0("Contrasts: ", contrast_label, ".")
+    if (nzchar(contrast_file)) {
+      note <- paste0(note, " File: ", basename(contrast_file), ".")
+    }
+    note <- paste0(note, " P-value adjustment: ", p_adjust, ".")
+    notes <- c(notes, note)
   }
   list(note_default = paste(notes, collapse = " "))
 }
@@ -1008,9 +1059,10 @@ build_emmeans_rows <- function(emm_summary, term_label) {
   )
 }
 
-build_contrasts_rows <- function(contrast_summary, term_label, p_adjust) {
+build_contrasts_rows <- function(contrast_summary, term_label, p_adjust, method_label) {
   p_adj_vals <- ifelse(p_adjust != "none", contrast_summary$p.value, NA_real_)
   p_vals <- ifelse(p_adjust == "none", contrast_summary$p.value, NA_real_)
+  method <- if (!is.null(method_label) && nzchar(method_label)) method_label else p_adjust
   data.frame(
     term = term_label,
     level = "",
@@ -1024,7 +1076,7 @@ build_contrasts_rows <- function(contrast_summary, term_label, p_adjust) {
     p_adj = p_adj_vals,
     ci_low = contrast_summary$lower.CL,
     ci_high = contrast_summary$upper.CL,
-    method = p_adjust,
+    method = method,
     stringsAsFactors = FALSE
   )
 }
@@ -1064,6 +1116,9 @@ main <- function() {
   if (!requireNamespace("lme4", quietly = TRUE)) {
     emit_input_issue(out_dir, opts, "Mixed models require the 'lme4' package.", details = list(package = "lme4"), status = "missing_dependency")
   }
+  if (!requireNamespace("performance", quietly = TRUE)) {
+    emit_input_issue(out_dir, opts, "Mixed models require the 'performance' package.", details = list(package = "performance"), status = "missing_dependency")
+  }
 
   reml <- normalize_reml(opts$reml, reml_default)
   type <- normalize_type(opts$type, type_default)
@@ -1072,12 +1127,33 @@ main <- function() {
   emmeans_term <- normalize_emmeans(opts$emmeans, emmeans_default)
   has_emmeans <- requireNamespace("emmeans", quietly = TRUE)
   emmeans_note <- ""
+  contrast_file <- if (!is.null(opts$`contrast-file`)) as.character(opts$`contrast-file`) else ""
+  contrasts_input <- normalize_contrasts(opts$contrasts, contrasts_default)
+  contrast_spec <- tryCatch(resolve_contrast_spec(contrasts_input, contrast_file), error = function(e) e)
+  if (inherits(contrast_spec, "error")) {
+    emit_input_issue(out_dir, opts, contrast_spec$message, details = list(contrasts = contrasts_input, contrast_file = contrast_file))
+  }
+  contrast_label <- if (!is.null(contrast_spec$label)) contrast_spec$label else "none"
+  if (!is.null(contrast_spec$term) && nzchar(contrast_spec$term)) {
+    if (nzchar(emmeans_term) && emmeans_term != contrast_spec$term) {
+      emit_input_issue(
+        out_dir,
+        opts,
+        "Contrast term does not match --emmeans.",
+        details = list(emmeans = emmeans_term, contrast_term = contrast_spec$term)
+      )
+    }
+    if (!nzchar(emmeans_term)) {
+      emmeans_term <- contrast_spec$term
+    }
+  }
+  contrasts_active <- !is.null(contrast_spec) && contrast_spec$mode != "none"
+  if (!nzchar(emmeans_term)) {
+    contrasts_active <- FALSE
+    contrast_label <- "none"
+  }
   if (nzchar(emmeans_term) && !has_emmeans) {
     emmeans_note <- "emmeans requested but the 'emmeans' package is not installed."
-  }
-  contrasts <- normalize_contrasts(opts$contrasts, contrasts_default)
-  if (!nzchar(emmeans_term)) {
-    contrasts <- "none"
   }
   p_adjust <- if (!is.null(opts$`p-adjust`) && nzchar(opts$`p-adjust`)) as.character(opts$`p-adjust`) else p_adjust_default
   conf_level <- normalize_conf_level(opts$`conf-level`, conf_default)
@@ -1166,6 +1242,8 @@ main <- function() {
   if (nrow(fixed_df) > 0) {
     fixed_df$model <- "Model 1"
   }
+  label_meta <- resolve_label_metadata(data_model)
+  fixed_df <- add_term_label_column(fixed_df, label_meta, term_col = "term")
   random_df <- extract_random_effects(fit)
   fit_df <- extract_fit_stats(fit)
   r2_df <- extract_r2_df(fit)
@@ -1183,8 +1261,9 @@ main <- function() {
     type = type,
     standardize = if (standardize != "none") standardize else NULL,
     emmeans = if (nzchar(emmeans_term)) emmeans_term else NULL,
-    contrasts = if (contrasts != "none") contrasts else NULL,
-    "p-adjust" = if (contrasts != "none") p_adjust else NULL,
+    contrasts = if (contrasts_active) contrast_label else NULL,
+    "contrast-file" = if (nzchar(contrast_file)) basename(contrast_file) else NULL,
+    "p-adjust" = if (contrasts_active) p_adjust else NULL,
     "conf-level" = conf_level,
     optimizer = optimizer,
     maxfun = maxfun,
@@ -1254,16 +1333,30 @@ main <- function() {
       if (!is.null(emm)) {
         emm_summary <- summarize_emmeans(emm, conf_level)
         emmeans_df <- build_emmeans_rows(emm_summary, emmeans_term)
-        if (contrasts != "none") {
-          cont <- tryCatch(emmeans::contrast(emm, method = contrasts), error = function(e) NULL)
+        if (contrasts_active) {
+          contrast_method <- tryCatch(build_contrast_method(contrast_spec, emm, emmeans_term), error = function(e) e)
+          if (inherits(contrast_method, "error")) {
+            emit_input_issue(
+              out_dir,
+              opts,
+              contrast_method$message,
+              details = list(contrasts = contrast_label, contrast_file = contrast_file)
+            )
+          }
+          cont <- tryCatch(do.call(emmeans::contrast, c(list(emm, method = contrast_method$method), contrast_method$args)), error = function(e) NULL)
           if (!is.null(cont)) {
             cont_summary <- summary(cont, infer = c(TRUE, TRUE), adjust = p_adjust, level = conf_level)
-            contrasts_df <- build_contrasts_rows(cont_summary, emmeans_term, p_adjust)
+            contrasts_df <- build_contrasts_rows(cont_summary, emmeans_term, p_adjust, contrast_label)
           }
         }
       }
     }
   }
+
+  emmeans_df <- add_term_label_column(emmeans_df, label_meta, term_col = "term")
+  emmeans_df <- add_value_label_column(emmeans_df, label_meta, var_col = "term", value_col = "level")
+  contrasts_df <- add_term_label_column(contrasts_df, label_meta, term_col = "term")
+  contrasts_df <- add_value_label_column(contrasts_df, label_meta, var_col = "term", value_col = "level")
 
   if (nrow(emmeans_df) > 0 && nrow(contrasts_df) > 0) {
     emmeans_rows <- rbind(emmeans_df, contrasts_df)
@@ -1282,7 +1375,7 @@ main <- function() {
     }
     emmeans_meta <- resolve_get_template_meta(emmeans_template_path)
     emmeans_table <- build_emmeans_table_body(emmeans_rows, digits, emmeans_meta$table)
-    emmeans_note_tokens <- build_emmeans_note_tokens(conf_level, contrasts, p_adjust)
+    emmeans_note_tokens <- build_emmeans_note_tokens(conf_level, format_contrast_label(contrast_spec), p_adjust, contrast_file)
     emmeans_narrative_rows <- build_emmeans_narrative_rows(emmeans_rows, digits)
     emmeans_text <- ""
     if (length(emmeans_narrative_rows) > 0) {

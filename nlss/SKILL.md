@@ -1,8 +1,8 @@
 ---
 name: nlss
-description: Run APA 7-ready statistical analyses in R via subskills and metaskills (Markdown pseudoscripts such as describe-sample, check-instruments, explore-data, prepare-data, plan-power, generate-r-script, and test-hypotheses) covering descriptives, frequencies/crosstabs, correlations, power analysis, regression, mixed models, SEM/CFA/mediation, ANOVA, t-tests, nonparametric tests, assumption checks, scale reliability, inter-rater reliability/ICC, data exploration, plotting, missingness handling, imputation, data transforms, and workspace initialization from CSV/RDS/RData/SAV/Parquet with JSONL logs and templated reports.
+description: Workspace-first R statistics suite with subskills and agent-run metaskills that produce APA 7 tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
 license: Apache-2.0
-compatibility: R 4.5.2, Windows, WSL (Ubuntu), Linux, Codex/GPT-5.2-Codex
+compatibility: R 4.5.2, Windows, WSL (Ubuntu), Linux, one of Codex IDE with GPT-5.2-Codex Medium/High or Claude Code IDE with Claude Sonnet 4.5/Opus 4.5
 metadata:
   author: Prof. Dr. Mike Hammes, ISM International School of Management, Germany (mike.hammes@ism.de)
   version: 1.0.0
@@ -174,27 +174,27 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 ## Subskills
 
-- [descriptive-stats](references/subskills/descriptive-stats.md): Numeric descriptives with grouping, missingness, robust/percentile/outlier metrics, and APA templates (default/robust/distribution).
-- [frequencies](references/subskills/frequencies.md): Categorical frequency tables with percentages, grouping, and APA-ready tables/narratives.
-- [crosstabs](references/subskills/crosstabs.md): Contingency tables with chi-square/Fisher tests, effect sizes, residuals, and APA outputs.
-- [correlations](references/subskills/correlations.md): Correlation and cross-correlation matrices, partial correlations, p-adjustments, bootstrap CIs, Fisher r-to-z tests, optional grouping, and APA outputs.
-- [scale](references/subskills/scale.md): Scale item analysis and reliability (alpha/omega), reverse scoring, grouped results, APA outputs.
-- [reliability](references/subskills/reliability.md): Inter-rater and test-retest reliability (ICC, kappa, correlations) with APA outputs.
-- [data-explorer](references/subskills/data-explorer.md): Data dictionary summaries (types, levels, missingness, value counts) with APA output.
-- [plot](references/subskills/plot.md): APA-ready figures (histograms, bar charts, box/violin, scatter/line, QQ, correlation heatmaps) with numbered captions.
-- [data-transform](references/subskills/data-transform.md): Create/modify variables (compute, recode, standardize, rename, drop) with change logs and updated datasets.
-- [assumptions](references/subskills/assumptions.md): Assumption checks for t-tests, ANOVA, and regression (including diagnostics).
-- [regression](references/subskills/regression.md): Multiple and hierarchical regression with interactions, bootstrap options, and APA outputs.
-- [power](references/subskills/power.md): Power analysis for t-tests, ANOVA, correlations, regression, and SEM with APA outputs.
-- [mixed-models](references/subskills/mixed-models.md): Linear mixed-effects models with random effects, marginal means, and APA outputs.
-- [sem](references/subskills/sem.md): Structural equation modeling (SEM), CFA, path analysis, mediation, and invariance with APA outputs.
-- [anova](references/subskills/anova.md): Between-subjects, within-subjects, and mixed ANOVA with APA outputs and post-hoc comparisons.
-- [t-test](references/subskills/t-test.md): One-sample, independent-samples, and paired-samples t-tests with APA outputs.
-- [nonparametric](references/subskills/nonparametric.md): Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests with APA outputs.
-- [missings](references/subskills/missings.md): Missing-data pattern summaries, method selection, and handled datasets with APA outputs.
-- [impute](references/subskills/impute.md): Imputation into new _imp columns with optional mice/VIM engines and APA outputs.
-- [init-workspace](references/subskills/init-workspace.md): Initialize per-dataset workspace folders with scratchpad.md, report_canonical.md, analysis_log.jsonl, and .parquet dataset copies.
-- [metaskill-runner](references/subskills/metaskill-runner.md): Log metaskill activations to report_canonical.md and analysis_log.jsonl.
+- [descriptive-stats](references/subskills/descriptive-stats.md): Numeric descriptives with missingness, robust/percentile/outlier metrics, CI/SE, grouping, and APA templates.
+- [frequencies](references/subskills/frequencies.md): Categorical counts with valid/total percentages, missingness, optional grouping, and APA tables.
+- [crosstabs](references/subskills/crosstabs.md): Contingency tables with chi-square/Fisher, effect sizes, residuals, percent types, and grouping.
+- [correlations](references/subskills/correlations.md): Pearson/Spearman/Kendall matrices or cross-sets with partial controls, bootstrap CIs, r-to-z, p-adjust, grouping.
+- [scale](references/subskills/scale.md): Item analysis with alpha/omega, item-total stats, reverse scoring, scale scores, grouping.
+- [reliability](references/subskills/reliability.md): ICC/kappa/test-retest reliability in wide/long formats with CIs and grouping.
+- [data-explorer](references/subskills/data-explorer.md): Data dictionary with type/level inference, missingness, numeric summaries, and top-N value tables.
+- [plot](references/subskills/plot.md): APA figures (hist/bar/box/violin/scatter/line/QQ/heatmap) with numbering and saved files.
+- [data-transform](references/subskills/data-transform.md): Compute/recode/standardize/bin/rename/drop variables with safeguards and change logs.
+- [assumptions](references/subskills/assumptions.md): Assumption/diagnostic checks for t-tests, ANOVA, regression, mixed models, SEM.
+- [regression](references/subskills/regression.md): OLS/GLM regression with blocks, interactions, standardization, bootstrap CIs, group splits.
+- [power](references/subskills/power.md): A priori/post hoc/sensitivity power for t-tests/ANOVA/correlation/regression/SEM; optional effect estimation.
+- [mixed-models](references/subskills/mixed-models.md): LMMs with random effects, emmeans/contrasts, diagnostics, R2/ICC.
+- [sem](references/subskills/sem.md): SEM/CFA/path/mediation/invariance via lavaan with fit indices and bootstrapped CIs.
+- [anova](references/subskills/anova.md): Between/within/mixed ANOVA/ANCOVA with post hoc, contrasts, effect sizes, sphericity.
+- [t-test](references/subskills/t-test.md): One-sample/independent/paired t-tests with effect sizes, CIs, bootstrap.
+- [nonparametric](references/subskills/nonparametric.md): Wilcoxon/Mann-Whitney/Kruskal-Wallis/Friedman with post hoc and effect sizes.
+- [missings](references/subskills/missings.md): Missingness patterns with auto handling (listwise/impute/indicator/drop) and parquet updates.
+- [impute](references/subskills/impute.md): Impute into _imp columns via simple/mice/kNN engines with optional indicators.
+- [init-workspace](references/subskills/init-workspace.md): Create dataset workspaces, parquet copies, scratchpad/report/logs, workspace manifest.
+- [metaskill-runner](references/subskills/metaskill-runner.md): Log metaskill activation/finalization entries to report/log for traceability.
 
 ## Metaskills
 
@@ -218,16 +218,16 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 ### Available Metaskills
 
-- [describe-sample](references/metaskills/describe-sample.md): Demographic-first sample description with inferred variables, descriptive stats, and frequency tables for vague "describe the sample" requests.
-- [generate-r-script](references/metaskills/generate-r-script.md): Generate a custom R script for analyses not covered by NLSS (permission required).
-- [check-instruments](references/metaskills/check-instruments.md): Instrument quality checks via item analysis, reverse scoring, and reliability (alpha/omega, ICC/kappa) with defaults for vague requests.
-- [test-hypotheses](references/metaskills/test-hypotheses.md): Map vague hypotheses to tests with clarifications, run the appropriate analyses, and report APA-ready outputs.
-- [plan-power](references/metaskills/plan-power.md): A priori power analysis to plan minimal sample size for t-tests, ANOVA, regression, correlations, and SEM.
-- [explore-data](references/metaskills/explore-data.md): Dataset overview with variable summaries, missingness, distributions, and correlations for vague "overview" requests.
-- [prepare-data](references/metaskills/prepare-data.md): Data cleaning and preparation (missing handling, recodes, transformations) based on dataset inspection and user intent.
-- check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression).
-- full-analysis (planned): Comprehensive analysis from data exploration to hypothesis testing with full reporting.
+- [describe-sample](references/metaskills/describe-sample.md): Demographic-first sample description via descriptives, frequencies, optional crosstabs/missings.
+- [generate-r-script](references/metaskills/generate-r-script.md): Permissioned custom R script generation for out-of-scope analyses.
+- [check-instruments](references/metaskills/check-instruments.md): Item inspection, reverse scoring, scale reliability (alpha/omega) and ICC/kappa/test-retest.
+- [test-hypotheses](references/metaskills/test-hypotheses.md): Clarify hypotheses, select/run tests, include assumptions checks, produce APA-ready report.
+- [plan-power](references/metaskills/plan-power.md): A priori power/sample-size planning with effect-size clarification or pilot estimation.
+- [explore-data](references/metaskills/explore-data.md): Dataset overview with data dictionary, missingness, distributions, correlations, optional plots.
+- [prepare-data](references/metaskills/prepare-data.md): Data cleaning and preparation with missingness handling, recodes/transforms, imputation, documented changes.
+- check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression, mixed models, SEM).
+- full-analysis (planned): End-to-end workflow from exploration through hypothesis testing with full reporting.
 
 ## Utilities
 
-- [calc](references/utilities/calc.md): Lightweight calculator CLI for quick numeric expressions.
+- [calc](references/utilities/calc.md): Safe numeric expression calculator for quick parameter derivations (plain/json/csv output).

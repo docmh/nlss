@@ -1,6 +1,6 @@
 ---
 name: descriptive-stats
-description: Descriptive statistics for numeric variables (mean, SD, median, range, robust metrics, percentiles, outliers, missingness, CI) with optional grouping and APA-ready tables/narratives.
+description: Numeric descriptives with missingness, robust and percentile metrics, outlier counts (Tukey/z), CI/SE, skew/kurtosis, optional grouping, and APA outputs.
 ---
 
 # Descriptive Stats (Base R, APA 7)

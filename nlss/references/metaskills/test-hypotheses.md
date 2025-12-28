@@ -1,6 +1,6 @@
 ---
 name: test-hypotheses
-description: Map vague hypotheses to appropriate tests through clarifications, then run subskills and report APA-ready results.
+description: Agent-run hypothesis testing that clarifies DV/IVs and design, selects appropriate subskills, runs assumptions checks, and produces APA-ready results with a final report.
 ---
 
 # Test Hypotheses (Agent-run, APA 7)

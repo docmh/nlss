@@ -558,6 +558,7 @@ calc_model_summary <- function(model, data, dv, family, link) {
     p_val <- pf(f_val, df1, df2, lower.tail = FALSE)
     r2 <- summ$r.squared
     adj_r2 <- summ$adj.r.squared
+    f2 <- if (!is.na(r2) && r2 < 1) r2 / (1 - r2) else NA_real_
     rmse <- sqrt(mean(resid(model)^2))
     data.frame(
       model_stat = f_val,
@@ -566,6 +567,7 @@ calc_model_summary <- function(model, data, dv, family, link) {
       model_p = p_val,
       r2 = r2,
       adj_r2 = adj_r2,
+      f2 = f2,
       rmse = rmse,
       aic = AIC(model),
       bic = BIC(model),
@@ -600,6 +602,7 @@ calc_model_summary <- function(model, data, dv, family, link) {
       model_p = p_val,
       r2 = NA_real_,
       adj_r2 = NA_real_,
+      f2 = NA_real_,
       rmse = NA_real_,
       aic = AIC(model),
       bic = BIC(model),
@@ -661,6 +664,9 @@ build_blocks_label <- function(blocks) {
 }
 
 build_regression_table_body <- function(coef_df, digits, table_meta) {
+  display <- coef_df
+  display$term_display <- if ("term_label" %in% names(display)) display$term_label else display$term
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
   default_specs <- list(
     list(key = "model", label = "Model", drop_if_empty = TRUE),
     list(key = "group", label = "Group", drop_if_empty = TRUE),
@@ -681,15 +687,15 @@ build_regression_table_body <- function(coef_df, digits, table_meta) {
   )
   columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
 
-  show_model <- length(unique(coef_df$model)) > 1
-  show_group <- any(nzchar(coef_df$group))
+  show_model <- length(unique(display$model)) > 1
+  show_group <- any(nzchar(display$group))
   rows <- list()
-  for (i in seq_len(nrow(coef_df))) {
-    row <- coef_df[i, ]
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
     row_map <- list(
       model = if (show_model) row$model else "",
-      group = if (show_group) row$group else "",
-      term = row$term,
+      group = if (show_group) row$group_display else "",
+      term = row$term_display,
       b = format_stat(row$estimate, digits),
       se = format_stat(row$se, digits),
       t = ifelse(row$stat_label == "t", format_stat(row$stat, digits), ""),
@@ -722,10 +728,12 @@ build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, 
   if (nrow(summary_df) == 0) return(rows)
   for (i in seq_len(nrow(summary_df))) {
     row <- summary_df[i, ]
-    group_label <- ifelse(is.null(row$group) || row$group == "", "", paste0("Group ", row$group, ", "))
+    group_display <- if ("group_label" %in% names(row)) row$group_label else row$group
+    group_label <- ifelse(is.null(group_display) || group_display == "", "", paste0("Group ", group_display, ", "))
     model_label <- row$model
     sentence <- ""
     delta_r2 <- ""
+    delta_f2 <- ""
     delta_f <- ""
     delta_df1 <- ""
     delta_df2 <- ""
@@ -733,8 +741,9 @@ build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, 
     delta_deviance <- ""
     delta_chisq <- ""
     if (family == "gaussian") {
+      f2_txt <- if (!is.na(row$f2)) paste0(", f2 = ", format_stat(row$f2, digits)) else ""
       sentence <- sprintf(
-        "%s%s: F(%s, %s) = %s, p %s, R2 = %s, adj. R2 = %s.",
+        "%s%s: F(%s, %s) = %s, p %s, R2 = %s, adj. R2 = %s%s.",
         group_label,
         model_label,
         format_num(row$model_df1, digits),
@@ -742,7 +751,8 @@ build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, 
         format_stat(row$model_stat, digits),
         format_p(row$model_p),
         format_stat(row$r2, digits),
-        format_stat(row$adj_r2, digits)
+        format_stat(row$adj_r2, digits),
+        f2_txt
       )
     } else {
       sentence <- sprintf(
@@ -762,6 +772,7 @@ build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, 
         comp <- comp_row[1, ]
         if (family == "gaussian") {
           delta_r2 <- format_stat(comp$delta_r2, digits)
+          delta_f2 <- format_stat(comp$delta_f2, digits)
           delta_f <- format_stat(comp$delta_f, digits)
           delta_df1 <- format_num(comp$df1, digits)
           delta_df2 <- format_num(comp$df2, digits)
@@ -769,8 +780,9 @@ build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, 
           sentence <- paste0(
             sentence,
             sprintf(
-              " Delta R2 = %s, F-change(%s, %s) = %s, p %s.",
+              " Delta R2 = %s%s, F-change(%s, %s) = %s, p %s.",
               delta_r2,
+              if (nzchar(delta_f2)) paste0(", Delta f2 = ", delta_f2) else "",
               delta_df1,
               delta_df2,
               delta_f,
@@ -810,7 +822,9 @@ build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, 
       rmse = format_stat(row$rmse, digits),
       chisq = format_stat(row$model_stat, digits),
       pseudo_r2 = format_stat(row$pseudo_r2, digits),
+      f2 = format_stat(row$f2, digits),
       delta_r2 = delta_r2,
+      delta_f2 = delta_f2,
       delta_f = delta_f,
       delta_df1 = delta_df1,
       delta_df2 = delta_df2,
@@ -1093,10 +1107,15 @@ main <- function() {
         if (family == "gaussian") {
           comp <- anova(prev, curr)
           comp_row <- comp[2, ]
+          delta_f2 <- NA_real_
+          if (!is.na(curr_summary$r2) && curr_summary$r2 < 1) {
+            delta_f2 <- (curr_summary$r2 - prev_summary$r2) / (1 - curr_summary$r2)
+          }
           comparison_rows[[length(comparison_rows) + 1]] <- data.frame(
             model = model_label,
             group = group_label,
             delta_r2 = curr_summary$r2 - prev_summary$r2,
+            delta_f2 = delta_f2,
             delta_f = if (!is.null(comp_row$F)) comp_row$F else NA_real_,
             df1 = if (!is.null(comp_row$Df)) comp_row$Df else NA_real_,
             df2 = if (!is.null(comp_row$Res.Df)) comp_row$Res.Df else NA_real_,
@@ -1114,6 +1133,7 @@ main <- function() {
             model = model_label,
             group = group_label,
             delta_r2 = curr_summary$pseudo_r2 - prev_summary$pseudo_r2,
+            delta_f2 = NA_real_,
             delta_f = NA_real_,
             df1 = df1,
             df2 = NA_real_,
@@ -1131,6 +1151,9 @@ main <- function() {
   summary_df <- if (length(summary_rows) > 0) do.call(rbind, summary_rows) else data.frame()
   comparison_df <- if (length(comparison_rows) > 0) do.call(rbind, comparison_rows) else data.frame()
   diagnostics_df <- if (length(diagnostics_rows) > 0) do.call(rbind, diagnostics_rows) else data.frame()
+  label_meta <- resolve_label_metadata(df)
+  coef_df <- add_term_label_column(coef_df, label_meta, term_col = "term")
+  coef_df <- add_group_label_column(coef_df, label_meta, group_var, group_col = "group")
 
   if (nrow(coef_df) == 0) {
     stop("No regression results could be computed.")

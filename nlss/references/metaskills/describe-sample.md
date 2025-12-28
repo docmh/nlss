@@ -1,6 +1,6 @@
 ---
 name: describe-sample
-description: Describe the sample with missingness summaries, numeric descriptives, and categorical frequencies using existing subskills.
+description: Agent-run sample description that inspects data, infers demographics, runs descriptive-stats/frequencies (plus optional crosstabs/missings), and writes an APA-ready report.
 ---
 
 # Describe Sample (Agent-run, APA 7)

@@ -1,6 +1,6 @@
 ---
 name: metaskill-report
-description: Default metaskill report template aligned to APA 7 paper structure with optional tables and figures.
+description: APA 7 report scaffold for metaskill outputs with standard paper sections and reusable table/figure block tokens.
 tokens:
   table_block: |
     **Table {{table_number}}**

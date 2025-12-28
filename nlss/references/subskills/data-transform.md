@@ -1,6 +1,6 @@
 ---
 name: data-transform
-description: Create or modify variables (calculate, standardize, recode, rename, drop) with safe prompts, updated datasets, and APA-ready change logs.
+description: Create/modify variables via calculations, transforms, standardization, recodes, bins, renames, and drops with confirmation safeguards; updates workspace parquet with backups and logs APA changes.
 ---
 
 # Data Transformations (Base R, APA 7)

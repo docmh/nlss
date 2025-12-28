@@ -628,11 +628,12 @@ format_apa_text <- function(reliability_df, digits) {
   display <- resolve_round_numeric(reliability_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
   lines <- character(0)
 
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
-    label <- if (row$group == "") "Scale" else paste("Group", row$group)
+    label <- if (row$group == "") "Scale" else paste("Group", row$group_display)
     missing_pct <- ifelse(is.na(row$missing_pct), "NA", format_num_text(row$missing_pct, 1))
     missing_part <- paste0(
       "Missing = ",
@@ -684,6 +685,8 @@ build_scale_table_body <- function(item_df, digits, table_spec = NULL) {
   display <- resolve_round_numeric(item_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$item_display <- if ("item_label" %in% names(display)) display$item_label else display$item
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
 
   default_columns <- list(
     list(key = "item", label = "Item"),
@@ -710,7 +713,11 @@ build_scale_table_body <- function(item_df, digits, table_spec = NULL) {
       key <- col$key
       val <- ""
       if (key %in% c("item", "group")) {
-        val <- resolve_as_cell_text(row[[key]][1])
+        if (key == "item") {
+          val <- resolve_as_cell_text(row$item_display[1])
+        } else {
+          val <- resolve_as_cell_text(row$group_display[1])
+        }
       } else if (key %in% c("n", "missing_n")) {
         val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
       } else if (key %in% c("missing_pct")) {
@@ -789,11 +796,12 @@ build_scale_narrative_rows <- function(reliability_df, digits) {
   display <- resolve_round_numeric(reliability_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
   rows <- list()
 
   for (i in seq_len(nrow(display))) {
     row <- display[i, , drop = FALSE]
-    group_label <- if (row$group == "") "Scale" else paste("Group", row$group)
+    group_label <- if (row$group == "") "Scale" else paste("Group", row$group_display)
 
     missing_pct <- ifelse(is.na(row$missing_pct), "NA", format_num_text(row$missing_pct, 1))
     missing_text <- paste0(
@@ -836,7 +844,7 @@ build_scale_narrative_rows <- function(reliability_df, digits) {
     }
 
     rows[[length(rows) + 1]] <- list(
-      group = resolve_as_cell_text(row$group),
+      group = resolve_as_cell_text(row$group_display),
       group_label = group_label,
       n_items = ifelse(is.na(row$n_items), "NA", as.character(row$n_items)),
       n_total = ifelse(is.na(row$n_total), "NA", as.character(row$n_total)),
@@ -1001,6 +1009,10 @@ main <- function() {
 
   item_df <- do.call(rbind, item_list)
   reliability_df <- do.call(rbind, reliability_list)
+  label_meta <- resolve_label_metadata(df)
+  item_df <- add_variable_label_column(item_df, label_meta, var_col = "item")
+  item_df <- add_group_label_column(item_df, label_meta, group_var, group_col = "group")
+  reliability_df <- add_group_label_column(reliability_df, label_meta, group_var, group_col = "group")
 
   template_override <- resolve_template_override(opts$template, module = "scale")
   template_path <- if (!is.null(template_override)) {

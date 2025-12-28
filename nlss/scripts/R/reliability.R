@@ -779,6 +779,9 @@ build_reliability_table_body <- function(summary_df, digits, conf_level, table_s
   display <- summary_df
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$var1_display <- if ("var1_label" %in% names(display)) display$var1_label else display$var1
+  display$var2_display <- if ("var2_label" %in% names(display)) display$var2_label else display$var2
 
   ci_label <- paste0(round(conf_level * 100), "% CI")
   default_columns <- list(
@@ -816,7 +819,7 @@ build_reliability_table_body <- function(summary_df, digits, conf_level, table_s
       if (key == "analysis") {
         val <- resolve_as_cell_text(row$analysis_label)
       } else if (key == "group") {
-        val <- resolve_as_cell_text(row$group)
+        val <- resolve_as_cell_text(row$group_display)
       } else if (key == "method_label") {
         val <- resolve_as_cell_text(row$method_label)
       } else if (key == "estimate") {
@@ -838,7 +841,13 @@ build_reliability_table_body <- function(summary_df, digits, conf_level, table_s
         if (is.numeric(cell)) {
           val <- format_num(cell, digits)
         } else {
-          val <- resolve_as_cell_text(cell)
+          if (key == "var1") {
+            val <- resolve_as_cell_text(row$var1_display[1])
+          } else if (key == "var2") {
+            val <- resolve_as_cell_text(row$var2_display[1])
+          } else {
+            val <- resolve_as_cell_text(cell)
+          }
         }
       }
       row_vals <- c(row_vals, val)
@@ -902,11 +911,14 @@ build_reliability_narrative_rows <- function(summary_df, digits, conf_level) {
   display <- summary_df
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  display$var1_display <- if ("var1_label" %in% names(display)) display$var1_label else display$var1
+  display$var2_display <- if ("var2_label" %in% names(display)) display$var2_label else display$var2
   rows <- list()
 
   for (i in seq_len(nrow(display))) {
     row <- display[i, , drop = FALSE]
-    group_label <- if (row$group == "") "Overall" else paste("Group", row$group)
+    group_label <- if (row$group == "") "Overall" else paste("Group", row$group_display)
 
     missing_pct <- ifelse(is.na(row$missing_pct), "NA", format_num_text(row$missing_pct, 1))
     missing_text <- paste0(
@@ -986,7 +998,7 @@ build_reliability_narrative_rows <- function(summary_df, digits, conf_level) {
     rows[[length(rows) + 1]] <- list(
       analysis = resolve_as_cell_text(row$analysis),
       analysis_label = resolve_as_cell_text(row$analysis_label),
-      group = resolve_as_cell_text(row$group),
+      group = resolve_as_cell_text(row$group_display),
       group_label = group_label,
       method_label = resolve_as_cell_text(row$method_label),
       icc_label = resolve_as_cell_text(row$icc_label),
@@ -996,8 +1008,8 @@ build_reliability_narrative_rows <- function(summary_df, digits, conf_level) {
       p = format_p_text(row$p_value),
       n = ifelse(is.na(row$n), "NA", as.character(row$n)),
       n_raters = ifelse(is.na(row$n_raters), "NA", as.character(row$n_raters)),
-      var1 = resolve_as_cell_text(row$var1),
-      var2 = resolve_as_cell_text(row$var2),
+      var1 = resolve_as_cell_text(row$var1_display),
+      var2 = resolve_as_cell_text(row$var2_display),
       missing_n = ifelse(is.na(row$missing_n), "NA", as.character(row$missing_n)),
       missing_pct = missing_pct,
       missing_text = missing_text,
@@ -1278,6 +1290,10 @@ main <- function() {
   }
 
   summary_df <- do.call(rbind, summary_rows)
+  label_meta <- resolve_label_metadata(df)
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "var1")
+  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "var2")
+  summary_df <- add_group_label_column(summary_df, label_meta, group_var, group_col = "group")
 
   template_override <- resolve_template_override(opts$template, module = "reliability")
   template_path <- if (!is.null(template_override)) {

@@ -1,13 +1,13 @@
 ---
 name: anova
-description: Between-subjects, within-subjects, and mixed ANOVA with APA-ready tables, post-hoc comparisons, and assumptions logging.
+description: Between/within/mixed ANOVA and ANCOVA with effect sizes, post-hoc tests, planned contrasts (emmeans/custom), sphericity checks, optional bootstrap CIs, and APA outputs.
 ---
 
 # ANOVA (Base R, APA 7)
 
 ## Overview
 
-Run between-subjects, within-subjects (repeated measures), or mixed ANOVA in base R and produce APA 7-ready tables and narratives. Optional covariates (ANCOVA) and post-hoc comparisons are supported. Outputs include sums of squares, df, F, p, and effect sizes.
+Run between-subjects, within-subjects (repeated measures), or mixed ANOVA in base R and produce APA 7-ready tables and narratives. Optional covariates (ANCOVA), post-hoc comparisons, and planned contrasts (custom JSON or built-in `emmeans` methods) are supported. Outputs include sums of squares, df, F, p, and effect sizes.
 
 Post-hoc behavior: Tukey HSD is used for between-subjects factors; paired t-tests are used for within-subjects comparisons (and for mixed designs, within comparisons are computed separately per between-group combination).
 
@@ -19,8 +19,9 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose a design (between/within/mixed) and specify variables.
-3. Run `scripts/R/anova.R` with the correct flags, or use the PowerShell wrapper on Windows.
-4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting and diagnostics.
+3. Optionally request planned contrasts (`--emmeans`, `--contrasts`, `--contrast-file`).
+4. Run `scripts/R/anova.R` with the correct flags, or use the PowerShell wrapper on Windows.
+5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting and diagnostics.
 
 ## Script: `scripts/R/anova.R`
 
@@ -56,6 +57,18 @@ Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --within pre,mid,po
 Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --within pre,mid,post --between group --subject-id id
 ```
 
+### Planned contrasts (custom JSON)
+
+```bash
+Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --dv outcome --between group3 --emmeans group3 --contrasts custom --contrast-file contrasts.json
+```
+
+### Planned contrasts (built-in method)
+
+```bash
+Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --dv outcome --between group3 --emmeans group3 --contrasts trt.vs.ctrl
+```
+
 ### Parquet input
 
 ```bash
@@ -78,8 +91,11 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--subject-id` is required when `--within` is present.
 - `--covariates` is optional (numeric).
 - `--type` uses `modules.anova.type` (`I`, `II`, `III`); Type II/III requires `car` and apply to between-subjects models only.
-- `--effect-size` uses `modules.anova.effect_size` (`eta_sq`, `partial_eta`).
+- `--effect-size` uses `modules.anova.effect_size` (`eta_sq`, `partial_eta`, `omega_sq`, `partial_omega`).
 - `--posthoc` uses `modules.anova.posthoc` (`none`, `tukey`, `pairwise`).
+- `--emmeans` uses `modules.anova.emmeans` (`none` or a factor term such as `group3` or `time*group3`).
+- `--contrasts` uses `modules.anova.contrasts` (`none`, `pairwise`, `custom`, or any `emmeans` method string) and requires `--emmeans` unless the contrast JSON specifies `term`.
+- `--contrast-file` provides a JSON contrast spec (custom weights or a method plus optional arguments).
 - `--p-adjust` uses `modules.anova.p_adjust` (e.g., `holm`, `bonferroni`).
 - `--conf-level` uses `modules.anova.conf_level`.
 - `--sphericity` uses `modules.anova.sphericity` (`auto`, `none`).
@@ -97,6 +113,33 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - Covariates are coerced to numeric where possible.
 - Within-subjects designs must use wide format with one column per repeated measure.
 - Missing values are removed listwise across all required columns per analysis.
+- Planned contrasts require `emmeans`. Custom weights follow the `emmeans` row order or use named weights keyed to level labels (for interactions, labels use `factor=level, factor2=level2`).
+
+### Contrast JSON format
+
+Custom contrasts can be specified as named weight vectors. Weights may be ordered numeric arrays (matching the `emmeans` row order) or named weights keyed by level labels.
+
+Example (custom weights):
+
+```json
+{
+  "term": "group3",
+  "contrasts": {
+    "A_vs_B": {"A": 1, "B": -1, "C": 0},
+    "A_vs_C": [1, 0, -1]
+  }
+}
+```
+
+Example (built-in method with args):
+
+```json
+{
+  "term": "group3",
+  "method": "trt.vs.ctrl",
+  "args": {"ref": "A"}
+}
+```
 
 ## Outputs
 
@@ -104,7 +147,7 @@ Subskills append to `report_canonical.md` and do not create separate report file
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 - `report_canonical.md`: APA 7 report containing the ANOVA table and narrative.
-- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `summary_df`, `posthoc_df`, and `assumptions_df`.
+- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `summary_df`, `posthoc_df`, `contrasts_df`, and `assumptions_df`.
 - When `--bootstrap TRUE`, `summary_df` includes `boot_ci_low` and `boot_ci_high` for the selected effect size.
 - Assumption diagnostics (Shapiro-Wilk residual normality, homogeneity tests, and Mauchly for sphericity when applicable) are recorded in `analysis_log.jsonl`.
 
@@ -114,6 +157,7 @@ Templates are stored under `nlss/assets/anova/` and mapped in `nlss/scripts/conf
 
 - `templates.anova.default`: `anova/default-template.md`
 - `templates.anova.posthoc`: `anova/posthoc-template.md`
+- `templates.anova.contrasts`: `anova/contrasts-template.md`
 
 Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
 
@@ -125,11 +169,15 @@ Templates use YAML front matter with `{{token}}` placeholders. Supported section
 
 Available column keys include:
 
-`model`, `term`, `df1`, `df2`, `ss`, `ms`, `f`, `p`, `eta_sq`, `partial_eta_sq`, `boot_ci_low`, `boot_ci_high`, `df1_gg`, `df2_gg`, `p_gg`, `df1_hf`, `df2_hf`, `p_hf`.
+`model`, `term`, `df1`, `df2`, `ss`, `ms`, `f`, `p`, `eta_sq`, `partial_eta_sq`, `omega_sq`, `partial_omega_sq`, `boot_ci_low`, `boot_ci_high`, `df1_gg`, `df2_gg`, `p_gg`, `df1_hf`, `df2_hf`, `p_hf`.
 
 ### Table column keys (post-hoc)
 
 `term`, `group`, `group_1`, `group_2`, `contrast`, `mean_diff`, `se`, `t`, `df`, `p`, `p_adj`, `ci_low`, `ci_high`, `method`.
+
+### Table column keys (planned contrasts)
+
+`term`, `contrast`, `estimate`, `se`, `df`, `t`, `p`, `p_adj`, `ci_low`, `ci_high`, `method`.
 
 ### Note tokens
 
@@ -147,6 +195,10 @@ Post-hoc narrative row tokens include:
 
 `full_sentence`, `term`, `group`, `group_1`, `group_2`, `mean_diff`, `t`, `df`, `p`, `p_adj`, `ci`.
 
+Contrast narrative row tokens include:
+
+`full_sentence`, `term`, `contrast`, `estimate`, `se`, `df`, `t`, `p`, `p_adj`, `ci`.
+
 ## APA 7 Reporting Guidance
 
 - Report F, df, p, and effect sizes for each omnibus effect (include bootstrap CIs when enabled).
@@ -157,3 +209,4 @@ Post-hoc narrative row tokens include:
 
 - Parquet input requires the R package `arrow`.
 - Type II/III sums of squares require the R package `car` (optional).
+- Planned contrasts require the R package `emmeans`.

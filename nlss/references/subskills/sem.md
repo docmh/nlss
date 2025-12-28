@@ -1,6 +1,6 @@
 ---
 name: sem-lavaan
-description: Structural equation modeling (SEM), CFA, path analysis, mediation, and measurement invariance using lavaan with APA-ready tables and narratives.
+description: SEM/CFA/path/mediation/invariance via lavaan with model builders, multi-group support, robust or bootstrapped SEs/CIs, fit indices, standardized estimates, and APA outputs.
 ---
 
 # SEM (lavaan, APA 7)

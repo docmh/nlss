@@ -1,6 +1,6 @@
 ---
 name: power
-description: Power analysis for t-tests, ANOVA, correlations, regression, and SEM using pwr/semPower with APA-ready tables, narratives, and JSONL logs.
+description: A priori/post hoc/sensitivity power for t-tests, ANOVA, correlations, regression, and SEM (RMSEA), with optional effect-size estimation from data and APA outputs.
 ---
 
 # Power Analysis (pwr + semPower, APA 7)
