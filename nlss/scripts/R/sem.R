@@ -1034,10 +1034,6 @@ main <- function() {
   x <- if (!is.null(opts$x)) as.character(opts$x) else ""
   mediators <- resolve_parse_list(opts$m)
   mediators <- mediators[nzchar(mediators)]
-  if (length(mediators) == 0 && !is.null(opts$mediators)) {
-    mediators <- resolve_parse_list(opts$mediators)
-    mediators <- mediators[nzchar(mediators)]
-  }
   y <- if (!is.null(opts$y)) as.character(opts$y) else ""
   serial <- resolve_parse_bool(opts$serial, default = FALSE)
 

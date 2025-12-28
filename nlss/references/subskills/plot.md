@@ -65,6 +65,7 @@ Rscript <path to scripts/R/plot.R> --interactive
 - `--na-action` controls missing handling (`omit` or `keep`, default: `modules.plot.na_action`).
 - `--alpha` and `--position` control transparency and bar positioning (defaults: `modules.plot.alpha`, `modules.plot.position`).
 - `--theme` and `--palette` control styling (defaults: `modules.plot.theme`, `modules.plot.palette`).
+- `--title`, `--subtitle`, `--caption`, `--note` override figure text (optional).
 - `--format` / `--width` / `--height` / `--dpi` control image output (defaults: `modules.plot.format`, `modules.plot.width`, `modules.plot.height`, `modules.plot.dpi`).
 - `--file-prefix` / `--file-suffix` customize filenames (default prefix: `modules.plot.file_prefix`).
 - `--figure-number` overrides the starting figure number (otherwise computed from `report_canonical.md`).

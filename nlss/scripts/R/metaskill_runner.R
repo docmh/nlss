@@ -387,7 +387,7 @@ get_dataset_label <- function(df, opts) {
 args <- commandArgs(trailingOnly = TRUE)
 opts <- resolve_parse_args(args)
 
-if (!is.null(opts$help) || !is.null(opts$h)) {
+if (!is.null(opts$help)) {
   print_usage()
   quit(save = "no", status = 0)
 }

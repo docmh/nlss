@@ -79,7 +79,7 @@ Rscript <path to scripts/R/scale.R> --interactive
 
 - Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
-- `--vars` defaults to `modules.scale.vars_default` (typically numeric columns) if omitted.
+- `--vars` defaults to `modules.scale.vars_default` (typically numeric columns) if omitted; use `--vars` for item selection.
 - `--group` is optional and produces grouped scale analyses.
 - `--reverse` lists items to reverse-score. Use `--reverse-min`/`--reverse-max` (defaults from `modules.scale.reverse_min` / `modules.scale.reverse_max`, otherwise observed min/max).
 - `--missing` selects `pairwise` or `complete` (default: `modules.scale.missing`).

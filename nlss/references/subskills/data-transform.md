@@ -104,6 +104,7 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 - `--calc` defines new variables as `newvar=expression`, separated by `|`.
 - `--transform` uses `var=log|var2=sqrt|var3=scale` (supported: `log`, `log10`, `sqrt`, `exp`, `abs`, `center`, `scale`).
 - `--standardize` z-standardizes numeric variables into new variables (default suffix: `modules.data_transform.standardize_suffix`).
+- `--standardize-suffix` sets the z-score suffix (default: `modules.data_transform.standardize_suffix`).
 - `--percentile-bins` creates percentile bins (e.g., `var=4` for quartiles). Output bins are numeric 1..k.
 - `--bins` creates custom bins from numeric breakpoints (values outside the range become `NA`).
 - `--recode` maps values using `var=old:new,old2:new2` (use quotes for strings).

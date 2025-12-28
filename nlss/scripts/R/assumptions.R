@@ -2760,8 +2760,7 @@ main <- function() {
   normality <- if (!is.null(opts$normality)) tolower(opts$normality) else normality_default
   homogeneity_tests <- parse_homogeneity_tests(opts$homogeneity, homogeneity_default)
   linearity <- resolve_parse_bool(opts$linearity, default = linearity_default)
-  homoscedasticity <- resolve_parse_bool(if (!is.null(opts$homoscedasticity)) opts$homoscedasticity else opts$bp,
-                                         default = homoscedasticity_default)
+  homoscedasticity <- resolve_parse_bool(opts$homoscedasticity, default = homoscedasticity_default)
   vif <- resolve_parse_bool(opts$vif, default = vif_default)
   durbin_watson <- resolve_parse_bool(opts$`durbin-watson`, default = dw_default)
   outliers <- resolve_parse_bool(opts$outliers, default = outliers_default)

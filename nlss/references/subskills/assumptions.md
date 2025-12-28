@@ -107,7 +107,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
   - `--reml` uses `modules.mixed_models.reml`.
   - `--optimizer` uses `modules.mixed_models.optimizer`.
   - `--maxfun` uses `modules.mixed_models.maxfun`.
-  - Mixed-model assumption toggles use `modules.assumptions.mixed_models.*` (`random_effects`, `singular`, `convergence`, `dharma`, `performance`).
+  - Mixed-model assumption toggles: `--random-effects`, `--singular`, `--convergence`, `--dharma`, `--performance` (defaults from `modules.assumptions.mixed_models.*`).
 - SEM inputs: `--model`, `--model-file`, `--paths`, `--factors`, or builders (`--dv`/`--ivs`, `--x`/`--m`/`--y`).
   - `--estimator` uses `modules.sem.estimator`.
   - `--missing` uses `modules.sem.missing`.
@@ -115,7 +115,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
   - `--ci` uses `modules.sem.ci`.
   - `--bootstrap`/`--bootstrap-samples` use `modules.sem.bootstrap`/`modules.sem.bootstrap_samples`.
   - `--std` uses `modules.sem.std`.
-  - SEM assumption toggles use `modules.assumptions.sem.*` (`mardia`, `mahalanobis`, `mahalanobis_alpha`, `collinearity`, `max_cor`, `max_kappa`, `heywood`, `convergence`).
+  - SEM assumption toggles: `--mardia`, `--mahalanobis`, `--mahalanobis-alpha`, `--collinearity`, `--max-cor`, `--max-kappa`, `--heywood`, `--convergence` (defaults from `modules.assumptions.sem.*`).
 - `--digits` uses `defaults.digits`.
 - `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` uses `defaults.log`.

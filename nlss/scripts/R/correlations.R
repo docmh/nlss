@@ -1339,13 +1339,10 @@ main <- function() {
   }
   compare_groups <- resolve_parse_bool(opts$`compare-groups`, default = compare_groups_default)
   r0_input <- NULL
-  if (isTRUE(opts$r0) || isTRUE(opts$rho0)) {
+  if (isTRUE(opts$r0)) {
     stop("r0 requires a numeric value.")
   }
   if (!is.null(opts$r0) && !is.logical(opts$r0) && opts$r0 != "") r0_input <- opts$r0
-  if (is.null(r0_input) && !is.null(opts$rho0) && !is.logical(opts$rho0) && opts$rho0 != "") {
-    r0_input <- opts$rho0
-  }
   r0_value <- NULL
   if (!is.null(r0_input) && nzchar(r0_input)) {
     r0_value <- as.numeric(r0_input)
