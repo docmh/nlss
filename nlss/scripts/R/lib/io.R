@@ -535,6 +535,65 @@ compute_log_entry_checksum <- function(json_text) {
   unname(digest[[1]])
 }
 
+decode_log_line_text <- function(raw_vec) {
+  if (length(raw_vec) == 0) return("")
+  text <- rawToChar(raw_vec)
+  decoded <- suppressWarnings(iconv(text, from = "UTF-8", to = "UTF-8", sub = NA))
+  if (is.na(decoded)) {
+    decoded <- suppressWarnings(iconv(text, from = "latin1", to = "UTF-8"))
+  }
+  if (is.na(decoded)) text else decoded
+}
+
+is_blank_log_line <- function(raw_vec) {
+  text <- decode_log_line_text(raw_vec)
+  !nzchar(trimws(text))
+}
+
+compute_log_line_checksum_raw <- function(raw_vec) {
+  if (length(raw_vec) == 0) return("")
+  temp_path <- tempfile(pattern = "nlss-line-", fileext = ".bin")
+  on.exit(unlink(temp_path), add = TRUE)
+  writeBin(raw_vec, temp_path)
+  digest <- tools::md5sum(temp_path)
+  unname(digest[[1]])
+}
+
+read_last_log_line_raw <- function(path) {
+  if (is.null(path) || !nzchar(path) || !file.exists(path)) return(NULL)
+  info <- file.info(path)
+  if (is.na(info$size) || info$size <= 0) return(NULL)
+  raw_data <- readBin(path, "raw", n = info$size)
+  pos <- 1L
+  total_len <- length(raw_data)
+  last_line_raw <- NULL
+  last_line_ending <- NULL
+  while (pos <= total_len) {
+    rel_newline <- which(raw_data[pos:total_len] == as.raw(0x0A))
+    if (length(rel_newline) == 0) {
+      line_raw <- raw_data[pos:total_len]
+      line_ending <- raw(0)
+      pos <- total_len + 1L
+    } else {
+      newline_pos <- pos + rel_newline[1] - 1L
+      if (newline_pos > pos && raw_data[newline_pos - 1L] == as.raw(0x0D)) {
+        line_raw <- if (newline_pos - 2L >= pos) raw_data[pos:(newline_pos - 2L)] else raw(0)
+        line_ending <- raw_data[(newline_pos - 1L):newline_pos]
+      } else {
+        line_raw <- if (newline_pos - 1L >= pos) raw_data[pos:(newline_pos - 1L)] else raw(0)
+        line_ending <- raw_data[newline_pos]
+      }
+      pos <- newline_pos + 1L
+    }
+    if (!is_blank_log_line(line_raw)) {
+      last_line_raw <- line_raw
+      last_line_ending <- line_ending
+    }
+  }
+  if (is.null(last_line_raw)) return(NULL)
+  list(line_raw = last_line_raw, line_ending = last_line_ending)
+}
+
 get_nlss_checksum <- function() {
   if (exists("nlss_checksum", envir = nlss_log_cache, inherits = FALSE)) {
     return(nlss_log_cache$nlss_checksum)
@@ -635,6 +694,16 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
   )
 
   if (!is.null(checksum) && !is.null(checksum$value) && nzchar(checksum$value)) {
+    entry$checksum_version <- 2
+    log_path <- file.path(out_dir, "analysis_log.jsonl")
+    prev_line_checksum <- NULL
+    if (file.exists(log_path)) {
+      prev_line <- read_last_log_line_raw(log_path)
+      if (!is.null(prev_line)) {
+        prev_raw <- c(prev_line$line_raw, prev_line$line_ending)
+        prev_line_checksum <- compute_log_line_checksum_raw(prev_raw)
+      }
+    }
     entry_json <- jsonlite::toJSON(
       entry,
       auto_unbox = TRUE,
@@ -645,6 +714,9 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     )
     entry_checksum <- compute_log_entry_checksum(entry_json)
     combined <- xor_hex(checksum$value, entry_checksum)
+    if (!is.null(prev_line_checksum) && nzchar(prev_line_checksum)) {
+      combined <- xor_hex(combined, prev_line_checksum)
+    }
     if (nzchar(combined)) entry$checksum <- combined
   }
 

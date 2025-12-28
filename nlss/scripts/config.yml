@@ -65,6 +65,17 @@ modules:
     coerce: false
     reverse_min: null
     reverse_max: null
+  efa:
+    vars_default: "numeric"
+    method: "pca"
+    rotation: "varimax"
+    n_factors: "eigen"
+    eigen_threshold: 1
+    cor: "pearson"
+    missing: "complete"
+    loading_cutoff: 0.3
+    sort_loadings: true
+    coerce: false
   reliability:
     analysis: "icc"
     format: "wide"
@@ -264,6 +275,8 @@ templates:
     grouped: "crosstabs/grouped-template.md"
   scale:
     default: "scale/default-template.md"
+  efa:
+    default: "efa/default-template.md"
   reliability:
     default: "reliability/default-template.md"
   t_test:
@@ -277,10 +290,12 @@ templates:
     contrasts: "anova/contrasts-template.md"
   regression:
     default: "regression/default-template.md"
+    model_tests: "regression/model-tests-template.md"
   power:
     default: "power/default-template.md"
   mixed_models:
     default: "mixed-models/default-template.md"
+    tests: "mixed-models/tests-of-fixed-effects-template.md"
     emmeans: "mixed-models/emmeans-template.md"
   sem:
     default: "sem/default-template.md"

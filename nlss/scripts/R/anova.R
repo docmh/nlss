@@ -1293,26 +1293,18 @@ build_anova_table_body <- function(summary_df, digits, table_meta, effect_size) 
   display <- summary_df
   display$term_display <- if ("term_label" %in% names(display)) display$term_label else display$term
   default_specs <- list(
-    list(key = "model", label = "Model", drop_if_empty = TRUE),
-    list(key = "term", label = "Effect"),
-    list(key = "df1", label = "df1"),
-    list(key = "df2", label = "df2"),
-    list(key = "f", label = "F"),
-    list(key = "p", label = "p"),
-    list(key = "partial_eta_sq", label = "eta_p2", drop_if_empty = TRUE),
-    list(key = "eta_sq", label = "eta_sq", drop_if_empty = TRUE),
-    list(key = "partial_omega_sq", label = "omega_p2", drop_if_empty = TRUE),
-    list(key = "omega_sq", label = "omega_sq", drop_if_empty = TRUE),
-    list(key = "boot_ci_low", label = "Boot CI low", drop_if_empty = TRUE),
-    list(key = "boot_ci_high", label = "Boot CI high", drop_if_empty = TRUE),
+    list(key = "term", label = "Source"),
+    list(key = "df", label = "df"),
     list(key = "ss", label = "SS", drop_if_empty = TRUE),
     list(key = "ms", label = "MS", drop_if_empty = TRUE),
-    list(key = "df1_gg", label = "df1_GG", drop_if_empty = TRUE),
-    list(key = "df2_gg", label = "df2_GG", drop_if_empty = TRUE),
-    list(key = "p_gg", label = "p_GG", drop_if_empty = TRUE),
-    list(key = "df1_hf", label = "df1_HF", drop_if_empty = TRUE),
-    list(key = "df2_hf", label = "df2_HF", drop_if_empty = TRUE),
-    list(key = "p_hf", label = "p_HF", drop_if_empty = TRUE)
+    list(key = "f", label = "F", drop_if_empty = TRUE),
+    list(key = "p", label = "Sig.", drop_if_empty = TRUE),
+    list(key = "partial_eta_sq", label = "Partial eta^2", drop_if_empty = TRUE),
+    list(key = "eta_sq", label = "eta^2", drop_if_empty = TRUE),
+    list(key = "partial_omega_sq", label = "Partial omega^2", drop_if_empty = TRUE),
+    list(key = "omega_sq", label = "omega^2", drop_if_empty = TRUE),
+    list(key = "boot_ci_low", label = "Boot CI low", drop_if_empty = TRUE),
+    list(key = "boot_ci_high", label = "Boot CI high", drop_if_empty = TRUE)
   )
   columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
@@ -1325,6 +1317,7 @@ build_anova_table_body <- function(summary_df, digits, table_meta, effect_size) 
     row_map <- list(
       model = row$model,
       term = row$term_display,
+      df = format_num(row$df1, digits),
       df1 = format_num(row$df1, digits),
       df2 = format_num(row$df2, digits),
       f = format_stat(row$f, digits),
@@ -1473,6 +1466,28 @@ build_anova_narrative_rows <- function(summary_df, digits, effect_size, effect_s
     )
   }
   rows
+}
+
+build_anova_table_groups <- function(summary_df) {
+  if (is.null(summary_df) || nrow(summary_df) == 0) return(list())
+  labels <- unique(as.character(summary_df$model))
+  labels <- labels[!is.na(labels)]
+  preferred <- c("Between", "Within")
+  ordered <- c(preferred[preferred %in% labels], labels[!labels %in% preferred])
+  groups <- list()
+  for (label in ordered) {
+    group_df <- summary_df[summary_df$model == label, , drop = FALSE]
+    if (nrow(group_df) == 0) next
+    groups[[length(groups) + 1]] <- list(label = label, data = group_df)
+  }
+  groups
+}
+
+format_anova_section_label <- function(label) {
+  if (is.null(label) || !nzchar(label)) return("ANOVA: Tests of Effects")
+  if (label == "Between") return("ANOVA: Tests of Between-Subjects Effects")
+  if (label == "Within") return("ANOVA: Tests of Within-Subjects Effects")
+  paste0("ANOVA: Tests of Effects (", label, ")")
 }
 
 build_posthoc_narrative_rows <- function(posthoc_df, digits) {
@@ -1866,8 +1881,6 @@ main <- function() {
   )
 
   apa_report_path <- file.path(out_dir, "report_canonical.md")
-  apa_text <- format_apa_text(summary_df, digits, effect_size, effect_size_label)
-  apa_table <- format_apa_table(summary_df, digits, note_tokens$note_default, effect_size, effect_size_label)
   template_override <- resolve_template_override(opts$template, module = "anova")
   template_path <- if (!is.null(template_override)) {
     template_override
@@ -1875,18 +1888,6 @@ main <- function() {
     resolve_get_template_path("anova.default", "anova/default-template.md")
   }
   template_meta <- resolve_get_template_meta(template_path)
-  table_result <- build_anova_table_body(summary_df, digits, template_meta$table, effect_size)
-  narrative_rows <- build_anova_narrative_rows(summary_df, digits, effect_size, effect_size_label)
-  template_context <- list(
-    tokens = c(
-      list(
-        table_body = table_result$body,
-        narrative_default = apa_text
-      ),
-      note_tokens
-    ),
-    narrative_rows = narrative_rows
-  )
 
   analysis_flags <- list(
     mode = mode,
@@ -1909,15 +1910,37 @@ main <- function() {
     digits = digits
   )
 
-  resolve_append_apa_report(
-    apa_report_path,
-    "ANOVA",
-    apa_table,
-    apa_text,
-    analysis_flags = analysis_flags,
-    template_path = template_path,
-    template_context = template_context
-  )
+  table_groups <- build_anova_table_groups(summary_df)
+  if (length(table_groups) == 0) {
+    table_groups <- list(list(label = "", data = summary_df))
+  }
+  for (group in table_groups) {
+    group_df <- group$data
+    analysis_label <- format_anova_section_label(group$label)
+    apa_text <- format_apa_text(group_df, digits, effect_size, effect_size_label)
+    apa_table <- format_apa_table(group_df, digits, note_tokens$note_default, effect_size, effect_size_label)
+    table_result <- build_anova_table_body(group_df, digits, template_meta$table, effect_size)
+    narrative_rows <- build_anova_narrative_rows(group_df, digits, effect_size, effect_size_label)
+    template_context <- list(
+      tokens = c(
+        list(
+          table_body = table_result$body,
+          narrative_default = apa_text
+        ),
+        note_tokens
+      ),
+      narrative_rows = narrative_rows
+    )
+    resolve_append_apa_report(
+      apa_report_path,
+      analysis_label,
+      apa_table,
+      apa_text,
+      analysis_flags = analysis_flags,
+      template_path = template_path,
+      template_context = template_context
+    )
+  }
 
   if (nrow(posthoc_df) > 0) {
     posthoc_note_tokens <- build_posthoc_note_tokens(posthoc_used, p_adjust)

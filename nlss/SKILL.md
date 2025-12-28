@@ -1,13 +1,13 @@
 ---
 name: nlss
-description: Workspace-first R statistics suite with subskills and agent-run metaskills that produce APA 7 tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
+description: Workspace-first R statistics suite with subskills and agent-run metaskills that produce APA 7 tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
 license: Apache-2.0
 compatibility: R 4.5.2, Windows, WSL (Ubuntu), Linux, one of Codex IDE with GPT-5.2-Codex Medium/High or Claude Code IDE with Claude Sonnet 4.5/Opus 4.5
 metadata:
   author: Prof. Dr. Mike Hammes, ISM International School of Management, Germany (mike.hammes@ism.de)
   version: 1.0.0
   created: 2025-12-20
-  updated: 2025-12-27
+  updated: 2025-12-28
   backend: R
   style: APA 7
 ---
@@ -151,7 +151,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - Subskills do not create separate report files; they only extend `report_canonical.md`. Standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 - The agent logs a meta entry in `analysis_log.jsonl` and each subskill run logs its own entry as usual.
 - Metaskill finalization appends a `# Synopsis` section to `report_canonical.md` and creates `report_<YYYYMMDD>_<metaskill>_<intent>.md` inside the dataset workspace.
-- When `defaults.log_nlss_checksum` is true, log entries include a `checksum` field that XOR-combines the `nlss/` folder checksum with a checksum of the log entry content (excluding the checksum field), so it can be reverted for tamper checks.
+- When `defaults.log_nlss_checksum` is true, log entries include a `checksum` field that XOR-combines the `nlss/` folder checksum with the entry checksum (content excluding the checksum field); for line index > 0 it also XORs a checksum of the previous complete log line to create a chain (`checksum_version = 2`).
 - Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`.
 - For `report_canonical.md`, templates in `nlss/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
@@ -179,6 +179,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - [crosstabs](references/subskills/crosstabs.md): Contingency tables with chi-square/Fisher, effect sizes, residuals, percent types, and grouping.
 - [correlations](references/subskills/correlations.md): Pearson/Spearman/Kendall matrices or cross-sets with partial controls, bootstrap CIs, r-to-z, p-adjust, grouping.
 - [scale](references/subskills/scale.md): Item analysis with alpha/omega, item-total stats, reverse scoring, scale scores, grouping.
+- [efa](references/subskills/efa.md): Exploratory factor analysis with PCA/EFA extraction, rotation, eigenvalue retention, KMO/Bartlett, and APA outputs.
 - [reliability](references/subskills/reliability.md): ICC/kappa/test-retest reliability in wide/long formats with CIs and grouping.
 - [data-explorer](references/subskills/data-explorer.md): Data dictionary with type/level inference, missingness, numeric summaries, and top-N value tables.
 - [plot](references/subskills/plot.md): APA figures (hist/bar/box/violin/scatter/line/QQ/heatmap) with numbering and saved files.
@@ -231,3 +232,4 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 ## Utilities
 
 - [calc](references/utilities/calc.md): Safe numeric expression calculator for quick parameter derivations (plain/json/csv output).
+- [check-integrity](references/utilities/check-integrity.md): Recover XOR-based NLSS checksums from analysis_log.jsonl entries to spot inconsistencies.

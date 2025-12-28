@@ -107,6 +107,18 @@ get_builtin_config <- function() {
         reverse_min = NULL,
         reverse_max = NULL
       ),
+      efa = list(
+        vars_default = "numeric",
+        method = "pca",
+        rotation = "varimax",
+        n_factors = "eigen",
+        eigen_threshold = 1,
+        cor = "pearson",
+        missing = "complete",
+        loading_cutoff = 0.3,
+        sort_loadings = TRUE,
+        coerce = FALSE
+      ),
       reliability = list(
         analysis = "icc",
         format = "wide",
@@ -332,6 +344,9 @@ get_builtin_config <- function() {
       scale = list(
         default = "scale/default-template.md"
       ),
+      efa = list(
+        default = "efa/default-template.md"
+      ),
       reliability = list(
         default = "reliability/default-template.md"
       ),
@@ -348,13 +363,15 @@ get_builtin_config <- function() {
         contrasts = "anova/contrasts-template.md"
       ),
       regression = list(
-        default = "regression/default-template.md"
+        default = "regression/default-template.md",
+        model_tests = "regression/model-tests-template.md"
       ),
       power = list(
         default = "power/default-template.md"
       ),
       mixed_models = list(
         default = "mixed-models/default-template.md",
+        tests = "mixed-models/tests-of-fixed-effects-template.md",
         emmeans = "mixed-models/emmeans-template.md"
       ),
       sem = list(

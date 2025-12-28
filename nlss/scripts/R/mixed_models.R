@@ -684,19 +684,31 @@ resolve_icc_value <- function(res) {
 
 build_anova_df <- function(fit, type, df_method, has_lmerTest) {
   out <- NULL
+  used_type <- type
+  fallback_used <- FALSE
   if (type == "I") {
-    out <- tryCatch(anova(fit), error = function(e) NULL)
-  } else if (has_lmerTest) {
+    out <- tryCatch(stats::anova(fit), error = function(e) NULL)
+  } else if (has_lmerTest && df_method != "none") {
     type_val <- ifelse(type == "III", 3, 2)
     ddf_label <- if (df_method == "kenward-roger") "Kenward-Roger" else "Satterthwaite"
-    out <- tryCatch(lmerTest::anova(fit, type = type_val, ddf = ddf_label), error = function(e) NULL)
-  } else if (requireNamespace("car", quietly = TRUE)) {
+    out <- tryCatch(stats::anova(fit, type = type_val, ddf = ddf_label), error = function(e) NULL)
+  }
+  if (is.null(out) && requireNamespace("car", quietly = TRUE)) {
     out <- tryCatch(car::Anova(fit, type = type), error = function(e) NULL)
+  }
+  if (is.null(out)) {
+    out <- tryCatch(stats::anova(fit), error = function(e) NULL)
+    if (!is.null(out) && type != "I") {
+      fallback_used <- TRUE
+      used_type <- "I"
+    }
   }
   if (is.null(out)) return(data.frame())
   df <- as.data.frame(out)
   df$term <- rownames(df)
   rownames(df) <- NULL
+  attr(df, "type_used") <- used_type
+  attr(df, "fallback_used") <- fallback_used
   df
 }
 
@@ -790,6 +802,148 @@ build_fixed_effects_table_body <- function(fixed_df, digits, table_meta) {
   headers <- vapply(columns, function(col) col$label, character(1))
   body <- resolve_render_markdown_table(headers, rows)
   list(body = body, columns = columns)
+}
+
+resolve_anova_column <- function(df, keys) {
+  for (key in keys) {
+    if (key %in% names(df)) return(key)
+  }
+  NULL
+}
+
+resolve_anova_columns <- function(df) {
+  list(
+    num_df = resolve_anova_column(df, c("NumDF", "numDF")),
+    den_df = resolve_anova_column(df, c("DenDF", "denDF")),
+    df = resolve_anova_column(df, c("Df", "df")),
+    f = resolve_anova_column(df, c("F value", "F.value", "F", "F-value", "Fvalue")),
+    chisq = resolve_anova_column(df, c("Chisq", "ChiSq", "Chisq value", "Chi.sq", "chisq")),
+    p = resolve_anova_column(df, c("Pr(>F)", "Pr(>Chisq)", "Pr(>Chi)", "p.value", "p"))
+  )
+}
+
+build_mixed_anova_table_body <- function(anova_df, digits, table_meta) {
+  display <- anova_df
+  if (!"term" %in% names(display)) return(list(body = "", columns = list()))
+  display <- display[display$term != "(Intercept)", , drop = FALSE]
+  if (nrow(display) == 0) return(list(body = "", columns = list()))
+
+  cols <- resolve_anova_columns(display)
+  default_specs <- list(
+    list(key = "term", label = "Effect"),
+    list(key = "num_df", label = "Num df", drop_if_empty = TRUE),
+    list(key = "den_df", label = "Den df", drop_if_empty = TRUE),
+    list(key = "df", label = "df", drop_if_empty = TRUE),
+    list(key = "f", label = "F", drop_if_empty = TRUE),
+    list(key = "chisq", label = "Chi-square", drop_if_empty = TRUE),
+    list(key = "p", label = "Sig.", drop_if_empty = TRUE)
+  )
+  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  rows <- list()
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
+    num_df_val <- if (!is.null(cols$num_df)) row[[cols$num_df]] else NA_real_
+    den_df_val <- if (!is.null(cols$den_df)) row[[cols$den_df]] else NA_real_
+    df_val <- if (is.null(cols$num_df) && is.null(cols$den_df) && !is.null(cols$df)) row[[cols$df]] else NA_real_
+    row_map <- list(
+      term = row$term,
+      num_df = format_num(num_df_val, digits),
+      den_df = format_num(den_df_val, digits),
+      df = format_num(df_val, digits),
+      f = format_stat(if (!is.null(cols$f)) row[[cols$f]] else NA_real_, digits),
+      chisq = format_stat(if (!is.null(cols$chisq)) row[[cols$chisq]] else NA_real_, digits),
+      p = format_p(if (!is.null(cols$p)) row[[cols$p]] else NA_real_)
+    )
+    row_vals <- vapply(columns, function(col) {
+      resolve_as_cell_text(row_map[[col$key]])
+    }, character(1))
+    rows[[length(rows) + 1]] <- row_vals
+  }
+  drop_result <- resolve_drop_empty_columns(columns, rows)
+  columns <- drop_result$columns
+  rows <- drop_result$rows
+  headers <- vapply(columns, function(col) col$label, character(1))
+  body <- resolve_render_markdown_table(headers, rows)
+  list(body = body, columns = columns)
+}
+
+build_mixed_anova_narrative_rows <- function(anova_df, digits) {
+  display <- anova_df
+  if (!"term" %in% names(display)) return(list())
+  display <- display[display$term != "(Intercept)", , drop = FALSE]
+  if (nrow(display) == 0) return(list())
+
+  cols <- resolve_anova_columns(display)
+  rows <- list()
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
+    term <- row$term
+    num_df_val <- if (!is.null(cols$num_df)) row[[cols$num_df]] else NA_real_
+    den_df_val <- if (!is.null(cols$den_df)) row[[cols$den_df]] else NA_real_
+    df_val <- if (!is.null(cols$df)) row[[cols$df]] else NA_real_
+    f_val <- if (!is.null(cols$f)) row[[cols$f]] else NA_real_
+    chisq_val <- if (!is.null(cols$chisq)) row[[cols$chisq]] else NA_real_
+    p_val <- if (!is.null(cols$p)) row[[cols$p]] else NA_real_
+
+    sentence <- ""
+    if (!is.na(f_val)) {
+      if (!is.na(num_df_val) && !is.na(den_df_val)) {
+        sentence <- sprintf(
+          "%s: F(%s, %s) = %s, p %s.",
+          term,
+          format_num(num_df_val, digits),
+          format_num(den_df_val, digits),
+          format_stat(f_val, digits),
+          format_p(p_val)
+        )
+      } else {
+        sentence <- sprintf(
+          "%s: F = %s, p %s.",
+          term,
+          format_stat(f_val, digits),
+          format_p(p_val)
+        )
+      }
+    } else if (!is.na(chisq_val)) {
+      df_text <- if (!is.na(df_val)) paste0("(", format_num(df_val, digits), ")") else ""
+      sentence <- sprintf(
+        "%s: Chi-square%s = %s, p %s.",
+        term,
+        df_text,
+        format_stat(chisq_val, digits),
+        format_p(p_val)
+      )
+    }
+    rows[[length(rows) + 1]] <- list(
+      full_sentence = sentence,
+      term = term,
+      num_df = format_num(num_df_val, digits),
+      den_df = format_num(den_df_val, digits),
+      df = format_num(df_val, digits),
+      f = format_stat(f_val, digits),
+      chisq = format_stat(chisq_val, digits),
+      p = format_p(p_val)
+    )
+  }
+  rows
+}
+
+build_mixed_models_anova_note_tokens <- function(type, df_method_used, fallback_used = FALSE) {
+  notes <- character(0)
+  type_label <- type
+  if (fallback_used) {
+    type_label <- "I (fallback)"
+  }
+  if (nzchar(type_label)) {
+    notes <- c(notes, paste0("Type ", type_label, " tests of fixed effects."))
+  }
+  if (!is.null(df_method_used) && df_method_used != "none") {
+    notes <- c(notes, paste0("df method: ", df_method_used, "."))
+  }
+  if (fallback_used) {
+    notes <- c(notes, "Fallback used because Type II/III tests were unavailable.")
+  }
+  list(note_default = paste(notes, collapse = " "))
 }
 
 build_emmeans_table_body <- function(emmeans_df, digits, table_meta) {
@@ -1250,6 +1404,11 @@ main <- function() {
   icc_df <- extract_icc_df(fit)
   diagnostics_df <- if (diagnostics) build_diagnostics(fit, max_shapiro_n) else data.frame()
   anova_df <- build_anova_df(fit, type, df_method_used, has_lmerTest)
+  anova_type_used <- attr(anova_df, "type_used")
+  if (is.null(anova_type_used) || !nzchar(anova_type_used)) {
+    anova_type_used <- type
+  }
+  anova_fallback_used <- isTRUE(attr(anova_df, "fallback_used"))
 
   analysis_flags <- list(
     formula = if (nzchar(formula_text)) formula_text else NULL,
@@ -1291,13 +1450,51 @@ main <- function() {
   }
 
   template_override <- resolve_template_override(opts$template, module = "mixed_models")
-  template_path <- if (!is.null(template_override)) {
+  apa_report_path <- file.path(out_dir, "report_canonical.md")
+
+  anova_template_path <- if (!is.null(template_override)) {
+    template_override
+  } else {
+    resolve_get_template_path("mixed_models.tests", "mixed-models/tests-of-fixed-effects-template.md")
+  }
+  anova_meta <- resolve_get_template_meta(anova_template_path)
+  anova_table <- build_mixed_anova_table_body(anova_df, digits, anova_meta$table)
+  if (nzchar(anova_table$body)) {
+    anova_note_tokens <- build_mixed_models_anova_note_tokens(anova_type_used, df_method_used, anova_fallback_used)
+    anova_narrative_rows <- build_mixed_anova_narrative_rows(anova_df, digits)
+    anova_text <- ""
+    if (length(anova_narrative_rows) > 0) {
+      anova_text <- paste(vapply(anova_narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
+    }
+    anova_apa_table <- paste0("Table 1\n\n", anova_table$body, "\n", anova_note_tokens$note_default)
+    anova_context <- list(
+      tokens = c(
+        list(
+          table_body = anova_table$body,
+          narrative_default = anova_text
+        ),
+        anova_note_tokens
+      ),
+      narrative_rows = anova_narrative_rows
+    )
+    resolve_append_apa_report(
+      apa_report_path,
+      "Mixed Models: Tests of Fixed Effects",
+      anova_apa_table,
+      anova_text,
+      analysis_flags = analysis_flags,
+      template_path = anova_template_path,
+      template_context = anova_context
+    )
+  }
+
+  coef_template_path <- if (!is.null(template_override)) {
     template_override
   } else {
     resolve_get_template_path("mixed_models.default", "mixed-models/default-template.md")
   }
-  template_meta <- resolve_get_template_meta(template_path)
-  table_result <- build_fixed_effects_table_body(fixed_df, digits, template_meta$table)
+  coef_template_meta <- resolve_get_template_meta(coef_template_path)
+  table_result <- build_fixed_effects_table_body(fixed_df, digits, coef_template_meta$table)
   apa_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
 
   template_context <- list(
@@ -1311,14 +1508,13 @@ main <- function() {
     narrative_rows = narrative_rows
   )
 
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
   resolve_append_apa_report(
     apa_report_path,
-    "Mixed Models",
+    "Mixed Models: Estimates of Fixed Effects",
     apa_table,
     apa_text,
     analysis_flags = analysis_flags,
-    template_path = template_path,
+    template_path = coef_template_path,
     template_context = template_context
   )
 

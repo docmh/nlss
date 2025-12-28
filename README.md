@@ -10,7 +10,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 - R 4.4+ (base R is enough for CSV/APA outputs).
 - Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), `arrow` (parquet workspace copies), and `ggplot2` (plot subskill).
-- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `lme4` + `performance` for mixed models (required when using mixed-models); `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power.
+- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `psych` (EFA/PCA, KMO/Bartlett); `GPArotation` for oblique rotations; `lme4` + `performance` for mixed models (required when using mixed-models); `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power.
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
 - Optional: WSL if you want the wrapper to run Linux Rscript first and fall back to Windows Rscript.
@@ -18,13 +18,13 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 Install the R dependencies:
 
 ```bash
-Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower'))"
+Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','psych','GPArotation','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower'))"
 ```
 
 Or install them interactively in R:
 
 ```r
-install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower'))
+install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','psych','GPArotation','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower'))
 ```
 
 
@@ -113,6 +113,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `crosstabs` | `nlss/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
 | `correlations` | `nlss/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics, bootstrap CIs, Fisher r-to-z comparisons. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`, `correlations/matrix-template.md`, `correlations/comparison-template.md`) |
 | `scale` | `nlss/scripts/R/scale.R` | Item analysis and reliability (alpha/omega) for scales. | Yes (`scale/default-template.md`) |
+| `efa` | `nlss/scripts/R/efa.R` | Exploratory factor analysis / PCA with rotation, KMO/Bartlett diagnostics, and loadings tables. | Yes (`efa/default-template.md`) |
 | `reliability` | `nlss/scripts/R/reliability.R` | Inter-rater/test-retest reliability (ICC, kappa, correlations). | Yes (`reliability/default-template.md`) |
 | `data-explorer` | `nlss/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Yes (`data-explorer/default-template.md`) |
 | `plot` | `nlss/scripts/R/plot.R` | APA-ready figures (histogram, bar, box/violin, scatter/line, QQ, correlation heatmaps). | Yes (`plot/default-template.md`) |
@@ -145,6 +146,7 @@ Available metaskills:
 
 Utilities:
 - `calc`: `nlss/references/utilities/calc.md`
+- `check-integrity`: `nlss/references/utilities/check-integrity.md`
 
 Reference docs:
 - `nlss/references/subskills/descriptive-stats.md`
@@ -152,6 +154,7 @@ Reference docs:
 - `nlss/references/subskills/crosstabs.md`
 - `nlss/references/subskills/correlations.md`
 - `nlss/references/subskills/scale.md`
+- `nlss/references/subskills/efa.md`
 - `nlss/references/subskills/reliability.md`
 - `nlss/references/subskills/data-explorer.md`
 - `nlss/references/subskills/plot.md`
@@ -176,6 +179,7 @@ Reference docs:
 - `nlss/references/metaskills/prepare-data.md`
 - `nlss/references/metaskills/test-hypotheses.md`
 - `nlss/references/utilities/calc.md`
+- `nlss/references/utilities/check-integrity.md`
 
 ## Basic usage by module
 
@@ -214,6 +218,13 @@ Rscript nlss/scripts/R/correlations.R \
 ```bash
 Rscript nlss/scripts/R/scale.R \
   --csv data.csv --vars item1,item2,item3 --group condition
+```
+
+### Exploratory factor analysis
+
+```bash
+Rscript nlss/scripts/R/efa.R \
+  --csv data.csv --vars item1,item2,item3 --method pca --rotation varimax
 ```
 
 ### Reliability analysis

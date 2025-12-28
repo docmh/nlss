@@ -723,6 +723,61 @@ build_regression_table_body <- function(coef_df, digits, table_meta) {
   list(body = body, columns = columns)
 }
 
+build_regression_model_tests_table_body <- function(model_tests_df, digits, table_meta) {
+  display <- model_tests_df
+  display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
+  default_specs <- list(
+    list(key = "model", label = "Model", drop_if_empty = TRUE),
+    list(key = "group", label = "Group", drop_if_empty = TRUE),
+    list(key = "source", label = "Source"),
+    list(key = "ss", label = "SS", drop_if_empty = TRUE),
+    list(key = "df", label = "df", drop_if_empty = TRUE),
+    list(key = "ms", label = "MS", drop_if_empty = TRUE),
+    list(key = "f", label = "F", drop_if_empty = TRUE),
+    list(key = "p", label = "Sig.", drop_if_empty = TRUE),
+    list(key = "deviance", label = "Deviance", drop_if_empty = TRUE),
+    list(key = "chisq", label = "Chi-square", drop_if_empty = TRUE)
+  )
+  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  show_model <- length(unique(display$model)) > 1
+  show_group <- any(nzchar(display$group))
+  rows <- list()
+  for (i in seq_len(nrow(display))) {
+    row <- display[i, ]
+    row_map <- list(
+      model = if (show_model) row$model else "",
+      group = if (show_group) row$group_display else "",
+      source = row$source,
+      ss = format_num(row$ss, digits),
+      df = format_num(row$df, digits),
+      ms = format_num(row$ms, digits),
+      f = format_stat(row$f, digits),
+      p = format_p(row$p),
+      deviance = format_stat(row$deviance, digits),
+      chisq = format_stat(row$chisq, digits)
+    )
+    row_vals <- vapply(columns, function(col) {
+      resolve_as_cell_text(row_map[[col$key]])
+    }, character(1))
+    rows[[length(rows) + 1]] <- row_vals
+  }
+  drop_result <- resolve_drop_empty_columns(columns, rows)
+  columns <- drop_result$columns
+  rows <- drop_result$rows
+  headers <- vapply(columns, function(col) col$label, character(1))
+  body <- resolve_render_markdown_table(headers, rows)
+  list(body = body, columns = columns)
+}
+
+build_regression_model_tests_note_tokens <- function(family) {
+  note_default <- if (family == "gaussian") {
+    "ANOVA table uses regression, residual, and total sums of squares."
+  } else {
+    "Deviance tests compare the fitted model to the null model."
+  }
+  list(note_default = note_default)
+}
+
 build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, family) {
   rows <- list()
   if (nrow(summary_df) == 0) return(rows)
@@ -1000,6 +1055,7 @@ main <- function() {
   summary_rows <- list()
   comparison_rows <- list()
   diagnostics_rows <- list()
+  model_tests_rows <- list()
 
   for (group_item in group_values) {
     group_label <- group_item$label
@@ -1079,6 +1135,104 @@ main <- function() {
       summary_df$group <- group_label
       summary_rows[[length(summary_rows) + 1]] <- summary_df
 
+      if (nrow(summary_df) > 0) {
+        summary_row <- summary_df[1, ]
+        if (family == "gaussian") {
+          y <- data_model[[dv]]
+          y_mean <- mean(y, na.rm = TRUE)
+          ss_total <- sum((y - y_mean)^2, na.rm = TRUE)
+          resid_vals <- resid(fit)
+          ss_resid <- sum(resid_vals^2, na.rm = TRUE)
+          ss_reg <- ss_total - ss_resid
+          df_reg <- summary_row$model_df1
+          df_resid <- summary_row$model_df2
+          df_total <- if (!is.na(df_reg) && !is.na(df_resid)) df_reg + df_resid else NA_real_
+          ms_reg <- if (!is.na(df_reg) && df_reg > 0) ss_reg / df_reg else NA_real_
+          ms_resid <- if (!is.na(df_resid) && df_resid > 0) ss_resid / df_resid else NA_real_
+          model_tests_rows[[length(model_tests_rows) + 1]] <- data.frame(
+            model = model_label,
+            group = group_label,
+            source = "Regression",
+            ss = ss_reg,
+            df = df_reg,
+            ms = ms_reg,
+            f = summary_row$model_stat,
+            p = summary_row$model_p,
+            deviance = NA_real_,
+            chisq = NA_real_,
+            stringsAsFactors = FALSE
+          )
+          model_tests_rows[[length(model_tests_rows) + 1]] <- data.frame(
+            model = model_label,
+            group = group_label,
+            source = "Residual",
+            ss = ss_resid,
+            df = df_resid,
+            ms = ms_resid,
+            f = NA_real_,
+            p = NA_real_,
+            deviance = NA_real_,
+            chisq = NA_real_,
+            stringsAsFactors = FALSE
+          )
+          model_tests_rows[[length(model_tests_rows) + 1]] <- data.frame(
+            model = model_label,
+            group = group_label,
+            source = "Total",
+            ss = ss_total,
+            df = df_total,
+            ms = NA_real_,
+            f = NA_real_,
+            p = NA_real_,
+            deviance = NA_real_,
+            chisq = NA_real_,
+            stringsAsFactors = FALSE
+          )
+        } else {
+          df_null <- if (!is.null(fit$df.null)) fit$df.null else NA_real_
+          df_resid <- if (!is.null(fit$df.residual)) fit$df.residual else NA_real_
+          model_tests_rows[[length(model_tests_rows) + 1]] <- data.frame(
+            model = model_label,
+            group = group_label,
+            source = "Model",
+            ss = NA_real_,
+            df = summary_row$model_df1,
+            ms = NA_real_,
+            f = NA_real_,
+            p = summary_row$model_p,
+            deviance = NA_real_,
+            chisq = summary_row$model_stat,
+            stringsAsFactors = FALSE
+          )
+          model_tests_rows[[length(model_tests_rows) + 1]] <- data.frame(
+            model = model_label,
+            group = group_label,
+            source = "Residual",
+            ss = NA_real_,
+            df = df_resid,
+            ms = NA_real_,
+            f = NA_real_,
+            p = NA_real_,
+            deviance = summary_row$deviance,
+            chisq = NA_real_,
+            stringsAsFactors = FALSE
+          )
+          model_tests_rows[[length(model_tests_rows) + 1]] <- data.frame(
+            model = model_label,
+            group = group_label,
+            source = "Null",
+            ss = NA_real_,
+            df = df_null,
+            ms = NA_real_,
+            f = NA_real_,
+            p = NA_real_,
+            deviance = summary_row$null_deviance,
+            chisq = NA_real_,
+            stringsAsFactors = FALSE
+          )
+        }
+      }
+
       if (family == "gaussian") {
         shapiro <- tryCatch(shapiro.test(resid(fit)), error = function(e) NULL)
         diagnostics_rows[[length(diagnostics_rows) + 1]] <- data.frame(
@@ -1151,9 +1305,13 @@ main <- function() {
   summary_df <- if (length(summary_rows) > 0) do.call(rbind, summary_rows) else data.frame()
   comparison_df <- if (length(comparison_rows) > 0) do.call(rbind, comparison_rows) else data.frame()
   diagnostics_df <- if (length(diagnostics_rows) > 0) do.call(rbind, diagnostics_rows) else data.frame()
+  model_tests_df <- if (length(model_tests_rows) > 0) do.call(rbind, model_tests_rows) else data.frame()
   label_meta <- resolve_label_metadata(df)
   coef_df <- add_term_label_column(coef_df, label_meta, term_col = "term")
   coef_df <- add_group_label_column(coef_df, label_meta, group_var, group_col = "group")
+  if (nrow(model_tests_df) > 0) {
+    model_tests_df <- add_group_label_column(model_tests_df, label_meta, group_var, group_col = "group")
+  }
 
   if (nrow(coef_df) == 0) {
     stop("No regression results could be computed.")
@@ -1216,6 +1374,34 @@ main <- function() {
     template_context = template_context
   )
 
+  if (nrow(model_tests_df) > 0) {
+    model_tests_label <- if (family == "gaussian") "Regression: ANOVA" else "Regression: Deviance Tests"
+    model_tests_note_tokens <- build_regression_model_tests_note_tokens(family)
+    model_tests_template_path <- if (!is.null(template_override)) {
+      template_override
+    } else {
+      resolve_get_template_path("regression.model_tests", "regression/model-tests-template.md")
+    }
+    model_tests_meta <- resolve_get_template_meta(model_tests_template_path)
+    model_tests_table <- build_regression_model_tests_table_body(model_tests_df, digits, model_tests_meta$table)
+    model_tests_apa_table <- paste0("Table 1\n\n", model_tests_table$body, "\n", model_tests_note_tokens$note_default)
+    model_tests_context <- list(
+      tokens = c(
+        list(table_body = model_tests_table$body),
+        model_tests_note_tokens
+      )
+    )
+    resolve_append_apa_report(
+      apa_report_path,
+      model_tests_label,
+      model_tests_apa_table,
+      "",
+      analysis_flags = analysis_flags,
+      template_path = model_tests_template_path,
+      template_context = model_tests_context
+    )
+  }
+
   cat("Wrote:\n")
   cat("- ", apa_report_path, "\n", sep = "")
 
@@ -1230,7 +1416,8 @@ main <- function() {
         coefficients_df = coef_df,
         summary_df = summary_df,
         comparisons_df = comparison_df,
-        diagnostics_df = diagnostics_df
+        diagnostics_df = diagnostics_df,
+        model_tests_df = model_tests_df
       ),
       options = list(
         dv = dv,

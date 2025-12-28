@@ -18,6 +18,12 @@ humanize_flag_name <- function(name) {
     "trim" = "Trim proportion",
     "iqr-multiplier" = "IQR multiplier",
     "method" = "Method",
+    "rotation" = "Rotation",
+    "n-factors" = "Number of factors",
+    "eigen-threshold" = "Eigenvalue threshold",
+    "loading-cutoff" = "Loading cutoff",
+    "sort-loadings" = "Sort by loading",
+    "cor" = "Correlation type",
     "missing" = "Missing handling",
     "format" = "Input format",
     "output-format" = "Output format",
@@ -307,6 +313,10 @@ get_template_path <- function(analysis_label) {
   }
   if (label == "scale analysis" || label == "scale") {
     path <- resolve_template_path("scale.default", "scale/default-template.md")
+    if (!is.null(path) && file.exists(path)) return(path)
+  }
+  if (label == "exploratory factor analysis" || label == "efa") {
+    path <- resolve_template_path("efa.default", "efa/default-template.md")
     if (!is.null(path) && file.exists(path)) return(path)
   }
   if (label == "cross-tabulations") {

@@ -12,9 +12,9 @@ table:
     - key: "term"
       label: "Effect"
     - key: "b"
-      label: "b"
+      label: "Estimate"
     - key: "se"
-      label: "SE"
+      label: "Std. Error"
     - key: "df"
       label: "df"
       drop_if_empty: true
@@ -22,16 +22,16 @@ table:
       label: "t"
       drop_if_empty: true
     - key: "p"
-      label: "p"
+      label: "Sig."
       drop_if_empty: true
     - key: "ci_low"
-      label: "CI low"
+      label: "CI lower"
       drop_if_empty: true
     - key: "ci_high"
-      label: "CI high"
+      label: "CI upper"
       drop_if_empty: true
     - key: "std_beta"
-      label: "beta"
+      label: "Std. beta"
       drop_if_empty: true
 note:
   template: "{{note_default}}"
@@ -41,6 +41,8 @@ narrative:
   drop_empty: true
 ---
 # {{title}}
+
+{{analysis_label}}
 
 Analysis:
 

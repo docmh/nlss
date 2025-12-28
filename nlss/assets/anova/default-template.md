@@ -1,65 +1,43 @@
 ---
 tokens:
-  title: "ANOVA"
-  table_title: "ANOVA results."
+  table_title: "Tests of effects."
   note_prefix: "*Note.*"
   narrative_heading: "**Narrative**"
 table:
   columns:
-    - key: "model"
-      label: "Model"
-      drop_if_empty: true
     - key: "term"
-      label: "Effect"
-    - key: "df1"
-      label: "df1"
-    - key: "df2"
-      label: "df2"
-    - key: "f"
-      label: "F"
-    - key: "p"
-      label: "p"
-    - key: "partial_eta_sq"
-      label: "eta_p2"
-      drop_if_empty: true
-    - key: "eta_sq"
-      label: "eta_sq"
-      drop_if_empty: true
-    - key: "partial_omega_sq"
-      label: "omega_p2"
-      drop_if_empty: true
-    - key: "omega_sq"
-      label: "omega_sq"
-      drop_if_empty: true
-    - key: "boot_ci_low"
-      label: "Boot CI low"
-      drop_if_empty: true
-    - key: "boot_ci_high"
-      label: "Boot CI high"
-      drop_if_empty: true
+      label: "Source"
+    - key: "df"
+      label: "df"
     - key: "ss"
       label: "SS"
       drop_if_empty: true
     - key: "ms"
       label: "MS"
       drop_if_empty: true
-    - key: "df1_gg"
-      label: "df1_GG"
+    - key: "f"
+      label: "F"
       drop_if_empty: true
-    - key: "df2_gg"
-      label: "df2_GG"
+    - key: "p"
+      label: "Sig."
       drop_if_empty: true
-    - key: "p_gg"
-      label: "p_GG"
+    - key: "partial_eta_sq"
+      label: "Partial eta^2"
       drop_if_empty: true
-    - key: "df1_hf"
-      label: "df1_HF"
+    - key: "eta_sq"
+      label: "eta^2"
       drop_if_empty: true
-    - key: "df2_hf"
-      label: "df2_HF"
+    - key: "partial_omega_sq"
+      label: "Partial omega^2"
       drop_if_empty: true
-    - key: "p_hf"
-      label: "p_HF"
+    - key: "omega_sq"
+      label: "omega^2"
+      drop_if_empty: true
+    - key: "boot_ci_low"
+      label: "Boot CI low"
+      drop_if_empty: true
+    - key: "boot_ci_high"
+      label: "Boot CI high"
       drop_if_empty: true
 note:
   template: "{{note_default}}"
@@ -68,7 +46,7 @@ narrative:
   join: "\n\n"
   drop_empty: true
 ---
-# {{title}}
+# {{analysis_label}}
 
 Analysis:
 
