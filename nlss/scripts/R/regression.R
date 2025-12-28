@@ -16,6 +16,13 @@ source_lib("io.R")
 source_lib("data_utils.R")
 source_lib("formatting.R")
 
+
+# Static analysis aliases for source_lib-defined functions.
+add_group_label_column <- get("add_group_label_column", mode = "function")
+add_term_label_column <- get("add_term_label_column", mode = "function")
+resolve_label_metadata <- get("resolve_label_metadata", mode = "function")
+source_lib <- get("source_lib", mode = "function")
+
 print_usage <- function() {
   cat("Regression (base R)\n")
   cat("\n")

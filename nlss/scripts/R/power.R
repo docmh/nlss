@@ -16,6 +16,10 @@ source_lib("io.R")
 source_lib("data_utils.R")
 source_lib("formatting.R")
 
+
+# Static analysis aliases for source_lib-defined functions.
+source_lib <- get("source_lib", mode = "function")
+
 print_usage <- function() {
   cat("Power analysis (pwr + semPower)\n")
   cat("\n")

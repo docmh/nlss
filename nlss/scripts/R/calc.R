@@ -15,6 +15,14 @@ source_lib("config.R")
 source_lib("io.R")
 source_lib("formatting.R")
 
+
+# Static analysis aliases for source_lib-defined functions.
+get_user_prompt <- get("get_user_prompt", mode = "function")
+parse_args <- get("parse_args", mode = "function")
+parse_bool <- get("parse_bool", mode = "function")
+resolve_template_path <- get("resolve_template_path", mode = "function")
+source_lib <- get("source_lib", mode = "function")
+
 print_usage <- function() {
   cat("Calc utility (base R)\n")
   cat("\n")

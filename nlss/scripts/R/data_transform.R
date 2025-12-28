@@ -15,6 +15,12 @@ source_lib("config.R")
 source_lib("io.R")
 source_lib("formatting.R")
 
+
+# Static analysis aliases for source_lib-defined functions.
+backup_workspace_parquet <- get("backup_workspace_parquet", mode = "function")
+source_lib <- get("source_lib", mode = "function")
+write_parquet_data <- get("write_parquet_data", mode = "function")
+
 print_usage <- function() {
   cat("Data transformation (base R)\n")
   cat("\n")

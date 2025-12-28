@@ -15,6 +15,10 @@ source_lib("config.R")
 source_lib("io.R")
 source_lib("formatting.R")
 
+
+# Static analysis aliases for source_lib-defined functions.
+source_lib <- get("source_lib", mode = "function")
+
 print_usage <- function() {
   cat("Metaskill activation/finalization logger (base R)\n")
   cat("\n")

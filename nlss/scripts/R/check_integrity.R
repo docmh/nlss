@@ -13,6 +13,11 @@ source(file.path(bootstrap_dir, "lib", "paths.R"))
 source_lib("config.R")
 source_lib("io.R")
 
+
+# Static analysis aliases for source_lib-defined functions.
+normalize_input_path <- get("normalize_input_path", mode = "function")
+source_lib <- get("source_lib", mode = "function")
+
 print_usage <- function() {
   cat("Usage: check_integrity.R <analysis_log.jsonl>\n", file = stderr())
 }

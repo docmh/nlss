@@ -17,6 +17,16 @@ source_lib("data_utils.R")
 source_lib("formatting.R")
 source_lib("contrast_utils.R")
 
+
+# Static analysis aliases for source_lib-defined functions.
+add_term_label_column <- get("add_term_label_column", mode = "function")
+add_value_label_column <- get("add_value_label_column", mode = "function")
+build_contrast_method <- get("build_contrast_method", mode = "function")
+format_contrast_label <- get("format_contrast_label", mode = "function")
+resolve_contrast_spec <- get("resolve_contrast_spec", mode = "function")
+resolve_label_metadata <- get("resolve_label_metadata", mode = "function")
+source_lib <- get("source_lib", mode = "function")
+
 print_usage <- function() {
   cat("Mixed Models (lme4)\n")
   cat("\n")
@@ -115,7 +125,7 @@ interactive_options <- function() {
   opts$standardize <- resolve_prompt("Standardize (none/predictors)", standardize_default)
   opts$emmeans <- resolve_prompt("Marginal means term (none or term)", emmeans_default)
   opts$contrasts <- resolve_prompt("Contrasts (none/pairwise/custom/<method>)", contrasts_default)
-  contrast_mode <- normalize_contrast_mode(opts$contrasts, contrasts_default)
+  contrast_mode <- normalize_contrasts(opts$contrasts, contrasts_default)
   if (contrast_mode == "custom") {
     opts$`contrast-file` <- resolve_prompt("Contrast JSON file", "")
   }
