@@ -10,7 +10,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 - R 4.4+ (base R is enough for CSV/APA outputs).
 - Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), `arrow` (parquet workspace copies), and `ggplot2` (plot subskill).
-- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `psych` (EFA/PCA, KMO/Bartlett); `GPArotation` for oblique rotations; `lme4` + `performance` for mixed models (required when using mixed-models); `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power.
+- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `psych` (EFA/PCA, KMO/Bartlett); `GPArotation` for oblique rotations; `lme4` + `performance` for mixed models (required when using mixed-models); `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power; `viridisLite` for palettes; `influence.ME` and `DHARMa` for mixed-model diagnostics; `MVN` for Mardia test.
 - Windows, WSL (Ubuntu), or Linux.
 - PowerShell 5.1+ is recommended on Windows for the wrapper script.
 - Optional: WSL if you want the wrapper to run Linux Rscript first and fall back to Windows Rscript.
@@ -18,14 +18,23 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 Install the R dependencies:
 
 ```bash
-Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','psych','GPArotation','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower'))"
+Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','psych','GPArotation','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower','viridisLite','influence.ME','DHARMa','MVN'))"
 ```
 
 Or install them interactively in R:
 
 ```r
-install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','psych','GPArotation','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower'))
+install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','psych','GPArotation','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower','viridisLite','influence.ME','DHARMa','MVN'))
 ```
+
+## Open source and third-party software
+
+NLSS is licensed under Apache-2.0 (see `LICENSE` and `NOTICE`). It relies on open-source R and CRAN packages that are installed separately and remain under their respective licenses.
+
+- Core runtime packages: `yaml`, `jsonlite`, `arrow`, `ggplot2`.
+- Optional feature packages: `haven`, `foreign`, `mice`, `VIM`, `car`, `psych`, `GPArotation`, `lme4`, `lmerTest`, `emmeans`, `performance`, `lavaan`, `pwr`, `semPower`.
+- Optional packages used when available: `viridisLite`, `influence.ME`, `DHARMa`, `MVN`.
+- Test tooling (optional): Python 3 for the test harness.
 
 
 ## Install
