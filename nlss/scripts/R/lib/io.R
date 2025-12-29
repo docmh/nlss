@@ -221,6 +221,51 @@ normalize_manifest_datasets <- function(datasets) {
   list()
 }
 
+resolve_manifest_log_seq <- function(manifest, dataset_dir, workspace_root) {
+  if (is.null(manifest) || is.null(dataset_dir) || !nzchar(dataset_dir)) return(NULL)
+  datasets <- normalize_manifest_datasets(manifest$datasets)
+  dataset_dir <- normalize_dir_path(dataset_dir)
+  for (entry in datasets) {
+    entry_dir <- resolve_dataset_dir(entry, workspace_root)
+    if (!nzchar(entry_dir)) next
+    if (normalize_dir_path(entry_dir) == dataset_dir) {
+      value <- suppressWarnings(as.integer(entry$analysis_log_seq))
+      if (length(value) == 0) return(NULL)
+      value <- value[1]
+      if (is.na(value) || value < 0) return(NULL)
+      return(value)
+    }
+  }
+  NULL
+}
+
+update_manifest_log_seq <- function(manifest_path, dataset_dir, log_seq) {
+  if (is.null(manifest_path) || !nzchar(manifest_path)) return(invisible(FALSE))
+  if (is.null(log_seq) || is.na(log_seq)) return(invisible(FALSE))
+  manifest <- read_workspace_manifest(manifest_path)
+  if (is.null(manifest)) return(invisible(FALSE))
+  workspace_root <- normalize_dir_path(dirname(manifest_path))
+  dataset_dir <- normalize_dir_path(dataset_dir)
+  datasets <- normalize_manifest_datasets(manifest$datasets)
+  updated <- FALSE
+  for (i in seq_along(datasets)) {
+    entry <- datasets[[i]]
+    entry_dir <- resolve_dataset_dir(entry, workspace_root)
+    if (!nzchar(entry_dir)) next
+    if (normalize_dir_path(entry_dir) == dataset_dir) {
+      entry$analysis_log_seq <- as.integer(log_seq)
+      datasets[[i]] <- entry
+      updated <- TRUE
+      break
+    }
+  }
+  if (updated) {
+    manifest$datasets <- datasets
+    write_workspace_manifest(manifest, manifest_path)
+  }
+  invisible(updated)
+}
+
 resolve_manifest_dataset <- function(manifest, dataset_name) {
   if (is.null(manifest) || is.null(dataset_name) || !nzchar(dataset_name)) return(NULL)
   datasets <- normalize_manifest_datasets(manifest$datasets)
@@ -332,6 +377,11 @@ build_manifest_dataset_entry <- function(row, workspace_root) {
   }
   source_path <- if (is.na(row$source_path)) "" else as.character(row$source_path)
   type_label <- if (is.na(row$type)) "" else tolower(as.character(row$type))
+  log_seq_value <- NULL
+  log_path <- file.path(dataset_dir, "analysis_log.jsonl")
+  if (file.exists(log_path)) {
+    log_seq_value <- read_last_log_seq_value(log_path)
+  }
   entry <- list(
     name = label,
     parquet = make_relative_path(copy_path, workspace_root),
@@ -340,6 +390,9 @@ build_manifest_dataset_entry <- function(row, workspace_root) {
     scratchpad = make_relative_path(file.path(dataset_dir, "scratchpad.md"), workspace_root),
     backup_dir = make_relative_path(file.path(dataset_dir, "backup"), workspace_root)
   )
+  if (!is.null(log_seq_value) && !is.na(log_seq_value)) {
+    entry$analysis_log_seq <- as.integer(log_seq_value)
+  }
   if (nzchar(source_path) || nzchar(type_label)) {
     source <- list()
     if (nzchar(source_path)) source$path <- make_relative_path(source_path, workspace_root)
@@ -365,6 +418,14 @@ merge_manifest_entries <- function(existing_entries, new_entries) {
     name <- entry$name
     if (is.null(name) || !nzchar(name)) next
     name <- as.character(name)
+    if (!is.null(merged[[name]])) {
+      existing <- merged[[name]]
+      if (!is.null(existing$analysis_log_seq) && !is.na(existing$analysis_log_seq)) {
+        if (is.null(entry$analysis_log_seq) || is.na(entry$analysis_log_seq)) {
+          entry$analysis_log_seq <- existing$analysis_log_seq
+        }
+      }
+    }
     merged[[name]] <- entry
     if (!(name %in% order)) order <- c(order, name)
   }
@@ -483,6 +544,11 @@ list_nlss_files <- function(root_dir) {
   info <- file.info(files)
   files <- files[!is.na(info$isdir) & !info$isdir]
   if (length(files) == 0) return(character(0))
+  rel_paths <- vapply(files, function(path) make_relative_path(path, root_dir), character(1))
+  rel_paths_lower <- tolower(rel_paths)
+  exclude <- grepl("^assets/", rel_paths_lower) | rel_paths_lower == "scripts/config.yml"
+  files <- files[!exclude]
+  if (length(files) == 0) return(character(0))
   vapply(files, normalize_path, character(1))
 }
 
@@ -557,6 +623,32 @@ compute_log_line_checksum_raw <- function(raw_vec) {
   writeBin(raw_vec, temp_path)
   digest <- tools::md5sum(temp_path)
   unname(digest[[1]])
+}
+
+compute_log_seq_checksum <- function(seq_value) {
+  if (is.null(seq_value) || is.na(seq_value)) return("")
+  seq_text <- as.character(seq_value)
+  if (!nzchar(seq_text)) return("")
+  temp_path <- tempfile(pattern = "nlss-seq-", fileext = ".txt")
+  on.exit(unlink(temp_path), add = TRUE)
+  writeBin(charToRaw(seq_text), temp_path)
+  digest <- tools::md5sum(temp_path)
+  unname(digest[[1]])
+}
+
+read_last_log_seq_value <- function(path) {
+  if (!requireNamespace("jsonlite", quietly = TRUE)) return(NULL)
+  last_line <- read_last_log_line_raw(path)
+  if (is.null(last_line)) return(NULL)
+  line_text <- decode_log_line_text(last_line$line_raw)
+  if (!nzchar(trimws(line_text))) return(NULL)
+  entry <- tryCatch(jsonlite::fromJSON(line_text, simplifyVector = FALSE), error = function(e) NULL)
+  if (is.null(entry)) return(NULL)
+  value <- suppressWarnings(as.integer(entry$log_seq))
+  if (length(value) == 0) return(NULL)
+  value <- value[1]
+  if (is.na(value) || value < 0) return(NULL)
+  value
 }
 
 read_last_log_line_raw <- function(path) {
@@ -680,6 +772,16 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     checksum <- get_nlss_checksum()
   }
 
+  log_path <- file.path(out_dir, "analysis_log.jsonl")
+  manifest_path <- find_workspace_manifest(out_dir)
+  manifest <- NULL
+  workspace_root <- ""
+  if (nzchar(manifest_path)) {
+    manifest <- read_workspace_manifest(manifest_path)
+    workspace_root <- dirname(manifest_path)
+  }
+  log_seq <- NULL
+
   entry <- list(
     timestamp_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     nlss_version = get_nlss_version(),
@@ -694,8 +796,19 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
   )
 
   if (!is.null(checksum) && !is.null(checksum$value) && nzchar(checksum$value)) {
-    entry$checksum_version <- 2
-    log_path <- file.path(out_dir, "analysis_log.jsonl")
+    entry$checksum_version <- 3
+    log_seq_value <- NULL
+    if (!is.null(manifest) && nzchar(workspace_root)) {
+      log_seq_value <- resolve_manifest_log_seq(manifest, out_dir, workspace_root)
+    }
+    if (is.null(log_seq_value) && file.exists(log_path)) {
+      log_seq_value <- read_last_log_seq_value(log_path)
+    }
+    if (is.null(log_seq_value) || is.na(log_seq_value) || log_seq_value < 0) {
+      log_seq_value <- 0L
+    }
+    log_seq <- as.integer(log_seq_value) + 1L
+    entry$log_seq <- log_seq
     prev_line_checksum <- NULL
     if (file.exists(log_path)) {
       prev_line <- read_last_log_line_raw(log_path)
@@ -717,6 +830,10 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     if (!is.null(prev_line_checksum) && nzchar(prev_line_checksum)) {
       combined <- xor_hex(combined, prev_line_checksum)
     }
+    seq_checksum <- compute_log_seq_checksum(log_seq)
+    if (nzchar(seq_checksum)) {
+      combined <- xor_hex(combined, seq_checksum)
+    }
     if (nzchar(combined)) entry$checksum <- combined
   }
 
@@ -729,10 +846,12 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     digits = NA
   )
 
-  log_path <- file.path(out_dir, "analysis_log.jsonl")
   con <- file(log_path, open = "a", encoding = "UTF-8")
   on.exit(close(con), add = TRUE)
   writeLines(json, con = con, sep = "\n")
+  if (!is.null(log_seq) && !is.na(log_seq) && nzchar(manifest_path)) {
+    update_manifest_log_seq(manifest_path, out_dir, log_seq)
+  }
   invisible(TRUE)
 }
 

@@ -95,6 +95,7 @@ Subskills append to `report_canonical.md` and do not create separate report file
 - `report_canonical.md`: APA-style workspace summary using a YAML template plus front matter (per dataset workspace).
 - `<dataset-name>.parquet`: One copy per referenced dataset, stored in `<workspace-root>/<dataset-name>/`.
 - `analysis_log.jsonl`: Appended entry with module `init_workspace` and dataset summary (per dataset workspace).
+- `analysis_log_seq`: Monotonic log counter stored in `nlss-workspace.yml` (when checksum logging is enabled).
 - `nlss-workspace.yml`: Workspace manifest in the workspace root (tracks dataset paths and `active_dataset`).
 
 ## APA 7 Template (YAML)

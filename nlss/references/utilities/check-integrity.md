@@ -23,7 +23,7 @@ Example prompts:
 
 ## Inputs
 
-- Path to an `analysis_log.jsonl` file.
+- Path to an `analysis_log.jsonl` file (or set `NLSS_INTEGRITY_LOG` in the environment).
 
 ## Script: `nlss/scripts/R/check_integrity.R`
 
@@ -42,15 +42,21 @@ Rscript <path to scripts/R/check_integrity.R> <path to analysis_log.jsonl>
 ## Options
 
 - `-h`, `--help`: Print usage and exit.
+- `NLSS_INTEGRITY_LOG`: Optional environment fallback for the log path when the CLI argument is missing or invalid.
+- `--diagnose TRUE|FALSE`: Emit per-line diagnostics (default: TRUE).
 
 ## Behavior
 
 - Reads the JSONL file in binary mode and preserves line endings (which affect checksum calculation).
 - Ignores lines without a `checksum` field or invalid JSON.
-- Reconstructs the NLSS checksum by XOR-reverting each entry checksum; when `checksum_version` is 2, it also XOR-reverts the checksum of the previous complete log line to preserve chain integrity.
+- Reconstructs the NLSS checksum by XOR-reverting each entry checksum; when `checksum_version` is 2, it also XOR-reverts the checksum of the previous complete log line to preserve chain integrity; when `checksum_version` is 3, it additionally XOR-reverts the checksum of `log_seq`.
+- The NLSS checksum excludes `nlss/assets/` templates and `nlss/scripts/config.yml`, so template/config edits do not change the recovered checksum.
+- `log_seq` is stored in each entry and tracked in `nlss-workspace.yml` as `analysis_log_seq` so deletions do not reset the counter.
 - Prints each recovered checksum plus its count to stdout.
 - Prints `No checksum entries found.` if no valid checksums are present.
 - Emits a warning to stderr if multiple different recovered checksums are found.
+- When `--diagnose` is enabled, prints `DIAG` lines to stderr with `line`, `log_seq`, `status`, `seq`, `inferred`, and `checksum` fields to help distinguish edits (two-line mismatch) from deletions (seq gaps).
+- `status=mismatch` with `seq=ok` often indicates a codebase checksum change during the log, not a deletion.
 
 ## Outputs
 
