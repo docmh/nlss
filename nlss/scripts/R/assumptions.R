@@ -18,6 +18,7 @@ source_lib("formatting.R")
 
 
 # Static analysis aliases for source_lib-defined functions.
+render_output_path <- get("render_output_path", mode = "function")
 source_lib <- get("source_lib", mode = "function")
 
 print_usage <- function() {
@@ -3034,7 +3035,7 @@ main <- function() {
   )
 
   cat("Wrote:\n")
-  cat("- ", apa_report_path, "\n", sep = "")
+  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

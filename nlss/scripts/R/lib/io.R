@@ -134,6 +134,86 @@ make_relative_path <- function(path, base_dir) {
   path
 }
 
+resolve_workspace_root <- function(base_dir = NULL) {
+  if (is.null(base_dir) || !nzchar(base_dir)) base_dir <- getwd()
+  base_dir <- normalize_dir_path(base_dir)
+  if (!nzchar(base_dir)) return("")
+  manifest_path <- find_workspace_manifest(base_dir)
+  if (!nzchar(manifest_path)) return("")
+  dirname(manifest_path)
+}
+
+render_output_path <- function(path, base_dir = NULL, workspace_root = NULL) {
+  if (is.null(path) || !nzchar(path)) return("")
+  path <- normalize_path(path)
+  if (!nzchar(path)) return("")
+  if (is.null(workspace_root) || !nzchar(workspace_root)) {
+    root_base <- base_dir
+    if (is.null(root_base) || !nzchar(root_base)) {
+      root_base <- dirname(path)
+    }
+    workspace_root <- resolve_workspace_root(root_base)
+  } else {
+    workspace_root <- normalize_dir_path(workspace_root)
+  }
+  if (nzchar(workspace_root) && is_path_within(path, workspace_root)) {
+    if (normalize_dir_path(path) == normalize_dir_path(workspace_root)) return(".")
+    return(make_relative_path(path, workspace_root))
+  }
+  path
+}
+
+mask_external_log_path <- function(path) {
+  if (is.null(path) || !nzchar(path)) return(path)
+  text <- as.character(path)
+  if (!nzchar(text) || is.na(text)) return(text)
+  name <- basename(text)
+  if (!nzchar(name) || name %in% c(".", "..")) return("<external>")
+  paste0("<external>/", name)
+}
+
+render_log_path <- function(path, workspace_root = NULL) {
+  if (is.null(path)) return(path)
+  if (length(path) == 0) return(path)
+  if (is.na(path)) return(path)
+  if (!nzchar(path)) return(path)
+  text <- as.character(path)
+  if (!nzchar(text) || is.na(text)) return(text)
+  if (is_absolute_path(text)) {
+    rendered <- render_output_path(text, workspace_root = workspace_root)
+    if (!is.null(workspace_root) && nzchar(workspace_root) && is_absolute_path(rendered)) {
+      return(mask_external_log_path(rendered))
+    }
+    return(rendered)
+  }
+  text
+}
+
+render_paths_for_log <- function(value, workspace_root = NULL) {
+  if (is.null(value)) return(value)
+  if (is.data.frame(value)) {
+    out <- value
+    path_cols <- grepl("(_path|_dir|path|dir)$", names(out), ignore.case = TRUE)
+    if (any(path_cols)) {
+      for (col in names(out)[path_cols]) {
+        if (is.character(out[[col]])) {
+          out[[col]] <- vapply(out[[col]], render_log_path, character(1), workspace_root = workspace_root)
+        }
+      }
+    }
+    return(out)
+  }
+  if (is.list(value)) {
+    out <- lapply(value, function(item) render_paths_for_log(item, workspace_root = workspace_root))
+    if (!is.null(names(value))) names(out) <- names(value)
+    return(out)
+  }
+  if (is.character(value)) {
+    return(vapply(value, render_log_path, character(1), workspace_root = workspace_root))
+  }
+  value
+}
+
 resolve_manifest_path <- function(path, base_dir) {
   if (is.null(path) || !nzchar(path)) return("")
   if (is_absolute_path(path)) return(normalize_path(path))
@@ -858,6 +938,13 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     workspace_root <- dirname(manifest_path)
   }
   log_seq <- NULL
+  log_commands <- render_paths_for_log(commands, workspace_root = workspace_root)
+  log_options <- render_paths_for_log(options, workspace_root = workspace_root)
+  log_results <- render_paths_for_log(results, workspace_root = workspace_root)
+  log_prompt <- prompt
+  if (!is.null(log_commands) && is.character(log_commands) && length(log_commands) > 0) {
+    log_prompt <- paste(log_commands, collapse = " ")
+  }
 
   entry <- list(
     timestamp_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
@@ -866,10 +953,10 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     os = format_log_os_string(),
     module = module,
     user_prompt = user_prompt,
-    prompt = prompt,
-    commands = commands,
-    results = results,
-    options = options
+    prompt = log_prompt,
+    commands = log_commands,
+    results = log_results,
+    options = log_options
   )
 
   report_blocks <- consume_report_blocks()

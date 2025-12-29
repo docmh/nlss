@@ -17,6 +17,7 @@ source_lib("formatting.R")
 
 
 # Static analysis aliases for source_lib-defined functions.
+render_output_path <- get("render_output_path", mode = "function")
 source_lib <- get("source_lib", mode = "function")
 
 print_usage <- function() {
@@ -361,13 +362,6 @@ resolve_sanitize_file_component <- function(value) {
   value
 }
 
-resolve_normalize_path <- function(path) {
-  if (exists("normalize_path", mode = "function")) {
-    return(get("normalize_path", mode = "function")(path))
-  }
-  normalizePath(path, winslash = "/", mustWork = FALSE)
-}
-
 build_activation_rows <- function(meta_name, intent, dataset_label, timestamp, notes = "") {
   rows <- list()
   rows[[length(rows) + 1]] <- list(item = "Metaskill", value = meta_name)
@@ -611,8 +605,8 @@ if (resolve_parse_bool(opts$log, default = log_default)) {
       phase = phase,
       dataset = dataset_label,
       timestamp = timestamp,
-      apa_report_path = resolve_normalize_path(apa_report_path),
-      metaskill_report_path = if (nzchar(metaskill_report_path)) resolve_normalize_path(metaskill_report_path) else NULL
+      apa_report_path = render_output_path(apa_report_path, out_dir),
+      metaskill_report_path = if (nzchar(metaskill_report_path)) render_output_path(metaskill_report_path, out_dir) else NULL
     ),
     options = list(
       meta = meta_name,
@@ -627,4 +621,4 @@ if (resolve_parse_bool(opts$log, default = log_default)) {
 }
 
 cat("Metaskill ", phase, " logged.\n", sep = "")
-cat("- ", apa_report_path, "\n", sep = "")
+cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")

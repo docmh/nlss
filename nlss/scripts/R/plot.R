@@ -18,6 +18,7 @@ source_lib("formatting.R")
 
 
 # Static analysis aliases for source_lib-defined functions.
+render_output_path <- get("render_output_path", mode = "function")
 source_lib <- get("source_lib", mode = "function")
 
 print_usage <- function() {
@@ -1364,9 +1365,9 @@ main <- function() {
   )
 
   cat("Wrote:\n")
-  cat("- ", file.path(out_dir, "report_canonical.md"), "\n", sep = "")
+  cat("- ", render_output_path(file.path(out_dir, "report_canonical.md"), out_dir), "\n", sep = "")
   for (row in figure_rows) {
-    cat("- ", file.path(out_dir, row$figure_path), "\n", sep = "")
+    cat("- ", render_output_path(file.path(out_dir, row$figure_path), out_dir), "\n", sep = "")
   }
 
   log_default <- resolve_config_value("defaults.log", TRUE)

@@ -19,6 +19,7 @@ source_lib("contrast_utils.R")
 
 
 # Static analysis aliases for source_lib-defined functions.
+render_output_path <- get("render_output_path", mode = "function")
 add_term_label_column <- get("add_term_label_column", mode = "function")
 add_value_label_column <- get("add_value_label_column", mode = "function")
 build_contrast_method <- get("build_contrast_method", mode = "function")
@@ -1610,7 +1611,7 @@ main <- function() {
   }
 
   cat("Wrote:\n")
-  cat("- ", apa_report_path, "\n", sep = "")
+  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

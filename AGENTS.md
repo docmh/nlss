@@ -2,7 +2,7 @@
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report. When documenting in `scratchpad.md`, `report_canonical.md`, or `analysis_log.jsonl`, mask workspace-external paths as `<external>/<filename>` and keep workspace-internal paths relative.
 
 ## Metaskill Implementation Guide
 
@@ -112,6 +112,7 @@ New subskills should use the YAML template system for `report_canonical.md`:
 - Append new logs if the output files already exist in the dataset workspace.
 - Include assumptions/diagnostics outputs when applicable (e.g., residual checks, normality tests).
 - Default outputs should always land in `<workspace-root>/<dataset-name>/`, including interactive mode (workspace root = current directory, parent, or one-level child with `nlss-workspace.yml`; fallback to `defaults.output_dir`).
+- When presenting paths in console output or reports, prefer workspace-relative paths; use absolute paths only when the target is outside the workspace root.
 - Workspaces must be non-nested and unique per parent folder; stop if nested or sibling manifests are detected.
 - Direct workspace runs (no input flags) should use the current dataset folder if applicable; otherwise use `active_dataset` from the manifest.
 - When building APA outputs with optional grouping, avoid string-splitting keys that can introduce `NA` groups; instead, iterate over unique `(variable, group)` pairs directly and normalize missing groups.

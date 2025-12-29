@@ -118,6 +118,8 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - The monotonic log counter is stored as `analysis_log_seq` in `nlss-workspace.yml` for each dataset; if `analysis_log.jsonl` is missing, logging restarts at 1.
 - All artifacts (reports, tables, figures, scripts) must be created inside the dataset workspace folder; do not create files or folders outside the workspace root.
 - Subskills do not create separate report files; they only extend `report_canonical.md`. Standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
+- Paths shown in console output and reports default to workspace-relative when inside the workspace root; use absolute paths only when targets are outside the workspace.
+- Mask workspace-external paths in `scratchpad.md`, `report_canonical.md`, and `analysis_log.jsonl` as `<external>/<filename>`; never include full absolute external paths in documentation or logs.
 - The agent logs a meta entry in `analysis_log.jsonl` and each subskill run logs its own entry as usual.
 - Metaskill finalization appends a `# Synopsis` section to `report_canonical.md` via `metaskill-runner --synopsis` and creates `report_<YYYYMMDD>_<metaskill>_<intent>.md` inside the dataset workspace.
 - When `defaults.log_nlss_checksum` is true, log entries include `log_seq` and a `checksum` field that XOR-combines the `nlss/` folder checksum (excluding `assets/` and `scripts/config.yml`) with the entry checksum (content excluding the checksum field), a checksum of the previous complete log line (for line index > 0), and a checksum of `log_seq` (tracked in `nlss-workspace.yml` as `analysis_log_seq`) to create a chain (`checksum_version = 3`).
@@ -191,6 +193,7 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 
 ### Available Metaskills
 
+- guide-installation (planned): Step-by-step installation and setup guide for NLSS in the current environment.
 - [explain-statistics](references/metaskills/explain-statistics.md): Student-friendly explanations of statistical concepts, methods, and interpretations (conversational; no metaskill-runner by default).
 - [describe-sample](references/metaskills/describe-sample.md): Demographic-first sample description via descriptives, frequencies, optional crosstabs/missings.
 - [generate-r-script](references/metaskills/generate-r-script.md): Permissioned custom R script generation for out-of-scope analyses.

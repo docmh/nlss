@@ -18,6 +18,7 @@ source_lib("formatting.R")
 
 
 # Static analysis aliases for source_lib-defined functions.
+render_output_path <- get("render_output_path", mode = "function")
 add_variable_label_column <- get("add_variable_label_column", mode = "function")
 resolve_label_metadata <- get("resolve_label_metadata", mode = "function")
 resolve_row_display <- get("resolve_row_display", mode = "function")
@@ -1280,8 +1281,8 @@ main <- function() {
   }
 
   cat("Wrote:\n")
-  cat("- ", apa_report_path, "\n", sep = "")
-  cat("- ", output_path, "\n", sep = "")
+  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(output_path, out_dir), "\n", sep = "")
 
   log_default <- resolve_config_value("defaults.log", TRUE)
   if (resolve_parse_bool(opts$log, default = log_default)) {
@@ -1297,7 +1298,7 @@ main <- function() {
         indicator_vars = indicator_vars,
         target_map = target_map,
         engine = engine_used,
-        output_path = output_path,
+        output_path = render_output_path(output_path, out_dir),
         backup_path = backup_path,
         skipped_vars = skipped_vars
       ),

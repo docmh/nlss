@@ -17,6 +17,7 @@ source_lib("formatting.R")
 
 
 # Static analysis aliases for source_lib-defined functions.
+render_output_path <- get("render_output_path", mode = "function")
 backup_workspace_parquet <- get("backup_workspace_parquet", mode = "function")
 source_lib <- get("source_lib", mode = "function")
 write_parquet_data <- get("write_parquet_data", mode = "function")
@@ -1125,7 +1126,7 @@ if (resolve_parse_bool(opts$log, default = log_default)) {
     results = list(
       transformed_df = df,
       transform_log_df = log_df,
-      output_path = output_path,
+      output_path = render_output_path(output_path, out_dir),
       backup_path = backup_path
     ),
     options = list(

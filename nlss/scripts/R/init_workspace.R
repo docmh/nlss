@@ -19,6 +19,8 @@ source_lib("formatting.R")
 
 
 # Static analysis aliases for source_lib-defined functions.
+render_log_path <- get("render_log_path", mode = "function")
+render_output_path <- get("render_output_path", mode = "function")
 source_lib <- get("source_lib", mode = "function")
 
 print_usage <- function() {
@@ -388,13 +390,13 @@ format_os_string <- function() {
   R.version$platform
 }
 
-build_env_info <- function(out_dir, agent_override = NULL) {
+build_env_info <- function(out_dir, agent_override = NULL, workspace_root = NULL) {
   created_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
   agent_default <- resolve_agent_default()
   agent <- if (!is.null(agent_override) && nzchar(agent_override)) as.character(agent_override) else agent_default
   list(
     created_at = created_at,
-    workspace_path = normalize_path(out_dir),
+    workspace_path = render_output_path(out_dir, workspace_root = workspace_root),
     os = format_os_string(),
     r_version = R.version.string,
     agent = agent
@@ -564,7 +566,7 @@ build_dataset_section <- function(label, source_path, type_label, rows, columns,
   )
 }
 
-build_dataset_sections <- function(summary_df) {
+build_dataset_sections <- function(summary_df, workspace_root = NULL) {
   if (nrow(summary_df) == 0) {
     return(build_dataset_section(
       "Dataset",
@@ -579,11 +581,11 @@ build_dataset_sections <- function(summary_df) {
     row <- summary_df[i, ]
     build_dataset_section(
       row$dataset,
-      ifelse(is.na(row$source_path), "", row$source_path),
+      ifelse(is.na(row$source_path), "", render_log_path(row$source_path, workspace_root = workspace_root)),
       ifelse(is.na(row$type), "", row$type),
       row$rows,
       row$columns,
-      ifelse(is.na(row$copy_path), "", row$copy_path)
+      ifelse(is.na(row$copy_path), "", render_log_path(row$copy_path, workspace_root = workspace_root))
     )
   }, character(1))
   paste(sections, collapse = "\n\n")
@@ -620,7 +622,7 @@ build_output_targets <- function(summary_df, workspace_root) {
   targets
 }
 
-build_workspace_table_body <- function(summary_df, table_meta) {
+build_workspace_table_body <- function(summary_df, table_meta, workspace_root = NULL) {
   default_specs <- list(
     list(key = "dataset", label = "Dataset", drop_if_empty = FALSE),
     list(key = "type", label = "Type", drop_if_empty = FALSE),
@@ -649,8 +651,8 @@ build_workspace_table_body <- function(summary_df, table_meta) {
       type = row$type,
       rows = row$rows,
       columns = row$columns,
-      source_path = row$source_path,
-      copy_path = row$copy_path
+      source_path = render_log_path(row$source_path, workspace_root = workspace_root),
+      copy_path = render_log_path(row$copy_path, workspace_root = workspace_root)
     )
     row_cells <- lapply(columns, function(col) {
       resolve_as_cell_text(row_map[[col$key]])
@@ -740,7 +742,7 @@ log_default <- resolve_config_value("defaults.log", TRUE)
 ctx <- resolve_get_run_context()
 
 for (target in targets) {
-  env_info <- build_env_info(target$out_dir, opts$agent)
+  env_info <- build_env_info(target$out_dir, opts$agent, workspace_root = workspace_root)
   yaml_front_matter <- build_yaml_front_matter(env_info)
   dataset_labels <- target$dataset_labels
 
@@ -752,7 +754,7 @@ for (target in targets) {
       os = env_info$os,
       r_version = env_info$r_version,
       agent = env_info$agent,
-      dataset_sections = build_dataset_sections(target$summary_df)
+      dataset_sections = build_dataset_sections(target$summary_df, workspace_root = workspace_root)
     )
   )
   scratchpad_path <- file.path(target$out_dir, "scratchpad.md")
@@ -760,7 +762,7 @@ for (target in targets) {
   writeLines(scratchpad_text, scratchpad_con)
   close(scratchpad_con)
 
-  table_result <- build_workspace_table_body(target$summary_df, template_meta$table)
+  table_result <- build_workspace_table_body(target$summary_df, template_meta$table, workspace_root = workspace_root)
   note_text <- if (nrow(target$summary_df) == 0) {
     "No datasets provided; workspace created without data copies."
   } else {
@@ -798,6 +800,19 @@ for (target in targets) {
   )
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
+    rendered_summary <- target$summary_df
+    if (nrow(rendered_summary) > 0) {
+      rendered_summary$source_path <- vapply(
+        rendered_summary$source_path,
+        function(p) render_output_path(p, workspace_root = workspace_root),
+        character(1)
+      )
+      rendered_summary$copy_path <- vapply(
+        rendered_summary$copy_path,
+        function(p) render_output_path(p, workspace_root = workspace_root),
+        character(1)
+      )
+    }
     resolve_append_analysis_log(
       target$out_dir,
       module = "init_workspace",
@@ -805,9 +820,9 @@ for (target in targets) {
       commands = ctx$commands,
       results = list(
         workspace_dir = env_info$workspace_path,
-        scratchpad_path = normalize_path(scratchpad_path),
-        apa_report_path = normalize_path(file.path(target$out_dir, "report_canonical.md")),
-        datasets = target$summary_df
+        scratchpad_path = render_output_path(scratchpad_path, workspace_root = workspace_root),
+        apa_report_path = render_output_path(file.path(target$out_dir, "report_canonical.md"), workspace_root = workspace_root),
+        datasets = rendered_summary
       ),
       options = list(
         csv = parse_paths(opts$csv),

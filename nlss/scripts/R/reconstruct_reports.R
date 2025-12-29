@@ -15,6 +15,7 @@ source_lib("io.R")
 
 
 # Static analysis aliases for source_lib-defined functions.
+render_output_path <- get("render_output_path", mode = "function")
 normalize_input_path <- get("normalize_input_path", mode = "function")
 ensure_out_dir <- get("ensure_out_dir", mode = "function")
 sanitize_file_component <- get("sanitize_file_component", mode = "function")
@@ -297,7 +298,7 @@ if (block_count == 0L) {
 }
 
 cat("Wrote:\n")
-cat("- ", out_report, "\n", sep = "")
+cat("- ", render_output_path(out_report, out_dir), "\n", sep = "")
 if (metaskill_reports > 0L) {
   cat("Metaskill reports: ", metaskill_reports, "\n", sep = "")
 }
