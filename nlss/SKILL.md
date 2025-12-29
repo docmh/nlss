@@ -212,6 +212,7 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 
 ## Utilities
 
+- [apa7-markdown](references/utilities/apa7-markdown.md): APA 7 formatting rules that can be expressed in Markdown (headings, citations, references, tables, figures).
 - [calc](references/utilities/calc.md): Safe numeric expression calculator for quick parameter derivations (plain/json/csv output).
 - [check-integrity](references/utilities/check-integrity.md): Recover XOR-based NLSS checksums from analysis_log.jsonl entries to spot inconsistencies.
 - [reconstruct-reports](references/utilities/reconstruct-reports.md): Rebuild canonical and metaskill reports from compressed report_block entries in analysis_log.jsonl.

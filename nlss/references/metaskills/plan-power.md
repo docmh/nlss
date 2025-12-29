@@ -32,7 +32,7 @@ Use this metaskill when the user asks for minimal sample size or power planning,
 5. Ask clarifying questions to finalize analysis family, effect size assumptions, alpha, power, and design details.
 6. Write a plan to `scratchpad.md`, then execute the `power` subskill (optionally estimating effect size from pilot data).
 7. Update `scratchpad.md` with decisions and completion notes.
-8. Generate `report_<YYYYMMDD>_plan-power_<intent>.md` first, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+8. Generate `report_<YYYYMMDD>_plan-power_<intent>.md` first, align it with `nlss/references/utilities/apa7-markdown.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-run)
 
@@ -95,6 +95,7 @@ optional:
 
 update scratchpad.md with decisions and completion
 write report_<YYYYMMDD>_plan-power_<intent>.md
+align report_<YYYYMMDD>_plan-power_<intent>.md with nlss/references/utilities/apa7-markdown.md
 run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
@@ -129,6 +130,7 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 ## Finalization
 
 - Write `report_<YYYYMMDD>_plan-power_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
+- Align the report with `nlss/references/utilities/apa7-markdown.md` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## APA 7 Templates

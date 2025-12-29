@@ -21,7 +21,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 4. Parse hypotheses and ask clarifying questions for each H (variables, direction, design).
 5. Write a plan to `scratchpad.md`, then execute subskills in order.
 6. Update `scratchpad.md` with decisions, assumptions checks, and completion notes.
-7. Generate `report_<YYYYMMDD>_test-hypotheses_<intent>.md` first, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+7. Generate `report_<YYYYMMDD>_test-hypotheses_<intent>.md` first, align it with `nlss/references/utilities/apa7-markdown.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-run)
 
@@ -84,6 +84,7 @@ optional:
 
 update scratchpad.md with results summary and decisions
 write report_<YYYYMMDD>_test-hypotheses_<intent>.md
+align report_<YYYYMMDD>_test-hypotheses_<intent>.md with nlss/references/utilities/apa7-markdown.md
 run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
@@ -116,6 +117,7 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 ## Finalization
 
 - Write `report_<YYYYMMDD>_test-hypotheses_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
+- Align the report with `nlss/references/utilities/apa7-markdown.md` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## APA 7 Templates

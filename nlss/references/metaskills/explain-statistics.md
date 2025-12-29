@@ -89,7 +89,7 @@ if the user asks for an actual analysis:
 ## Finalization
 
 - No finalization step is required for conversational use.
-- If a formal report is requested, write `report_<YYYYMMDD>_explain-statistics_<intent>.md` (ASCII slug for `<intent>`) and append a brief `# Synopsis` to `report_canonical.md` manually (no `metaskill-runner`).
+- If a formal report is requested, write `report_<YYYYMMDD>_explain-statistics_<intent>.md` (ASCII slug for `<intent>`), align it with `nlss/references/utilities/apa7-markdown.md`, then append a brief `# Synopsis` to `report_canonical.md` manually (no `metaskill-runner`).
 
 ## APA 7 Templates
 

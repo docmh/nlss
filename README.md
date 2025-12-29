@@ -152,6 +152,7 @@ Available metaskills:
 - `test-hypotheses`: `nlss/references/metaskills/test-hypotheses.md`
 
 Utilities:
+- `apa7-markdown`: `nlss/references/utilities/apa7-markdown.md`
 - `calc`: `nlss/references/utilities/calc.md`
 - `check-integrity`: `nlss/references/utilities/check-integrity.md`
 - `reconstruct-reports`: `nlss/references/utilities/reconstruct-reports.md`
