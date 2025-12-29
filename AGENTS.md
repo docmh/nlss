@@ -120,7 +120,7 @@ New subskills should use the YAML template system for `report_canonical.md`:
 
 - Use `outputs/tests/tests.yml` `tests.*` as the source of truth for test planning and execution, including all paths.
 - Use `tests.scripts.harness_unix` or `tests.scripts.harness_windows` for suite runs; these harnesses call `tests.scripts.smoke_unix` and `tests.scripts.deliberate_unix` as defined in `outputs/tests/tests.yml`.
-- `tests.scripts.harness_windows` (PowerShell) forces Windows R (`NLSS_SKIP_WSL=1`) and uses Git Bash to run the Unix harness for smoke/deliberate/all; `-ForceWindows` runs a smoke-only Windows-native path. WSL is not used.
+- `tests.scripts.harness_windows` (PowerShell) uses Windows `Rscript` and Git Bash to run the Unix harness for smoke/deliberate/all; `-ForceWindows` runs a smoke-only Windows-native path. WSL is not used.
 - Test runners require Python available as `python3` or `python` (or set `PYTHON_BIN`); `cmdscripts/tests.ps1` will prepend a detected Python install to `PATH` and set `PYTHON_BIN=python` when available.
 - Keep smoke suite behavior and output folder layout aligned between `cmdscripts/tests.ps1` and `cmdscripts/tests.sh` so Windows and Unix runs are comparable.
 - Keep test assets and scripts under `tests.data_dir` and use `tests.golden_dataset` as the standard dataset for smoke and module-specific tests.
