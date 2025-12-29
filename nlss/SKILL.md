@@ -193,8 +193,9 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 
 ### Available Metaskills
 
-- guide-installation (planned): Step-by-step installation and setup guide for NLSS in the current environment.
+- guide-installation (planned): Step-by-step installation and setup guide for NLSS in the current environment (conversational; no metaskill-runner by default).
 - [explain-statistics](references/metaskills/explain-statistics.md): Student-friendly explanations of statistical concepts, methods, and interpretations (conversational; no metaskill-runner by default).
+- explain-results (planned): Interpret analysis results in context, covering effect sizes, significance, assumptions, and limitations (conversational; no metaskill-runner by default).
 - [describe-sample](references/metaskills/describe-sample.md): Demographic-first sample description via descriptives, frequencies, optional crosstabs/missings.
 - [generate-r-script](references/metaskills/generate-r-script.md): Permissioned custom R script generation for out-of-scope analyses.
 - [check-instruments](references/metaskills/check-instruments.md): Item inspection, reverse scoring, scale reliability (alpha/omega) and ICC/kappa/test-retest.
