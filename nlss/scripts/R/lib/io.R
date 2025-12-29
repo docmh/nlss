@@ -798,13 +798,14 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
   if (!is.null(checksum) && !is.null(checksum$value) && nzchar(checksum$value)) {
     entry$checksum_version <- 3
     log_seq_value <- NULL
-    if (!is.null(manifest) && nzchar(workspace_root)) {
+    log_missing <- !file.exists(log_path)
+    if (!log_missing && !is.null(manifest) && nzchar(workspace_root)) {
       log_seq_value <- resolve_manifest_log_seq(manifest, out_dir, workspace_root)
     }
-    if (is.null(log_seq_value) && file.exists(log_path)) {
+    if (!log_missing && is.null(log_seq_value)) {
       log_seq_value <- read_last_log_seq_value(log_path)
     }
-    if (is.null(log_seq_value) || is.na(log_seq_value) || log_seq_value < 0) {
+    if (log_missing || is.null(log_seq_value) || is.na(log_seq_value) || log_seq_value < 0) {
       log_seq_value <- 0L
     }
     log_seq <- as.integer(log_seq_value) + 1L

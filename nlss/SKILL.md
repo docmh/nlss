@@ -147,7 +147,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - Use the workspace root in the current directory, its parent, or a one-level child if `nlss-workspace.yml` is present; otherwise fall back to `defaults.output_dir` from `scripts/config.yml`.
 - The output directory is fixed to the resolved workspace root and is not user-overridable.
 - Each analysis appends `report_canonical.md` (APA table + narrative) and `analysis_log.jsonl` inside `<workspace-root>/<dataset-name>/` when logging is enabled.
-- The monotonic log counter is stored as `analysis_log_seq` in `nlss-workspace.yml` for each dataset.
+- The monotonic log counter is stored as `analysis_log_seq` in `nlss-workspace.yml` for each dataset; if `analysis_log.jsonl` is missing, logging restarts at 1.
 - All artifacts (reports, tables, figures, scripts) must be created inside the dataset workspace folder; do not create files or folders outside the workspace root.
 - Subskills do not create separate report files; they only extend `report_canonical.md`. Standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 - The agent logs a meta entry in `analysis_log.jsonl` and each subskill run logs its own entry as usual.

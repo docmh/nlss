@@ -50,7 +50,7 @@ If you are on Windows, ensure `Rscript.exe` is on your PATH or set `RSCRIPT` to 
 
 ## Quick start
 
-Outputs always go to the dataset workspace at `<workspace-root>/<dataset-name>/` and are not user-overridable. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml`; if no manifest is present, scripts fall back to `defaults.output_dir` in `nlss/scripts/config.yml`. Each run writes `report_canonical.md` and, when logging is enabled, appends to `analysis_log.jsonl` inside that dataset folder (the monotonic log counter is stored in `nlss-workspace.yml` as `analysis_log_seq`).
+Outputs always go to the dataset workspace at `<workspace-root>/<dataset-name>/` and are not user-overridable. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml`; if no manifest is present, scripts fall back to `defaults.output_dir` in `nlss/scripts/config.yml`. Each run writes `report_canonical.md` and, when logging is enabled, appends to `analysis_log.jsonl` inside that dataset folder (the monotonic log counter is stored in `nlss-workspace.yml` as `analysis_log_seq`; if `analysis_log.jsonl` is missing, the counter restarts at 1).
 
 ### Windows (PowerShell wrapper; WSL first, Windows fallback)
 

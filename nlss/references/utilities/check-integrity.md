@@ -51,7 +51,7 @@ Rscript <path to scripts/R/check_integrity.R> <path to analysis_log.jsonl>
 - Ignores lines without a `checksum` field or invalid JSON.
 - Reconstructs the NLSS checksum by XOR-reverting each entry checksum; when `checksum_version` is 2, it also XOR-reverts the checksum of the previous complete log line to preserve chain integrity; when `checksum_version` is 3, it additionally XOR-reverts the checksum of `log_seq`.
 - The NLSS checksum excludes `nlss/assets/` templates and `nlss/scripts/config.yml`, so template/config edits do not change the recovered checksum.
-- `log_seq` is stored in each entry and tracked in `nlss-workspace.yml` as `analysis_log_seq` so deletions do not reset the counter.
+- `log_seq` is stored in each entry and tracked in `nlss-workspace.yml` as `analysis_log_seq`; if `analysis_log.jsonl` is missing, the sequence restarts at 1.
 - Prints each recovered checksum plus its count to stdout.
 - Prints `No checksum entries found.` if no valid checksums are present.
 - Emits a warning to stderr if multiple different recovered checksums are found.
