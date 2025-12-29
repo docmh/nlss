@@ -248,6 +248,9 @@ for (idx in seq_along(lines)) {
     con <- file(report_path, open = "w", encoding = "UTF-8")
     cat(metaskill_block, file = con, sep = "")
     close(con)
+    if (exists("ensure_output_front_matter", mode = "function")) {
+      get("ensure_output_front_matter", mode = "function")(report_path)
+    }
     metaskill_reports <- metaskill_reports + 1L
     next
   }
@@ -287,6 +290,9 @@ for (idx in seq_along(lines)) {
     con <- file(report_path, open = "w", encoding = "UTF-8")
     cat(metaskill_block, file = con, sep = "")
     close(con)
+    if (exists("ensure_output_front_matter", mode = "function")) {
+      get("ensure_output_front_matter", mode = "function")(report_path)
+    }
     metaskill_reports <- metaskill_reports + 1L
   }
 }
@@ -295,6 +301,11 @@ if (block_count == 0L) {
   unlink(out_report)
   cat("No report_block entries found; older logs are not supported.\n", file = stderr())
   quit(status = 2)
+}
+
+if (isOpen(report_con)) close(report_con)
+if (exists("ensure_output_front_matter", mode = "function")) {
+  get("ensure_output_front_matter", mode = "function")(out_report)
 }
 
 cat("Wrote:\n")

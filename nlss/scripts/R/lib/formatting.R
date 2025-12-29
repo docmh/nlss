@@ -851,11 +851,20 @@ append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysi
     table_start = table_start,
     template_context = template_context
   )
+  if (exists("ensure_output_front_matter", mode = "function")) {
+    get("ensure_output_front_matter", mode = "function")(path)
+  }
+  has_body <- FALSE
   if (file.exists(path)) {
-    info <- file.info(path)
-    if (!is.na(info$size) && info$size > 0) {
-      report <- paste0("\n\n---\n\n", report)
+    if (exists("report_has_body", mode = "function")) {
+      has_body <- get("report_has_body", mode = "function")(path)
+    } else {
+      info <- file.info(path)
+      has_body <- !is.na(info$size) && info$size > 0
     }
+  }
+  if (has_body) {
+    report <- paste0("\n\n---\n\n", report)
   }
   con <- file(path, open = "a", encoding = "UTF-8")
   on.exit(close(con), add = TRUE)
@@ -879,11 +888,20 @@ append_apa_figure_report <- function(path, analysis_label, figure_body, analysis
     figure_number = figure_number,
     template_context = template_context
   )
+  if (exists("ensure_output_front_matter", mode = "function")) {
+    get("ensure_output_front_matter", mode = "function")(path)
+  }
+  has_body <- FALSE
   if (file.exists(path)) {
-    info <- file.info(path)
-    if (!is.na(info$size) && info$size > 0) {
-      report <- paste0("\n\n---\n\n", report)
+    if (exists("report_has_body", mode = "function")) {
+      has_body <- get("report_has_body", mode = "function")(path)
+    } else {
+      info <- file.info(path)
+      has_body <- !is.na(info$size) && info$size > 0
     }
+  }
+  if (has_body) {
+    report <- paste0("\n\n---\n\n", report)
   }
   con <- file(path, open = "a", encoding = "UTF-8")
   on.exit(close(con), add = TRUE)

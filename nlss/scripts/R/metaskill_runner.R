@@ -524,6 +524,9 @@ if (is_finalization_phase(phase)) {
   existing_paths <- expected_paths[file.exists(expected_paths)]
   if (length(existing_paths) > 0) {
     metaskill_report_path <- existing_paths[1]
+    if (exists("ensure_output_front_matter", mode = "function")) {
+      get("ensure_output_front_matter", mode = "function")(metaskill_report_path)
+    }
   }
 }
 

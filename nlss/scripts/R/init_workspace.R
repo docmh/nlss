@@ -375,6 +375,7 @@ build_yaml_front_matter <- function(info) {
     paste0("os: \"", escape_yaml_value(info$os), "\""),
     paste0("r_version: \"", escape_yaml_value(info$r_version), "\""),
     paste0("agent: \"", escape_yaml_value(info$agent), "\""),
+    paste0("nlss_version: \"", escape_yaml_value(info$nlss_version), "\""),
     "---"
   )
   paste(lines, collapse = "\n")
@@ -394,12 +395,18 @@ build_env_info <- function(out_dir, agent_override = NULL, workspace_root = NULL
   created_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
   agent_default <- resolve_agent_default()
   agent <- if (!is.null(agent_override) && nzchar(agent_override)) as.character(agent_override) else agent_default
+  nlss_version <- ""
+  if (exists("get_nlss_version", mode = "function")) {
+    nlss_version <- get("get_nlss_version", mode = "function")()
+  }
+  if (is.na(nlss_version)) nlss_version <- ""
   list(
     created_at = created_at,
     workspace_path = render_output_path(out_dir, workspace_root = workspace_root),
     os = format_os_string(),
     r_version = R.version.string,
-    agent = agent
+    agent = agent,
+    nlss_version = nlss_version
   )
 }
 
@@ -754,6 +761,7 @@ for (target in targets) {
       os = env_info$os,
       r_version = env_info$r_version,
       agent = env_info$agent,
+      nlss_version = env_info$nlss_version,
       dataset_sections = build_dataset_sections(target$summary_df, workspace_root = workspace_root)
     )
   )
@@ -782,6 +790,7 @@ for (target in targets) {
       os = env_info$os,
       r_version = env_info$r_version,
       agent = env_info$agent,
+      nlss_version = env_info$nlss_version,
       dataset_count = as.character(length(dataset_labels)),
       dataset_list = if (length(dataset_labels) == 0) "None" else paste(dataset_labels, collapse = ", "),
       table_body = table_result$body,

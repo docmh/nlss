@@ -902,9 +902,117 @@ get_nlss_version <- function() {
   }
   path <- resolve_nlss_skill_path()
   version <- extract_metadata_version(read_nlss_frontmatter(path))
+  if (!nzchar(version)) {
+    config_version <- NULL
+    if (exists("get_config_value", mode = "function")) {
+      config_version <- get("get_config_value", mode = "function")("nlss_version", NULL)
+    }
+    if (!is.null(config_version) && nzchar(config_version)) {
+      version <- as.character(config_version)
+    }
+  }
   if (!nzchar(version)) version <- NA_character_
   nlss_log_cache$nlss_version <- version
   version
+}
+
+resolve_agent_default <- function() {
+  config_agent <- NULL
+  if (exists("get_config_value", mode = "function")) {
+    config_agent <- get("get_config_value", mode = "function")("modules.init_workspace.agent", NULL)
+  }
+  if (!is.null(config_agent) && nzchar(config_agent)) return(as.character(config_agent))
+  env_agent <- Sys.getenv("CODEX_AGENT", unset = "")
+  if (nzchar(env_agent)) return(env_agent)
+  "Codex"
+}
+
+escape_yaml_value <- function(value) {
+  if (is.null(value)) return("")
+  val <- as.character(value)
+  gsub("\"", "\\\\\"", val)
+}
+
+find_frontmatter_end <- function(lines) {
+  if (length(lines) < 2) return(0)
+  if (trimws(lines[1]) != "---") return(0)
+  end_idx <- which(trimws(lines[-1]) %in% c("---", "..."))
+  if (length(end_idx) == 0) return(0)
+  end_idx[1] + 1
+}
+
+build_output_front_matter <- function(path, workspace_root = NULL, agent = NULL, created_at = NULL) {
+  if (is.null(created_at) || !nzchar(created_at)) {
+    created_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
+  }
+  if (is.null(agent) || !nzchar(agent)) {
+    agent <- resolve_agent_default()
+  }
+  nlss_version <- get_nlss_version()
+  if (is.na(nlss_version)) nlss_version <- ""
+  resolved_root <- workspace_root
+  if (is.null(resolved_root) || !nzchar(resolved_root)) {
+    resolved_root <- resolve_workspace_root(dirname(path))
+  }
+  output_path <- render_log_path(path, workspace_root = resolved_root)
+  lines <- c(
+    "---",
+    paste0("created_at: \"", escape_yaml_value(created_at), "\""),
+    paste0("path: \"", escape_yaml_value(output_path), "\""),
+    paste0("os: \"", escape_yaml_value(format_log_os_string()), "\""),
+    paste0("r_version: \"", escape_yaml_value(R.version.string), "\""),
+    paste0("agent: \"", escape_yaml_value(agent), "\""),
+    paste0("nlss_version: \"", escape_yaml_value(nlss_version), "\""),
+    "---"
+  )
+  paste(lines, collapse = "\n")
+}
+
+report_has_body <- function(path) {
+  if (is.null(path) || !nzchar(path) || !file.exists(path)) return(FALSE)
+  lines <- readLines(path, warn = FALSE)
+  if (length(lines) == 0) return(FALSE)
+  end_line <- find_frontmatter_end(lines)
+  if (end_line == 0) return(any(nzchar(trimws(lines))))
+  if (end_line >= length(lines)) return(FALSE)
+  any(nzchar(trimws(lines[(end_line + 1):length(lines)])))
+}
+
+ensure_output_front_matter <- function(path, workspace_root = NULL, agent = NULL, created_at = NULL) {
+  if (is.null(path) || !nzchar(path)) return(invisible(FALSE))
+  front_matter <- build_output_front_matter(path, workspace_root = workspace_root, agent = agent, created_at = created_at)
+  front_lines <- strsplit(front_matter, "\n", fixed = TRUE)[[1]]
+  if (!file.exists(path)) {
+    con <- file(path, open = "w", encoding = "UTF-8")
+    on.exit(close(con), add = TRUE)
+    writeLines(c(front_lines, ""), con)
+    return(invisible(TRUE))
+  }
+  lines <- readLines(path, warn = FALSE)
+  if (length(lines) == 0) {
+    con <- file(path, open = "w", encoding = "UTF-8")
+    on.exit(close(con), add = TRUE)
+    writeLines(c(front_lines, ""), con)
+    return(invisible(TRUE))
+  }
+  end_line <- find_frontmatter_end(lines)
+  if (end_line == 0) {
+    con <- file(path, open = "w", encoding = "UTF-8")
+    on.exit(close(con), add = TRUE)
+    writeLines(c(front_lines, "", lines), con)
+    return(invisible(TRUE))
+  }
+  front_section <- if (end_line > 1) lines[2:(end_line - 1)] else character(0)
+  if (!any(grepl("^\\s*nlss_version\\s*:", front_section))) {
+    nlss_version <- get_nlss_version()
+    if (is.na(nlss_version)) nlss_version <- ""
+    insert_line <- paste0("nlss_version: \"", escape_yaml_value(nlss_version), "\"")
+    lines <- c(lines[1:(end_line - 1)], insert_line, lines[end_line:length(lines)])
+    con <- file(path, open = "w", encoding = "UTF-8")
+    on.exit(close(con), add = TRUE)
+    writeLines(lines, con)
+  }
+  invisible(TRUE)
 }
 
 format_log_os_string <- function() {

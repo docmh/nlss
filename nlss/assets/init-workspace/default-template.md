@@ -25,7 +25,6 @@ note:
 narrative:
   template: "{{narrative_default}}"
 ---
-{{yaml_front_matter}}
 # {{title}}
 
 Analysis:

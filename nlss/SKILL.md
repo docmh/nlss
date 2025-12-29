@@ -197,18 +197,18 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 
 ### Available Metaskills
 
-- guide-installation (planned): Step-by-step installation and setup guide for NLSS in the current environment (conversational; no metaskill-runner by default).
 - [explain-statistics](references/metaskills/explain-statistics.md): Student-friendly explanations of statistical concepts, methods, and interpretations (conversational; no metaskill-runner by default).
 - explain-results (planned): Interpret analysis results in context, covering effect sizes, significance, assumptions, and limitations (conversational; no metaskill-runner by default).
-- [describe-sample](references/metaskills/describe-sample.md): Demographic-first sample description via descriptives, frequencies, optional crosstabs/missings.
-- [generate-r-script](references/metaskills/generate-r-script.md): Permissioned custom R script generation for out-of-scope analyses.
-- [check-instruments](references/metaskills/check-instruments.md): Item inspection, reverse scoring, scale reliability (alpha/omega) and ICC/kappa/test-retest.
-- [test-hypotheses](references/metaskills/test-hypotheses.md): Clarify hypotheses, select/run tests, include assumptions checks, produce APA-ready report.
 - [plan-power](references/metaskills/plan-power.md): A priori power/sample-size planning with effect-size clarification or pilot estimation.
 - [explore-data](references/metaskills/explore-data.md): Dataset overview with data dictionary, missingness, distributions, correlations, optional plots.
+- [describe-sample](references/metaskills/describe-sample.md): Demographic-first sample description via descriptives, frequencies, optional crosstabs/missings.
+- [check-instruments](references/metaskills/check-instruments.md): Item inspection, reverse scoring, scale reliability (alpha/omega) and ICC/kappa/test-retest.
+- screen-data (planned): Data screening for outliers, normality, linearity, homoscedasticity with recommendations.
 - [prepare-data](references/metaskills/prepare-data.md): Data cleaning and preparation with missingness handling, recodes/transforms, imputation, documented changes.
 - check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression, mixed models, SEM).
+- [test-hypotheses](references/metaskills/test-hypotheses.md): Clarify hypotheses, select/run tests, include assumptions checks, produce APA-ready report.
 - full-analysis (planned): End-to-end workflow from exploration through hypothesis testing with full reporting.
+- [generate-r-script](references/metaskills/generate-r-script.md): Permissioned custom R script generation for out-of-scope analyses.
 
 ## Utilities
 
