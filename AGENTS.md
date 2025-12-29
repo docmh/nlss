@@ -23,7 +23,7 @@ Metaskills are Markdown pseudoscripts executed by the agent (there is no separat
 - Prefer NLSS subskills whenever they cover the request; only use `generate-r-script` as a last resort when the analysis is out of scope and explicit permission is granted.
 - Log metaskill activation using the `metaskill-runner` subskill (pass `--meta <name>` and optional `--intent`).
 - Execute the referenced subskills in order, using the workspace parquet copy and standard logging.
-- On completion, log metaskill finalization (use `metaskill-runner --phase finalization`), append a `# Synopsis` section to `report_canonical.md`, and generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` with APA 7-ready, journal-ready narrative, tables, and plots when helpful (use `YYYYMMDD` and an ASCII slug for `<intent>`).
+- On completion, generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` first (APA 7-ready, journal-ready narrative, tables, and plots when helpful; use `YYYYMMDD` and an ASCII slug for `<intent>`), then log metaskill finalization with `metaskill-runner --phase finalization --synopsis "<text>"` so a `# Synopsis` section is appended to `report_canonical.md`. The runner should fail if the metaskill report is missing.
 
 ### Metaskill Spec Content
 
@@ -34,7 +34,7 @@ Include the following sections in each metaskill Markdown file:
 - **Inputs/Clarifications**: Required inputs and the clarifying questions to ask.
 - **Procedure**: Ordered steps, referencing the subskills to run and any flags.
 - **Outputs**: `report_canonical.md`, `analysis_log.jsonl`, and scratchpad updates.
-- **Finalization**: Logging completion, adding a `# Synopsis` to `report_canonical.md`, and generating the `report_<YYYYMMDD>_<metaskill>_<intent>.md` file.
+- **Finalization**: Generate the `report_<YYYYMMDD>_<metaskill>_<intent>.md` file first, then log completion with `metaskill-runner --synopsis "<text>"` to add a `# Synopsis` to `report_canonical.md` (finalization should fail if the report is missing).
 
 ### <metaskill-name>.md expectations
 
@@ -43,8 +43,8 @@ Include the following sections in each metaskill Markdown file:
 - Describe the ordered subskills to run and any default flags/decision rules, using a procedural or pseudocode-style outline when helpful.
 - Explain how the metaskill updates `scratchpad.md` (plan + progress + decisions).
 - Note that activation should be logged via `metaskill-runner`.
-- Mention outputs (`report_canonical.md`, `analysis_log.jsonl`, and `report_<YYYYMMDD>_<metaskill>_<intent>.md`) and workspace location rules (use `YYYYMMDD` and an ASCII slug for `<intent>`).
-- Require a finalization log entry plus a `# Synopsis` appended to `report_canonical.md`.
+- Mention outputs (`report_canonical.md`, `analysis_log.jsonl`, and `report_<YYYYMMDD>_<metaskill>_<intent>.md`) and workspace location rules (use `YYYYMMDD` and an ASCII slug for `<intent>`), and note that the report must exist before finalization.
+- Require a finalization log entry plus a `# Synopsis` appended to `report_canonical.md` via `metaskill-runner --synopsis` after the metaskill report is created.
 - Require the final report to be APA 7-ready and suitable for journal submission when possible.
 
 ### Add metaskill entries

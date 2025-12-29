@@ -21,7 +21,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 4. Parse hypotheses and ask clarifying questions for each H (variables, direction, design).
 5. Write a plan to `scratchpad.md`, then execute subskills in order.
 6. Update `scratchpad.md` with decisions, assumptions checks, and completion notes.
-7. Log finalization, append a `# Synopsis` to `report_canonical.md`, and generate `report_<YYYYMMDD>_test-hypotheses_<intent>.md`.
+7. Generate `report_<YYYYMMDD>_test-hypotheses_<intent>.md` first, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-run)
 
@@ -89,8 +89,8 @@ optional:
   run correlations among composite scores if needed
 
 update scratchpad.md with results summary and decisions
-append # Synopsis to report_canonical.md and write report_<YYYYMMDD>_test-hypotheses_<intent>.md
-log metaskill finalization with metaskill-runner --phase finalization
+write report_<YYYYMMDD>_test-hypotheses_<intent>.md
+run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
 ## Default Rules and Decision Logic
@@ -102,7 +102,7 @@ log metaskill finalization with metaskill-runner --phase finalization
 
 ## Outputs
 
-- `report_canonical.md`: APA-ready outputs from the selected subskills (t-tests, ANOVA, regression, correlations, SEM, etc.) plus a final `# Synopsis`.
+- `report_canonical.md`: APA-ready outputs from the selected subskills (t-tests, ANOVA, regression, correlations, SEM, etc.) plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
 - `scratchpad.md`: Hypothesis clarifications, plan, assumptions, and completion notes.
 - `report_<YYYYMMDD>_test-hypotheses_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
@@ -119,12 +119,17 @@ log metaskill finalization with metaskill-runner --phase finalization
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
 All artifacts (reports, tables, figures) must be created inside the dataset workspace folder; do not write outside the workspace root.
 
+## Finalization
+
+- Write `report_<YYYYMMDD>_test-hypotheses_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
+- Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
+
 ## APA 7 Templates
 
 This metaskill does not define its own APA template. It relies on the templates configured for the subskills it invokes:
 
 - `t-test`, `anova`, `nonparametric`, `regression`, `correlations`, `mixed-models`, `sem`, and `assumptions`.
-- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation/finalization logging.
+- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation and `nlss/assets/metaskill-runner/finalization-template.md` for finalization logging.
 
 ## APA 7 Reporting Guidance
 

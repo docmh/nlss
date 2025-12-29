@@ -69,8 +69,8 @@ generate R script using state-of-the-art methods:
 
 save script to <workspace-root>/<dataset-name>/scripts/custom_<YYYYMMDD>_<intent>.R
 update scratchpad.md with script path and rationale
-append # Synopsis to report_canonical.md and write report_<YYYYMMDD>_generate-r-script_<intent>.md
-log metaskill finalization with metaskill-runner --phase finalization
+write report_<YYYYMMDD>_generate-r-script_<intent>.md
+run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
 ## Default Rules and Decision Logic
@@ -97,7 +97,7 @@ Include the following where applicable:
 
 - `analysis_log.jsonl`: Metaskill activation and finalization entries via `metaskill-runner`.
 - `scratchpad.md`: Plan, clarifications, and the saved script path.
-- `report_canonical.md`: Includes a final `# Synopsis` describing the generated script and rationale.
+- `report_canonical.md`: Includes a final `# Synopsis` describing the generated script and rationale (via `metaskill-runner --synopsis`).
 - `scripts/custom_<YYYYMMDD>_<intent>.R`: The generated script in the dataset workspace folder.
 - `report_<YYYYMMDD>_generate-r-script_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
@@ -112,6 +112,11 @@ Include the following where applicable:
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
 All artifacts (reports, tables, figures, scripts) must be created inside the dataset workspace folder; do not write outside the workspace root.
+
+## Finalization
+
+- Write `report_<YYYYMMDD>_generate-r-script_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
+- Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## APA 7 Templates
 

@@ -401,7 +401,8 @@ get_builtin_config <- function() {
         default = "metaskills/report-template.md"
       ),
       metaskill_runner = list(
-        default = "metaskill-runner/default-template.md"
+        default = "metaskill-runner/default-template.md",
+        finalization = "metaskill-runner/finalization-template.md"
       ),
       calc = list(
         default = "calc/default-template.md"

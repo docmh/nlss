@@ -860,6 +860,9 @@ append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysi
   con <- file(path, open = "a", encoding = "UTF-8")
   on.exit(close(con), add = TRUE)
   cat(report, file = con, sep = "")
+  if (exists("record_report_block", mode = "function")) {
+    get("record_report_block", mode = "function")(report)
+  }
 }
 
 append_apa_figure_report <- function(path, analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, template_context = NULL, figure_start = NULL) {
@@ -885,4 +888,7 @@ append_apa_figure_report <- function(path, analysis_label, figure_body, analysis
   con <- file(path, open = "a", encoding = "UTF-8")
   on.exit(close(con), add = TRUE)
   cat(report, file = con, sep = "")
+  if (exists("record_report_block", mode = "function")) {
+    get("record_report_block", mode = "function")(report)
+  }
 }

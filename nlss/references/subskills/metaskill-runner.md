@@ -19,8 +19,9 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, SAV, or workspace).
 2. Provide the metaskill name (`--meta`), optional phase (`--phase`), and optional intent/notes.
-3. Run `scripts/R/metaskill_runner.R` (or the PowerShell wrapper on Windows).
-4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to confirm the activation/finalization log entry.
+3. Ensure the metaskill report `report_<YYYYMMDD>_<metaskill>_<intent>.md` exists before finalization; the runner will fail if it is missing.
+4. Run `scripts/R/metaskill_runner.R` (or the PowerShell wrapper on Windows).
+5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to confirm the activation/finalization log entry.
 
 ## Script: `scripts/R/metaskill_runner.R`
 
@@ -57,6 +58,7 @@ Rscript <path to scripts/R/metaskill_runner.R> --interactive
 - `--phase` records the metaskill phase (for example `activation` or `finalization`; optional).
 - `--intent` records a short intent summary (optional).
 - `--notes` records free-form notes (optional).
+- `--synopsis` includes a synopsis section in the finalization report (optional).
 - `--label` overrides the analysis label in the APA report (default: `modules.metaskill_runner.analysis_label`).
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--template` selects a template key or file path for APA outputs (falls back to defaults).
@@ -70,19 +72,21 @@ Parquet input/output requires the R package `arrow` (install with `install.packa
 
 ## Outputs
 
-Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
+Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills and must exist before logging finalization.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 
 - `report_canonical.md`: APA 7 report containing the activation/finalization log table and narrative.
 - `analysis_log.jsonl`: Machine-readable activation/finalization log entry (appended per run when logging is enabled).
+- Finalization logs include the metaskill report as `metaskill_report_block_b64` for reconstruction and can embed a synopsis in the canonical report when `--synopsis` is provided.
 
 ## APA 7 Templates
 
 Use the Markdown template in `nlss/assets/metaskill-runner` when assembling the activation/finalization report.
 
-- Default template: `nlss/assets/metaskill-runner/default-template.md`.
-- Template path can be overridden via `templates.metaskill_runner.default` in `nlss/scripts/config.yml`.
+- Default template: `nlss/assets/metaskill-runner/default-template.md` (activation).
+- Finalization template: `nlss/assets/metaskill-runner/finalization-template.md`.
+- Template paths can be overridden via `templates.metaskill_runner.default` and `templates.metaskill_runner.finalization` in `nlss/scripts/config.yml`.
 
 ### YAML template controls
 
@@ -100,7 +104,7 @@ Available column keys for `table.columns` include:
 
 Available template tokens include:
 
-`metaskill_name`, `intent`, `dataset`, `timestamp`, `notes`, `analysis_label`, `analysis_flags`, `table_number`, `table_body`, `note_body`, `note_default`, `narrative`, `narrative_default`.
+`metaskill_name`, `intent`, `dataset`, `timestamp`, `notes`, `synopsis_text`, `analysis_label`, `analysis_flags`, `table_number`, `table_body`, `note_body`, `note_default`, `narrative`, `narrative_default`.
 
 ## APA 7 Reporting Guidance
 

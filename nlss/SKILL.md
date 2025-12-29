@@ -104,7 +104,7 @@ Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <v
 - The agent inspects the dataset first, infers candidate variables, and asks clarifying questions only when needed.
 - Enforce the NLSS-first principle: only use `generate-r-script` when the request is out of NLSS scope and explicit permission is granted; save generated scripts to `<workspace-root>/<dataset-name>/scripts/` and document the path in `scratchpad.md`.
 - Each metaskill step calls the existing subskill scripts so templates, JSONL logs, and workspace conventions are reused.
-- On completion, log metaskill finalization, append a `# Synopsis` section to `report_canonical.md`, and generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` with APA 7-ready, journal-ready narrative, tables, and plots when helpful.
+- On completion, log metaskill finalization with `metaskill-runner --synopsis` to append a `# Synopsis` section to `report_canonical.md`, and generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` with APA 7-ready, journal-ready narrative, tables, and plots when helpful.
 - The agent writes a plan to `scratchpad.md` and marks progress after each step.
 
 ## Common inputs (data sources)
@@ -151,7 +151,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - All artifacts (reports, tables, figures, scripts) must be created inside the dataset workspace folder; do not create files or folders outside the workspace root.
 - Subskills do not create separate report files; they only extend `report_canonical.md`. Standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 - The agent logs a meta entry in `analysis_log.jsonl` and each subskill run logs its own entry as usual.
-- Metaskill finalization appends a `# Synopsis` section to `report_canonical.md` and creates `report_<YYYYMMDD>_<metaskill>_<intent>.md` inside the dataset workspace.
+- Metaskill finalization appends a `# Synopsis` section to `report_canonical.md` via `metaskill-runner --synopsis` and creates `report_<YYYYMMDD>_<metaskill>_<intent>.md` inside the dataset workspace.
 - When `defaults.log_nlss_checksum` is true, log entries include `log_seq` and a `checksum` field that XOR-combines the `nlss/` folder checksum (excluding `assets/` and `scripts/config.yml`) with the entry checksum (content excluding the checksum field), a checksum of the previous complete log line (for line index > 0), and a checksum of `log_seq` (tracked in `nlss-workspace.yml` as `analysis_log_seq`) to create a chain (`checksum_version = 3`).
 - Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`.
 - For `report_canonical.md`, templates in `nlss/assets` must always be used when available.
@@ -234,3 +234,4 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 - [calc](references/utilities/calc.md): Safe numeric expression calculator for quick parameter derivations (plain/json/csv output).
 - [check-integrity](references/utilities/check-integrity.md): Recover XOR-based NLSS checksums from analysis_log.jsonl entries to spot inconsistencies.
+- [reconstruct-reports](references/utilities/reconstruct-reports.md): Rebuild canonical and metaskill reports from compressed report_block entries in analysis_log.jsonl.

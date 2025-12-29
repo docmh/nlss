@@ -36,6 +36,14 @@ NLSS is licensed under Apache-2.0 (see `LICENSE` and `NOTICE`). It relies on ope
 - Optional packages used when available: `viridisLite`, `influence.ME`, `DHARMa`, `MVN`.
 - Test tooling (optional): Python 3 for the test harness.
 
+## Disclaimer and intended use
+
+- Provided "AS IS" under Apache-2.0; no warranties or conditions of any kind.
+- Users are responsible for validating results and decisions made from them; outputs are aids, not a substitute for expert review.
+- Source availability helps transparency, but does not guarantee correctness or fitness for a particular purpose.
+- Not intended for safety-critical, medical, legal, or regulatory decision making without independent verification.
+- Modified versions may behave differently; anyone distributing changes should review and test their modifications.
+
 
 ## Install
 
@@ -138,9 +146,9 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `t-test` | `nlss/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
 | `nonparametric` | `nlss/scripts/R/nonparametric.R` | Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests. | Yes (`nonparametric/default-template.md`, `nonparametric/posthoc-template.md`) |
 | `init-workspace` | `nlss/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
-| `metaskill-runner` | `nlss/scripts/R/metaskill_runner.R` | Log metaskill activations (intent + dataset) for traceability. | Yes (`metaskill-runner/default-template.md`) |
+| `metaskill-runner` | `nlss/scripts/R/metaskill_runner.R` | Log metaskill activations (intent + dataset) for traceability. | Yes (`metaskill-runner/default-template.md`, `metaskill-runner/finalization-template.md`) |
 
-Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations and finalizations. Metaskill completion appends a `# Synopsis` to `report_canonical.md` and writes `report_<YYYYMMDD>_<metaskill>_<intent>.md` in the dataset workspace.
+Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations and finalizations. Metaskill completion writes `report_<YYYYMMDD>_<metaskill>_<intent>.md` first, then logs finalization with `metaskill-runner --synopsis` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 Default metaskill reports should follow `nlss/assets/metaskills/report-template.md` (APA-style paper sections). Omit Introduction and Keywords when no theoretical context is available, adjust subsections as needed, and design tables/figures specifically for the report rather than copying from `report_canonical.md`.
 
@@ -156,6 +164,7 @@ Available metaskills:
 Utilities:
 - `calc`: `nlss/references/utilities/calc.md`
 - `check-integrity`: `nlss/references/utilities/check-integrity.md`
+- `reconstruct-reports`: `nlss/references/utilities/reconstruct-reports.md`
 
 Reference docs:
 - `nlss/references/subskills/descriptive-stats.md`
@@ -189,6 +198,7 @@ Reference docs:
 - `nlss/references/metaskills/test-hypotheses.md`
 - `nlss/references/utilities/calc.md`
 - `nlss/references/utilities/check-integrity.md`
+- `nlss/references/utilities/reconstruct-reports.md`
 
 ## Basic usage by module
 

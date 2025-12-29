@@ -512,6 +512,83 @@ get_user_prompt <- function(opts = list()) {
 
 nlss_log_cache <- new.env(parent = emptyenv())
 
+record_report_block <- function(report) {
+  if (is.null(report)) return(invisible(FALSE))
+  text <- as.character(report)
+  if (length(text) == 0) return(invisible(FALSE))
+  text <- text[1]
+  if (!nzchar(text)) return(invisible(FALSE))
+  blocks <- character(0)
+  if (exists("report_blocks", envir = nlss_log_cache, inherits = FALSE)) {
+    blocks <- nlss_log_cache$report_blocks
+  }
+  blocks <- c(blocks, text)
+  nlss_log_cache$report_blocks <- blocks
+  invisible(TRUE)
+}
+
+record_metaskill_report_block <- function(report) {
+  if (is.null(report)) return(invisible(FALSE))
+  text <- as.character(report)
+  if (length(text) == 0) return(invisible(FALSE))
+  text <- text[1]
+  if (!nzchar(text)) return(invisible(FALSE))
+  nlss_log_cache$metaskill_report_block <- text
+  invisible(TRUE)
+}
+
+consume_report_blocks <- function() {
+  blocks <- character(0)
+  if (exists("report_blocks", envir = nlss_log_cache, inherits = FALSE)) {
+    blocks <- nlss_log_cache$report_blocks
+  }
+  nlss_log_cache$report_blocks <- character(0)
+  blocks
+}
+
+consume_metaskill_report_block <- function() {
+  block <- ""
+  if (exists("metaskill_report_block", envir = nlss_log_cache, inherits = FALSE)) {
+    block <- nlss_log_cache$metaskill_report_block
+  }
+  nlss_log_cache$metaskill_report_block <- ""
+  block
+}
+
+set_report_snapshot <- function(report) {
+  if (is.null(report)) return(invisible(FALSE))
+  text <- as.character(report)
+  if (length(text) == 0) return(invisible(FALSE))
+  text <- text[1]
+  if (!nzchar(text)) return(invisible(FALSE))
+  nlss_log_cache$report_snapshot <- text
+  invisible(TRUE)
+}
+
+consume_report_snapshot <- function() {
+  snapshot <- ""
+  if (exists("report_snapshot", envir = nlss_log_cache, inherits = FALSE)) {
+    snapshot <- nlss_log_cache$report_snapshot
+  }
+  nlss_log_cache$report_snapshot <- ""
+  snapshot
+}
+
+compress_report_text <- function(text) {
+  if (is.null(text)) return(list(data = "", encoding = ""))
+  text <- as.character(text)
+  if (length(text) == 0) return(list(data = "", encoding = ""))
+  text <- text[1]
+  if (!nzchar(text)) return(list(data = "", encoding = ""))
+  raw_vec <- charToRaw(text)
+  compressed <- tryCatch(memCompress(raw_vec, type = "gzip"), error = function(e) raw(0))
+  if (length(compressed) == 0) return(list(data = "", encoding = ""))
+  if (!requireNamespace("jsonlite", quietly = TRUE)) return(list(data = "", encoding = ""))
+  b64 <- jsonlite::base64_enc(compressed)
+  if (is.null(b64) || !nzchar(b64)) return(list(data = "", encoding = ""))
+  list(data = b64, encoding = "gzip+base64")
+}
+
 resolve_nlss_skill_path <- function() {
   script_dir <- if (exists("resolve_script_dir", mode = "function")) {
     get("resolve_script_dir", mode = "function")()
@@ -794,6 +871,34 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     results = results,
     options = options
   )
+
+  report_blocks <- consume_report_blocks()
+  if (length(report_blocks) > 0) {
+    combined <- paste(report_blocks, collapse = "")
+    encoded <- compress_report_text(combined)
+    if (nzchar(encoded$data)) {
+      entry$report_block_b64 <- encoded$data
+      entry$report_block_encoding <- encoded$encoding
+    }
+  }
+
+  report_snapshot <- consume_report_snapshot()
+  if (nzchar(report_snapshot)) {
+    encoded_snapshot <- compress_report_text(report_snapshot)
+    if (nzchar(encoded_snapshot$data)) {
+      entry$report_block_full_b64 <- encoded_snapshot$data
+      entry$report_block_full_encoding <- encoded_snapshot$encoding
+    }
+  }
+
+  metaskill_block <- consume_metaskill_report_block()
+  if (nzchar(metaskill_block)) {
+    encoded_meta <- compress_report_text(metaskill_block)
+    if (nzchar(encoded_meta$data)) {
+      entry$metaskill_report_block_b64 <- encoded_meta$data
+      entry$metaskill_report_block_encoding <- encoded_meta$encoding
+    }
+  }
 
   if (!is.null(checksum) && !is.null(checksum$value) && nzchar(checksum$value)) {
     entry$checksum_version <- 3

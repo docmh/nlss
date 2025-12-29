@@ -31,7 +31,7 @@ Use this metaskill when the user asks for instrument quality, reliability, or sc
 5. Ask clarifying questions (scale definitions, reverse-coded items, scoring method, reliability type).
 6. Write a plan to `scratchpad.md`, then execute subskills in order.
 7. Update `scratchpad.md` with decisions and completion notes.
-8. Log finalization, append a `# Synopsis` to `report_canonical.md`, and generate `report_<YYYYMMDD>_check-instruments_<intent>.md`.
+8. Generate `report_<YYYYMMDD>_check-instruments_<intent>.md` first, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-run)
 
@@ -108,8 +108,8 @@ optional:
   run missings --vars <items> --method <chosen> (only if user requests handling)
 
 update scratchpad.md with decisions and completion
-append # Synopsis to report_canonical.md and write report_<YYYYMMDD>_check-instruments_<intent>.md
-log metaskill finalization with metaskill-runner --phase finalization
+write report_<YYYYMMDD>_check-instruments_<intent>.md
+run metaskill-runner --phase finalization --synopsis "<synopsis text>" (runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
 ## Default Rules and Decision Logic
@@ -124,7 +124,7 @@ log metaskill finalization with metaskill-runner --phase finalization
 
 ## Outputs
 
-- `report_canonical.md`: APA-ready outputs from `scale`, `reliability`, optional `data-explorer`/`correlations`, plus a final `# Synopsis`.
+- `report_canonical.md`: APA-ready outputs from `scale`, `reliability`, optional `data-explorer`/`correlations`, plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
 - `report_<YYYYMMDD>_check-instruments_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
@@ -143,9 +143,8 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 
 ## Finalization
 
-- Log completion with `metaskill-runner --phase finalization`.
-- Append a `# Synopsis` section to `report_canonical.md`.
-- Write `report_<YYYYMMDD>_check-instruments_<intent>.md` using an ASCII slug for `<intent>`.
+- Write `report_<YYYYMMDD>_check-instruments_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
+- Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## APA 7 Templates
 
@@ -155,7 +154,7 @@ This metaskill does not define its own APA template. It relies on the templates 
 - `reliability` uses `nlss/assets/reliability/default-template.md`.
 - `correlations` uses `nlss/assets/correlations/default-template.md` when requested.
 - `data-explorer` uses `nlss/assets/data-explorer/default-template.md` when requested.
-- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation/finalization logging.
+- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation and `nlss/assets/metaskill-runner/finalization-template.md` for finalization logging.
 
 ## APA 7 Reporting Guidance
 

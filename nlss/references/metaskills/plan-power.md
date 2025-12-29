@@ -32,7 +32,7 @@ Use this metaskill when the user asks for minimal sample size or power planning,
 5. Ask clarifying questions to finalize analysis family, effect size assumptions, alpha, power, and design details.
 6. Write a plan to `scratchpad.md`, then execute the `power` subskill (optionally estimating effect size from pilot data).
 7. Update `scratchpad.md` with decisions and completion notes.
-8. Log finalization, append a `# Synopsis` to `report_canonical.md`, and generate `report_<YYYYMMDD>_plan-power_<intent>.md`.
+8. Generate `report_<YYYYMMDD>_plan-power_<intent>.md` first, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-run)
 
@@ -100,8 +100,8 @@ optional:
   run additional power calls for small/medium/large effects or sensitivity analysis when effect size is uncertain
 
 update scratchpad.md with decisions and completion
-append # Synopsis to report_canonical.md and write report_<YYYYMMDD>_plan-power_<intent>.md
-log metaskill finalization with metaskill-runner --phase finalization
+write report_<YYYYMMDD>_plan-power_<intent>.md
+run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
 ## Default Rules and Decision Logic
@@ -115,7 +115,7 @@ log metaskill finalization with metaskill-runner --phase finalization
 
 ## Outputs
 
-- `report_canonical.md`: APA-ready power analysis table and narrative from the `power` subskill plus a final `# Synopsis`.
+- `report_canonical.md`: APA-ready power analysis table and narrative from the `power` subskill plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries plus the `power` subskill log(s).
 - `scratchpad.md`: Plan, clarifications, effect size rationale, and completion notes.
 - `report_<YYYYMMDD>_plan-power_<intent>.md`: APA 7-ready, journal-ready narrative report with tables/plots as needed.
@@ -134,16 +134,15 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 
 ## Finalization
 
-- Log completion with `metaskill-runner --phase finalization`.
-- Append a `# Synopsis` section to `report_canonical.md`.
-- Write `report_<YYYYMMDD>_plan-power_<intent>.md` using an ASCII slug for `<intent>`.
+- Write `report_<YYYYMMDD>_plan-power_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
+- Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## APA 7 Templates
 
 This metaskill does not define its own APA template. It relies on the templates configured for the subskills it invokes:
 
 - `power` uses `nlss/assets/power/default-template.md`.
-- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation/finalization logging.
+- `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation and `nlss/assets/metaskill-runner/finalization-template.md` for finalization logging.
 
 ## APA 7 Reporting Guidance
 

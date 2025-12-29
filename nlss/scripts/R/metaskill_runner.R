@@ -40,6 +40,7 @@ print_usage <- function() {
   cat("  --phase TEXT         Phase label (activation/finalization; optional)\n")
   cat("  --intent TEXT        Short intent summary (optional)\n")
   cat("  --notes TEXT         Additional notes (optional)\n")
+  cat("  --synopsis TEXT      Synopsis text to include in finalization report (optional)\n")
   cat("  --label TEXT         Analysis label override (optional)\n")
   cat("  --template REF       Template path or template key (optional)\n")
   cat("  --user-prompt TEXT   Original AI user prompt for logging (optional)\n")
@@ -77,6 +78,7 @@ interactive_options <- function() {
   opts$phase <- resolve_prompt("Phase (activation/finalization)", "activation")
   opts$intent <- resolve_prompt("Intent (optional)", "")
   opts$notes <- resolve_prompt("Notes (optional)", "")
+  opts$synopsis <- resolve_prompt("Synopsis (optional)", "")
   opts$label <- resolve_prompt("Analysis label (optional)", "")
   opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
   opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
@@ -168,6 +170,17 @@ resolve_get_user_prompt <- function(opts) {
   NULL
 }
 
+resolve_sanitize_file_component <- function(value) {
+  if (exists("sanitize_file_component", mode = "function")) {
+    return(get("sanitize_file_component", mode = "function")(value))
+  }
+  clean <- enc2utf8(as.character(value))
+  clean <- gsub("[^A-Za-z0-9._-]", "_", clean)
+  clean <- gsub("_+", "_", clean)
+  if (!nzchar(clean)) clean <- "value"
+  clean
+}
+
 resolve_get_template_path <- function(key, default_relative = NULL) {
   if (exists("resolve_template_path", mode = "function")) {
     return(get("resolve_template_path", mode = "function")(key, default_relative))
@@ -257,6 +270,81 @@ resolve_append_analysis_log <- function(out_dir, module, prompt, commands, resul
   }
   cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
   invisible(FALSE)
+}
+
+resolve_set_report_snapshot <- function(report) {
+  if (exists("set_report_snapshot", mode = "function")) {
+    return(get("set_report_snapshot", mode = "function")(report))
+  }
+  invisible(FALSE)
+}
+
+resolve_record_metaskill_report_block <- function(report) {
+  if (exists("record_metaskill_report_block", mode = "function")) {
+    return(get("record_metaskill_report_block", mode = "function")(report))
+  }
+  invisible(FALSE)
+}
+
+slugify_component <- function(value, fallback) {
+  if (is.null(value) || !nzchar(value)) return(fallback)
+  clean <- resolve_sanitize_file_component(value)
+  clean <- gsub("_+", "_", clean)
+  if (!nzchar(clean)) clean <- fallback
+  clean
+}
+
+build_report_paths <- function(out_dir, meta_name, intent) {
+  meta_slug <- slugify_component(meta_name, "metaskill")
+  intent_slug <- slugify_component(intent, "no-intent")
+  local_stamp <- format(Sys.Date(), "%Y%m%d")
+  utc_stamp <- format(as.POSIXct(Sys.time(), tz = "UTC"), "%Y%m%d")
+  stamps <- unique(c(local_stamp, utc_stamp))
+  paths <- character(0)
+  for (stamp in stamps) {
+    paths <- c(paths, file.path(out_dir, paste0("report_", stamp, "_", meta_slug, "_", intent_slug, ".md")))
+  }
+  unique(paths)
+}
+
+emit_missing_report_issue <- function(out_dir, opts, meta_name, intent, expected_paths) {
+  log_default <- resolve_config_value("defaults.log", TRUE)
+  message <- paste0(
+    "Metaskill report is missing. Create the metaskill report before finalizing.\n",
+    "Expected file(s): ", paste(expected_paths, collapse = ", ")
+  )
+  if (resolve_parse_bool(opts$log, default = log_default)) {
+    ctx <- resolve_get_run_context()
+    resolve_append_analysis_log(
+      out_dir,
+      module = "metaskill_runner",
+      prompt = ctx$prompt,
+      commands = ctx$commands,
+      results = list(
+        status = "missing_metaskill_report",
+        message = message,
+        details = list(
+          metaskill = meta_name,
+          intent = intent,
+          expected_paths = expected_paths
+        )
+      ),
+      options = list(
+        meta = meta_name,
+        phase = if (!is.null(opts$phase)) opts$phase else "finalization",
+        intent = intent
+      ),
+      user_prompt = resolve_get_user_prompt(opts)
+    )
+  }
+  stop(message)
+}
+
+is_finalization_phase <- function(phase) {
+  if (is.null(phase)) return(FALSE)
+  text <- tolower(trimws(as.character(phase)))
+  if (!nzchar(text)) return(FALSE)
+  text %in% c("finalization", "finalise", "finalize", "completion", "complete", "completed", "finish", "finished")
 }
 
 resolve_derive_dataset_label <- function(path, df_name = NULL) {
@@ -409,6 +497,7 @@ if (!nzchar(meta_name)) {
 }
 intent <- if (!is.null(opts$intent)) trimws(as.character(opts$intent)) else ""
 notes <- if (!is.null(opts$notes)) trimws(as.character(opts$notes)) else ""
+synopsis <- if (!is.null(opts$synopsis)) trimws(as.character(opts$synopsis)) else ""
 phase <- if (!is.null(opts$phase)) trimws(as.character(opts$phase)) else ""
 if (!nzchar(phase)) phase <- "activation"
 analysis_label <- if (!is.null(opts$label)) trimws(as.character(opts$label)) else ""
@@ -431,14 +520,30 @@ df <- resolve_load_dataframe(opts)
 dataset_label <- get_dataset_label(df, opts)
 out_dir <- resolve_get_workspace_out_dir(df, label = dataset_label)
 
+metaskill_report_path <- ""
+if (is_finalization_phase(phase)) {
+  expected_paths <- build_report_paths(out_dir, meta_name, intent)
+  has_report <- any(file.exists(expected_paths))
+  if (!has_report) {
+    emit_missing_report_issue(out_dir, opts, meta_name, intent, expected_paths)
+  }
+  existing_paths <- expected_paths[file.exists(expected_paths)]
+  if (length(existing_paths) > 0) {
+    metaskill_report_path <- existing_paths[1]
+  }
+}
+
 template_override <- resolve_template_override(opts$template, module = "metaskill_runner")
 template_path <- if (!is.null(template_override)) {
   template_override
 } else {
-  resolve_get_template_path(
-    "metaskill_runner.default",
-    "metaskill-runner/default-template.md"
-  )
+  template_key <- "metaskill_runner.default"
+  template_fallback <- "metaskill-runner/default-template.md"
+  if (is_finalization_phase(phase)) {
+    template_key <- "metaskill_runner.finalization"
+    template_fallback <- "metaskill-runner/finalization-template.md"
+  }
+  resolve_get_template_path(template_key, template_fallback)
 }
 if (is.null(template_path) || !file.exists(template_path)) {
   stop("APA template not found: ", template_path)
@@ -465,7 +570,8 @@ template_context <- list(
     dataset = dataset_label,
     timestamp = timestamp,
     phase = phase,
-    notes = notes
+    notes = notes,
+    synopsis_text = synopsis
   )
 )
 
@@ -479,6 +585,16 @@ resolve_append_apa_report(
   template_path = template_path,
   template_context = template_context
 )
+
+if (is_finalization_phase(phase)) {
+  metaskill_report_text <- ""
+  if (nzchar(metaskill_report_path) && file.exists(metaskill_report_path)) {
+    metaskill_report_text <- paste(readLines(metaskill_report_path, warn = FALSE), collapse = "\n")
+  }
+  if (nzchar(metaskill_report_text)) {
+    resolve_record_metaskill_report_block(metaskill_report_text)
+  }
+}
 
 log_default <- resolve_config_value("defaults.log", TRUE)
 if (resolve_parse_bool(opts$log, default = log_default)) {
@@ -495,7 +611,8 @@ if (resolve_parse_bool(opts$log, default = log_default)) {
       phase = phase,
       dataset = dataset_label,
       timestamp = timestamp,
-      apa_report_path = resolve_normalize_path(apa_report_path)
+      apa_report_path = resolve_normalize_path(apa_report_path),
+      metaskill_report_path = if (nzchar(metaskill_report_path)) resolve_normalize_path(metaskill_report_path) else NULL
     ),
     options = list(
       meta = meta_name,

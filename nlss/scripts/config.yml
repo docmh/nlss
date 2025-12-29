@@ -319,5 +319,6 @@ templates:
     default: "metaskills/report-template.md"
   metaskill_runner:
     default: "metaskill-runner/default-template.md"
+    finalization: "metaskill-runner/finalization-template.md"
   calc:
     default: "calc/default-template.md"
