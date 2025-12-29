@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Structural Equation Modeling"
-  table_title: "SEM parameter estimates."
+  table_title: "SEM Parameter Estimates"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "group"
@@ -15,14 +15,14 @@ table:
       label: "Label"
       drop_if_empty: true
     - key: "est"
-      label: "b"
+      label: "*b*"
     - key: "se"
-      label: "SE"
+      label: "*SE*"
     - key: "z"
-      label: "z"
+      label: "*z*"
       drop_if_empty: true
     - key: "p"
-      label: "p"
+      label: "*p*"
     - key: "ci_low"
       label: "CI low"
       drop_if_empty: true
@@ -39,8 +39,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

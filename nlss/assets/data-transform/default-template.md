@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Data Transformations"
-  table_title: "Transformation log."
+  table_title: "Transformation Log"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "step"
@@ -27,8 +27,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

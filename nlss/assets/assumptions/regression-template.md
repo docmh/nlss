@@ -1,9 +1,9 @@
 ---
 tokens:
-  title: "Assumptions checks (regression)"
-  table_title: "Regression assumption checks."
+  title: "Assumption Checks (Regression)"
+  table_title: "Regression Assumption Checks"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "model"
@@ -19,10 +19,10 @@ table:
       label: "Statistic"
       drop_if_empty: true
     - key: "df"
-      label: "df"
+      label: "*df*"
       drop_if_empty: true
     - key: "p"
-      label: "p"
+      label: "*p*"
       drop_if_empty: true
     - key: "value"
       label: "Value"
@@ -31,7 +31,7 @@ table:
       label: "Decision"
       drop_if_empty: true
     - key: "n"
-      label: "n"
+      label: "*n*"
       drop_if_empty: true
 note:
   template: "{{note_default}}"
@@ -42,8 +42,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

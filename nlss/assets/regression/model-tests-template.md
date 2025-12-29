@@ -1,6 +1,6 @@
 ---
 tokens:
-  table_title: "Model tests."
+  table_title: "Model Tests"
   note_prefix: "*Note.*"
 table:
   columns:
@@ -16,13 +16,13 @@ table:
       label: "SS"
       drop_if_empty: true
     - key: "df"
-      label: "df"
+      label: "*df*"
       drop_if_empty: true
     - key: "ms"
       label: "MS"
       drop_if_empty: true
     - key: "f"
-      label: "F"
+      label: "*F*"
       drop_if_empty: true
     - key: "p"
       label: "Sig."
@@ -38,8 +38,7 @@ note:
 ---
 # {{analysis_label}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

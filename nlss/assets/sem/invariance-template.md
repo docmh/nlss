@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Measurement Invariance (CFA)"
-  table_title: "Invariance model fit indices."
+  table_title: "Invariance Model Fit Indices"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "step"
@@ -14,9 +14,9 @@ table:
     - key: "chisq"
       label: "chisq"
     - key: "df"
-      label: "df"
+      label: "*df*"
     - key: "p"
-      label: "p"
+      label: "*p*"
     - key: "cfi"
       label: "CFI"
     - key: "tli"
@@ -38,8 +38,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

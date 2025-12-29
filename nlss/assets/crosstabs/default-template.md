@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Cross-Tabulations"
-  table_title: "Cross-tabulation results."
+  table_title: "Cross-Tabulation Results"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "row_var"
@@ -15,7 +15,7 @@ table:
     - key: "col_level"
       label: "Column Level"
     - key: "n"
-      label: "n"
+      label: "*n*"
     - key: "pct_row"
       label: "Row %"
       drop_if_empty: true
@@ -41,8 +41,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

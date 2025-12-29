@@ -1,14 +1,14 @@
 ---
 tokens:
-  table_title: "Tests of effects."
+  table_title: "Tests of Effects"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "term"
       label: "Source"
     - key: "df"
-      label: "df"
+      label: "*df*"
     - key: "ss"
       label: "SS"
       drop_if_empty: true
@@ -16,7 +16,7 @@ table:
       label: "MS"
       drop_if_empty: true
     - key: "f"
-      label: "F"
+      label: "*F*"
       drop_if_empty: true
     - key: "p"
       label: "Sig."
@@ -48,8 +48,7 @@ narrative:
 ---
 # {{analysis_label}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

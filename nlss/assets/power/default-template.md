@@ -1,9 +1,9 @@
 ---
 tokens:
-  title: "Power analysis"
-  table_title: "Power analysis results."
+  title: "Power Analysis"
+  table_title: "Power Analysis Results"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "analysis"
@@ -19,16 +19,16 @@ table:
     - key: "power"
       label: "Power"
     - key: "n_total"
-      label: "N"
+      label: "*N*"
       drop_if_empty: true
     - key: "n_per_group"
-      label: "n/group"
+      label: "*n*/group"
       drop_if_empty: true
     - key: "n1"
-      label: "n1"
+      label: "*n*1"
       drop_if_empty: true
     - key: "n2"
-      label: "n2"
+      label: "*n*2"
       drop_if_empty: true
     - key: "groups"
       label: "k"
@@ -40,7 +40,7 @@ table:
       label: "u"
       drop_if_empty: true
     - key: "df"
-      label: "df"
+      label: "*df*"
       drop_if_empty: true
     - key: "r2"
       label: "R2"
@@ -52,7 +52,7 @@ table:
       label: "RMSEA1"
       drop_if_empty: true
     - key: "t_type"
-      label: "t type"
+      label: "*t* type"
       drop_if_empty: true
     - key: "alternative"
       label: "Alternative"
@@ -69,8 +69,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

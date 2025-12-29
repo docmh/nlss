@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Workspace Initialization"
-  table_title: "Dataset workspace summary."
+  table_title: "Dataset Workspace Summary"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "dataset"
@@ -27,8 +27,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

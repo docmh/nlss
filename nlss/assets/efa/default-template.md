@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Exploratory Factor Analysis"
-  table_title: "Factor loadings."
+  table_title: "Factor Loadings"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "item"
@@ -34,8 +34,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

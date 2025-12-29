@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Reliability Analysis"
-  table_title: "Reliability estimates."
+  table_title: "Reliability Estimates"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "analysis"
@@ -19,10 +19,10 @@ table:
       label: "{{ci_label}}"
       drop_if_empty: true
     - key: "p"
-      label: "p"
+      label: "*p*"
       drop_if_empty: true
     - key: "n"
-      label: "n"
+      label: "*n*"
     - key: "n_raters"
       label: "Raters"
       drop_if_empty: true
@@ -45,13 +45,13 @@ table:
       label: "Var 2"
       drop_if_empty: true
     - key: "f"
-      label: "F"
+      label: "*F*"
       drop_if_empty: true
     - key: "df1"
-      label: "df1"
+      label: "*df*1"
       drop_if_empty: true
     - key: "df2"
-      label: "df2"
+      label: "*df*2"
       drop_if_empty: true
 note:
   template: "{{note_default}}"
@@ -60,8 +60,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

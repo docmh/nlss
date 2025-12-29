@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Frequencies"
-  table_title: "Frequency distributions."
+  table_title: "Frequency Distributions"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "variable"
@@ -14,7 +14,7 @@ table:
     - key: "level"
       label: "Level"
     - key: "n"
-      label: "n"
+      label: "*n*"
     - key: "pct_total"
       label: "%"
     - key: "pct_valid"
@@ -27,8 +27,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

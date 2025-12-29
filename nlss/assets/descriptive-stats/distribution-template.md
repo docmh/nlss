@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Descriptive Statistics (Distribution)"
-  table_title: "Distribution-focused descriptive analyses."
+  table_title: "Distribution-Focused Descriptive Analyses"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "variable"
@@ -12,11 +12,11 @@ table:
       label: "Group"
       drop_if_empty: true
     - key: "n"
-      label: "n"
+      label: "*n*"
     - key: "mean"
-      label: "M"
+      label: "*M*"
     - key: "sd"
-      label: "SD"
+      label: "*SD*"
     - key: "variance"
       label: "Var"
     - key: "cv"
@@ -36,7 +36,7 @@ table:
     - key: "outliers_tukey"
       label: "Outliers (Tukey)"
     - key: "outliers_z"
-      label: "Outliers (z)"
+      label: "Outliers (*z*)"
     - key: "n_unique"
       label: "Unique"
     - key: "mode"
@@ -48,8 +48,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Calculator Output"
-  table_title: "Calculated values."
+  table_title: "Calculated Values"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "name"
@@ -20,8 +20,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Mixed Models"
-  table_title: "Fixed effects estimates."
+  table_title: "Fixed Effects Estimates"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "model"
@@ -16,10 +16,10 @@ table:
     - key: "se"
       label: "Std. Error"
     - key: "df"
-      label: "df"
+      label: "*df*"
       drop_if_empty: true
     - key: "t"
-      label: "t"
+      label: "*t*"
       drop_if_empty: true
     - key: "p"
       label: "Sig."
@@ -40,12 +40,9 @@ narrative:
   join: "\n\n"
   drop_empty: true
 ---
-# {{title}}
+# {{analysis_label}}
 
-{{analysis_label}}
-
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

@@ -1,22 +1,22 @@
 ---
 tokens:
-  table_title: "Tests of fixed effects."
+  table_title: "Tests of Fixed Effects"
   note_prefix: "*Note.*"
 table:
   columns:
     - key: "term"
       label: "Effect"
     - key: "num_df"
-      label: "Num df"
+      label: "Num *df*"
       drop_if_empty: true
     - key: "den_df"
-      label: "Den df"
+      label: "Den *df*"
       drop_if_empty: true
     - key: "df"
-      label: "df"
+      label: "*df*"
       drop_if_empty: true
     - key: "f"
-      label: "F"
+      label: "*F*"
       drop_if_empty: true
     - key: "chisq"
       label: "Chi-square"
@@ -29,8 +29,7 @@ note:
 ---
 # {{analysis_label}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

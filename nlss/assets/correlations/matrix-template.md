@@ -1,20 +1,19 @@
 ---
 tokens:
   title: "Correlation Matrix"
-  table_title: "Correlation matrix (r below diagonal, p-values above diagonal)."
+  table_title: "Correlation Matrix (*r* Below Diagonal, *p* Values Above Diagonal)"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   layout: "matrix"
 note:
-  template: "{{note_default}} Values below the diagonal are correlations; values above are p-values."
+  template: "{{note_default}} Values below the diagonal are correlations; values above are *p* values."
 narrative:
   template: "{{narrative_default}}"
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

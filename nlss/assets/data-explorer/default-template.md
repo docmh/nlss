@@ -1,10 +1,10 @@
 ---
 tokens:
   title: "Data Exploration"
-  overview_table_title: "Variable overview."
-  levels_table_title: "Value levels."
+  overview_table_title: "Variable Overview"
+  levels_table_title: "Value Levels"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "variable"
@@ -14,15 +14,15 @@ table:
     - key: "measurement_level"
       label: "Scale"
     - key: "valid_n"
-      label: "n"
+      label: "*n*"
     - key: "missing_pct"
       label: "Missing %"
     - key: "unique_n"
       label: "Unique"
     - key: "mean"
-      label: "M"
+      label: "*M*"
     - key: "sd"
-      label: "SD"
+      label: "*SD*"
     - key: "min"
       label: "Min"
     - key: "max"
@@ -34,7 +34,7 @@ levels_table:
     - key: "level"
       label: "Level"
     - key: "n"
-      label: "n"
+      label: "*n*"
     - key: "pct_total"
       label: "%"
     - key: "pct_valid"
@@ -45,8 +45,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

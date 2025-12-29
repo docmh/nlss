@@ -1003,11 +1003,28 @@ ensure_output_front_matter <- function(path, workspace_root = NULL, agent = NULL
     return(invisible(TRUE))
   }
   front_section <- if (end_line > 1) lines[2:(end_line - 1)] else character(0)
+  updated <- FALSE
   if (!any(grepl("^\\s*nlss_version\\s*:", front_section))) {
     nlss_version <- get_nlss_version()
     if (is.na(nlss_version)) nlss_version <- ""
     insert_line <- paste0("nlss_version: \"", escape_yaml_value(nlss_version), "\"")
     lines <- c(lines[1:(end_line - 1)], insert_line, lines[end_line:length(lines)])
+    updated <- TRUE
+  }
+  end_line <- find_frontmatter_end(lines)
+  if (end_line > 0) {
+    insert_blank <- FALSE
+    if (end_line >= length(lines)) {
+      insert_blank <- TRUE
+    } else if (nzchar(trimws(lines[end_line + 1]))) {
+      insert_blank <- TRUE
+    }
+    if (insert_blank) {
+      lines <- append(lines, "", after = end_line)
+      updated <- TRUE
+    }
+  }
+  if (updated) {
     con <- file(path, open = "w", encoding = "UTF-8")
     on.exit(close(con), add = TRUE)
     writeLines(lines, con)

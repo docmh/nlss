@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Correlation Comparisons"
-  table_title: "Fisher r-to-z comparisons between groups."
+  table_title: "Fisher *r*-to-*z* Comparisons Between Groups"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "group1"
@@ -15,17 +15,17 @@ table:
     - key: "var2"
       label: "Variable 2"
     - key: "r1"
-      label: "r1"
+      label: "*r*1"
     - key: "r2"
-      label: "r2"
+      label: "*r*2"
     - key: "n1"
-      label: "n1"
+      label: "*n*1"
     - key: "n2"
-      label: "n2"
+      label: "*n*2"
     - key: "z"
-      label: "z"
+      label: "*z*"
     - key: "p"
-      label: "p"
+      label: "*p*"
 note:
   template: "{{note_default}}"
 narrative:
@@ -35,8 +35,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

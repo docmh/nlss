@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Imputation Summary"
-  table_title: "Imputation summary."
+  table_title: "Imputation Summary"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "variable"
@@ -11,7 +11,7 @@ table:
     - key: "type"
       label: "Type"
     - key: "missing_n"
-      label: "Missing n"
+      label: "Missing *n*"
     - key: "missing_pct"
       label: "Missing %"
     - key: "engine"
@@ -22,7 +22,7 @@ table:
       label: "Impute value"
       drop_if_empty: true
     - key: "imputed_n"
-      label: "Imputed n"
+      label: "Imputed *n*"
     - key: "target"
       label: "Imputed column"
     - key: "indicator"
@@ -39,8 +39,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

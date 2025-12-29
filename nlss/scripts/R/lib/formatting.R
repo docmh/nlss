@@ -510,8 +510,76 @@ drop_empty_columns <- function(columns, rows) {
   list(columns = columns, rows = rows)
 }
 
+italicize_stat_symbols <- function(text) {
+  if (is.null(text)) return("")
+  out <- as.character(text)
+  if (length(out) == 0) return("")
+  patterns <- c(
+    "(?<![*_])\\bN\\b(?=\\s*=)" = "*N*",
+    "(?<![*_])\\bn\\b(?=\\s*=)" = "*n*",
+    "(?<![*_])\\bM\\b(?=\\s*=)" = "*M*",
+    "(?<![*_])\\bSD\\b(?=\\s*=)" = "*SD*",
+    "(?<![*_])\\bSE\\b(?=\\s*=)" = "*SE*",
+    "(?<![*_])\\bdf\\b(?=\\s*=)" = "*df*",
+    "(?<![*_])\\bt\\b(?=\\s*(\\(|=))" = "*t*",
+    "(?<![*_])\\bF\\b(?=\\s*(\\(|=))" = "*F*",
+    "(?<![*_])\\br\\b(?=\\s*(=|<|>))" = "*r*",
+    "(?<![*_])\\bp\\b(?=\\s*(=|<|>))" = "*p*",
+    "(?<![*_])\\bd\\b(?=\\s*=)" = "*d*",
+    "(?<![*_])\\bz\\b(?=\\s*=)" = "*z*",
+    "(?<![*_])\\bb\\b(?=\\s*=)" = "*b*"
+  )
+  for (pat in names(patterns)) {
+    out <- gsub(pat, patterns[[pat]], out, perl = TRUE)
+  }
+  out <- gsub("(?<![*_])\\bp\\b(?=-values?\\b)", "*p*", out, perl = TRUE)
+  out <- gsub("(?<![*_])\\bp\\b(?=\\s+values?\\b)", "*p*", out, perl = TRUE)
+  out
+}
+
+italicize_stat_label <- function(label) {
+  if (is.null(label)) return("")
+  text <- as.character(label)
+  if (!nzchar(text)) return(text)
+  tokens <- c("Mdn", "SD", "SE", "df", "M", "N", "n", "t", "F", "r", "p", "b", "d", "z")
+  for (token in tokens) {
+    text <- gsub(
+      paste0("(?<![*_])\\b", token, "(\\d+)\\b"),
+      paste0("*", token, "*\\1"),
+      text,
+      perl = TRUE
+    )
+  }
+  for (token in tokens) {
+    text <- gsub(
+      paste0("(?<![*_])\\b", token, "\\b(?![*_])"),
+      paste0("*", token, "*"),
+      text,
+      perl = TRUE
+    )
+  }
+  text
+}
+
+italicize_markdown_table_headers <- function(table_text) {
+  if (is.null(table_text)) return("")
+  text <- as.character(table_text)
+  if (length(text) == 0) return("")
+  lines <- strsplit(text, "\n", fixed = TRUE)[[1]]
+  header_idx <- which(grepl("^\\s*\\|", lines))[1]
+  if (is.na(header_idx)) return(text)
+  cells <- strsplit(lines[header_idx], "\\|", fixed = TRUE)[[1]]
+  if (length(cells) < 3) return(text)
+  cells <- cells[-c(1, length(cells))]
+  cells <- trimws(cells)
+  cells <- vapply(cells, italicize_stat_label, character(1))
+  lines[header_idx] <- paste0("| ", paste(cells, collapse = " | "), " |")
+  paste(lines, collapse = "\n")
+}
+
 render_markdown_table <- function(headers, rows) {
   if (length(headers) == 0) return("")
+  headers <- vapply(headers, italicize_stat_label, character(1))
   md <- paste0("| ", paste(headers, collapse = " | "), " |\n")
   md <- paste0(md, "| ", paste(rep("---", length(headers)), collapse = " | "), " |\n")
   for (row in rows) {
@@ -645,8 +713,92 @@ normalize_narrative_tokens <- function(tokens) {
   tokens
 }
 
+strip_surrounding_emphasis <- function(text) {
+  if (is.null(text)) return("")
+  text <- trimws(as.character(text))
+  if (!nzchar(text)) return("")
+  if (grepl("^\\*\\*[^*]+\\*\\*$", text)) return(sub("^\\*\\*|\\*\\*$", "", text))
+  if (grepl("^\\*[^*]+\\*$", text)) return(sub("^\\*|\\*$", "", text))
+  if (grepl("^__[^_]+__$", text)) return(sub("^__|__$", "", text))
+  if (grepl("^_[^_]+_$", text)) return(sub("^_|_$", "", text))
+  text
+}
+
+normalize_apa_table_block <- function(apa_table) {
+  if (is.null(apa_table)) return("")
+  text <- as.character(apa_table)
+  if (length(text) == 0) return("")
+  text <- text[1]
+  if (!nzchar(text)) return("")
+  text <- gsub("\r\n", "\n", text, fixed = TRUE)
+  lines <- strsplit(text, "\n", fixed = TRUE)[[1]]
+  while (length(lines) > 0 && !nzchar(trimws(lines[1]))) lines <- lines[-1]
+  while (length(lines) > 0 && !nzchar(trimws(lines[length(lines)]))) lines <- lines[-length(lines)]
+  if (length(lines) == 0) return("")
+
+  note_idx <- NA_integer_
+  for (i in seq_along(lines)) {
+    if (grepl("^\\s*\\*{0,2}Note\\.?\\*{0,2}", trimws(lines[i]))) {
+      note_idx <- i
+      break
+    }
+  }
+  note_lines <- character(0)
+  if (!is.na(note_idx)) {
+    note_lines <- lines[note_idx:length(lines)]
+    lines <- if (note_idx > 1) lines[1:(note_idx - 1)] else character(0)
+  }
+
+  table_number <- ""
+  title <- ""
+  idx <- 1L
+  while (idx <= length(lines) && !nzchar(trimws(lines[idx]))) idx <- idx + 1L
+  if (idx <= length(lines)) {
+    header <- trimws(lines[idx])
+    if (grepl("^\\*{0,2}Table\\s+[0-9]+\\*{0,2}\\.?$", header)) {
+      table_number <- sub("^\\*{0,2}Table\\s+([0-9]+)\\*{0,2}\\.?$", "\\1", header)
+      idx <- idx + 1L
+    }
+  }
+
+  if (nzchar(table_number)) {
+    while (idx <= length(lines) && !nzchar(trimws(lines[idx]))) idx <- idx + 1L
+    if (idx <= length(lines)) {
+      candidate <- trimws(lines[idx])
+      if (!grepl("^\\|", candidate) && !grepl("^\\*{0,2}Note\\.?\\*{0,2}", candidate)) {
+        title <- strip_surrounding_emphasis(candidate)
+        title <- sub("\\.$", "", title)
+        idx <- idx + 1L
+      }
+    }
+  }
+
+  table_lines <- if (idx <= length(lines)) lines[idx:length(lines)] else character(0)
+  out <- character(0)
+  if (nzchar(table_number)) {
+    out <- c(out, paste0("**Table ", table_number, "**"))
+    if (nzchar(title)) {
+      out <- c(out, "", paste0("*", title, "*"))
+    }
+    if (length(table_lines) > 0) {
+      out <- c(out, "", table_lines)
+    }
+  } else if (length(lines) > 0) {
+    out <- c(out, lines)
+  }
+
+  if (length(note_lines) > 0) {
+    note_text <- paste(trimws(note_lines), collapse = " ")
+    note_text <- format_note_body(note_text)
+    if (nzchar(note_text)) {
+      out <- c(out, "", paste0("*Note.* ", note_text))
+    }
+  }
+  paste(out, collapse = "\n")
+}
+
 split_table_note <- function(apa_table) {
-  note_match <- regexpr("\nNote\\.", apa_table, perl = TRUE)
+  note_match <- regexpr("\n\\s*\\*{0,2}Note\\.?\\*{0,2}", apa_table, perl = TRUE)
   if (note_match[1] == -1) {
     return(list(table = trim_trailing_whitespace(apa_table), note = ""))
   }
@@ -661,7 +813,8 @@ strip_table_header <- function(table_text) {
   while (length(lines) > 0 && trimws(lines[1]) == "") {
     lines <- lines[-1]
   }
-  if (grepl("^Table\\s+[0-9]+", lines[1])) {
+  header <- if (length(lines) > 0) trimws(lines[1]) else ""
+  if (nzchar(header) && grepl("^\\*{0,2}Table\\s+[0-9]+\\*{0,2}\\.?$", header)) {
     lines <- lines[-1]
     if (length(lines) > 0 && !grepl("^\\|", lines[1]) && nzchar(trimws(lines[1]))) {
       lines <- lines[-1]
@@ -676,9 +829,9 @@ strip_table_header <- function(table_text) {
 format_note_body <- function(note_text) {
   note_text <- trimws(note_text)
   if (note_text == "") return("None.")
-  note_text <- sub("^\\*?Note\\*?\\.?\\s*", "", note_text)
+  note_text <- sub("^\\*{0,2}Note\\.?\\*{0,2}\\s*", "", note_text)
   if (note_text == "") return("None.")
-  note_text
+  italicize_stat_symbols(note_text)
 }
 
 format_template_report <- function(template_path, analysis_label, analysis_flags, table_number, apa_table, apa_text, template_context = NULL) {
@@ -691,6 +844,7 @@ format_template_report <- function(template_path, analysis_label, analysis_flags
   table_body <- strip_table_header(split$table)
   note_body <- format_note_body(split$note)
   narrative_default <- normalize_paragraph_breaks(apa_text)
+  narrative_default <- italicize_stat_symbols(narrative_default)
   base_tokens <- list(
     analysis_label = analysis_label,
     analysis_flags = flags_text,
@@ -715,10 +869,20 @@ format_template_report <- function(template_path, analysis_label, analysis_flags
   if (length(ctx_tokens) > 0) {
     base_tokens[names(ctx_tokens)] <- ctx_tokens
   }
+  if (!is.null(base_tokens$table_body)) {
+    base_tokens$table_body <- italicize_markdown_table_headers(base_tokens$table_body)
+  }
+  if (!is.null(base_tokens$note_body)) {
+    base_tokens$note_body <- italicize_stat_symbols(base_tokens$note_body)
+  }
+  if (!is.null(base_tokens$narrative)) {
+    base_tokens$narrative <- italicize_stat_symbols(base_tokens$narrative)
+  }
   if (is.list(meta) && "note" %in% names(meta)) {
     note_template <- meta$note$template
     if (!is.null(note_template) && nzchar(note_template)) {
       note_body <- render_template_tokens(note_template, base_tokens)
+      note_body <- italicize_stat_symbols(note_body)
       base_tokens$note_body <- note_body
     }
   }
@@ -729,11 +893,11 @@ format_template_report <- function(template_path, analysis_label, analysis_flags
       drop_empty <- if (!is.null(meta$narrative$drop_empty)) isTRUE(meta$narrative$drop_empty) else TRUE
       narrative <- render_narrative_rows(row_template, narrative_rows, base_tokens, join = join, drop_empty = drop_empty)
       if (nzchar(narrative)) {
-        base_tokens$narrative <- narrative
+        base_tokens$narrative <- italicize_stat_symbols(narrative)
       }
     } else if (!is.null(meta$narrative$template) && nzchar(meta$narrative$template)) {
       narrative <- render_template_tokens(meta$narrative$template, base_tokens)
-      base_tokens$narrative <- narrative
+      base_tokens$narrative <- italicize_stat_symbols(narrative)
     }
   }
   meta_tokens <- list()
@@ -795,20 +959,21 @@ format_template_figure_report <- function(template_path, analysis_label, analysi
 
 format_apa_report <- function(analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, table_start = 1, template_context = NULL) {
   flags_text <- format_analysis_flags(analysis_flags)
+  if (!nzchar(flags_text)) flags_text <- "None."
   apa_text <- normalize_paragraph_breaks(apa_text)
   if (!is.null(template_path) && file.exists(template_path)) {
     return(format_template_report(template_path, analysis_label, analysis_flags, table_start, apa_table, apa_text, template_context = template_context))
   }
-  analysis_block <- analysis_label
-  if (nzchar(flags_text)) {
-    analysis_block <- paste0(analysis_label, "\n", flags_text)
-  }
+  analysis_block <- if (nzchar(trimws(analysis_label))) analysis_label else "Analysis"
+  apa_text <- italicize_stat_symbols(apa_text)
+  apa_table <- italicize_markdown_table_headers(apa_table)
+  apa_table <- normalize_apa_table_block(apa_table)
   paste0(
-    "# APA Report\n\n",
-    "Analysis: ", analysis_block, "\n\n",
-    "## APA Table\n\n",
+    "# ", analysis_block, "\n\n",
+    "## Analysis\n\n",
+    flags_text, "\n\n",
     apa_table,
-    "\n\n## APA Narrative\n\n",
+    "\n\n## Narrative\n\n",
     apa_text,
     "\n"
   )
@@ -816,17 +981,17 @@ format_apa_report <- function(analysis_label, apa_table, apa_text, analysis_flag
 
 format_apa_figure_report <- function(analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, figure_number = 1, template_context = NULL) {
   flags_text <- format_analysis_flags(analysis_flags)
+  if (!nzchar(flags_text)) flags_text <- "None."
   if (!is.null(template_path) && file.exists(template_path)) {
     return(format_template_figure_report(template_path, analysis_label, analysis_flags, figure_number, figure_body, template_context = template_context))
   }
-  analysis_block <- analysis_label
-  if (nzchar(flags_text)) {
-    analysis_block <- paste0(analysis_label, "\n", flags_text)
-  }
+  analysis_block <- if (nzchar(trimws(analysis_label))) analysis_label else "Figures"
+  figure_body <- trim_trailing_whitespace(figure_body)
   paste0(
-    "# APA Report\n\n",
-    "Analysis: ", analysis_block, "\n\n",
-    "## APA Figure\n\n",
+    "# ", analysis_block, "\n\n",
+    "## Analysis\n\n",
+    flags_text, "\n\n",
+    "## Figures\n\n",
     figure_body,
     "\n"
   )

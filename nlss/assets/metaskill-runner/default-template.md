@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Metaskill Log"
-  table_title: "Log details."
+  table_title: "Log Details"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "item"
@@ -17,8 +17,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

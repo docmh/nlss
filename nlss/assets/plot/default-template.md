@@ -12,9 +12,10 @@ narrative:
 ---
 # Plots
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
+
+## Figures
 
 {{narrative}}
 

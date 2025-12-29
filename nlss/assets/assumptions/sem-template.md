@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Assumption checks (SEM)"
-  table_title: "Assumption checks for SEM."
+  table_title: "Assumption Checks for SEM"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "assumption"
@@ -16,16 +16,16 @@ table:
       label: "Group"
       drop_if_empty: true
     - key: "n"
-      label: "n"
+      label: "*n*"
       drop_if_empty: true
     - key: "statistic"
       label: "Statistic"
       drop_if_empty: true
     - key: "df"
-      label: "df"
+      label: "*df*"
       drop_if_empty: true
     - key: "p"
-      label: "p"
+      label: "*p*"
       drop_if_empty: true
     - key: "value"
       label: "Value"
@@ -45,8 +45,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

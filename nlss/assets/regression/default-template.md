@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Regression"
-  table_title: "Regression coefficients."
+  table_title: "Regression Coefficients"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "model"
@@ -15,17 +15,17 @@ table:
     - key: "term"
       label: "Predictor"
     - key: "b"
-      label: "b"
+      label: "*b*"
     - key: "se"
-      label: "SE"
+      label: "*SE*"
     - key: "t"
-      label: "t"
+      label: "*t*"
       drop_if_empty: true
     - key: "z"
-      label: "z"
+      label: "*z*"
       drop_if_empty: true
     - key: "p"
-      label: "p"
+      label: "*p*"
     - key: "ci_low"
       label: "CI low"
       drop_if_empty: true
@@ -36,7 +36,7 @@ table:
       label: "beta"
       drop_if_empty: true
     - key: "exp_b"
-      label: "exp(b)"
+      label: "exp(*b*)"
       drop_if_empty: true
     - key: "exp_ci_low"
       label: "exp CI low"
@@ -59,8 +59,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

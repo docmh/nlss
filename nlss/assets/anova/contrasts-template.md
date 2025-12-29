@@ -1,9 +1,9 @@
 ---
 tokens:
-  title: "ANOVA contrasts"
-  table_title: "Planned contrasts."
+  title: "ANOVA Contrasts"
+  table_title: "Planned Contrasts"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "term"
@@ -15,16 +15,16 @@ table:
       label: "Estimate"
       drop_if_empty: true
     - key: "se"
-      label: "SE"
+      label: "*SE*"
       drop_if_empty: true
     - key: "df"
-      label: "df"
+      label: "*df*"
       drop_if_empty: true
     - key: "t"
-      label: "t"
+      label: "*t*"
       drop_if_empty: true
     - key: "p"
-      label: "p"
+      label: "*p*"
       drop_if_empty: true
     - key: "p_adj"
       label: "p_adj"
@@ -47,8 +47,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

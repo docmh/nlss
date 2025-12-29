@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Descriptive Statistics"
-  table_title: "Descriptive analyses."
+  table_title: "Descriptive Statistics"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "variable"
@@ -12,11 +12,11 @@ table:
       label: "Group"
       drop_if_empty: true
     - key: "n"
-      label: "n"
+      label: "*n*"
     - key: "mean"
-      label: "M"
+      label: "*M*"
     - key: "sd"
-      label: "SD"
+      label: "*SD*"
     - key: "min"
       label: "Min"
     - key: "max"
@@ -28,8 +28,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

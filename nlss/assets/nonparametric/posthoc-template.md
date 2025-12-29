@@ -1,9 +1,9 @@
 ---
 tokens:
-  title: "Nonparametric post-hoc"
-  table_title: "Post-hoc comparisons."
+  title: "Nonparametric Post Hoc"
+  table_title: "Post Hoc Comparisons"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "variable"
@@ -19,16 +19,16 @@ table:
       label: "Group 2"
       drop_if_empty: true
     - key: "n_1"
-      label: "n1"
+      label: "*n*1"
       drop_if_empty: true
     - key: "n_2"
-      label: "n2"
+      label: "*n*2"
       drop_if_empty: true
     - key: "median_1"
-      label: "Mdn1"
+      label: "*Mdn*1"
       drop_if_empty: true
     - key: "median_2"
-      label: "Mdn2"
+      label: "*Mdn*2"
       drop_if_empty: true
     - key: "iqr_1"
       label: "IQR1"
@@ -42,7 +42,7 @@ table:
     - key: "statistic"
       label: "Value"
     - key: "p"
-      label: "p"
+      label: "*p*"
     - key: "p_adj"
       label: "p_adj"
       drop_if_empty: true
@@ -64,8 +64,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

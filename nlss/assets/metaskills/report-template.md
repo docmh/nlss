@@ -20,6 +20,7 @@ tokens:
     ![Figure {{figure_number}}. {{figure_title}}]({{figure_path}})
     
     *Note.* {{figure_note}}
+  references: ""
 ---
 <!--
 Default metaskill report template.
@@ -30,52 +31,54 @@ Default metaskill report template.
 -->
 # {{title}}
 
-## Abstract
+**Abstract**
 {{abstract}}
 
 *Keywords:* {{keywords}}
 
-## Introduction
 {{introduction}}
 
 ## Method
-### Participants
+### **_Participants_**
 {{participants}}
 
-### Measures
+### **_Measures_**
 {{measures}}
 
-### Procedure
+### **_Procedure_**
 {{procedure}}
 
-### Analytic Strategy
+### **_Analytic Strategy_**
 {{analytic_strategy}}
 
 ## Results
-### Descriptive Statistics
+### **_Descriptive Statistics_**
 {{results_descriptive}}
 
-### Preliminary Analyses
+### **_Preliminary Analyses_**
 {{results_preliminary}}
 
-### Hypothesis Testing
+### **_Hypothesis Testing_**
 {{results_hypothesis}}
 
-### Exploratory Analyses
+### **_Exploratory Analyses_**
 {{results_exploratory}}
 
 ## Discussion
-### Summary of Findings
+### **_Summary of Findings_**
 {{discussion_summary}}
 
-### Limitations
+### **_Limitations_**
 {{discussion_limitations}}
 
-### Implications
+### **_Implications_**
 {{discussion_implications}}
 
-### Future Directions
+### **_Future Directions_**
 {{discussion_future}}
 
 ## Conclusion
 {{conclusion}}
+
+**References**
+{{references}}

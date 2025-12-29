@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Descriptive Statistics (Robust)"
-  table_title: "Robust descriptive analyses."
+  table_title: "Robust Descriptive Analyses"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "variable"
@@ -12,9 +12,9 @@ table:
       label: "Group"
       drop_if_empty: true
     - key: "n"
-      label: "n"
+      label: "*n*"
     - key: "median"
-      label: "Mdn"
+      label: "*Mdn*"
     - key: "q1"
       label: "Q1"
     - key: "q3"
@@ -24,7 +24,7 @@ table:
     - key: "mad"
       label: "MAD"
     - key: "trimmed_mean"
-      label: "Trimmed M"
+      label: "Trimmed *M*"
     - key: "min"
       label: "Min"
     - key: "max"
@@ -40,8 +40,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**

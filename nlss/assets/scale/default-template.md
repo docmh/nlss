@@ -1,9 +1,9 @@
 ---
 tokens:
   title: "Scale Analysis"
-  table_title: "Item analysis and reliability."
+  table_title: "Item Analysis and Reliability"
   note_prefix: "*Note.*"
-  narrative_heading: "**Narrative**"
+  narrative_heading: "## Narrative"
 table:
   columns:
     - key: "item"
@@ -12,11 +12,11 @@ table:
       label: "Group"
       drop_if_empty: true
     - key: "n"
-      label: "n"
+      label: "*n*"
     - key: "mean"
-      label: "M"
+      label: "*M*"
     - key: "sd"
-      label: "SD"
+      label: "*SD*"
     - key: "item_total_r"
       label: "r_it"
       drop_if_empty: true
@@ -36,8 +36,7 @@ narrative:
 ---
 # {{title}}
 
-Analysis:
-
+## Analysis
 {{analysis_flags}}
 
 **Table {{table_number}}**
