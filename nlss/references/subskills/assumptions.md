@@ -17,16 +17,10 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose the analysis family (`ttest`, `anova`, `regression`, `mixed_models`, or `sem`) and specify variables.
-3. Run `scripts/R/assumptions.R` with the correct flags, or use the PowerShell wrapper on Windows.
+3. Run `scripts/R/assumptions.R` with the correct flags.
 4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for reporting or downstream modules.
 
 ## Script: `scripts/R/assumptions.R`
-
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\assumptions.R> --csv <path to CSV file> --analysis ttest --vars score --group condition
-```
 
 ### t-test assumptions (independent samples)
 

@@ -9,11 +9,32 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 ## Requirements and system support
 
 - R 4.4+ (base R is enough for CSV/APA outputs).
+- `Rscript` available on PATH in the shell where you run NLSS.
 - Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), `arrow` (parquet workspace copies), and `ggplot2` (plot subskill).
 - Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `psych` (EFA/PCA, KMO/Bartlett); `GPArotation` for oblique rotations; `lme4` + `performance` for mixed models (required when using mixed-models); `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power; `viridisLite` for palettes; `influence.ME` and `DHARMa` for mixed-model diagnostics; `MVN` for Mardia test.
 - Windows, WSL (Ubuntu), or Linux.
-- PowerShell 5.1+ is recommended on Windows for the wrapper script.
-- Optional: WSL if you want the wrapper to run Linux Rscript first and fall back to Windows Rscript.
+
+## Rscript setup (required)
+
+NLSS runs `.R` scripts directly with `Rscript`. Ensure `Rscript` is available in the same shell where you run NLSS.
+
+### Check availability
+
+- Windows PowerShell: `Get-Command Rscript` or `Rscript --version`
+- WSL/Linux: `which Rscript` or `Rscript --version`
+
+### Install R with Rscript on PATH
+
+- Windows (PowerShell):
+  - Install R from CRAN or with `winget install --id RProject.R -e`.
+  - Ensure the installer option "Add R to PATH" is enabled, or add `C:\Program Files\R\R-x.y.z\bin` (or `bin\x64`) to PATH manually, then restart the terminal.
+- WSL (Ubuntu):
+  - `sudo apt update && sudo apt install r-base`
+
+### Windows + WSL environment choice
+
+- If `Rscript` is available in WSL but not in Windows PowerShell: prefer switching the Codex IDE to a WSL environment; alternatively install R in Windows.
+- If `Rscript` is available in Windows PowerShell but not in WSL: prefer installing R in WSL and switching Codex to WSL; alternatively stay in Windows PowerShell.
 
 Install the R dependencies:
 
@@ -54,59 +75,21 @@ git clone <repo-url>
 cd nlss
 ```
 
-If you are on Windows, ensure `Rscript.exe` is on your PATH or set `RSCRIPT` to its full path.
+If you are on Windows, ensure `Rscript.exe` is on your PATH.
 
 ## Quick start
 
 Outputs always go to the dataset workspace at `<workspace-root>/<dataset-name>/` and are not user-overridable. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml`; if no manifest is present, scripts fall back to `defaults.output_dir` in `nlss/scripts/config.yml`. Each run writes `report_canonical.md` and, when logging is enabled, appends to `analysis_log.jsonl` inside that dataset folder (the monotonic log counter is stored in `nlss-workspace.yml` as `analysis_log_seq`; if `analysis_log.jsonl` is missing, the counter restarts at 1).
 
-### Windows (PowerShell wrapper; WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File nlss/scripts/run_rscript.ps1 `
-  nlss/scripts/R/descriptive_stats.R `
-  --csv data.csv --vars age,score
-```
-
-### PowerShell wrapper cheat sheet
-
-- First argument must be the `.R` script path; all other flags come after it.
-- Lists use comma-separated values with no spaces: `x1,x2,x3`.
-- Quote values that contain spaces or semicolons (for example `--blocks "x1,x2;x3,mediator"`).
-- Relative paths are resolved from the current PowerShell working directory; use absolute paths when in doubt.
-- For paths with non-ASCII characters (for example, umlauts), the wrapper prefers Windows Rscript when available; set `NLSS_FORCE_WSL=1` to keep WSL, or `NLSS_SKIP_WSL=1` to always skip WSL.
-- If a path arrives with mangled characters (for example `?`), the wrapper attempts to repair it by matching on-disk names.
-
-Examples:
-
-```powershell
-# From workspace root, using the manifest + active dataset
-powershell -ExecutionPolicy Bypass -File nlss/scripts/run_rscript.ps1 `
-  nlss/scripts/R/descriptive_stats.R `
-  --vars "x1,x2,x3"
-
-# Absolute CSV path with spaces
-powershell -ExecutionPolicy Bypass -File nlss/scripts/run_rscript.ps1 `
-  nlss/scripts/R/descriptive_stats.R `
-  --csv "C:\Users\me\My Data\study.csv" --vars "x1,x2,x3"
-
-# Workspace parquet copy (preferred)
-powershell -ExecutionPolicy Bypass -File nlss/scripts/run_rscript.ps1 `
-  nlss/scripts/R/descriptive_stats.R `
-  --parquet "C:\workspaces\nlss\study\study.parquet" --vars "x1,x2,x3"
-
-# Blocks with semicolons need quotes
-powershell -ExecutionPolicy Bypass -File nlss/scripts/run_rscript.ps1 `
-  nlss/scripts/R/regression.R `
-  --dv outcome --blocks "x1,x2;x3,mediator"
-```
-
-### WSL/Linux (Rscript directly)
+### Rscript (all platforms)
 
 ```bash
-Rscript nlss/scripts/R/descriptive_stats.R \
-  --csv data.csv --vars age,score
+Rscript nlss/scripts/R/descriptive_stats.R --csv data.csv --vars age,score
 ```
+
+Notes:
+- Use Windows paths (for example `C:\path\file.csv`) in Windows PowerShell.
+- Use WSL paths (for example `/mnt/c/path/file.csv`) in WSL.
 
 ## Stateful workspace architecture
 

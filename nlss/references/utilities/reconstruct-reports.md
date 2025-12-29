@@ -28,13 +28,7 @@ Example prompts:
 
 ## Script: `nlss/scripts/R/reconstruct_reports.R`
 
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\reconstruct_reports.R> <path to analysis_log.jsonl>
-```
-
-### WSL/Linux (Rscript directly)
+### Rscript
 
 ```bash
 Rscript <path to scripts/R/reconstruct_reports.R> <path to analysis_log.jsonl>

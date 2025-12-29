@@ -43,12 +43,6 @@ There is no dedicated script for this metaskill. The agent runs subskills and lo
 Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta explore-data --intent "explore the dataset"
 ```
 
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\metaskill_runner.R> --csv <path to CSV file> --meta explore-data
-```
-
 ## Inputs/Clarifications
 
 ### Inputs

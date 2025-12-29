@@ -18,16 +18,10 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Specify the model using `--formula` or `--dv` + `--fixed` + `--random`.
 3. Optionally request estimated marginal means (`--emmeans`) and contrasts (`--contrasts`, `--contrast-file` for custom JSON).
-4. Run `scripts/R/mixed_models.R` with the correct flags, or use the PowerShell wrapper on Windows.
+4. Run `scripts/R/mixed_models.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
 
 ## Script: `scripts/R/mixed_models.R`
-
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\mixed_models.R> --csv <path to CSV file> --formula "score ~ time + (1|id)"
-```
 
 ### Formula-based model (CSV)
 

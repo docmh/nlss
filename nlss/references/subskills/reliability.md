@@ -22,18 +22,12 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose `--analysis` (icc/kappa/test_retest).
 3. Choose `--format` (wide/long) and supply the required variables.
-4. Run `scripts/R/reliability.R` with the correct flags, or use the PowerShell wrapper on Windows.
+4. Run `scripts/R/reliability.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/reliability.R`
 
 Run with `Rscript` and base R only.
-
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\reliability.R> --csv <path to CSV file> --analysis icc --vars r1,r2,r3
-```
 
 ### ICC (wide format)
 

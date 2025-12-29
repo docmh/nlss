@@ -18,20 +18,12 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose variables: full matrix via `--vars` (or default numeric columns), or cross-correlation via `--x` and `--y`.
 3. Choose correlation method (Pearson/Spearman/Kendall), missing-data handling, and any control variables.
-4. Run `scripts/R/correlations.R` with the correct flags, or use the PowerShell wrapper on Windows.
+4. Run `scripts/R/correlations.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/correlations.R`
 
 Run with `Rscript` and base R only.
-
-### Windows wrapper (WSL first, Windows fallback)
-
-The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\correlations.R> --csv <path to CSV file> --vars age,score,stress
-```
 
 ### CSV input
 

@@ -22,20 +22,12 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
    - `--standardize` for z-scores into new variables.
    - `--recode` for value mapping.
    - `--rename` and `--drop` for column management.
-3. Run `scripts/R/data_transform.R` with appropriate flags or the Windows wrapper.
+3. Run `scripts/R/data_transform.R` with appropriate flags.
 4. Use outputs (workspace `<workspace-root>/<dataset-name>/<dataset-name>.parquet`, `report_canonical.md`, `analysis_log.jsonl`) in your response.
 
 ## Script: `scripts/R/data_transform.R`
 
 Run with `Rscript` and base R only.
-
-### Windows wrapper (WSL first, Windows fallback)
-
-The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\data_transform.R> --csv <path to CSV file> --calc "bmi=weight/(height^2)" --standardize age,score
-```
 
 ### CSV input
 

@@ -27,13 +27,7 @@ Example prompts:
 
 ## Script: `nlss/scripts/R/check_integrity.R`
 
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\check_integrity.R> <path to analysis_log.jsonl>
-```
-
-### WSL/Linux (Rscript directly)
+### Rscript
 
 ```bash
 Rscript <path to scripts/R/check_integrity.R> <path to analysis_log.jsonl>

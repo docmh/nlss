@@ -94,8 +94,16 @@ New subskills should use the YAML template system for `report_canonical.md`:
 
 ### Execution
 
-- Prefer `nlss/scripts/run_rscript.ps1` on Windows; it runs in WSL first and falls back to Windows `Rscript.exe`.
-- On Linux/WSL, run `Rscript` directly with the same arguments.
+- Run `.R` scripts directly with `Rscript` on all platforms; ensure `Rscript` is on PATH in the active shell.
+- On Windows + WSL, ask the user to check both environments:
+  - PowerShell: `Get-Command Rscript` or `Rscript --version`
+  - WSL: `which Rscript` or `Rscript --version`
+- If `Rscript` is available in WSL but not Windows PowerShell, prefer switching the Codex IDE to WSL; otherwise install R in Windows.
+- If `Rscript` is available in Windows PowerShell but not WSL, prefer installing R in WSL and switching Codex to WSL; otherwise stay in Windows PowerShell.
+- If `Rscript` is missing in the target environment, instruct the user to install R and expose `Rscript` globally:
+  - Windows: install from CRAN or `winget install --id RProject.R -e`, enable "Add R to PATH" or add `C:\\Program Files\\R\\R-x.y.z\\bin` (or `bin\\x64`) to PATH, then restart the terminal.
+  - WSL (Ubuntu): `sudo apt update && sudo apt install r-base`.
+  - Verify with `Rscript --version`.
 
 ### Outputs
 
@@ -131,7 +139,7 @@ New subskills should use the YAML template system for `report_canonical.md`:
 - List CLI flags and defaults, referencing the corresponding `config.yml` keys (and note that CLI flags override config defaults).
 - Explain outputs and provide APA 7 narrative guidance.
 - Explain how to use templates if applicable and ensure those templates are used for generating `report_canonical.md`.
-- Mention how to run via `scripts/run_rscript.ps1` and where outputs are written.
+- Mention how to run via `Rscript` directly and where outputs are written.
 
 ### Example scopes
 

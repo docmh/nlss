@@ -18,16 +18,10 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose `--analysis` (ttest/anova/correlation/regression/sem) and `--mode` (apriori/posthoc/sensitivity).
 3. Provide effect size (or set `--estimate-effect TRUE` with the needed variables), alpha, and power targets.
-4. Run `scripts/R/power.R` with the appropriate flags (or the PowerShell wrapper on Windows).
+4. Run `scripts/R/power.R` with the appropriate flags.
 5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
 
 ## Script: `scripts/R/power.R`
-
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\power.R> --csv <path to CSV file> --analysis ttest --mode apriori --t-type two-sample --effect-size 0.5 --power 0.8
-```
 
 ### Examples
 

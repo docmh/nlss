@@ -17,18 +17,12 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose a test (`--test auto` or an explicit type) and specify variables/grouping.
-3. Run `scripts/R/nonparametric.R` with the correct flags, or use the PowerShell wrapper on Windows.
+3. Run `scripts/R/nonparametric.R` with the correct flags.
 4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
 
 ## Script: `scripts/R/nonparametric.R`
 
 Run with `Rscript` and base R only.
-
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\nonparametric.R> --csv <path to CSV file> --vars score --group condition
-```
 
 ### One-sample Wilcoxon (CSV)
 

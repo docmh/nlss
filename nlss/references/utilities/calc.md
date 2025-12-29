@@ -31,13 +31,7 @@ Example prompts:
 
 Run with `Rscript` and base R only. This utility is standalone and does not read datasets or write APA reports.
 
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\calc.R> --expr "0.05/3"
-```
-
-### WSL/Linux (Rscript directly)
+### Rscript
 
 ```bash
 Rscript <path to scripts/R/calc.R> --expr "0.05/3"

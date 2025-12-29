@@ -18,18 +18,10 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose item variables and optional grouping variable.
 3. Choose extraction method, rotation, factor retention rule, and correlation type.
-4. Run `scripts/R/efa.R` with the correct flags, or use the PowerShell wrapper on Windows.
+4. Run `scripts/R/efa.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/efa.R`
-
-### Windows wrapper (WSL first, Windows fallback)
-
-The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\efa.R> --csv <path to CSV file> --vars item1,item2,item3
-```
 
 ### CSV input
 

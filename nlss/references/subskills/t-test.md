@@ -17,18 +17,12 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose the t-test type and specify variables (one-sample/independent) or paired measures (paired).
-3. Run `scripts/R/t_test.R` with the correct flags, or use the PowerShell wrapper on Windows to auto-locate Rscript.
+3. Run `scripts/R/t_test.R` with the correct flags.
 4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
 
 ## Script: `scripts/R/t_test.R`
 
 Run with `Rscript` and base R only.
-
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\t_test.R> --csv <path to CSV file> --vars age,score --mu 0
-```
 
 ### One-sample t-test (CSV)
 

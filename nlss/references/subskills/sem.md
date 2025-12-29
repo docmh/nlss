@@ -18,16 +18,10 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Provide a lavaan model (`--model` / `--model-file`) or use a builder (`--factors`, `--dv`/`--ivs`, or `--x`/`--m`/`--y`).
 3. Choose estimator, missing handling, SE/CI, and fit indices.
-4. Run `scripts/R/sem.R` with the correct flags, or use the PowerShell wrapper on Windows.
+4. Run `scripts/R/sem.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
 
 ## Script: `scripts/R/sem.R`
-
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\sem.R> --csv <path to CSV> --analysis cfa --factors "F1=item1,item2;F2=item3,item4"
-```
 
 ### CSV input
 

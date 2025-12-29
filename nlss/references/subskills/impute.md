@@ -17,20 +17,12 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose variables and an imputation engine (`simple`, `mice`, `knn`, or `auto`).
-3. Run `scripts/R/impute.R` with the correct flags (or use the PowerShell wrapper on Windows).
+3. Run `scripts/R/impute.R` with the correct flags.
 4. Use outputs (workspace parquet, `report_canonical.md`, `analysis_log.jsonl`) in your response.
 
 ## Script: `scripts/R/impute.R`
 
 Run with `Rscript` in base R. Optional engines require R packages `mice` or `VIM` when selected. Parquet I/O requires the `arrow` package.
-
-### Windows wrapper (WSL first, Windows fallback)
-
-The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\impute.R> --csv <path to CSV file> --vars age,gender
-```
 
 ### CSV input
 

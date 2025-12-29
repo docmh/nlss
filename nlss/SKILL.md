@@ -51,52 +51,20 @@ All modules load defaults from `scripts/config.yml` (requires the R package `yam
 
 CLI flags always override `scripts/config.yml` defaults at runtime.
 
-## Shared wrapper: `scripts/run_rscript.ps1`
+## Rscript execution (required)
 
-On Windows, the wrapper prefers WSL (Ubuntu/Linux) and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
-
-Example:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables>
-```
-
-If the script path is omitted, the wrapper falls back to the default configured inside the wrapper script.
-
-### PowerShell wrapper cheat sheet
-
-- First argument must be the `.R` script path; all other flags come after it.
-- Lists use comma-separated values with no spaces: `x1,x2,x3`.
-- Quote values that contain spaces or semicolons (for example `--blocks "x1,x2;x3,mediator"`).
-- Relative paths are resolved from the current PowerShell working directory; use absolute paths when in doubt.
-- For paths with non-ASCII characters (for example, umlauts), the wrapper prefers Windows Rscript when available; set `NLSS_FORCE_WSL=1` to keep WSL, or `NLSS_SKIP_WSL=1` to always skip WSL.
-- If a path arrives with mangled characters (for example `?`), the wrapper attempts to repair it by matching on-disk names.
-
-Examples:
-
-```powershell
-# From workspace root, using the manifest + active dataset
-powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/descriptive_stats.R> --vars "x1,x2,x3"
-
-# Absolute CSV path with spaces
-powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/descriptive_stats.R> --csv "C:\Users\me\My Data\study.csv" --vars "x1,x2,x3"
-
-# Workspace parquet copy (preferred)
-powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/descriptive_stats.R> --parquet "C:\workspaces\nlss\study\study.parquet" --vars "x1,x2,x3"
-
-# Blocks with semicolons need quotes
-powershell -ExecutionPolicy Bypass -File <path to scripts/run_rscript.ps1> <path to scripts/R/regression.R> --dv outcome --blocks "x1,x2;x3,mediator"
-```
-
-## WSL/Linux direct usage (optional)
-
-Inside WSL or Linux, run `Rscript` directly with the same arguments.
+Run all `.R` scripts directly with `Rscript`. Ensure `Rscript` is on PATH in the current shell.
 
 Example:
 
 ```bash
 Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables>
 ```
+
+### Windows + WSL environment choice
+
+- If `Rscript` is available in WSL but not Windows PowerShell, prefer switching the Codex IDE to WSL; otherwise install R in Windows.
+- If `Rscript` is available in Windows PowerShell but not WSL, prefer installing R in WSL and switching Codex to WSL; otherwise stay in Windows PowerShell.
 
 ## Metaskills Execution
 
@@ -121,7 +89,7 @@ All scripts accept one of the following input types:
 Notes:
 
 - Inputs must be local filesystem paths accessible to R. URLs or cloud share links are not supported; download first.
-- On Windows, the PowerShell wrapper converts Windows paths to WSL paths automatically; for WSL direct runs use `/mnt/<drive>/...`.
+- Paths must match the active shell: use Windows-style paths in PowerShell (for example `C:\path\file.csv`) and WSL-style paths in WSL (for example `/mnt/c/path/file.csv`).
 
 ## Metaskill Inputs
 

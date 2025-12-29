@@ -20,18 +20,10 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, SAV, or workspace).
 2. Provide the metaskill name (`--meta`), optional phase (`--phase`), and optional intent/notes.
 3. Ensure the metaskill report `report_<YYYYMMDD>_<metaskill>_<intent>.md` exists before finalization; the runner will fail if it is missing.
-4. Run `scripts/R/metaskill_runner.R` (or the PowerShell wrapper on Windows).
+4. Run `scripts/R/metaskill_runner.R`.
 5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to confirm the activation/finalization log entry.
 
 ## Script: `scripts/R/metaskill_runner.R`
-
-### Windows wrapper (WSL first, Windows fallback)
-
-The shared wrapper lives at `scripts/run_rscript.ps1` (relative to this skill folder). It uses WSL first and falls back to Windows `Rscript.exe` if WSL fails. Pass the `.R` script path as the first argument.
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\metaskill_runner.R> --csv <path to CSV file> --meta sample-description
-```
 
 ### CSV input
 

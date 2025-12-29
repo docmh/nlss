@@ -18,18 +18,12 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Specify the dependent variable and predictors (either `--ivs` or hierarchical `--blocks`).
 3. Optionally add `--interactions`, `--center`, and bootstrap options.
-4. Run `scripts/R/regression.R` with the correct flags, or use the PowerShell wrapper on Windows.
+4. Run `scripts/R/regression.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
 
 ## Script: `scripts/R/regression.R`
 
 Run with `Rscript` and base R only.
-
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\regression.R> --csv <path to CSV file> --dv outcome --ivs x1,x2,x3
-```
 
 ### Linear regression (CSV)
 

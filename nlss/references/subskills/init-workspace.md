@@ -22,20 +22,12 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 ## Core Workflow
 
 1. Provide one or more datasets (CSV/SAV/RDS/RData/Parquet) or run without data.
-2. Run `scripts/R/init_workspace.R` or use the Windows wrapper.
+2. Run `scripts/R/init_workspace.R`.
 3. Use the dataset workspace `scratchpad.md` to plan analysis steps and track transformations.
 
 ## Script: `scripts/R/init_workspace.R`
 
-Input paths must point to local files that R can access. URLs or cloud share links are not supported; download the data first. When using the Windows wrapper, Windows paths like `C:\Data\study.sav` are converted to WSL paths automatically; for WSL direct runs, use `/mnt/<drive>/...`.
-
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\init_workspace.R> --csv <path to CSV>
-```
-
-Note: For input paths with non-ASCII characters (for example, umlauts), the wrapper prefers Windows Rscript when available. Set `NLSS_FORCE_WSL=1` to keep WSL, or `NLSS_SKIP_WSL=1` to always skip WSL. If a path arrives with mangled characters (for example `?`), the wrapper attempts to repair it by matching on-disk names.
+Input paths must point to local files that R can access. URLs or cloud share links are not supported; download the data first. Use Windows-style paths in PowerShell (for example `C:\Data\study.sav`) and WSL-style paths in WSL (for example `/mnt/c/Data/study.sav`).
 
 ### CSV input
 

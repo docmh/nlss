@@ -20,18 +20,12 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose a design (between/within/mixed) and specify variables.
 3. Optionally request planned contrasts (`--emmeans`, `--contrasts`, `--contrast-file`).
-4. Run `scripts/R/anova.R` with the correct flags, or use the PowerShell wrapper on Windows.
+4. Run `scripts/R/anova.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting and diagnostics.
 
 ## Script: `scripts/R/anova.R`
 
 Run with `Rscript` and base R only. Type II/III sums of squares require `car` (optional); if not installed, the script falls back to Type I.
-
-### Windows wrapper (WSL first, Windows fallback)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File <path to scripts\run_rscript.ps1> <path to scripts\R\anova.R> --csv <path to CSV file> --dv outcome --between group
-```
 
 ### Between-subjects ANOVA (CSV)
 
