@@ -676,7 +676,11 @@ compress_report_text <- function(text) {
   if (length(text) == 0) return(list(data = "", encoding = ""))
   text <- text[1]
   if (!nzchar(text)) return(list(data = "", encoding = ""))
-  raw_vec <- charToRaw(text)
+  safe_text <- sanitize_utf8_text(text)
+  safe_text <- if (length(safe_text) > 0) safe_text[1] else ""
+  if (!nzchar(safe_text)) return(list(data = "", encoding = ""))
+  raw_vec <- tryCatch(charToRaw(safe_text), error = function(e) raw(0))
+  if (length(raw_vec) == 0) return(list(data = "", encoding = ""))
   compressed <- tryCatch(memCompress(raw_vec, type = "gzip"), error = function(e) raw(0))
   if (length(compressed) == 0) return(list(data = "", encoding = ""))
   if (!requireNamespace("jsonlite", quietly = TRUE)) return(list(data = "", encoding = ""))
@@ -782,6 +786,39 @@ decode_log_line_text <- function(raw_vec) {
     decoded <- suppressWarnings(iconv(text, from = "latin1", to = "UTF-8"))
   }
   if (is.na(decoded)) text else decoded
+}
+
+sanitize_utf8_text <- function(text) {
+  if (is.null(text)) return(text)
+  if (length(text) == 0) return(text)
+  if (!is.character(text)) text <- as.character(text)
+  vapply(text, function(item) {
+    if (is.na(item)) return(NA_character_)
+    if (!nzchar(item)) return(item)
+    cleaned <- suppressWarnings(iconv(item, from = "", to = "UTF-8", sub = ""))
+    if (is.na(cleaned)) {
+      cleaned <- suppressWarnings(iconv(item, from = "latin1", to = "UTF-8", sub = ""))
+    }
+    if (is.na(cleaned)) "" else cleaned
+  }, character(1))
+}
+
+sanitize_utf8_value <- function(value) {
+  if (is.null(value)) return(value)
+  if (is.factor(value)) return(sanitize_utf8_text(as.character(value)))
+  if (is.character(value)) return(sanitize_utf8_text(value))
+  if (is.list(value)) {
+    if (is.data.frame(value)) {
+      for (col in names(value)) {
+        value[[col]] <- sanitize_utf8_value(value[[col]])
+      }
+      return(value)
+    }
+    out <- lapply(value, sanitize_utf8_value)
+    if (!is.null(names(value))) names(out) <- names(value)
+    return(out)
+  }
+  value
 }
 
 is_blank_log_line <- function(raw_vec) {
@@ -1127,6 +1164,8 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
       entry$metaskill_report_block_encoding <- encoded_meta$encoding
     }
   }
+
+  entry <- sanitize_utf8_value(entry)
 
   if (!is.null(checksum) && !is.null(checksum$value) && nzchar(checksum$value)) {
     entry$checksum_version <- 3
