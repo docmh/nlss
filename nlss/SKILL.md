@@ -33,6 +33,8 @@ Metaskills are Markdown pseudoscripts that orchestrate subskills based on user i
 
 **NLSS-first principle:** for reliability and auditability, prefer existing subskills whenever they cover the request; only use custom script generation as a last resort.
 
+**Decision hygiene:** make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats accordingly and record the rationale in `scratchpad.md` (and in the final report when one is produced).
+
 ## Stateful Workspace Workflow (Required)
 
 Treat the workspace root as the current working directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir` from `scripts/config.yml`). It should only contain dataset subfolders.

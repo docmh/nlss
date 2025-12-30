@@ -69,6 +69,7 @@ if the user requests a new analysis or re-computation:
 
 ## Default Rules and Decision Logic
 
+- Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
 - Use only the numbers provided; do not invent values.
 - Keep explanations accurate but accessible; avoid oversimplifying or trivializing.
 - Distinguish statistical significance from practical importance.

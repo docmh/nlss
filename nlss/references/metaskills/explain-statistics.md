@@ -69,6 +69,7 @@ if the user asks for an actual analysis:
 
 ## Default Rules and Decision Logic
 
+- Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
 - Keep explanations concise and structured; expand only when asked.
 - Define jargon the first time it appears.
 - Use ASCII math and minimal notation unless the user requests formulas.

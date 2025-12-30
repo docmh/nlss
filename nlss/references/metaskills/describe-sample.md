@@ -114,6 +114,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (runner f
 
 ## Default Rules and Decision Logic
 
+- Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
 - Use config defaults for subskills unless the user specifies otherwise (e.g., `defaults.digits`, `modules.descriptive_stats.vars_default`, `modules.frequencies.vars_default`).
 - Treat factor/character variables as categorical; treat numeric variables with low cardinality (for example <= 10 unique values) as categorical unless the user prefers numeric summaries.
 - Exclude obvious identifiers (for example `id`, `uuid`, `timestamp`) and derived outcomes (`*_score`, `*_total`, `*_sum`, `*_mean`) from demographic summaries unless explicitly requested.

@@ -111,6 +111,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 
 ## Default Rules and Decision Logic
 
+- Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
 - Use a priori mode to compute minimal sample size; use sensitivity mode only when sample size is fixed.
 - Use config defaults for alpha and power unless specified.
 - If effect size is not provided and no pilot data exists, offer Cohen-style small/medium/large sensitivity runs and document the choice.

@@ -100,6 +100,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 
 ## Default Rules and Decision Logic
 
+- Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
 - Do not assume DVs/IVs or test direction when hypotheses are vague; request clarification first.
 - Use config defaults for subskills unless the user specifies other options.
 - If the user wants "proof" of hypotheses, clarify that statistical evidence is reported rather than proof.

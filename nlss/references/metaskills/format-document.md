@@ -48,6 +48,11 @@ Use this metaskill when the user asks to:
 7. Write the formatted report to `<filename>-formatted.md`.
 8. Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (runner fails if the report is missing).
 
+## Decision Hygiene
+
+- Base formatting decisions on prior observations in `scratchpad.md` or the report; preserve limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance) and make them clearer, not less visible.
+- If limitations are implied but not stated, flag them in `scratchpad.md` rather than changing substantive content.
+
 ## Formatting Sequence (Required Order)
 
 Apply each guide in order and record changes in `scratchpad.md`:

@@ -121,6 +121,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (runner f
 
 ## Default Rules and Decision Logic
 
+- Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
 - Use config defaults for subskills unless the user specifies otherwise (for example `modules.scale.score`, `modules.scale.omega`).
 - Treat Likert items as numeric by default unless the user prefers categorical handling.
 - Exclude identifiers (for example `id`, `uuid`) and precomputed totals (for example `*_total`, `*_sum`, `*_mean`) from item lists unless requested.

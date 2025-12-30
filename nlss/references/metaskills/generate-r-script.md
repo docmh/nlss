@@ -76,6 +76,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 
 ## Default Rules and Decision Logic
 
+- Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
 - Always check NLSS subskills first; only generate a script when the request is out of scope.
 - Always obtain explicit permission before generating the script.
 - Use the workspace parquet copy for data access whenever possible.

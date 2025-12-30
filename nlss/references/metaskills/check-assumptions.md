@@ -108,6 +108,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>"
 
 ## Default Rules and Decision Logic
 
+- Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
 - Use config defaults for assumptions unless the user specifies thresholds.
 - Do not run inferential tests; this metaskill is diagnostics only.
 - Do not modify data (no `missings` or `data-transform`).
