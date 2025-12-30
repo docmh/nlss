@@ -1095,6 +1095,9 @@ sources_override <- extract_sources_override(args)
 if (!is.null(sources_override) && nzchar(trimws(sources_override))) {
   sources_text <- sources_override
 }
+if (length(sources_text) > 1) {
+  sources_text <- paste(sources_text, collapse = ",")
+}
 if (!nzchar(sources_text)) {
   sources_text <- resolve_config_value("modules.research_academia.sources", "openalex,crossref")
 }
@@ -1109,12 +1112,22 @@ if (length(sources_raw) > 0) {
 sources <- unique(vapply(sources_raw, normalize_source, character(1)))
 valid_sources <- c("openalex", "crossref", "semantic_scholar")
 sources <- sources[sources %in% valid_sources]
-probe_text <- tolower(paste(c(sources_text, args), collapse = " "))
-if (grepl("semantic", probe_text) && !("semantic_scholar" %in% sources)) sources <- c(sources, "semantic_scholar")
-if (grepl("crossref", probe_text) && !("crossref" %in% sources)) sources <- c(sources, "crossref")
-if (grepl("openalex", probe_text) && !("openalex" %in% sources)) sources <- c(sources, "openalex")
+probe_tokens <- tolower(c(sources_text, args))
+probe_tokens <- probe_tokens[!is.na(probe_tokens)]
+if (any(grepl("semantic", probe_tokens)) && !("semantic_scholar" %in% sources)) sources <- c(sources, "semantic_scholar")
+if (any(grepl("crossref", probe_tokens)) && !("crossref" %in% sources)) sources <- c(sources, "crossref")
+if (any(grepl("openalex", probe_tokens)) && !("openalex" %in% sources)) sources <- c(sources, "openalex")
 sources <- unique(sources)
 if (length(sources) == 0) stop("No valid --sources provided.")
+
+sources_report <- unique(c(
+  sources,
+  vapply(split_sources(sources_text), normalize_source, character(1))
+))
+sources_report <- sources_report[nzchar(sources_report)]
+sources_report <- sources_report[sources_report %in% valid_sources]
+if (length(sources_report) == 0) sources_report <- sources
+sources <- sources_report
 
 year_from <- normalize_option(opts$`year-from`, "year-from")
 year_to <- normalize_option(opts$`year-to`, "year-to")
@@ -1214,7 +1227,7 @@ comprehensive_table <- build_table_body(comprehensive_df, digits, table_spec)
 top_table <- build_table_body(top_df, digits, top_spec)
 
 search_date <- format(Sys.Date(), "%Y-%m-%d")
-source_label <- format_source_label(sources)
+source_label <- format_source_label(sources_report)
 comprehensive_note <- paste0("Results aggregated from ", source_label, " on ", search_date, "; deduplicated by DOI/title. Relevance is heuristic.")
 top_note <- if (length(deduped) == 0) {
   "No results to rank."
@@ -1224,10 +1237,10 @@ top_note <- if (length(deduped) == 0) {
 nlss_table <- paste0("Table 1\n\n", comprehensive_table$body, "\n", "Note. ", comprehensive_note)
 
 if (length(deduped) == 0) {
-  narrative_text <- paste0("Query: \"", query, "\" returned no results across ", length(sources), " source", ifelse(length(sources) == 1, "", "s"), ".")
+  narrative_text <- paste0("Query: \"", query, "\" returned no results across ", length(sources_report), " source", ifelse(length(sources_report) == 1, "", "s"), ".")
 } else {
   narrative_text <- paste0("Query: \"", query, "\". Retrieved ", length(deduped),
-                           " unique items across ", length(sources), " source", ifelse(length(sources) == 1, "", "s"),
+                           " unique items across ", length(sources_report), " source", ifelse(length(sources_report) == 1, "", "s"),
                            ". The most relevant items appear in Table ", as.character(resolve_get_next_table_number(report_path) + 1), ".")
 }
 
@@ -1266,7 +1279,7 @@ template_context <- list(
 
 analysis_flags <- list(
   query = query,
-  sources = sources,
+  sources = sources_report,
   `year-from` = if (nzchar(year_from)) year_from else NULL,
   `year-to` = if (nzchar(year_to)) year_to else NULL,
   `max-per-source` = max_per_source,
@@ -1303,7 +1316,7 @@ if (isTRUE(log_enabled)) {
     query = query,
     total_results = length(deduped),
     top_n = top_n,
-    sources = sources,
+    sources = sources_report,
     items = lapply(deduped, function(item) {
       list(
         title = item$title,
@@ -1319,7 +1332,7 @@ if (isTRUE(log_enabled)) {
     })
   )
   options_payload <- list(
-    sources = sources,
+    sources = sources_report,
     `year-from` = if (nzchar(year_from)) year_from else NULL,
     `year-to` = if (nzchar(year_to)) year_to else NULL,
     `max-per-source` = max_per_source,
