@@ -22,19 +22,19 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 ## Script: `scripts/R/plot.R`
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/plot.R> --csv <path to CSV file> --type scatter --x age --y score --group condition
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/plot.R> --parquet <path to parquet file> --type bar --vars gender --stat percent
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/plot.R> --interactive
@@ -85,7 +85,7 @@ Use the Markdown template at `nlss/assets/plot/default-template.md` when assembl
   - `narrative.row_template`: repeats one block per figure.
   - `narrative.join`: join string between figure blocks.
 
-### Figure tokens (global + per-row)
+### Figure Tokens (Global + per-Row)
 
 Available tokens include:
 

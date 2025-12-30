@@ -19,7 +19,7 @@ Metaskills are Markdown pseudoscripts executed by the agent (there is no separat
 - Include YAML front matter with a concise `description` and a `name` matching the metaskill.
 - Keep the metaskill spec readable for humans; the agent is the executor.
 
-### Metaskill Workflow (agent-run)
+### Metaskill Workflow (Agent-Run)
 
 - Inspect the dataset first and summarize candidate variables in `scratchpad.md`.
 - Outline a step-by-step plan in `scratchpad.md` before running subskills; update progress after each step.
@@ -40,7 +40,7 @@ Include the following sections in each metaskill Markdown file:
 - **Outputs**: `report_canonical.md`, `analysis_log.jsonl`, and scratchpad updates.
 - **Finalization**: Generate the `report_<YYYYMMDD>_<metaskill>_<intent>.md` file first, then log completion with `metaskill-runner --synopsis "<text>"` to add a `# Synopsis` to `report_canonical.md` (finalization should fail if the report is missing).
 
-### <metaskill-name>.md expectations
+### <Metaskill-Name>.Md Expectations
 
 - YAML front matter with `name` and `description`.
 - Describe triggers/intents and the clarifying questions the agent should ask.
@@ -51,7 +51,7 @@ Include the following sections in each metaskill Markdown file:
 - Require a finalization log entry plus a `# Synopsis` appended to `report_canonical.md` via `metaskill-runner --synopsis` after the metaskill report is created.
 - Require the final report to be APA 7-ready and suitable for journal submission when possible.
 
-### Add metaskill entries
+### Add Metaskill Entries
 
 - Add the new metaskill to `nlss/SKILL.md` under **Metaskills** with a relative link to `references/metaskills/<metaskill-name>.md`.
 - Update the YAML front matter `description` in `nlss/SKILL.md` to mention the new metaskill when it becomes part of the core set.
@@ -68,7 +68,7 @@ Use this repo pattern to add new statistic subskills. Treat `nlss/references/sub
 - Create templates in `nlss/assets/<subskill-name>` as needed. 
 - Emit outputs to the workspace root identified by `nlss-workspace.yml` in the current working directory, its parent, or a one-level child. If no manifest is present, fall back to `defaults.output_dir` from `nlss/scripts/config.yml` (via `get_config_value`) with a fallback to `./outputs/tmp`.
 
-### Workspace-first architecture (stateful)
+### Workspace-First Architecture (Stateful)
 
 - Treat the workspace root as the current working directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir` from `config.yml`).
 - For any referenced dataset (CSV/SAV/RDS/RData/Parquet), ensure a dataset workspace folder exists at `<workspace-root>/<dataset-name>/` with `scratchpad.md` and `report_canonical.md`; if missing, run `init-workspace` first.
@@ -78,7 +78,7 @@ Use this repo pattern to add new statistic subskills. Treat `nlss/references/sub
 - Direct workspace runs (no input flags) should load `active_dataset` from the manifest in the current directory.
 - Parquet support requires the R package `arrow`; document this in new subskills if they read/write data.
 
-### Template logic (YAML)
+### Template Logic (YAML)
 
 New subskills should use the YAML template system for `report_canonical.md`:
 
@@ -137,7 +137,7 @@ New subskills should use the YAML template system for `report_canonical.md`:
 - Add output-generation coverage for templates: verify default templates and temporarily altered templates produce the expected changes.
 - Ensure tests demonstrate robust, expected, and reliable behavior for the new subskill. Cover all statistic features and options of this new subskill and apply positive, edge, and negative test cases as appropriate.
 
-### <subskill-name>.md expectations
+### <Subskill-Name>.Md Expectations
 
 - YAML front matter with `name` and `description`.
 - Describe inputs (CSV/RDS/RData/SAV/Parquet, grouping variables, factor handling).
@@ -146,13 +146,13 @@ New subskills should use the YAML template system for `report_canonical.md`:
 - Explain how to use templates if applicable and ensure those templates are used for generating `report_canonical.md`.
 - Mention how to run via `Rscript` directly and where outputs are written.
 
-### Example scopes
+### Example Scopes
 
 - **Basic**: frequencies, cross-tabs, correlations (Pearson/Spearman), reliability (alpha).
 - **Intermediate**: t-tests, ANOVA, regression.
 - **Advanced**: general linear model, mixed linear model, repeated measures.
 
-### Add subskill entries
+### Add Subskill Entries
 
 - Add the new subskill to `nlss/SKILL.md` under **Subskills** with a relative link to `references/subskills/<subskill-name>.md`.
 - Add a concise, task-focused `description` to the YAML front matter in each new subskill reference file.

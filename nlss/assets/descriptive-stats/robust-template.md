@@ -38,6 +38,7 @@ note:
 narrative:
   row_template: "{{label}}: Mdn = {{median}}, IQR = {{iqr}}, MAD = {{mad}}, trimmed M = {{trimmed_mean}}, n = {{n}}, missing = {{missing_n}} ({{missing_pct}}%)."
 ---
+
 # {{title}}
 
 ## Analysis

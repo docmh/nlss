@@ -29,31 +29,31 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Input paths must point to local files that R can access. URLs or cloud share links are not supported; download the data first. Use Windows-style paths in PowerShell (for example `C:\Data\study.sav`) and WSL-style paths in WSL (for example `/mnt/c/Data/study.sav`).
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/init_workspace.R> --csv <path to CSV file>
 ```
 
-### RDS input (data frame)
+### RDS Input (Data Frame)
 
 ```bash
 Rscript <path to scripts/R/init_workspace.R> --rds <path to RDS file>
 ```
 
-### RData input (data frame by name)
+### RData Input (Data Frame by Name)
 
 ```bash
 Rscript <path to scripts/R/init_workspace.R> --rdata <path to RData file> --df <data frame name>
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/init_workspace.R> --parquet <path to parquet file>
 ```
 
-### Multiple datasets
+### Multiple Datasets
 
 Provide comma-separated paths for `--csv`, `--sav`, `--rds`, `--rdata`, or `--parquet`. When using multiple RData files, pass matching `--df` names (or a single name to reuse).
 
@@ -63,7 +63,7 @@ Rscript <path to scripts/R/init_workspace.R> \
   --rds df.rds
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/init_workspace.R> --interactive
@@ -94,7 +94,7 @@ Subskills append to `report_canonical.md` and do not create separate report file
 
 The APA output uses `nlss/assets/init-workspace/default-template.md` by default. The path can be overridden via `templates.init_workspace.default` in `nlss/scripts/config.yml`.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
@@ -102,7 +102,7 @@ Available column keys for `table.columns` include:
 
 Use `drop_if_empty: true` to hide optional columns (paths/object name).
 
-### Template tokens
+### Template Tokens
 
 In addition to the base tokens (`analysis_label`, `analysis_flags`, `table_number`, `table_body`, `note_body`, `narrative`), the module provides:
 
@@ -112,7 +112,7 @@ In addition to the base tokens (`analysis_label`, `analysis_flags`, `table_numbe
 
 The scratchpad output uses `nlss/assets/scratchpad/default-template.md` by default. The path can be overridden via `templates.init_workspace.scratchpad`.
 
-### Scratchpad tokens
+### Scratchpad Tokens
 
 `created_at`, `workspace_path`, `os`, `r_version`, `agent`, `dataset_sections`.
 

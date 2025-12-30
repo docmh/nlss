@@ -46,6 +46,7 @@ note:
 narrative:
   row_template: "{{label}}: M = {{mean}}, SD = {{sd}}, skew = {{skewness}}, kurtosis = {{kurtosis}}, p10/p90 = {{p10}}/{{p90}}, outliers (Tukey/z) = {{outliers_tukey}}/{{outliers_z}}."
 ---
+
 # {{title}}
 
 ## Analysis

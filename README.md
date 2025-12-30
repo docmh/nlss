@@ -1,4 +1,4 @@
-# nlss - Natural Language Statistics Suite
+# NLSS - Natural Language Statistics Suite
 
 R-based statistics helpers that produce an APA 7-ready report plus machine-readable JSONL logs. The repo is organized as "subskills" with a shared workflow and consistent output locations.
 
@@ -6,24 +6,24 @@ R-based statistics helpers that produce an APA 7-ready report plus machine-reada
 
 NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
 
-## Requirements and system support
+## Requirements and System Support
 
 - R 4.4+ (base R is enough for CSV/APA outputs).
 - `Rscript` available on PATH in the shell where you run NLSS.
 - Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), `arrow` (parquet workspace copies), and `ggplot2` (plot subskill).
-- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `psych` (EFA/PCA, KMO/Bartlett); `GPArotation` for oblique rotations; `lme4` + `performance` for mixed models (required when using mixed-models); `lmerTest` for df/p-values; `emmeans` for marginal means/contrasts; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power; `viridisLite` for palettes; `influence.ME` and `DHARMa` for mixed-model diagnostics; `MVN` for Mardia test.
+- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `psych` (EFA/PCA, KMO/Bartlett); `GPArotation` for oblique rotations; `lme4` + `performance` for mixed models (required when using mixed-models); `lmerTest` for df/*p*-values; `emmeans` for marginal means/contrasts; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power; `viridisLite` for palettes; `influence.ME` and `DHARMa` for mixed-model diagnostics; `MVN` for Mardia test.
 - Windows, WSL (Ubuntu), or Linux.
 
-## Rscript setup (required)
+## Rscript Setup (Required)
 
 NLSS runs `.R` scripts directly with `Rscript`. Ensure `Rscript` is available in the same shell where you run NLSS.
 
-### Check availability
+### Check Availability
 
 - Windows PowerShell: `Get-Command Rscript` or `Rscript --version`
 - WSL/Linux: `which Rscript` or `Rscript --version`
 
-### Install R with Rscript on PATH
+### Install R With Rscript on PATH
 
 - Windows (PowerShell):
   - Install R from CRAN or with `winget install --id RProject.R -e`.
@@ -31,7 +31,7 @@ NLSS runs `.R` scripts directly with `Rscript`. Ensure `Rscript` is available in
 - WSL (Ubuntu):
   - `sudo apt update && sudo apt install r-base`
 
-### Windows + WSL environment choice
+### Windows + WSL Environment Choice
 
 - If `Rscript` is available in WSL but not in Windows PowerShell: prefer switching the Codex IDE to a WSL environment; alternatively install R in Windows.
 - If `Rscript` is available in Windows PowerShell but not in WSL: prefer installing R in WSL and switching Codex to WSL; alternatively stay in Windows PowerShell.
@@ -42,13 +42,13 @@ Install the R dependencies:
 Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','psych','GPArotation','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower','viridisLite','influence.ME','DHARMa','MVN'))"
 ```
 
-Or install them interactively in R:
+Or install them interactively in *r*:
 
 ```r
 install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','psych','GPArotation','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower','viridisLite','influence.ME','DHARMa','MVN'))
 ```
 
-## Open source and third-party software
+## Open Source and Third-Party Software
 
 NLSS is licensed under Apache-2.0 (see `LICENSE` and `NOTICE`). It relies on open-source R and CRAN packages that are installed separately and remain under their respective licenses.
 
@@ -57,7 +57,7 @@ NLSS is licensed under Apache-2.0 (see `LICENSE` and `NOTICE`). It relies on ope
 - Optional packages used when available: `viridisLite`, `influence.ME`, `DHARMa`, `MVN`.
 - Test tooling (optional): Python 3 for the test harness.
 
-## Disclaimer and intended use
+## Disclaimer and Intended Use
 
 - Provided "AS IS" under Apache-2.0; no warranties or conditions of any kind.
 - Users are responsible for validating results and decisions made from them; outputs are aids, not a substitute for expert review.
@@ -77,27 +77,28 @@ cd nlss
 
 If you are on Windows, ensure `Rscript.exe` is on your PATH.
 
-## Quick start
+## Quick Start
 
 Outputs always go to the dataset workspace at `<workspace-root>/<dataset-name>/` and are not user-overridable. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml`; if no manifest is present, scripts fall back to `defaults.output_dir` in `nlss/scripts/config.yml`. Each run writes `report_canonical.md` and, when logging is enabled, appends to `analysis_log.jsonl` inside that dataset folder (the monotonic log counter is stored in `nlss-workspace.yml` as `analysis_log_seq`; if `analysis_log.jsonl` is missing, the counter restarts at 1).
 
-### Path handling
+### Path Handling
 
 - Displayed paths in console output and reports default to workspace-relative when the target is inside the workspace root; absolute paths are used only for locations outside the workspace.
 - Mask workspace-external paths in `scratchpad.md`, `report_canonical.md`, and `analysis_log.jsonl` as `<external>/<filename>`; avoid full absolute external paths in documentation and logs.
 - Use workspace-relative paths in examples and configs; use absolute paths when referencing files outside the workspace root.
 
-### Rscript (all platforms)
+### Rscript (All Platforms)
 
 ```bash
 Rscript nlss/scripts/R/descriptive_stats.R --csv data.csv --vars age,score
 ```
 
 Notes:
+
 - Use Windows paths (for example `C:\path\file.csv`) in Windows PowerShell.
 - Use WSL paths (for example `/mnt/c/path/file.csv`) in WSL.
 
-## Stateful workspace architecture
+## Stateful Workspace Architecture
 
 nlss is stateful. The workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir`), and each dataset gets its own subfolder.
 
@@ -108,7 +109,7 @@ nlss is stateful. The workspace root is the current directory, its parent, or a 
 - Workspaces must be non-nested and unique per parent folder; scripts stop if nested or sibling workspace manifests are detected.
 - `data-transform` and `missings` update the workspace parquet copy in place and save a backup to `<workspace-root>/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet` before overwriting.
 
-## Available modules (subskills)
+## Available Modules (Subskills)
 
 Each subskill has a reference file describing inputs, flags, and outputs. Template-driven modules can be customized via `nlss/assets/<subskill>/` and `templates.*` in `nlss/scripts/config.yml`.
 
@@ -142,7 +143,9 @@ Metaskill specs live under `nlss/references/metaskills/` and are executed by the
 Default metaskill reports should follow `nlss/assets/metaskills/report-template.md` (APA-style paper sections). Omit Introduction and Keywords when no theoretical context is available, adjust subsections as needed, and design tables/figures specifically for the report rather than copying from `report_canonical.md`.
 
 Available metaskills:
+
 - `explain-statistics`: `nlss/references/metaskills/explain-statistics.md`
+- `format-document`: `nlss/references/metaskills/format-document.md`
 - `describe-sample`: `nlss/references/metaskills/describe-sample.md`
 - `generate-r-script`: `nlss/references/metaskills/generate-r-script.md`
 - `check-instruments`: `nlss/references/metaskills/check-instruments.md`
@@ -152,12 +155,13 @@ Available metaskills:
 - `test-hypotheses`: `nlss/references/metaskills/test-hypotheses.md`
 
 Utilities:
-- `apa7-markdown`: `nlss/references/utilities/apa7-markdown.md`
+
 - `calc`: `nlss/references/utilities/calc.md`
 - `check-integrity`: `nlss/references/utilities/check-integrity.md`
 - `reconstruct-reports`: `nlss/references/utilities/reconstruct-reports.md`
 
 Reference docs:
+
 - `nlss/references/subskills/descriptive-stats.md`
 - `nlss/references/subskills/frequencies.md`
 - `nlss/references/subskills/crosstabs.md`
@@ -182,21 +186,23 @@ Reference docs:
 - `nlss/references/subskills/metaskill-runner.md`
 - `nlss/references/metaskills/describe-sample.md`
 - `nlss/references/metaskills/explain-statistics.md`
+- `nlss/references/metaskills/format-document.md`
 - `nlss/references/metaskills/generate-r-script.md`
 - `nlss/references/metaskills/check-instruments.md`
 - `nlss/references/metaskills/plan-power.md`
 - `nlss/references/metaskills/explore-data.md`
 - `nlss/references/metaskills/prepare-data.md`
 - `nlss/references/metaskills/test-hypotheses.md`
+- `nlss/references/metaskills/formatting/*.md`
 - `nlss/references/utilities/calc.md`
 - `nlss/references/utilities/check-integrity.md`
 - `nlss/references/utilities/reconstruct-reports.md`
 
-## Basic usage by module
+## Basic Usage by Module
 
 Each run writes `report_canonical.md` in the output directory and appends to `analysis_log.jsonl` when logging is enabled.
 
-### Descriptive statistics
+### Descriptive Statistics
 
 ```bash
 Rscript nlss/scripts/R/descriptive_stats.R \
@@ -210,7 +216,7 @@ Rscript nlss/scripts/R/frequencies.R \
   --csv data.csv --vars gender,condition --group condition
 ```
 
-### Cross-tabulations
+### Cross-Tabulations
 
 ```bash
 Rscript nlss/scripts/R/crosstabs.R \
@@ -224,28 +230,28 @@ Rscript nlss/scripts/R/correlations.R \
   --csv data.csv --vars age,score,stress --method spearman
 ```
 
-### Scale analysis
+### Scale Analysis
 
 ```bash
 Rscript nlss/scripts/R/scale.R \
   --csv data.csv --vars item1,item2,item3 --group condition
 ```
 
-### Exploratory factor analysis
+### Exploratory Factor Analysis
 
 ```bash
 Rscript nlss/scripts/R/efa.R \
   --csv data.csv --vars item1,item2,item3 --method pca --rotation varimax
 ```
 
-### Reliability analysis
+### Reliability Analysis
 
 ```bash
 Rscript nlss/scripts/R/reliability.R \
   --csv data.csv --analysis icc --vars rater1,rater2,rater3
 ```
 
-### Data exploration
+### Data Exploration
 
 ```bash
 Rscript nlss/scripts/R/data_explorer.R \
@@ -259,28 +265,28 @@ Rscript nlss/scripts/R/plot.R \
   --csv data.csv --type scatter --x age --y score --group condition
 ```
 
-### Data transformation
+### Data Transformation
 
 ```bash
 Rscript nlss/scripts/R/data_transform.R \
   --csv data.csv --standardize age,score
 ```
 
-### Missing data handling
+### Missing Data Handling
 
 ```bash
 Rscript nlss/scripts/R/missings.R \
   --csv data.csv --vars age,score,stress
 ```
 
-### Metaskill activation logging
+### Metaskill Activation Logging
 
 ```bash
 Rscript nlss/scripts/R/metaskill_runner.R \
   --csv data.csv --meta sample-description --intent "describe the sample"
 ```
 
-### Assumptions checks
+### Assumptions Checks
 
 ```bash
 Rscript nlss/scripts/R/assumptions.R \
@@ -291,7 +297,7 @@ Rscript nlss/scripts/R/assumptions.R \
   --csv data.csv --analysis sem --factors "F1=item1,item2;F2=item3,item4"
 ```
 
-### Nonparametric tests
+### Nonparametric Tests
 
 ```bash
 Rscript nlss/scripts/R/nonparametric.R \
@@ -305,21 +311,21 @@ Rscript nlss/scripts/R/regression.R \
   --csv data.csv --dv outcome --blocks "age,gender;stress,trait" --interactions stress:trait --center mean
 ```
 
-### Power analysis
+### Power Analysis
 
 ```bash
 Rscript nlss/scripts/R/power.R \
   --csv data.csv --analysis ttest --mode apriori --t-type two-sample --effect-size 0.5 --power 0.8
 ```
 
-### Mixed models
+### Mixed Models
 
 ```bash
 Rscript nlss/scripts/R/mixed_models.R \
   --csv data.csv --formula "score ~ time + (1|id)"
 ```
 
-### SEM (lavaan)
+### SEM (Lavaan)
 
 ```bash
 Rscript nlss/scripts/R/sem.R \
@@ -333,27 +339,27 @@ Rscript nlss/scripts/R/anova.R \
   --csv data.csv --dv outcome --between group
 ```
 
-### t-tests
+### T-Tests
 
 ```bash
 Rscript nlss/scripts/R/t_test.R \
   --csv data.csv --vars score --group condition
 ```
 
-### Workspace initialization
+### Workspace Initialization
 
 ```bash
 Rscript nlss/scripts/R/init_workspace.R \
   --csv data.csv
 ```
 
-## Where outputs go
+## Where Outputs Go
 
 All scripts write to the dataset workspace at `<workspace-root>/<dataset-name>/` and do not accept a custom output directory. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir` in `nlss/scripts/config.yml`). Subskills only extend `report_canonical.md` and never create standalone report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`; `data_transform` and `missings` update these copies in place and create backups in `<workspace-root>/<dataset-name>/backup/`.
 Plots are saved under `<workspace-root>/<dataset-name>/plots/` with figure-numbered filenames.
 
-## Configuration logic
+## Configuration Logic
 
 Defaults live in `nlss/scripts/config.yml` and are loaded via `nlss/scripts/R/lib/config.R`.
 
@@ -363,7 +369,7 @@ Defaults live in `nlss/scripts/config.yml` and are loaded via `nlss/scripts/R/li
 - CLI flags always override config values at runtime (for example `--digits`, module-specific flags).
 - When `config.yml` is missing or unreadable, built-in defaults in `config.R` are used.
 
-## APA template logic (YAML)
+## APA Template Logic (YAML)
 
 Templates are Markdown files under `nlss/assets/<subskill>/` with YAML front matter. They drive `report_canonical.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, plotting, data transformation, missingness handling, imputation, assumptions, regression, power, SEM, ANOVA, and t-tests).
 
@@ -377,7 +383,7 @@ Key YAML fields:
 Template paths can be overridden in `nlss/scripts/config.yml` under `templates.<subskill>.<name>` (for example `templates.crosstabs.grouped`). Edit the template files or point to your own to change APA output without touching the R scripts.
 You can also pass `--template <name|path>` to any subskill to select a configured template reference (for example `default` or `grouped`) or a direct template path; unresolved references fall back to the default template selection.
 
-## Using with Codex (Codes)
+## Using With Codex (Codes)
 
 Codex discovers this repo's skill via `nlss/SKILL.md`. Open Codex in the repo root and ask for a statistical task; it should route to the correct subskill automatically.
 
@@ -388,7 +394,7 @@ Use nlss to run correlations (Pearson) on data.csv for age, score, and stress.
 Write outputs to outputs/tmp and summarize the APA text.
 ```
 
-## Using with Claude Code
+## Using With Claude Code
 
 Claude Code can use the same repo structure. Open the repo and tell Claude to use the nlss subskill reference files and scripts.
 

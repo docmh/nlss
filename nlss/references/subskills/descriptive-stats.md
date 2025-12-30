@@ -24,31 +24,31 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only.
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/descriptive_stats.R> --csv <path to CSV file> --vars age,score --group condition
 ```
 
-### RDS input (data frame)
+### RDS Input (Data Frame)
 
 ```bash
 Rscript <path to scripts/R/descriptive_stats.R> --rds <path to RDS file> --vars age,score
 ```
 
-### RData input (data frame by name)
+### RData Input (Data Frame by Name)
 
 ```bash
 Rscript <path to scripts/R/descriptive_stats.R> --rdata <path to RData file> --df <data frame name> --vars age,score
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/descriptive_stats.R> --parquet <path to parquet file> --vars age,score
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/descriptive_stats.R> --interactive
@@ -88,7 +88,7 @@ Available templates include `default-template.md`, `robust-template.md`, and `di
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).
   - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
@@ -96,7 +96,7 @@ Available column keys for `table.columns` include:
 
 Use `drop_if_empty: true` to remove a column if all values are blank.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
@@ -104,7 +104,7 @@ Available note tokens include:
 
 Additional template tokens include `trim`, `trim_pct`, `iqr_multiplier`, and `outlier_z`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-row lines. Available row tokens include:
 
@@ -112,9 +112,9 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 ## APA 7 Reporting Guidance
 
-- Use the narrative lines as the base: `Variable: M = x.xx, SD = x.xx, 95% CI [x.xx, x.xx], n = xx, missing = x (x.x%).`
-- If `n < 2` or SD is missing, state that variability cannot be estimated.
+- Use the narrative lines as the base: Variable: *M* = x.xx, *SD* = x.xx, 95% CI [x.xx, x.xx], *n* = xx, missing = x (x.x%).
+- If `n < 2` or *SD* is missing, state that variability cannot be estimated.
 - When grouped, report each group separately before any overall comparison.
-- CV is computed as `SD / |M|` and is omitted when `M = 0`.
+- CV is computed as *SD* / |*M*| and is omitted when *M* = 0.
 - Mode is only reported when a single most frequent value exists; ties are omitted.
 - Outlier counts use Tukey fences (`iqr_multiplier` x IQR) and `|z| > outlier_z`.

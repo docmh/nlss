@@ -3,7 +3,7 @@ name: describe-sample
 description: Agent-run sample description that inspects data, infers demographics, runs descriptive-stats/frequencies (plus optional crosstabs/missings), and writes an APA-ready report.
 ---
 
-# Describe Sample (Agent-run, APA 7)
+# Describe Sample (Agent-Run, APA 7)
 
 ## Overview
 
@@ -31,13 +31,13 @@ Use this metaskill when the user asks for sample or demographic descriptions, fo
 5. Ask clarifying questions when needed (grouping variable, key demographics, Likert handling), and explicitly propose a demographic-first summary as the default.
 6. Write a plan to `scratchpad.md`, then execute subskills in order.
 7. Update `scratchpad.md` with decisions and completion notes.
-8. Generate `report_<YYYYMMDD>_describe-sample_<intent>.md` first, align it with `nlss/references/utilities/apa7-markdown.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+8. Generate `report_<YYYYMMDD>_describe-sample_<intent>.md` first, align it with `nlss/references/metaskills/formatting/`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
-## Execution (Agent-run)
+## Execution (Agent-Run)
 
 There is no dedicated script for this metaskill. The agent runs subskills and logs activation/finalization using `metaskill-runner`.
 
-### Logging activation
+### Logging Activation
 
 ```bash
 Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta describe-sample --intent "describe the sample"
@@ -52,7 +52,7 @@ Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta d
 - Optional list of key demographic variables to prioritize.
 - Optional grouping variable for comparisons (condition, site, cohort).
 
-### Clarifying questions
+### Clarifying Questions
 
 - Which variable defines the groups or conditions (if any)?
 - Which demographic variables should be highlighted or excluded?
@@ -62,7 +62,7 @@ Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta d
 
 If unclear, suggest a demographic-first summary (age, gender/sex, education, employment, income, marital status, ethnicity/race, country, language) as the default.
 
-## Procedure (pseudocode)
+## Procedure (Pseudocode)
 
 ```
 if workspace missing:
@@ -97,7 +97,7 @@ if user requests missingness handling:
 
 update scratchpad.md with decisions and completion
 write report_<YYYYMMDD>_describe-sample_<intent>.md
-align report_<YYYYMMDD>_describe-sample_<intent>.md with nlss/references/utilities/apa7-markdown.md
+align report_<YYYYMMDD>_describe-sample_<intent>.md with nlss/references/metaskills/formatting/
 run metaskill-runner --phase finalization --synopsis "<synopsis text>" (runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
@@ -118,7 +118,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (runner f
 - `scratchpad.md`: Plan, clarifications, and completion notes.
 - `report_<YYYYMMDD>_describe-sample_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
-### Final report requirements
+### Final Report Requirements
 
 - Do not copy `report_canonical.md`; write a new narrative report.
 - Use `nlss/assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
@@ -133,7 +133,7 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 ## Finalization
 
 - Write `report_<YYYYMMDD>_describe-sample_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report with `nlss/references/utilities/apa7-markdown.md` (must be the last step before finalization).
+- Align the report with `nlss/references/metaskills/formatting/` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## APA 7 Templates
@@ -148,10 +148,10 @@ This metaskill does not define its own APA template. It relies on the templates 
 
 ## APA 7 Reporting Guidance
 
-- Report sample size (N) and key demographics succinctly.
+- Report sample size (*N*) and key demographics succinctly.
 - Use descriptive statistics for continuous variables and frequency tables for categorical variables.
 - If grouping is used, report group-wise summaries and note any differences descriptively.
 
-## Parquet support
+## Parquet Support
 
 Parquet input/output requires the R package `arrow` (install with `install.packages("arrow")`).

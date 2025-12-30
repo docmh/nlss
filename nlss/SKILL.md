@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Workspace-first R statistics suite with subskills and agent-run metaskills (including explain-statistics for concept explanations) that produce APA 7 tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
+description: Workspace-first R statistics suite with subskills and agent-run metaskills (including explain-statistics for concept explanations and format-document for APA formatting) that produce APA 7 tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
 license: Apache-2.0
 compatibility: R 4.5.2, Windows, WSL (Ubuntu), Linux, one of Codex IDE with GPT-5.2-Codex Medium/High or Claude Code IDE with Claude Sonnet 4.5/Opus 4.5
 metadata:
@@ -12,7 +12,7 @@ metadata:
   style: APA 7
 ---
 
-# nlss - Natural Language Statistics Suite
+# NLSS - Natural Language Statistics Suite
 
 ## Overview
 
@@ -32,7 +32,7 @@ Metaskills are Markdown pseudoscripts that orchestrate subskills based on user i
 
 **NLSS-first principle:** for reliability and auditability, prefer existing subskills whenever they cover the request; only use custom script generation as a last resort.
 
-## Stateful workspace workflow (required)
+## Stateful Workspace Workflow (Required)
 
 Treat the workspace root as the current working directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir` from `scripts/config.yml`). It should only contain dataset subfolders.
 
@@ -55,7 +55,7 @@ All modules load defaults from `scripts/config.yml` (requires the R package `yam
 
 CLI flags always override `scripts/config.yml` defaults at runtime.
 
-## Rscript execution (required)
+## Rscript Execution (Required)
 
 Run all `.R` scripts directly with `Rscript`. Ensure `Rscript` is on PATH in the current shell.
 
@@ -65,7 +65,7 @@ Example:
 Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <variables>
 ```
 
-### Windows + WSL environment choice
+### Windows + WSL Environment Choice
 
 - If `Rscript` is available in WSL but not Windows PowerShell, prefer switching the Codex IDE to WSL; otherwise install R in Windows.
 - If `Rscript` is available in Windows PowerShell but not WSL, prefer installing R in WSL and switching Codex to WSL; otherwise stay in Windows PowerShell.
@@ -79,7 +79,7 @@ Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <v
 - On completion, log metaskill finalization with `metaskill-runner --synopsis` to append a `# Synopsis` section to `report_canonical.md`, and generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` with APA 7-ready, journal-ready narrative, tables, and plots when helpful.
 - The agent writes a plan to `scratchpad.md` and marks progress after each step.
 
-## Common inputs (data sources)
+## Common Inputs (Data Sources)
 
 All scripts accept one of the following input types:
 
@@ -103,7 +103,7 @@ Metaskills use the same data sources as subskills (CSV/SAV/RDS/RData/Parquet or 
 - Dataset source (file path or workspace context).
 - Any clarifications (grouping variables, Likert handling, etc.) provided in the prompt or follow-ups.
 
-## Common flags
+## Common Flags
 
 - `--sep <char>`: CSV separator (default from `scripts/config.yml` -> `defaults.csv.sep`).
 - `--header TRUE/FALSE`: CSV header row (default from `scripts/config.yml` -> `defaults.csv.header`).
@@ -114,7 +114,7 @@ Metaskills use the same data sources as subskills (CSV/SAV/RDS/RData/Parquet or 
 
 Module-specific analysis options (variables, grouping, method choices, etc.) are described in each subskill reference.
 
-## Output conventions
+## Output Conventions
 
 - Use the workspace root in the current directory, its parent, or a one-level child if `nlss-workspace.yml` is present; otherwise fall back to `defaults.output_dir` from `scripts/config.yml`.
 - The output directory is fixed to the resolved workspace root and is not user-overridable.
@@ -149,20 +149,20 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 
 ## Subskills
 
-- [descriptive-stats](references/subskills/descriptive-stats.md): Numeric descriptives with missingness, robust/percentile/outlier metrics, CI/SE, grouping, and APA templates.
+- [descriptive-stats](references/subskills/descriptive-stats.md): Numeric descriptives with missingness, robust/percentile/outlier metrics, CI/*SE*, grouping, and APA templates.
 - [frequencies](references/subskills/frequencies.md): Categorical counts with valid/total percentages, missingness, optional grouping, and APA tables.
 - [crosstabs](references/subskills/crosstabs.md): Contingency tables with chi-square/Fisher, effect sizes, residuals, percent types, and grouping.
-- [correlations](references/subskills/correlations.md): Pearson/Spearman/Kendall matrices or cross-sets with partial controls, bootstrap CIs, r-to-z, p-adjust, grouping.
+- [correlations](references/subskills/correlations.md): Pearson/Spearman/Kendall matrices or cross-sets with partial controls, bootstrap CIs, *r*-to-*z*, *p*-adjust, grouping.
 - [scale](references/subskills/scale.md): Item analysis with alpha/omega, item-total stats, reverse scoring, scale scores, grouping.
 - [efa](references/subskills/efa.md): Exploratory factor analysis with PCA/EFA extraction, rotation, eigenvalue retention, KMO/Bartlett, and APA outputs.
 - [reliability](references/subskills/reliability.md): ICC/kappa/test-retest reliability in wide/long formats with CIs and grouping.
-- [data-explorer](references/subskills/data-explorer.md): Data dictionary with type/level inference, missingness, numeric summaries, and top-N value tables.
+- [data-explorer](references/subskills/data-explorer.md): Data dictionary with type/level inference, missingness, numeric summaries, and top-*N* value tables.
 - [plot](references/subskills/plot.md): APA figures (hist/bar/box/violin/scatter/line/QQ/heatmap) with numbering and saved files.
 - [data-transform](references/subskills/data-transform.md): Compute/recode/standardize/bin/rename/drop variables with safeguards and change logs.
 - [assumptions](references/subskills/assumptions.md): Assumption/diagnostic checks for t-tests, ANOVA, regression, mixed models, SEM.
 - [regression](references/subskills/regression.md): OLS/GLM regression with blocks, interactions, standardization, bootstrap CIs, group splits.
 - [power](references/subskills/power.md): A priori/post hoc/sensitivity power for t-tests/ANOVA/correlation/regression/SEM; optional effect estimation.
-- [mixed-models](references/subskills/mixed-models.md): LMMs with random effects, emmeans/contrasts, diagnostics, R2/ICC.
+- [mixed-models](references/subskills/mixed-models.md): LMMs with random effects, emmeans/contrasts, diagnostics, *R*²/ICC.
 - [sem](references/subskills/sem.md): SEM/CFA/path/mediation/invariance via lavaan with fit indices and bootstrapped CIs.
 - [anova](references/subskills/anova.md): Between/within/mixed ANOVA/ANCOVA with post hoc, contrasts, effect sizes, sphericity.
 - [t-test](references/subskills/t-test.md): One-sample/independent/paired t-tests with effect sizes, CIs, bootstrap.
@@ -198,6 +198,7 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 ### Available Metaskills
 
 - [explain-statistics](references/metaskills/explain-statistics.md): Student-friendly explanations of statistical concepts, methods, and interpretations (conversational; no metaskill-runner by default).
+- [format-document](references/metaskills/format-document.md): APA 7 formatting pass that standardizes a report using the NLSS formatting guides.
 - explain-results (planned): Interpret analysis results in context, covering effect sizes, significance, assumptions, and limitations (conversational; no metaskill-runner by default).
 - [plan-power](references/metaskills/plan-power.md): A priori power/sample-size planning with effect-size clarification or pilot estimation.
 - [explore-data](references/metaskills/explore-data.md): Dataset overview with data dictionary, missingness, distributions, correlations, optional plots.
@@ -212,7 +213,6 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 
 ## Utilities
 
-- [apa7-markdown](references/utilities/apa7-markdown.md): APA 7 formatting rules that can be expressed in Markdown (headings, citations, references, tables, figures).
 - [calc](references/utilities/calc.md): Safe numeric expression calculator for quick parameter derivations (plain/json/csv output).
 - [check-integrity](references/utilities/check-integrity.md): Recover XOR-based NLSS checksums from analysis_log.jsonl entries to spot inconsistencies.
 - [reconstruct-reports](references/utilities/reconstruct-reports.md): Rebuild canonical and metaskill reports from compressed report_block entries in analysis_log.jsonl.

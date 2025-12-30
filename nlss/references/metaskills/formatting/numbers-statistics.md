@@ -1,0 +1,69 @@
+---
+name: formatting-numbers-statistics
+description: APA 7 number rules, decimal formatting, and statistical notation for NLSS reports.
+---
+
+# Numbers and Statistical Notation (APA 7 Formatting)
+
+## Overview
+
+Apply APA 7 rules for numbers, decimals, and statistical notation in NLSS reports. Use this when writing results, tables, and narrative summaries.
+
+## Assistant Researcher Model
+
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+
+## Intent/Triggers
+
+Use this when you need to:
+
+- Decide between numerals and words.
+- Format decimals, percentages, and statistical symbols.
+- Report test statistics and *p* values.
+
+## Inputs/Clarifications
+
+- Measurement units, scale ranges, and reporting precision.
+- Whether the number starts a sentence.
+- Which statistics are being reported (e.g., *t*, *F*, *r*).
+
+## Core Workflow
+
+1. Apply the numeral vs. word rules.
+2. Format decimals and leading zeros consistently.
+3. Italicize statistical symbols and format test statistics.
+4. Report exact *p* values when possible; use thresholds for very small values.
+5. Apply spacing around operators.
+
+## Numerals vs. Words
+
+- Use words for numbers zero through nine; use numerals for 10 and above.
+- Always use numerals for measurements, time, dates, ages, percentages, ratios, and scale points.
+- If a number starts a sentence, spell it out or rephrase the sentence.
+
+## Decimals and Leading Zeros
+
+- Use a leading zero for values that can exceed 1 (e.g., 0.75).
+- Omit the leading zero for values that cannot exceed 1 (e.g., *p* values, correlations).
+
+## Statistical Symbols and Tests
+
+- Italicize statistical symbols (e.g., *t*, *F*, *r*, *p*, *M*, *SD*, *N*, *n*).
+- Use parentheses for test statistics and degrees of freedom.
+- Use brackets for confidence intervals.
+- Use spaces around operators (e.g., *t*(45) = 2.14).
+
+## *p* Values (NLSS Default)
+
+- Report exact *p* values to two or three decimals when possible.
+- Use *p* < .001 for very small values.
+
+## Markdown Paragraph Separation
+
+- Use a blank line (two consecutive `\n`) between paragraphs and between block elements (tables, figures, lists, block quotes) to prevent Markdown from merging elements.
+
+## Checks
+
+- Numerals vs. words are consistent with APA rules.
+- Statistical symbols are italicized.
+- *p* values and confidence intervals are formatted consistently.

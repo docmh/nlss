@@ -27,6 +27,7 @@ table:
 note:
   template: "{{note_default}}"
 ---
+
 # {{analysis_label}}
 
 ## Analysis

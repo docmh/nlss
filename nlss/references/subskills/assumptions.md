@@ -22,55 +22,55 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 ## Script: `scripts/R/assumptions.R`
 
-### t-test assumptions (independent samples)
+### T-Test Assumptions (Independent Samples)
 
 ```bash
 Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis ttest --vars score --group condition
 ```
 
-### t-test assumptions (paired)
+### T-Test Assumptions (Paired)
 
 ```bash
 Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis ttest --x pre_score --y post_score
 ```
 
-### ANOVA assumptions (between-subjects)
+### ANOVA Assumptions (Between-Subjects)
 
 ```bash
 Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis anova --dv score --between group,gender
 ```
 
-### ANOVA assumptions (within or mixed; wide format)
+### ANOVA Assumptions (Within or Mixed; Wide Format)
 
 ```bash
 Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis anova --within pre,mid,post --between group
 ```
 
-### Regression assumptions (multiple regression)
+### Regression Assumptions (Multiple Regression)
 
 ```bash
 Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis regression --dv outcome --ivs age,stress,trait
 ```
 
-### Regression assumptions (hierarchical blocks)
+### Regression Assumptions (Hierarchical Blocks)
 
 ```bash
 Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis regression --dv outcome --blocks age,gender;stress,trait
 ```
 
-### Mixed models assumptions
+### Mixed Models Assumptions
 
 ```bash
 Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis mixed_models --formula "score ~ time + (1|id)"
 ```
 
-### SEM assumptions (CFA builder)
+### SEM Assumptions (CFA Builder)
 
 ```bash
 Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis sem --factors "F1=item1,item2;F2=item3,item4"
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/assumptions.R> --interactive
@@ -114,7 +114,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--template` selects a template key or file path for APA outputs (falls back to defaults).
 - `--log` uses `defaults.log`.
 
-## Inputs and handling
+## Inputs and Handling
 
 - Data sources: CSV, SAV, RDS, Parquet, or RData data frame (`--df` required for RData).
 - `ttest`:
@@ -159,7 +159,7 @@ Templates use YAML front matter with `{{token}}` placeholders. Supported section
 - `note.template`: overrides the note text (defaults to `{{note_default}}`).
 - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys include:
 
@@ -167,13 +167,13 @@ Available column keys include:
 
 Use `drop_if_empty: true` to hide columns with all empty values.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`, `alpha`, `homogeneity_tests`, `vif_warn`, `vif_high`, `outlier_z`, `cook_threshold`, `mahalanobis_alpha`, `max_cor`, `max_kappa`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-row lines. Available row tokens include:
 
@@ -181,7 +181,7 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 ## APA 7 Reporting Guidance
 
-- Report the assumption tests used (e.g., Shapiro-Wilk, Levene, Mauchly, Breusch-Pagan) with statistics and p-values.
+- Report the assumption tests used (e.g., Shapiro-Wilk, Levene, Mauchly, Breusch-Pagan) with statistics and *p*-values.
 - For regression, report VIF values and any influence/outlier flags.
 - For mixed models, report singularity/convergence flags, residual diagnostics, and any random-effects normality/outlier findings.
 - For SEM, report multivariate normality (Mardia), Mahalanobis outliers, collinearity/Heywood cases, and convergence status.

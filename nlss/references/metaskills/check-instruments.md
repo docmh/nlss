@@ -3,7 +3,7 @@ name: check-instruments
 description: Agent-run instrument checks that infer item groups, handle reverse scoring, run scale (alpha/omega) and reliability (ICC/kappa/test-retest), and report APA-ready results.
 ---
 
-# Check Instruments (Agent-run, APA 7)
+# Check Instruments (Agent-Run, APA 7)
 
 ## Overview
 
@@ -31,13 +31,13 @@ Use this metaskill when the user asks for instrument quality, reliability, or sc
 5. Ask clarifying questions (scale definitions, reverse-coded items, scoring method, reliability type).
 6. Write a plan to `scratchpad.md`, then execute subskills in order.
 7. Update `scratchpad.md` with decisions and completion notes.
-8. Generate `report_<YYYYMMDD>_check-instruments_<intent>.md` first, align it with `nlss/references/utilities/apa7-markdown.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+8. Generate `report_<YYYYMMDD>_check-instruments_<intent>.md` first, align it with `nlss/references/metaskills/formatting/`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
-## Execution (Agent-run)
+## Execution (Agent-Run)
 
 There is no dedicated script for this metaskill. The agent runs subskills and logs activation/finalization using `metaskill-runner`.
 
-### Logging activation
+### Logging Activation
 
 ```bash
 Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta check-instruments --intent "check reliability"
@@ -54,7 +54,7 @@ Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta c
 - Reliability type: internal consistency (alpha/omega) vs test-retest/ICC/kappa.
 - Optional grouping variable (condition, cohort, site).
 
-### Clarifying questions
+### Clarifying Questions
 
 - Which instruments or scales are in the dataset, and which items belong to each scale?
 - Do item names share prefixes that map to scales (for example PHQ9_1..PHQ9_9)?
@@ -64,9 +64,10 @@ Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta c
 - Is this cross-sectional, test-retest, or multi-rater data (any ID/time/rater variables)?
 - Should analyses be grouped (e.g., by condition or cohort)?
 - Should missingness be summarized only, or handled (listwise/impute/indicator/drop)?
+
 If the request is vague, propose a default: infer item groups by prefix and Likert range, run internal consistency (alpha/omega), and report item diagnostics plus missingness summaries.
 
-## Procedure (pseudocode)
+## Procedure (Pseudocode)
 
 ```
 if workspace missing:
@@ -103,7 +104,7 @@ optional:
 
 update scratchpad.md with decisions and completion
 write report_<YYYYMMDD>_check-instruments_<intent>.md
-align report_<YYYYMMDD>_check-instruments_<intent>.md with nlss/references/utilities/apa7-markdown.md
+align report_<YYYYMMDD>_check-instruments_<intent>.md with nlss/references/metaskills/formatting/
 run metaskill-runner --phase finalization --synopsis "<synopsis text>" (runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
@@ -124,7 +125,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (runner f
 - `scratchpad.md`: Plan, clarifications, and completion notes.
 - `report_<YYYYMMDD>_check-instruments_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
-### Final report requirements
+### Final Report Requirements
 
 - Do not copy `report_canonical.md`; write a new narrative report.
 - Use `nlss/assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
@@ -139,7 +140,7 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 ## Finalization
 
 - Write `report_<YYYYMMDD>_check-instruments_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report with `nlss/references/utilities/apa7-markdown.md` (must be the last step before finalization).
+- Align the report with `nlss/references/metaskills/formatting/` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## APA 7 Templates
@@ -158,6 +159,6 @@ This metaskill does not define its own APA template. It relies on the templates 
 - For test-retest or inter-rater analyses, report ICC/kappa with confidence intervals.
 - Summarize missingness handling decisions when applied.
 
-## Parquet support
+## Parquet Support
 
 Parquet input/output requires the R package `arrow` (install with `install.packages("arrow")`).

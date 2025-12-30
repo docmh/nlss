@@ -3,7 +3,7 @@ name: impute
 description: Impute missing values into new _imp columns using simple methods or mice/VIM kNN, with per-variable method maps, optional indicators, parquet updates with backups, and APA outputs.
 ---
 
-# Impute (Base R with optional mice/VIM, APA 7)
+# Impute (Base R With Optional Mice/VIM, APA 7)
 
 ## Overview
 
@@ -24,31 +24,31 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` in base R. Optional engines require R packages `mice` or `VIM` when selected. Parquet I/O requires the `arrow` package.
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/impute.R> --csv <path to CSV file> --vars age,gender
 ```
 
-### RDS input (data frame)
+### RDS Input (Data Frame)
 
 ```bash
 Rscript <path to scripts/R/impute.R> --rds <path to RDS file> --vars age,gender
 ```
 
-### RData input (data frame by name)
+### RData Input (Data Frame by Name)
 
 ```bash
 Rscript <path to scripts/R/impute.R> --rdata <path to RData file> --df <data frame name> --vars age,gender
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/impute.R> --parquet <path to parquet file> --vars age,gender
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/impute.R> --interactive
@@ -94,7 +94,7 @@ Undo: replace `<workspace-root>/<dataset-name>/<dataset-name>.parquet` with the 
 
 Use the Markdown template at `nlss/assets/impute/default-template.md` when assembling imputation reports. If the template exists, `impute.R` uses it for `report_canonical.md`.
 
-### YAML template controls
+### YAML Template Controls
 
 - The template path can be overridden via `templates.impute.default` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
@@ -102,7 +102,7 @@ Use the Markdown template at `nlss/assets/impute/default-template.md` when assem
   - `note.template`: overrides the note text (defaults to `{{note_default}}` if omitted).
   - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
@@ -110,13 +110,13 @@ Available column keys for `table.columns` include:
 
 Use `drop_if_empty: true` to remove a column if all values are blank (for example, `indicator` or `note`).
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`, `engine_note`, `indicator_note`, `pool_note`, `seed_note`, `skipped_note`, `map_note`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-variable lines. Available row tokens include:
 

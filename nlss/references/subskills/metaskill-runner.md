@@ -25,19 +25,19 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 ## Script: `scripts/R/metaskill_runner.R`
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta sample-description
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/metaskill_runner.R> --parquet <path to parquet file> --meta sample-description --intent "describe the sample"
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/metaskill_runner.R> --interactive
@@ -58,7 +58,7 @@ Rscript <path to scripts/R/metaskill_runner.R> --interactive
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 - `--interactive` prompts for inputs.
 
-### Parquet support
+### Parquet Support
 
 Parquet input/output requires the R package `arrow` (install with `install.packages("arrow")`).
 
@@ -80,13 +80,13 @@ Use the Markdown template in `nlss/assets/metaskill-runner` when assembling the 
 - Finalization template: `nlss/assets/metaskill-runner/finalization-template.md`.
 - Template paths can be overridden via `templates.metaskill_runner.default` and `templates.metaskill_runner.finalization` in `nlss/scripts/config.yml`.
 
-### YAML template controls
+### YAML Template Controls
 
 - `table.columns`: ordered column definitions (`key`, optional `label`, optional `drop_if_empty`).
 - `note.template`: overrides the note text (defaults to `{{note_default}}`).
 - `narrative.template` or `narrative.row_template`: overrides narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 

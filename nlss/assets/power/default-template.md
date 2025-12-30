@@ -43,7 +43,7 @@ table:
       label: "*df*"
       drop_if_empty: true
     - key: "r2"
-      label: "R2"
+      label: "*R*²"
       drop_if_empty: true
     - key: "rmsea0"
       label: "RMSEA0"
@@ -67,6 +67,7 @@ narrative:
   join: "\n\n"
   drop_empty: true
 ---
+
 # {{title}}
 
 ## Analysis

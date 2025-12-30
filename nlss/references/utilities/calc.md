@@ -18,9 +18,10 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 Use this utility when the request is a quick numeric computation rather than a statistical analysis.
 
 Example prompts:
-- "Compute f2 from R2 = 0.12."
+
+- "Compute *f*² from *R*² = 0.12."
 - "Adjust alpha for 3 tests."
-- "Convert r = 0.30 to d."
+- "Convert *r* = 0.30 to *d*."
 
 ## Inputs
 
@@ -80,23 +81,23 @@ Rscript <path to scripts/R/calc.R> --expr "sqrt(0.2)|log(10)"
 
 The default template lives at `nlss/assets/calc/default-template.md` and can be overridden via `templates.calc.default` in `nlss/scripts/config.yml` or the `--template` flag.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
 `name`, `expression`, `value`.
 
-### Narrative row tokens
+### Narrative Row Tokens
 
 Available row tokens include:
 
 `name`, `expression`, `value`, `full_sentence`.
 
-### Additional tokens
+### Additional Tokens
 
 `expression_count` provides the number of evaluated expressions.
 
-## Non-goals
+## Non-Goals
 
 - No dataset loading or workspace parquet handling.
 - Not a subskill or metaskill; use only as a convenience utility.

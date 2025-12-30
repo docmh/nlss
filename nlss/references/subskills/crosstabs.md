@@ -24,31 +24,31 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only.
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/crosstabs.R> --csv <path to CSV file> --row gender --col condition
 ```
 
-### RDS input (data frame)
+### RDS Input (Data Frame)
 
 ```bash
 Rscript <path to scripts/R/crosstabs.R> --rds <path to RDS file> --row gender --col condition
 ```
 
-### RData input (data frame by name)
+### RData Input (Data Frame by Name)
 
 ```bash
 Rscript <path to scripts/R/crosstabs.R> --rdata <path to RData file> --df <data frame name> --row gender --col condition
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/crosstabs.R> --parquet <path to parquet file> --row gender --col condition
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/crosstabs.R> --interactive
@@ -90,7 +90,7 @@ Subskills append to `report_canonical.md` and do not create separate report file
 
 Use the Markdown templates in `nlss/assets/crosstabs` when assembling cross-tabulation reports. If the template exists, `crosstabs.R` uses it for `report_canonical.md`.
 
-### YAML template controls
+### YAML Template Controls
 
 - Template paths can be overridden via `templates.crosstabs.default` and `templates.crosstabs.grouped` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
@@ -98,7 +98,7 @@ Use the Markdown templates in `nlss/assets/crosstabs` when assembling cross-tabu
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).
   - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
@@ -106,24 +106,24 @@ Available column keys for `table.columns` include:
 
 Use `drop_if_empty: true` to remove a column if all values are blank (e.g., `group`, `expected`, `std_resid`, `adj_resid`).
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`, `percent_labels`, `missing_note`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 `label`, `row_var`, `col_var`, `group`, `valid_n`, `missing_n`, `missing_pct`, `chisq_text`, `effect_text`, `fisher_text`, `tests_text`, `expected_text`, `missing_text`, `full_sentence`.
 
-### Multiple row/column pairs
+### Multiple Row/Column Pairs
 
 When multiple `--rows`/`--cols` combinations are requested, all results are rendered in the same long-format table. Include `row_var` and `col_var` in `table.columns` if you want the table to identify which row/column pair each line belongs to.
 
 ## APA 7 Reporting Guidance
 
-- Report chi-square (or Fisher's exact test) with df, N, p-value, and effect size (Cramer's V or phi for 2x2).
+- Report chi-square (or Fisher's exact test) with *df*, *N*, *p*-value, and effect size (Cramer's V or phi for 2x2).
 - Note expected count diagnostics when assumptions are questionable (e.g., > 20% cells < 5).
 - Missing values are excluded from valid counts and reported in the test outputs.

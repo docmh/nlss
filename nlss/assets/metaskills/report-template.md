@@ -22,13 +22,17 @@ tokens:
     *Note.* {{figure_note}}
   references: ""
 ---
+
 <!--
 Default metaskill report template.
+
 - Omit Keywords and Introduction if theoretical context is not available.
 - Adjust or replace subsections when warranted by the study design or metaskill.
 - Tables and figures should be purpose-built for the report (no copy/paste from report_canonical.md).
 - Tables and figures can be added anywhere in the report body as needed using the table_block and figure_block tokens.
+
 -->
+
 # {{title}}
 
 **Abstract**
@@ -39,6 +43,7 @@ Default metaskill report template.
 {{introduction}}
 
 ## Method
+
 ### **_Participants_**
 {{participants}}
 
@@ -52,6 +57,7 @@ Default metaskill report template.
 {{analytic_strategy}}
 
 ## Results
+
 ### **_Descriptive Statistics_**
 {{results_descriptive}}
 
@@ -65,6 +71,7 @@ Default metaskill report template.
 {{results_exploratory}}
 
 ## Discussion
+
 ### **_Summary of Findings_**
 {{discussion_summary}}
 

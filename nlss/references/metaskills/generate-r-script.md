@@ -3,7 +3,7 @@ name: generate-r-script
 description: Last-resort, permissioned custom R script generation for analyses outside NLSS, saved to workspace scripts/ with documented rationale and APA-aligned outputs.
 ---
 
-# Generate R Script (Agent-run)
+# Generate R Script (Agent-Run)
 
 ## Overview
 
@@ -33,15 +33,15 @@ Do not use this metaskill when an NLSS subskill already provides the requested a
 - Variable roles (DV/IVs/covariates/grouping/repeated measures).
 - Desired outputs (tables, plots, model diagnostics).
 
-### Clarifying questions
+### Clarifying Questions
 
 - Can the requested analysis be satisfied by an existing NLSS subskill? (Confirm with the user if unclear.)
 - Which variables define outcomes, predictors, and groups?
 - What assumptions or effect sizes are required?
-- Which R packages are acceptable (base R, tidyverse, specialized packages)?
+- Which R packages are acceptable (base *r*, tidyverse, specialized packages)?
 - Permission: “May I generate and save a custom R script in the dataset `scripts/` folder?”
 
-## Procedure (pseudocode)
+## Procedure (Pseudocode)
 
 ```
 inspect user request
@@ -70,7 +70,7 @@ generate R script using state-of-the-art methods:
 save script to <workspace-root>/<dataset-name>/scripts/custom_<YYYYMMDD>_<intent>.R
 update scratchpad.md with script path and rationale
 write report_<YYYYMMDD>_generate-r-script_<intent>.md
-align report_<YYYYMMDD>_generate-r-script_<intent>.md with nlss/references/utilities/apa7-markdown.md
+align report_<YYYYMMDD>_generate-r-script_<intent>.md with nlss/references/metaskills/formatting/
 run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
@@ -84,7 +84,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 - Record a short “out of scope” justification in `scratchpad.md` before generating the script.
 - Use the naming convention `custom_<YYYYMMDD>_<intent>.R` for saved scripts (ASCII, no spaces).
 
-## Minimum diagnostics checklist
+## Minimum Diagnostics Checklist
 
 Include the following where applicable:
 
@@ -102,7 +102,7 @@ Include the following where applicable:
 - `scripts/custom_<YYYYMMDD>_<intent>.R`: The generated script in the dataset workspace folder.
 - `report_<YYYYMMDD>_generate-r-script_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
-### Final report requirements
+### Final Report Requirements
 
 - Do not copy `report_canonical.md`; write a new narrative report.
 - Use `nlss/assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
@@ -117,13 +117,13 @@ All artifacts (reports, tables, figures, scripts) must be created inside the dat
 ## Finalization
 
 - Write `report_<YYYYMMDD>_generate-r-script_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report with `nlss/references/utilities/apa7-markdown.md` (must be the last step before finalization).
+- Align the report with `nlss/references/metaskills/formatting/` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## APA 7 Templates
 
 This metaskill does not define its own APA template. Any APA-ready outputs should be produced by the generated script or by existing subskills if they are subsequently run.
 
-## Parquet support
+## Parquet Support
 
 Parquet input/output requires the R package `arrow` (install with `install.packages("arrow")`).

@@ -3,7 +3,7 @@ name: efa
 description: Exploratory factor analysis with PCA/EFA extraction, rotation, eigenvalue retention, KMO/Bartlett diagnostics, and APA outputs.
 ---
 
-# Exploratory Factor Analysis (psych, APA 7)
+# Exploratory Factor Analysis (Psych, APA 7)
 
 ## Overview
 
@@ -23,19 +23,19 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 ## Script: `scripts/R/efa.R`
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/efa.R> --csv <path to CSV file> --vars item1,item2,item3
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/efa.R> --parquet <path to parquet file> --vars item1,item2,item3
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/efa.R> --interactive
@@ -80,7 +80,7 @@ Use the Markdown template at `nlss/assets/efa/default-template.md` when assembli
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).
   - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
@@ -88,13 +88,13 @@ Available column keys for `table.columns` include:
 
 Use `drop_if_empty: true` to remove a column if all values are blank.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`, `method`, `rotation`, `correlation`, `missing`, `eigen_threshold`, `loading_cutoff`, `kmo`, `bartlett`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-group lines. Available row tokens include:
 

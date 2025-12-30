@@ -25,6 +25,7 @@ narrative:
   row_template: "{{full_sentence}}"
   join: "\n\n"
 ---
+
 # {{title}}
 
 ## Analysis

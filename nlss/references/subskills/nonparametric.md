@@ -3,11 +3,11 @@ name: nonparametric
 description: Nonparametric tests (Wilcoxon one-sample/paired, Mann-Whitney, Kruskal-Wallis, Friedman) with auto selection, effect sizes, post-hoc pairwise tests, and APA outputs.
 ---
 
-# Nonparametric tests (Base R, APA 7)
+# Nonparametric Tests (Base R, APA 7)
 
 ## Overview
 
-Run nonparametric tests in base R and generate APA 7-ready tables and narratives. Supported tests include Wilcoxon signed-rank (one-sample and paired), Mann-Whitney U (two independent groups), Kruskal-Wallis (k independent groups), and Friedman (k repeated measures). Optional post-hoc pairwise Wilcoxon comparisons are available for Kruskal-Wallis and Friedman.
+Run nonparametric tests in base R and generate APA 7-ready tables and narratives. Supported tests include Wilcoxon signed-rank (one-sample and paired), Mann-Whitney *U* (two independent groups), Kruskal-Wallis (*k* independent groups), and Friedman (*k* repeated measures). Optional post-hoc pairwise Wilcoxon comparisons are available for Kruskal-Wallis and Friedman.
 
 ## Assistant Researcher Model
 
@@ -24,43 +24,43 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only.
 
-### One-sample Wilcoxon (CSV)
+### One-Sample Wilcoxon (CSV)
 
 ```bash
 Rscript <path to scripts/R/nonparametric.R> --csv data.csv --vars score --mu 0
 ```
 
-### Mann-Whitney U (CSV, two groups)
+### Mann-Whitney U (CSV, Two Groups)
 
 ```bash
 Rscript <path to scripts/R/nonparametric.R> --csv data.csv --vars score --group condition --test mann_whitney
 ```
 
-### Kruskal-Wallis (CSV, 3+ groups) with post-hoc
+### Kruskal-Wallis (CSV, 3+ Groups) With Post-Hoc
 
 ```bash
 Rscript <path to scripts/R/nonparametric.R> --csv data.csv --vars score --group condition --test kruskal --posthoc pairwise --p-adjust holm
 ```
 
-### Wilcoxon paired (CSV, repeated measures)
+### Wilcoxon Paired (CSV, Repeated Measures)
 
 ```bash
 Rscript <path to scripts/R/nonparametric.R> --csv data.csv --x pre_score --y post_score --test wilcoxon
 ```
 
-### Friedman (wide format)
+### Friedman (Wide Format)
 
 ```bash
 Rscript <path to scripts/R/nonparametric.R> --csv data.csv --within pre,mid,post --subject-id id --test friedman
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/nonparametric.R> --parquet data.parquet --vars score --group condition
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/nonparametric.R> --interactive
@@ -88,7 +88,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
-## Inputs and handling
+## Inputs and Handling
 
 - Data sources: CSV, SAV, RDS, Parquet, or RData data frame (`--df` required for RData).
 - Variables are treated as numeric/ordinal; non-numeric variables raise an error.
@@ -120,7 +120,7 @@ Templates use YAML front matter with `{{token}}` placeholders. Supported section
 - `note.template`: overrides the note text (defaults to `{{note_default}}`).
 - `narrative.template` or `narrative.row_template`: overrides narrative text.
 
-### Table column keys (summary)
+### Table Column Keys (Summary)
 
 Available column keys for `table.columns` include:
 
@@ -128,18 +128,18 @@ Available column keys for `table.columns` include:
 `median_1`, `median_2`, `iqr_1`, `iqr_2`, `median`, `iqr`, `median_diff`, `iqr_diff`, `group_summary`, `within_summary`,
 `stat_label`, `statistic`, `df`, `p`, `effect_size_label`, `effect_size_value`, `ci_low`, `ci_high`.
 
-### Table column keys (post-hoc)
+### Table Column Keys (Post-Hoc)
 
 `variable`, `group`, `group_1`, `group_2`, `n_1`, `n_2`, `median_1`, `median_2`, `iqr_1`, `iqr_2`,
 `stat_label`, `statistic`, `p`, `p_adj`, `effect_size_label`, `effect_size_value`, `ci_low`, `ci_high`.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-row lines. Available row tokens include:
 
@@ -149,9 +149,9 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 ## APA 7 Reporting Guidance
 
-- Report the test type, test statistic, df (where applicable), p-value, and effect size.
+- Report the test type, test statistic, df (where applicable), *p*-value, and effect size.
 - For two-group tests, report group medians and IQRs.
-- For Kruskal-Wallis or Friedman, include post-hoc results when requested and note the p-value adjustment.
+- For Kruskal-Wallis or Friedman, include post-hoc results when requested and note the *p*-value adjustment.
 
 ## Dependencies
 

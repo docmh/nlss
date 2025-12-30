@@ -18,6 +18,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 Use this utility when you want to verify that log entries share the same recovered NLSS checksum (for example, to spot inconsistent or tampered entries).
 
 Example prompts:
+
 - "Check integrity for this analysis_log.jsonl."
 - "Recover the NLSS checksum from the log entries."
 
@@ -63,7 +64,7 @@ Rscript <path to scripts/R/check_integrity.R> <path to analysis_log.jsonl>
 Rscript nlss/scripts/R/check_integrity.R outputs/test-runs/20251228181418/workspace/golden_dataset/analysis_log.jsonl
 ```
 
-## Non-goals
+## Non-Goals
 
 - Does not validate against the current NLSS source tree; it only reports recovered checksums.
 - Not a subskill or metaskill; no dataset workspace required.

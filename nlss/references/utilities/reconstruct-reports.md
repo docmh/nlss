@@ -18,6 +18,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 Use this utility when you want to reconstruct canonical reports or metaskill reports from an existing `analysis_log.jsonl` without loading the dataset or workspace.
 
 Example prompts:
+
 - "Rebuild the canonical report from analysis_log.jsonl."
 - "Reconstruct reports from this log file."
 - "Generate metaskill reports from the analysis log."
@@ -64,7 +65,7 @@ Rscript nlss/scripts/R/reconstruct_reports.R outputs/workspace/example/analysis_
 Rscript nlss/scripts/R/reconstruct_reports.R --out-dir outputs/rebuild outputs/workspace/example/analysis_log.jsonl
 ```
 
-## Non-goals
+## Non-Goals
 
 - Does not validate report blocks against datasets or rerun analyses.
 - Does not read or update workspace manifests.

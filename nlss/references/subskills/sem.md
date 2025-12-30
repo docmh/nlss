@@ -3,7 +3,7 @@ name: sem-lavaan
 description: SEM/CFA/path/mediation/invariance via lavaan with model builders, multi-group support, robust or bootstrapped SEs/CIs, fit indices, standardized estimates, and APA outputs.
 ---
 
-# SEM (lavaan, APA 7)
+# SEM (Lavaan, APA 7)
 
 ## Overview
 
@@ -23,19 +23,19 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 ## Script: `scripts/R/sem.R`
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/sem.R> --csv <path to CSV> --analysis sem --model "y ~ x1 + x2"
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/sem.R> --parquet <path to parquet> --analysis cfa --factors "F1=item1,item2;F2=item3,item4"
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/sem.R> --interactive
@@ -50,7 +50,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--csv`, `--sav`, `--rds`, `--rdata`, `--df`, `--parquet`: standard inputs (see shared workflow).
 - `--sep`, `--header`: CSV parsing; defaults from `defaults.csv.sep` and `defaults.csv.header`.
 
-### Model selection
+### Model Selection
 
 - `--analysis`: `sem`, `cfa`, `path`, `mediation`, or `invariance` (default: `modules.sem.analysis`).
 - `--model`: lavaan syntax in a quoted string.
@@ -62,7 +62,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--covariates`: optional covariates added to mediator/outcome equations.
 - `--serial`: serial mediation (currently supports two mediators).
 
-### Grouping and invariance
+### Grouping and Invariance
 
 - `--group`: multi-group variable.
 - `--group-equal`: lavaan `group.equal` constraints.
@@ -84,7 +84,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 
 - `--std`: `none`, `std.lv`, `std.all` (default: `modules.sem.std`).
 - `--fit`: fit indices list (default: `modules.sem.fit`).
-- `--r2`: report R2 (default: `modules.sem.r2`).
+- `--r2`: report *R*² (default: `modules.sem.r2`).
 - `--modindices`: modification index cutoff (default: `modules.sem.modindices`).
 - `--residuals`: include standardized residuals in the JSONL log (default: `modules.sem.residuals`).
 - `--digits`: rounding (default: `defaults.digits`).
@@ -115,25 +115,25 @@ Templates use YAML front matter with `{{token}}` placeholders. Supported section
 - `note.template`: overrides the note text (defaults to `{{note_default}}`).
 - `narrative.template` or `narrative.row_template`: overrides narrative text.
 
-### Table column keys (SEM/CFA/mediation)
+### Table Column Keys (SEM/CFA/Mediation)
 
 `group`, `path`, `label`, `est`, `se`, `z`, `p`, `ci_low`, `ci_high`, `std`
 
-### Table column keys (invariance)
+### Table Column Keys (Invariance)
 
 `step`, `group_equal`, `chisq`, `df`, `p`, `cfi`, `tli`, `rmsea`, `srmr`, `delta_cfi`, `delta_rmsea`
 
-### Note tokens
+### Note Tokens
 
 `note_default`, `fit_summary`, `r2_summary`, `indirect_summary`, `estimator`, `missing`, `se`, `ci`
 
-### Narrative tokens
+### Narrative Tokens
 
 `narrative_default`, `fit_summary`, `r2_summary`, `indirect_summary`
 
 ## APA 7 Reporting Guidance
 
-- Report fit indices (chi-square, df, CFI, TLI, RMSEA, SRMR) and the estimator/missing handling used.
+- Report fit indices (chi-square, *df*, CFI, TLI, RMSEA, SRMR) and the estimator/missing handling used.
 - For mediation, report indirect effects with bootstrap CIs and note the model type (parallel vs serial).
 - For CFA, report standardized loadings and factor correlations if relevant.
 - For invariance, report delta CFI/RMSEA and the step at which invariance holds.

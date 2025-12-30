@@ -592,11 +592,25 @@ get_user_prompt <- function(opts = list()) {
 
 nlss_log_cache <- new.env(parent = emptyenv())
 
+normalize_report_text <- function(text) {
+  if (is.null(text)) return(text)
+  val <- as.character(text)
+  if (length(val) == 0) return(text)
+  val <- val[1]
+  if (!nzchar(val)) return(text)
+  val <- gsub("\r\n", "\n", val, fixed = TRUE)
+  if (exists("ensure_markdown_block_spacing", mode = "function")) {
+    val <- get("ensure_markdown_block_spacing", mode = "function")(val)
+  }
+  val
+}
+
 record_report_block <- function(report) {
   if (is.null(report)) return(invisible(FALSE))
   text <- as.character(report)
   if (length(text) == 0) return(invisible(FALSE))
   text <- text[1]
+  text <- normalize_report_text(text)
   if (!nzchar(text)) return(invisible(FALSE))
   blocks <- character(0)
   if (exists("report_blocks", envir = nlss_log_cache, inherits = FALSE)) {
@@ -612,6 +626,7 @@ record_metaskill_report_block <- function(report) {
   text <- as.character(report)
   if (length(text) == 0) return(invisible(FALSE))
   text <- text[1]
+  text <- normalize_report_text(text)
   if (!nzchar(text)) return(invisible(FALSE))
   nlss_log_cache$metaskill_report_block <- text
   invisible(TRUE)
@@ -640,6 +655,7 @@ set_report_snapshot <- function(report) {
   text <- as.character(report)
   if (length(text) == 0) return(invisible(FALSE))
   text <- text[1]
+  text <- normalize_report_text(text)
   if (!nzchar(text)) return(invisible(FALSE))
   nlss_log_cache$report_snapshot <- text
   invisible(TRUE)

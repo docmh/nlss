@@ -10,6 +10,7 @@ narrative:
     *Note.* {{figure_note}}
   join: "\n\n"
 ---
+
 # Plots
 
 ## Analysis

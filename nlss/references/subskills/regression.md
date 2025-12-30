@@ -25,43 +25,43 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only.
 
-### Linear regression (CSV)
+### Linear Regression (CSV)
 
 ```bash
 Rscript <path to scripts/R/regression.R> --csv <path to CSV file> --dv outcome --ivs x1,x2,x3
 ```
 
-### Hierarchical regression (blocks)
+### Hierarchical Regression (Blocks)
 
 ```bash
 Rscript <path to scripts/R/regression.R> --csv <path to CSV file> --dv outcome --blocks "age,gender;stress,trait"
 ```
 
-### Moderation via interaction terms
+### Moderation via Interaction Terms
 
 ```bash
 Rscript <path to scripts/R/regression.R> --csv <path to CSV file> --dv outcome --ivs x1,moderator --interactions x1:moderator --center mean
 ```
 
-### Grouped regressions
+### Grouped Regressions
 
 ```bash
 Rscript <path to scripts/R/regression.R> --csv <path to CSV file> --dv outcome --ivs x1,x2 --group site
 ```
 
-### Logistic regression (binomial)
+### Logistic Regression (Binomial)
 
 ```bash
 Rscript <path to scripts/R/regression.R> --csv <path to CSV file> --dv binary_outcome --ivs x1,x2 --family binomial
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/regression.R> --parquet <path to parquet file> --dv outcome --ivs x1,x2
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/regression.R> --interactive
@@ -88,7 +88,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--log` uses `defaults.log`.
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
-## Inputs and handling
+## Inputs and Handling
 
 - Data sources: CSV, SAV, RDS, Parquet, or RData data frame (`--df` required for RData).
 - Non-numeric predictors are coerced to factors.
@@ -118,19 +118,19 @@ Templates use YAML front matter with `{{token}}` placeholders. Supported section
 - `note.template`: overrides the note text (defaults to `{{note_default}}`).
 - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
 `model`, `group`, `term`, `b`, `se`, `t`, `z`, `p`, `ci_low`, `ci_high`, `beta`, `exp_b`, `exp_ci_low`, `exp_ci_high`, `boot_ci_low`, `boot_ci_high`.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-model lines. Available row tokens include:
 
@@ -139,10 +139,10 @@ Use `narrative.row_template` for per-model lines. Available row tokens include:
 
 ## APA 7 Reporting Guidance
 
-- Report model fit (F/Chi-square, df, p, R2/pseudo R2, f2) for each block.
-- Report unstandardized coefficients (b), SE, and p-values; include standardized betas when requested.
-- For logistic/Poisson models, report exp(b) as odds ratios or incidence rate ratios.
-- If hierarchical blocks are used, report change statistics (Delta R2 or Delta deviance).
+- Report model fit (*F*/Chi-square, *df*, *p*, *R*²/pseudo *R*², *f*²) for each block.
+- Report unstandardized coefficients (*b*), *SE*, and *p*-values; include standardized betas when requested.
+- For logistic/Poisson models, report exp(*b*) as odds ratios or incidence rate ratios.
+- If hierarchical blocks are used, report change statistics (Delta *R*² or Delta deviance).
 
 ## Dependencies
 

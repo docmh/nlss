@@ -29,61 +29,61 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only.
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --calc "bmi=weight/(height^2)|ratio=var1/var2"
 ```
 
-### Standard transforms and standardization
+### Standard Transforms and Standardization
 
 ```bash
 Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --transform "income=log|stress=sqrt" --standardize age,score
 ```
 
-### Percentile bins (e.g., quartiles)
+### Percentile Bins (E.G., Quartiles)
 
 ```bash
 Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --percentile-bins "score=4|income=5"
 ```
 
-### Custom bins
+### Custom Bins
 
 ```bash
 Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --bins "age=0,18,30,45,65|score=0,50,75,100"
 ```
 
-### Recode values
+### Recode Values
 
 ```bash
 Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --recode "gender=1:0,2:1|status=low:0,high:1"
 ```
 
-### Rename and drop columns
+### Rename and Drop Columns
 
 ```bash
 Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --rename old:new,old2:new2 --drop temp1,temp2 --confirm-drop
 ```
 
-### RDS input (data frame)
+### RDS Input (Data Frame)
 
 ```bash
 Rscript <path to scripts/R/data_transform.R> --rds <path to RDS file> --calc "delta=post-pre"
 ```
 
-### RData input (data frame by name)
+### RData Input (Data Frame by Name)
 
 ```bash
 Rscript <path to scripts/R/data_transform.R> --rdata <path to RData file> --df <data frame name> --standardize score
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/data_transform.R> --parquet <path to parquet file> --standardize score
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/data_transform.R> --interactive
@@ -114,7 +114,7 @@ Rscript <path to scripts/R/data_transform.R> --interactive
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
-## Safety confirmations
+## Safety Confirmations
 
 - Always ask the user before overwriting variables or dropping columns.
 - Use `--overwrite-vars` with `--confirm-overwrite` to replace existing variables.
@@ -138,7 +138,7 @@ Undo: replace `<workspace-root>/<dataset-name>/<dataset-name>.parquet` with the 
 
 Use the Markdown template at `nlss/assets/data-transform/default-template.md` when assembling data transformation reports. If the template exists, `data_transform.R` uses it for `report_canonical.md`.
 
-### YAML template controls
+### YAML Template Controls
 
 - The template path can be overridden via `templates.data_transform.default` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
@@ -146,7 +146,7 @@ Use the Markdown template at `nlss/assets/data-transform/default-template.md` wh
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).
   - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
@@ -154,19 +154,19 @@ Available column keys for `table.columns` include:
 
 Use `drop_if_empty: true` to remove a column if all values are blank (for example, `note`).
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`, `action_codes`, `note_details`.
 
-### Summary tokens
+### Summary Tokens
 
 Summary tokens available for custom templates include:
 
 `steps_total`, `actions_present`, `calc_vars`, `transform_vars`, `standardize_vars`, `recode_vars`, `percentile_bin_vars`, `bin_vars`, `rename_pairs`, `drop_vars`, `action_codes`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-step lines. Available row tokens include:
 
@@ -176,4 +176,3 @@ Use `narrative.row_template` for per-step lines. Available row tokens include:
 
 - Report derived variables and transformation types, noting any standardization or recoding.
 - If variables were dropped or renamed, document those changes in the narrative.
-*** End Patch"}>}

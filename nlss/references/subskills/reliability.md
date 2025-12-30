@@ -29,25 +29,25 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only.
 
-### ICC (wide format)
+### ICC (Wide Format)
 
 ```bash
 Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis icc --vars r1,r2,r3
 ```
 
-### ICC (long format)
+### ICC (Long Format)
 
 ```bash
 Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis icc --format long --id id --rater rater --score score
 ```
 
-### Kappa (categorical)
+### Kappa (Categorical)
 
 ```bash
 Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis kappa --vars rater1,rater2
 ```
 
-### Test-retest
+### Test-Retest
 
 ```bash
 Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis test_retest --vars t1,t2 --method spearman
@@ -95,7 +95,7 @@ Use the Markdown template at `nlss/assets/reliability/default-template.md` when 
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).
   - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
@@ -103,13 +103,13 @@ Available column keys for `table.columns` include:
 
 Use `drop_if_empty: true` to remove a column if all values are blank. `ci` is computed from `ci_low`/`ci_high`.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `ci_label`, `missing_note`, `icc_note`, `kappa_note`, `retest_note`, `ci_note`, `note_default`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-row lines. Available row tokens include:
 
@@ -122,6 +122,6 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 - For test-retest, report the correlation method and confidence interval.
 - Always note missing-data handling and the number of subjects/raters.
 
-## Parquet support
+## Parquet Support
 
 Parquet inputs (`--parquet`) require the R package `arrow`.

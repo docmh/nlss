@@ -24,31 +24,31 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only.
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/frequencies.R> --csv <path to CSV file> --vars gender,condition --group condition
 ```
 
-### RDS input (data frame)
+### RDS Input (Data Frame)
 
 ```bash
 Rscript <path to scripts/R/frequencies.R> --rds <path to RDS file> --vars gender,condition
 ```
 
-### RData input (data frame by name)
+### RData Input (Data Frame by Name)
 
 ```bash
 Rscript <path to scripts/R/frequencies.R> --rdata <path to RData file> --df <data frame name> --vars gender,condition
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/frequencies.R> --parquet <path to parquet file> --vars gender,condition
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/frequencies.R> --interactive
@@ -80,7 +80,7 @@ Subskills append to `report_canonical.md` and do not create separate report file
 Use the Markdown templates in `nlss/assets/frequencies` when assembling frequency reports. If the template exists, `frequencies.R` uses it for `report_canonical.md`.
 When `--group` is provided, the grouped template is selected; otherwise the default template is used.
 
-### YAML template controls
+### YAML Template Controls
 
 - Template paths can be overridden via `templates.frequencies.default` and `templates.frequencies.grouped` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
@@ -88,7 +88,7 @@ When `--group` is provided, the grouped template is selected; otherwise the defa
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).
   - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
@@ -96,13 +96,13 @@ Available column keys for `table.columns` include:
 
 Use `drop_if_empty: true` to remove a column if all values are blank (for example, `group`).
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`, `pct_total_note`, `pct_valid_note`, `missing_note`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-row lines. Available row tokens include:
 

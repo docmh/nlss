@@ -40,6 +40,7 @@ narrative:
   join: "\n\n"
   drop_empty: true
 ---
+
 # {{title}}
 
 ## Analysis

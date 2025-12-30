@@ -26,6 +26,7 @@ note:
 narrative:
   template: "{{narrative_default}}"
 ---
+
 # {{title}}
 
 ## Analysis

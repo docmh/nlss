@@ -3,7 +3,7 @@ name: power
 description: A priori/post hoc/sensitivity power for t-tests, ANOVA, correlations, regression, and SEM (RMSEA), with optional effect-size estimation from data and APA outputs.
 ---
 
-# Power Analysis (pwr + semPower, APA 7)
+# Power Analysis (Pwr + semPower, APA 7)
 
 ## Overview
 
@@ -67,6 +67,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--vars`, `--group`/`--between`, `--x`, `--y`, `--dv`, `--ivs` provide variables for effect estimation.
 
 Effect metric constraints:
+
 - t-test: `d`
 - ANOVA: `f` or `eta2`
 - Correlation: `r`
@@ -77,7 +78,7 @@ Effect metric constraints:
 - `--log` uses `defaults.log` (TRUE/FALSE).
 - `--user-prompt` stores the AI user prompt in the JSONL log.
 
-### Effect estimation (optional)
+### Effect Estimation (Optional)
 
 Set `--estimate-effect TRUE` and provide variables:
 
@@ -89,7 +90,7 @@ Set `--estimate-effect TRUE` and provide variables:
 
 Effect sizes are estimated from the dataset and then used for power calculations.
 
-### Package requirements
+### Package Requirements
 
 - `pwr` is required for t-tests, ANOVA, correlations, and regression.
 - `semPower` is required for SEM (RMSEA) power.
@@ -109,19 +110,19 @@ Use the Markdown template in `nlss/assets/power/default-template.md` when assemb
 - Template path can be overridden via `templates.power.default` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys include:
 
 `analysis`, `mode`, `effect_metric`, `effect_size`, `alpha`, `power`, `n_total`, `n_per_group`, `n1`, `n2`, `groups`, `ratio`, `u`, `df`, `r2`, `rmsea0`, `rmsea1`, `t_type`, `alternative`, `effect_source`.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-row lines. Available row tokens include:
 

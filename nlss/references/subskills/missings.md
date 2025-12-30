@@ -24,31 +24,31 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only.
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/missings.R> --csv <path to CSV file> --vars age,score
 ```
 
-### RDS input (data frame)
+### RDS Input (Data Frame)
 
 ```bash
 Rscript <path to scripts/R/missings.R> --rds <path to RDS file> --vars age,score
 ```
 
-### RData input (data frame by name)
+### RData Input (Data Frame by Name)
 
 ```bash
 Rscript <path to scripts/R/missings.R> --rdata <path to RData file> --df <data frame name> --vars age,score
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/missings.R> --parquet <path to parquet file> --vars age,score
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/missings.R> --interactive
@@ -93,7 +93,7 @@ Undo: replace `<workspace-root>/<dataset-name>/<dataset-name>.parquet` with the 
 
 Use the Markdown template at `nlss/assets/missings/default-template.md` when assembling missingness reports. If the template exists, `missings.R` uses it for `report_canonical.md`.
 
-### YAML template controls
+### YAML Template Controls
 
 - The template path can be overridden via `templates.missings.default` in `nlss/scripts/config.yml`.
 - Templates use YAML front matter with `{{token}}` placeholders. Supported sections:
@@ -102,31 +102,31 @@ Use the Markdown template at `nlss/assets/missings/default-template.md` when ass
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).
   - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Summary table column keys
+### Summary Table Column Keys
 
 Available column keys for `table.columns` include:
 
 `variable`, `type`, `total_n`, `missing_n`, `missing_pct`, `decision`, `impute_method`, `impute_value`, `indicator`.
 
-### Pattern table column keys
+### Pattern Table Column Keys
 
 Available column keys for `patterns_table.columns` include:
 
 `pattern`, `missing_vars`, `missing_count`, `n`, `pct_total`.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `summary_note_body`, `patterns_note_body`.
 
-### Other tokens
+### Other Tokens
 
 Additional tokens available for custom templates include:
 
 `summary_table_body`, `patterns_table_body`, `pattern_limit`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-variable lines. Available row tokens include:
 

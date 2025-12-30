@@ -3,7 +3,7 @@ name: explain-statistics
 description: Conversational, student-friendly explanations of statistical concepts, methods, outputs, and interpretations without running analyses.
 ---
 
-# Explain Statistics (Agent-run, Conversational)
+# Explain Statistics (Agent-Run, Conversational)
 
 ## Overview
 
@@ -19,7 +19,7 @@ Use this metaskill when the user asks for an explanation of statistical concepts
 
 - "How do custom contrasts work?"
 - "Explain what an interaction term means."
-- "What does a p-value tell me?"
+- "What does a *p*-value tell me?"
 - "When should I use Spearman instead of Pearson?"
 - "How do I interpret this ANOVA table?"
 
@@ -33,7 +33,7 @@ Use this metaskill when the user asks for an explanation of statistical concepts
 - Desired depth (intuition, step-by-step mechanics, formulas, or reporting guidance).
 - Optional: a specific output table, contrast definition, or snippet to interpret.
 
-### Clarifying questions
+### Clarifying Questions
 
 - What concept or output do you want explained?
 - Which analysis or model is this from (ANOVA, regression, mixed model, SEM, etc.)?
@@ -43,7 +43,7 @@ Use this metaskill when the user asks for an explanation of statistical concepts
 
 If the user does not specify a level, default to an intro-friendly explanation with minimal math.
 
-## Procedure (pseudocode)
+## Procedure (Pseudocode)
 
 ```
 identify the concept and user goal
@@ -81,7 +81,7 @@ if the user asks for an actual analysis:
 - `analysis_log.jsonl`: not used for conversational-only requests unless explicitly requested.
 - `report_<YYYYMMDD>_explain-statistics_<intent>.md`: optional, only if the user asks for a formal write-up.
 
-## Scratchpad updates
+## Scratchpad Updates
 
 - If documentation is requested, write a brief plan (concept, audience level, depth), then note completion after the explanation is delivered.
 - Otherwise, do not update `scratchpad.md`.
@@ -89,12 +89,12 @@ if the user asks for an actual analysis:
 ## Finalization
 
 - No finalization step is required for conversational use.
-- If a formal report is requested, write `report_<YYYYMMDD>_explain-statistics_<intent>.md` (ASCII slug for `<intent>`), align it with `nlss/references/utilities/apa7-markdown.md`, then append a brief `# Synopsis` to `report_canonical.md` manually (no `metaskill-runner`).
+- If a formal report is requested, write `report_<YYYYMMDD>_explain-statistics_<intent>.md` (ASCII slug for `<intent>`), align it with `nlss/references/metaskills/formatting/`, then append a brief `# Synopsis` to `report_canonical.md` manually (no `metaskill-runner`).
 
 ## APA 7 Templates
 
 This metaskill does not define APA templates. It is conversational and does not run subskills by default.
 
-## Parquet support
+## Parquet Support
 
 Not applicable unless the user requests a data-based example. If a dataset must be loaded, follow workspace parquet conventions and note that Parquet support requires the R package `arrow`.

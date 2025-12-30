@@ -25,43 +25,43 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only.
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/scale.R> --csv <path to CSV file> --vars item1,item2,item3
 ```
 
-### Grouped scale analysis
+### Grouped Scale Analysis
 
 ```bash
 Rscript <path to scripts/R/scale.R> --csv <path to CSV file> --vars item1,item2,item3 --group condition
 ```
 
-### Reverse scoring
+### Reverse Scoring
 
 ```bash
 Rscript <path to scripts/R/scale.R> --csv <path to CSV file> --vars item1,item2,item3 --reverse item2,item3 --reverse-min 1 --reverse-max 5
 ```
 
-### RDS input (data frame)
+### RDS Input (Data Frame)
 
 ```bash
 Rscript <path to scripts/R/scale.R> --rds <path to RDS file> --vars item1,item2,item3
 ```
 
-### RData input (data frame by name)
+### RData Input (Data Frame by Name)
 
 ```bash
 Rscript <path to scripts/R/scale.R> --rdata <path to RData file> --df <data frame name> --vars item1,item2,item3
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/scale.R> --parquet <path to parquet file> --vars item1,item2,item3
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/scale.R> --interactive
@@ -102,7 +102,7 @@ Use the Markdown template at `nlss/assets/scale/default-template.md` when assemb
   - `note.template`: overrides the note text (defaults to `{{note_default}}`).
   - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Available column keys for `table.columns` include:
 
@@ -110,13 +110,13 @@ Available column keys for `table.columns` include:
 
 Use `drop_if_empty: true` to remove a column if all values are blank.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`, `item_corr_note`, `alpha_note`, `reverse_note`, `missing_note`, `score_note`, `omega_note`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-group lines. Available row tokens include:
 
@@ -124,6 +124,6 @@ Use `narrative.row_template` for per-group lines. Available row tokens include:
 
 ## APA 7 Reporting Guidance
 
-- Report item means, SDs, corrected item-total correlations, and alpha-if-deleted alongside overall reliability.
+- Report item means, *SD*s, corrected item-total correlations, and alpha-if-deleted alongside overall reliability.
 - Include Cronbach's alpha and (when available) omega total; note missing-data handling and any reverse-scored items.
 - If reliability cannot be estimated (e.g., too few items or insufficient variance), state that explicitly.

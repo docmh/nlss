@@ -7,7 +7,7 @@ description: Between/within/mixed ANOVA and ANCOVA with effect sizes, post-hoc t
 
 ## Overview
 
-Run between-subjects, within-subjects (repeated measures), or mixed ANOVA in base R and produce APA 7-ready tables and narratives. Optional covariates (ANCOVA), post-hoc comparisons, and planned contrasts (custom JSON or built-in `emmeans` methods) are supported. Outputs include sums of squares, df, F, p, and effect sizes.
+Run between-subjects, within-subjects (repeated measures), or mixed ANOVA in base R and produce APA 7-ready tables and narratives. Optional covariates (ANCOVA), post-hoc comparisons, and planned contrasts (custom JSON or built-in `emmeans` methods) are supported. Outputs include sums of squares, *df*, *F*, *p*, and effect sizes.
 
 Post-hoc behavior: Tukey HSD is used for between-subjects factors; paired t-tests are used for within-subjects comparisons (and for mixed designs, within comparisons are computed separately per between-group combination).
 
@@ -27,49 +27,49 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only. Type II/III sums of squares require `car` (optional); if not installed, the script falls back to Type I.
 
-### Between-subjects ANOVA (CSV)
+### Between-Subjects ANOVA (CSV)
 
 ```bash
 Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --dv outcome --between group
 ```
 
-### Factorial between-subjects ANOVA + covariates
+### Factorial Between-Subjects ANOVA + Covariates
 
 ```bash
 Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --dv outcome --between group,gender --covariates age
 ```
 
-### Within-subjects ANOVA (wide format)
+### Within-Subjects ANOVA (Wide Format)
 
 ```bash
 Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --within pre,mid,post --subject-id id
 ```
 
-### Mixed ANOVA (within + between)
+### Mixed ANOVA (Within + Between)
 
 ```bash
 Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --within pre,mid,post --between group --subject-id id
 ```
 
-### Planned contrasts (custom JSON)
+### Planned Contrasts (Custom JSON)
 
 ```bash
 Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --dv outcome --between group3 --emmeans group3 --contrasts custom --contrast-file contrasts.json
 ```
 
-### Planned contrasts (built-in method)
+### Planned Contrasts (Built-in Method)
 
 ```bash
 Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --dv outcome --between group3 --emmeans group3 --contrasts trt.vs.ctrl
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/anova.R> --parquet <path to parquet file> --dv outcome --between group
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/anova.R> --interactive
@@ -100,7 +100,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--log` uses `defaults.log`.
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
-## Inputs and handling
+## Inputs and Handling
 
 - Data sources: CSV, SAV, RDS, Parquet, or RData data frame (`--df` required for RData).
 - Between-subjects factors are coerced to factors.
@@ -109,7 +109,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - Missing values are removed listwise across all required columns per analysis.
 - Planned contrasts require `emmeans`. Custom weights follow the `emmeans` row order or use named weights keyed to level labels (for interactions, labels use `factor=level, factor2=level2`).
 
-### Contrast JSON format
+### Contrast JSON Format
 
 Custom contrasts can be specified as named weight vectors. Weights may be ordered numeric arrays (matching the `emmeans` row order) or named weights keyed by level labels.
 
@@ -159,27 +159,27 @@ Templates use YAML front matter with `{{token}}` placeholders. Supported section
 - `note.template`: overrides the note text (defaults to `{{note_default}}`).
 - `narrative.template` or `narrative.row_template`: overrides narrative text.
 
-### Table column keys (omnibus ANOVA)
+### Table Column Keys (Omnibus ANOVA)
 
 Available column keys include:
 
 `model`, `term`, `df1`, `df2`, `ss`, `ms`, `f`, `p`, `eta_sq`, `partial_eta_sq`, `omega_sq`, `partial_omega_sq`, `boot_ci_low`, `boot_ci_high`, `df1_gg`, `df2_gg`, `p_gg`, `df1_hf`, `df2_hf`, `p_hf`.
 
-### Table column keys (post-hoc)
+### Table Column Keys (Post-Hoc)
 
 `term`, `group`, `group_1`, `group_2`, `contrast`, `mean_diff`, `se`, `t`, `df`, `p`, `p_adj`, `ci_low`, `ci_high`, `method`.
 
-### Table column keys (planned contrasts)
+### Table Column Keys (Planned Contrasts)
 
 `term`, `contrast`, `estimate`, `se`, `df`, `t`, `p`, `p_adj`, `ci_low`, `ci_high`, `method`.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`, `assumption_note`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Omnibus narrative row tokens include:
 
@@ -195,8 +195,8 @@ Contrast narrative row tokens include:
 
 ## APA 7 Reporting Guidance
 
-- Report F, df, p, and effect sizes for each omnibus effect (include bootstrap CIs when enabled).
-- Indicate post-hoc method and p-value adjustment when reported.
+- Report *F*, *df*, *p*, and effect sizes for each omnibus effect (include bootstrap CIs when enabled).
+- Indicate post-hoc method and *p*-value adjustment when reported.
 - For repeated measures, report sphericity results (Mauchly) and note any violations.
 
 ## Dependencies

@@ -3,7 +3,7 @@ name: explore-data
 description: Agent-run dataset overview using data-explorer, descriptives, frequencies, correlations, optional plots, and missingness summaries to produce an APA-ready audit.
 ---
 
-# Explore Data (Agent-run, APA 7)
+# Explore Data (Agent-Run, APA 7)
 
 ## Overview
 
@@ -31,13 +31,13 @@ Use this metaskill when the user asks for exploratory overviews or dataset summa
 5. Ask clarifying questions for scope (variables to prioritize, grouping, Likert handling, sensitive fields).
 6. Write a plan to `scratchpad.md`, then execute subskills in order.
 7. Update `scratchpad.md` with decisions and completion notes.
-8. Generate `report_<YYYYMMDD>_explore-data_<intent>.md` first, align it with `nlss/references/utilities/apa7-markdown.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+8. Generate `report_<YYYYMMDD>_explore-data_<intent>.md` first, align it with `nlss/references/metaskills/formatting/`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
-## Execution (Agent-run)
+## Execution (Agent-Run)
 
 There is no dedicated script for this metaskill. The agent runs subskills and logs activation/finalization using `metaskill-runner`.
 
-### Logging activation
+### Logging Activation
 
 ```bash
 Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta explore-data --intent "explore the dataset"
@@ -51,7 +51,7 @@ Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta e
 - Optional list of key variables or domains to prioritize.
 - Optional grouping variable for comparisons.
 
-### Clarifying questions
+### Clarifying Questions
 
 - Which variables or domains are most important to focus on?
 - Is there a grouping variable (condition, site, cohort) to compare?
@@ -61,7 +61,7 @@ Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta e
 
 If unclear, propose a default: summarize all variables (excluding IDs), treat low-cardinality numeric as categorical, and provide distributions, missingness, and a correlation overview for numeric variables.
 
-## Procedure (pseudocode)
+## Procedure (Pseudocode)
 
 ```
 if workspace missing:
@@ -95,7 +95,7 @@ if user requests missingness handling:
 
 update scratchpad.md with decisions and completion
 write report_<YYYYMMDD>_explore-data_<intent>.md
-align report_<YYYYMMDD>_explore-data_<intent>.md with nlss/references/utilities/apa7-markdown.md
+align report_<YYYYMMDD>_explore-data_<intent>.md with nlss/references/metaskills/formatting/
 run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
@@ -115,7 +115,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 - `scratchpad.md`: Plan, clarifications, and completion notes.
 - `report_<YYYYMMDD>_explore-data_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
-### Final report requirements
+### Final Report Requirements
 
 - Do not copy `report_canonical.md`; write a new narrative report.
 - Use `nlss/assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
@@ -130,7 +130,7 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 ## Finalization
 
 - Write `report_<YYYYMMDD>_explore-data_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report with `nlss/references/utilities/apa7-markdown.md` (must be the last step before finalization).
+- Align the report with `nlss/references/metaskills/formatting/` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## APA 7 Templates
@@ -147,10 +147,10 @@ This metaskill does not define its own APA template. It relies on the templates 
 
 ## APA 7 Reporting Guidance
 
-- Report sample size (N), missingness patterns, and variable types.
+- Report sample size (*N*), missingness patterns, and variable types.
 - Summarize distributions for numeric variables and frequency tables for categorical variables.
 - If correlations are included, report method and note any notable associations descriptively.
 
-## Parquet support
+## Parquet Support
 
 Parquet input/output requires the R package `arrow` (install with `install.packages(\"arrow\")`).

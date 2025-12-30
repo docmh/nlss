@@ -24,31 +24,31 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 Run with `Rscript` and base R only.
 
-### CSV input
+### CSV Input
 
 ```bash
 Rscript <path to scripts/R/data_explorer.R> --csv <path to CSV file> --vars age,gender
 ```
 
-### RDS input (data frame)
+### RDS Input (Data Frame)
 
 ```bash
 Rscript <path to scripts/R/data_explorer.R> --rds <path to RDS file> --vars age,gender
 ```
 
-### RData input (data frame by name)
+### RData Input (Data Frame by Name)
 
 ```bash
 Rscript <path to scripts/R/data_explorer.R> --rdata <path to RData file> --df <data frame name> --vars age,gender
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/data_explorer.R> --parquet <path to parquet file> --vars age,gender
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/data_explorer.R> --interactive
@@ -85,7 +85,7 @@ Use the Markdown template at `nlss/assets/data-explorer/default-template.md` whe
   - `levels_table.columns`: ordered column definitions for the levels table.
   - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys
+### Table Column Keys
 
 Overview table keys include:
 
@@ -95,13 +95,13 @@ Levels table keys include:
 
 `variable`, `level`, `n`, `pct_total`, `pct_valid`, `total_n`, `missing_n`, `missing_pct`.
 
-### Table tokens
+### Table Tokens
 
 Table-level tokens include:
 
 `overview_table_body`, `levels_table_body`, `table_number_next`.
 
-### Note tokens
+### Note Tokens
 
 Overview note tokens:
 
@@ -111,7 +111,7 @@ Levels note tokens:
 
 `levels_note_default`, `levels_note_body`, `pct_total_note`, `pct_valid_note`, `missing_note`, `truncation_note`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-variable lines. Available row tokens include:
 

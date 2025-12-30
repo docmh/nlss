@@ -23,43 +23,43 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 ## Script: `scripts/R/mixed_models.R`
 
-### Formula-based model (CSV)
+### Formula-Based Model (CSV)
 
 ```bash
 Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time + (1|id)"
 ```
 
-### Build from dv + fixed + random
+### Build From Dv + Fixed + Random
 
 ```bash
 Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --dv score --fixed time,group --random "1|id,time|id"
 ```
 
-### Marginal means + contrasts
+### Marginal Means + Contrasts
 
 ```bash
 Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time*group + (1|id)" --emmeans time*group --contrasts pairwise
 ```
 
-### Planned contrasts (custom JSON)
+### Planned Contrasts (Custom JSON)
 
 ```bash
 Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time*group + (1|id)" --emmeans group3 --contrasts custom --contrast-file contrasts.json
 ```
 
-### Built-in contrast method
+### Built-in Contrast Method
 
 ```bash
 Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time*group + (1|id)" --emmeans group3 --contrasts trt.vs.ctrl
 ```
 
-### Parquet input
+### Parquet Input
 
 ```bash
 Rscript <path to scripts/R/mixed_models.R> --parquet <path to parquet file> --formula "score ~ time + (1|id)"
 ```
 
-### Interactive prompts
+### Interactive Prompts
 
 ```bash
 Rscript <path to scripts/R/mixed_models.R> --interactive
@@ -75,7 +75,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--random` required without `--formula` (comma-separated random terms in `term|group` syntax).
 - `--reml` uses `modules.mixed_models.reml` (TRUE/FALSE).
 - `--type` uses `modules.mixed_models.type` (`I`, `II`, `III`) for omnibus tests when available (`lmerTest` or `car` required for Type II/III).
-- `--df-method` uses `modules.mixed_models.df_method` (`satterthwaite`, `kenward-roger`, `none`); df/p-values require `lmerTest`.
+- `--df-method` uses `modules.mixed_models.df_method` (`satterthwaite`, `kenward-roger`, `none`); df/*p*-values require `lmerTest`.
 - `--standardize` uses `modules.mixed_models.standardize` (`none`, `predictors`).
 - `--emmeans` uses `modules.mixed_models.emmeans` (`none` or a factor term such as `time*group`).
 - `--contrasts` uses `modules.mixed_models.contrasts` (`none`, `pairwise`, `custom`, or any `emmeans` method string) and requires `--emmeans` unless the contrast JSON specifies a `term`.
@@ -91,7 +91,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--log` uses `defaults.log`.
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
-## Inputs and handling
+## Inputs and Handling
 
 - Data sources: CSV, SAV, RDS, Parquet, or RData data frame (`--df` required for RData).
 - Data must be in long format (one row per observation). Use `data-transform` to reshape wide data beforehand.
@@ -101,7 +101,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - If `--emmeans` is requested but the `emmeans` package is unavailable, marginal means are skipped and noted.
 - `--contrasts` is ignored when `--emmeans` is not set (unless the contrast JSON provides `term`).
 
-### Contrast JSON format
+### Contrast JSON Format
 
 Custom contrasts can be specified as named weight vectors. Weights may be ordered numeric arrays (matching the `emmeans` row order) or named weights keyed by level labels. For multi-factor terms, labels are rendered like `factor=level, factor2=level2` in the `emmeans` output.
 
@@ -148,25 +148,25 @@ Templates use YAML front matter with `{{token}}` placeholders. Supported section
 - `note.template`: overrides the note text (defaults to `{{note_default}}`).
 - `narrative.template` or `narrative.row_template`: overrides the narrative text.
 
-### Table column keys (fixed effects)
+### Table Column Keys (Fixed Effects)
 
 Available column keys include:
 
 `model`, `term`, `b`, `se`, `df`, `t`, `p`, `ci_low`, `ci_high`, `std_beta`.
 
-### Table column keys (emmeans/contrasts)
+### Table Column Keys (Emmeans/Contrasts)
 
 Available column keys include:
 
 `term`, `level`, `contrast`, `emmean`, `estimate`, `se`, `df`, `t`, `p`, `p_adj`, `ci_low`, `ci_high`, `method`.
 
-### Note tokens
+### Note Tokens
 
 Available note tokens include:
 
 `note_default`, `random_effects_note`, `fit_note`, `icc`, `r2_marginal`, `r2_conditional`, `convergence_note`, `optimizer`, `reml`.
 
-### Narrative tokens
+### Narrative Tokens
 
 Use `narrative.row_template` for per-row lines. Available row tokens include:
 
@@ -174,13 +174,13 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 ## APA 7 Reporting Guidance
 
-- Report fixed effects with b, SE, df, t, p, and confidence intervals.
+- Report fixed effects with *b*, *SE*, *df*, *t*, *p*, and confidence intervals.
 - Report random-effects variance components and ICC when relevant.
-- Report model fit indices (AIC/BIC/logLik) and R2 (marginal/conditional) when available.
-- For marginal means and contrasts, report adjusted p-values and confidence intervals.
+- Report model fit indices (AIC/BIC/logLik) and *R*² (marginal/conditional) when available.
+- For marginal means and contrasts, report adjusted *p*-values and confidence intervals.
 
 ## Dependencies
 
 - Parquet input requires the R package `arrow`.
-- Mixed models require the R packages `lme4` and `performance` (R2/ICC).
-- Optional: `lmerTest` for df/p-values, `emmeans` for marginal means/contrasts, and `car` for Type II/III omnibus tests.
+- Mixed models require the R packages `lme4` and `performance` (*R*²/ICC).
+- Optional: `lmerTest` for *df*/*p*-values, `emmeans` for marginal means/contrasts, and `car` for Type II/III omnibus tests.
