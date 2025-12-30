@@ -7,7 +7,7 @@ metadata:
   author: Prof. Dr. Mike Hammes, ISM International School of Management, Germany (mike.hammes@ism.de)
   version: 1.0.0
   created: 2025-12-20
-  updated: 2025-12-28
+  updated: 2025-12-30
   backend: R
   style: NLSS format
 ---
