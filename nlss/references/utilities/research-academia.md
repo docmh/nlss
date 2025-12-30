@@ -9,7 +9,7 @@ description: Web-enabled literature search utility that aggregates academic refe
 
 Find academic references for a topic, aggregate results across multiple scholarly sources, and produce an NLSS format-ready report focused on the most relevant items. References are formatted using the NLSS reference list guidance in `nlss/references/metaskills/formatting/reference-list.md`. A comprehensive list is still available via the analysis log or by customizing the template.
 
-**Web search is required.** This utility only runs when web search is explicitly enabled (see Inputs/Options).
+**Web search is required.** This utility only runs when web search is explicitly enabled (`--web TRUE`). 
 
 ## Assistant Researcher Model
 
@@ -28,6 +28,7 @@ Use this utility when the user asks for academic sources or a literature scan, f
 - A search query/topic (`--query`).
 - Optional source list (`--sources`).
 - Optional year window (`--year-from`, `--year-to`).
+- Web search must be explicitly enabled (`--web TRUE`).
 
 ## Script: `nlss/scripts/R/research_academia.R`
 
@@ -110,6 +111,16 @@ Web search is only available when explicitly enabled:
 - or environment: `NLSS_WEB_SEARCH=1`
 
 If web search is not enabled, the utility exits with an error.
+
+### Test Harness Note
+
+When running smoke/deliberate tests, the web-enabled research steps are gated by the test runner. Enable them with:
+
+```bash
+NLSS_TEST_ALLOW_WEB=1 NLSS_WEB_SEARCH=1 bash cmdscripts/tests.sh smoke
+```
+
+Outside the test harness, only `--web TRUE` or `NLSS_WEB_SEARCH=1` is required.
 
 ## Rate Limits (Semantic Scholar)
 

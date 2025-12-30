@@ -312,7 +312,7 @@ templates:
     mediation: "sem/mediation-template.md"
     invariance: "sem/invariance-template.md"
   assumptions:
-    ttest: "assumptions/ttest-template.md"
+    ttest: "/mnt/c/dev/statistic-skills/outputs/test-runs/20251230184923/templates/assumptions_ttest.md"
     anova: "assumptions/anova-template.md"
     regression: "assumptions/regression-template.md"
     mixed_models: "assumptions/mixed-models-template.md"

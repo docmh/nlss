@@ -71,6 +71,63 @@ resolve_ensure_out_dir <- function(path) {
   path
 }
 
+resolve_find_workspace_manifest <- function(base_dir = getwd()) {
+  if (exists("find_workspace_manifest", mode = "function")) {
+    return(get("find_workspace_manifest", mode = "function")(base_dir))
+  }
+  ""
+}
+
+resolve_read_workspace_manifest <- function(path) {
+  if (exists("read_workspace_manifest", mode = "function")) {
+    return(get("read_workspace_manifest", mode = "function")(path))
+  }
+  NULL
+}
+
+resolve_resolve_dataset_from_cwd <- function(manifest, manifest_path, cwd = getwd()) {
+  if (exists("resolve_dataset_from_cwd", mode = "function")) {
+    return(get("resolve_dataset_from_cwd", mode = "function")(manifest, manifest_path, cwd))
+  }
+  ""
+}
+
+resolve_resolve_manifest_dataset <- function(manifest, dataset_name) {
+  if (exists("resolve_manifest_dataset", mode = "function")) {
+    return(get("resolve_manifest_dataset", mode = "function")(manifest, dataset_name))
+  }
+  NULL
+}
+
+resolve_resolve_dataset_dir <- function(entry, workspace_root) {
+  if (exists("resolve_dataset_dir", mode = "function")) {
+    return(get("resolve_dataset_dir", mode = "function")(entry, workspace_root))
+  }
+  ""
+}
+
+resolve_get_research_out_dir <- function() {
+  manifest_path <- resolve_find_workspace_manifest(getwd())
+  if (nzchar(manifest_path)) {
+    manifest <- resolve_read_workspace_manifest(manifest_path)
+    if (!is.null(manifest)) {
+      dataset_name <- resolve_resolve_dataset_from_cwd(manifest, manifest_path, getwd())
+      if (!nzchar(dataset_name) && !is.null(manifest$active_dataset)) {
+        dataset_name <- as.character(manifest$active_dataset)
+      }
+      if (nzchar(dataset_name)) {
+        entry <- resolve_resolve_manifest_dataset(manifest, dataset_name)
+        if (!is.null(entry)) {
+          workspace_root <- dirname(manifest_path)
+          dataset_dir <- resolve_resolve_dataset_dir(entry, workspace_root)
+          if (nzchar(dataset_dir)) return(resolve_ensure_out_dir(dataset_dir))
+        }
+      }
+    }
+  }
+  resolve_ensure_out_dir(resolve_get_default_out())
+}
+
 resolve_get_run_context <- function() {
   if (exists("get_run_context", mode = "function")) {
     return(get("get_run_context", mode = "function")())
@@ -1204,8 +1261,7 @@ comprehensive_df <- if (length(comprehensive_rows) > 0) do.call(rbind, lapply(co
 top_df <- if (length(top_rows) > 0) do.call(rbind, lapply(top_rows, as.data.frame, stringsAsFactors = FALSE)) else data.frame()
 
 analysis_label <- "Research (Academia)"
-out_dir <- resolve_get_default_out()
-out_dir <- resolve_ensure_out_dir(out_dir)
+out_dir <- resolve_get_research_out_dir()
 report_path <- file.path(out_dir, "report_canonical.md")
 
 template_override <- resolve_template_override(opts$template, module = "research_academia")
