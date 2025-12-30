@@ -138,13 +138,14 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `init-workspace` | `nlss/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
 | `metaskill-runner` | `nlss/scripts/R/metaskill_runner.R` | Log metaskill activations (intent + dataset) for traceability. | Yes (`metaskill-runner/default-template.md`, `metaskill-runner/finalization-template.md`) |
 
-Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations and finalizations. Exception: `explain-statistics` is conversational and does not require `metaskill-runner` or report outputs unless explicitly requested. Metaskill completion writes `report_<YYYYMMDD>_<metaskill>_<intent>.md` first, then logs finalization with `metaskill-runner --synopsis` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations and finalizations. Exception: `explain-statistics` and `explain-results` are conversational and do not require `metaskill-runner` or report outputs unless explicitly requested. Metaskill completion writes `report_<YYYYMMDD>_<metaskill>_<intent>.md` first, then logs finalization with `metaskill-runner --synopsis` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 Default metaskill reports should follow `nlss/assets/metaskills/report-template.md` (APA-style paper sections). Omit Introduction and Keywords when no theoretical context is available, adjust subsections as needed, and design tables/figures specifically for the report rather than copying from `report_canonical.md`.
 
 Available metaskills:
 
 - `explain-statistics`: `nlss/references/metaskills/explain-statistics.md`
+- `explain-results`: `nlss/references/metaskills/explain-results.md`
 - `format-document`: `nlss/references/metaskills/format-document.md`
 - `describe-sample`: `nlss/references/metaskills/describe-sample.md`
 - `generate-r-script`: `nlss/references/metaskills/generate-r-script.md`
@@ -186,6 +187,7 @@ Reference docs:
 - `nlss/references/subskills/metaskill-runner.md`
 - `nlss/references/metaskills/describe-sample.md`
 - `nlss/references/metaskills/explain-statistics.md`
+- `nlss/references/metaskills/explain-results.md`
 - `nlss/references/metaskills/format-document.md`
 - `nlss/references/metaskills/generate-r-script.md`
 - `nlss/references/metaskills/check-instruments.md`

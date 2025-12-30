@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Workspace-first R statistics suite with subskills and agent-run metaskills (including explain-statistics for concept explanations and format-document for APA formatting) that produce APA 7 tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
+description: Workspace-first R statistics suite with subskills and agent-run metaskills (including explain-statistics for concept explanations, explain-results for interpreting outputs, and format-document for APA formatting) that produce APA 7 tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
 license: Apache-2.0
 compatibility: R 4.5.2, Windows, WSL (Ubuntu), Linux, one of Codex IDE with GPT-5.2-Codex Medium/High or Claude Code IDE with Claude Sonnet 4.5/Opus 4.5
 metadata:
@@ -179,13 +179,13 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 - Run the specified pseudoscript and ask clarifying questions if needed.
 - Inspect the dataset first to infer likely variable candidates and defaults.
 - Log the metaskill activation using the `metaskill-runner` subskill.
-- Exception: `explain-statistics` is conversational and does not require `metaskill-runner` or report outputs unless explicitly requested.
+- Exception: `explain-statistics` and `explain-results` are conversational and do not require `metaskill-runner` or report outputs unless explicitly requested.
 - Execute the listed subskills in order, reusing the workspace `.parquet` copy.
 - Update the dataset `scratchpad.md` with the plan and progress after each step.
 
 ### Metaskill Report Requirements
 
-These requirements apply when a metaskill produces a formal report; `explain-statistics` is conversational and uses them only if requested.
+These requirements apply when a metaskill produces a formal report; `explain-statistics` and `explain-results` are conversational and use them only if requested.
 
 - `report_canonical.md` is an audit trail; never copy it as the final metaskill report.
 - `report_<YYYYMMDD>_<metaskill>_<intent>.md` must be newly written, APA 7–aligned, and journal-ready.
@@ -199,7 +199,7 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 
 - [explain-statistics](references/metaskills/explain-statistics.md): Student-friendly explanations of statistical concepts, methods, and interpretations (conversational; no metaskill-runner by default).
 - [format-document](references/metaskills/format-document.md): APA 7 formatting pass that standardizes a report using the NLSS formatting guides.
-- explain-results (planned): Interpret analysis results in context, covering effect sizes, significance, assumptions, and limitations (conversational; no metaskill-runner by default).
+- [explain-results](references/metaskills/explain-results.md): Interpret analysis results in context, covering effect sizes, significance, assumptions, and limitations (conversational; no metaskill-runner by default).
 - [plan-power](references/metaskills/plan-power.md): A priori power/sample-size planning with effect-size clarification or pilot estimation.
 - [explore-data](references/metaskills/explore-data.md): Dataset overview with data dictionary, missingness, distributions, correlations, optional plots.
 - [describe-sample](references/metaskills/describe-sample.md): Demographic-first sample description via descriptives, frequencies, optional crosstabs/missings.
