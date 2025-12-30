@@ -70,7 +70,7 @@ generate R script using state-of-the-art methods:
 save script to <workspace-root>/<dataset-name>/scripts/custom_<YYYYMMDD>_<intent>.R
 update scratchpad.md with script path and rationale
 write report_<YYYYMMDD>_generate-r-script_<intent>.md
-align report_<YYYYMMDD>_generate-r-script_<intent>.md with nlss/references/metaskills/formatting/
+align report_<YYYYMMDD>_generate-r-script_<intent>.md using nlss/references/metaskills/formatting/align-report.md
 run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
@@ -117,7 +117,7 @@ All artifacts (reports, tables, figures, scripts) must be created inside the dat
 ## Finalization
 
 - Write `report_<YYYYMMDD>_generate-r-script_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report with `nlss/references/metaskills/formatting/` (must be the last step before finalization).
+- Align the report using `nlss/references/metaskills/formatting/align-report.md` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## APA 7 Templates
