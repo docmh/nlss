@@ -35,9 +35,10 @@ Use this metaskill when the user asks for data cleaning or preparation, for exam
 3. Log activation with `metaskill-runner`.
 4. Inspect the dataset to infer variable types, IDs, suspicious codes, and candidate analysis variables; summarize candidates in `scratchpad.md`.
 5. Ask clarifying questions on missingness handling, recodes, exclusions, and overwrites.
-6. Write a step-by-step plan to `scratchpad.md`, then execute subskills in order.
-7. Update `scratchpad.md` after each step with progress, decisions, and transformations.
-8. Generate `report_<YYYYMMDD>_prepare-data_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+6. If preprocessing choices need literature support (imputation, transformations, exclusions), run the `research-academia` utility with query variants and curate sources (see utility guidance).
+7. Write a step-by-step plan to `scratchpad.md`, then execute subskills in order.
+8. Update `scratchpad.md` after each step with progress, decisions, and transformations.
+9. Generate `report_<YYYYMMDD>_prepare-data_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-Run)
 
@@ -90,6 +91,10 @@ ask user to confirm:
   recodes/transforms, exclusions, and overwrite/drop rules
 
 write plan to scratchpad.md
+
+optional:
+  if preprocessing choices require citations (e.g., imputation/transformations):
+    run research-academia (multiple query variants; curate sources)
 
 run data-explorer --vars <all non-id vars> [--max-levels <n>] [--top-n <n>]
 

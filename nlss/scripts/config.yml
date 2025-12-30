@@ -238,6 +238,14 @@ modules:
     engine: "auto"
     numeric_method: "median"
     categorical_method: "mode"
+  research_academia:
+    sources: "openalex,crossref"
+    max_per_source: 50
+    max_total: 200
+    top_n: 10
+    timeout: 30
+    abstract_limit: 200
+    keywords_limit: 80
     skew_threshold: 1
     suffix: "_imp"
     indicator: false
@@ -323,3 +331,5 @@ templates:
     finalization: "metaskill-runner/finalization-template.md"
   calc:
     default: "calc/default-template.md"
+  research_academia:
+    default: "research-academia/default-template.md"

@@ -35,9 +35,10 @@ Use this metaskill when the user asks for sample or demographic descriptions, fo
 3. Log activation with `metaskill-runner`.
 4. Inspect the dataset to infer numeric vs categorical variables and candidate grouping variables.
 5. Ask clarifying questions when needed (grouping variable, key demographics, Likert handling), and explicitly propose a demographic-first summary as the default.
-6. Write a plan to `scratchpad.md`, then execute subskills in order.
-7. Update `scratchpad.md` with decisions and completion notes.
-8. Generate `report_<YYYYMMDD>_describe-sample_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+6. If the user requests literature context for the sample (norms, benchmarks, or population comparisons), run the `research-academia` utility with query variants and curate sources (see utility guidance).
+7. Write a plan to `scratchpad.md`, then execute subskills in order.
+8. Update `scratchpad.md` with decisions and completion notes.
+9. Generate `report_<YYYYMMDD>_describe-sample_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-Run)
 
@@ -92,6 +93,10 @@ if request is vague:
     run data-explorer --vars <demographic_candidates> to summarize levels and ranges
 
 write plan to scratchpad.md
+
+optional:
+  if demographic benchmarks or norms need citations:
+    run research-academia (multiple query variants; curate sources)
 
 run descriptive-stats --vars <numeric_demographics> [--group <group_var>]
 run frequencies --vars <categorical_demographics> [--group <group_var>]

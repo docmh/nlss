@@ -35,9 +35,10 @@ Use this metaskill when the user asks for instrument quality, reliability, or sc
 3. Log activation with `metaskill-runner`.
 4. Inspect items to infer candidate instruments, item ranges, and missingness (use `data-explorer` if helpful).
 5. Ask clarifying questions (scale definitions, reverse-coded items, scoring method, reliability type).
-6. Write a plan to `scratchpad.md`, then execute subskills in order.
-7. Update `scratchpad.md` with decisions and completion notes.
-8. Generate `report_<YYYYMMDD>_check-instruments_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+6. If scale definitions or reliability benchmarks need citations, run the `research-academia` utility with query variants and curate sources (see utility guidance).
+7. Write a plan to `scratchpad.md`, then execute subskills in order.
+8. Update `scratchpad.md` with decisions and completion notes.
+9. Generate `report_<YYYYMMDD>_check-instruments_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-Run)
 
@@ -94,6 +95,10 @@ ask user to confirm:
   optional grouping variable
 
 write plan to scratchpad.md
+
+optional:
+  if instrument documentation or reliability benchmarks need literature support:
+    run research-academia (multiple query variants; curate sources)
 
 for each scale:
   run scale --vars <items> [--reverse <items>] [--reverse-min <min>] [--reverse-max <max>] \

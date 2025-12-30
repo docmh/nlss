@@ -153,7 +153,16 @@ humanize_flag_name <- function(name) {
     "indicator-threshold" = "Indicator threshold",
     "indicator-suffix" = "Indicator suffix",
     "skew-threshold" = "Skewness threshold",
-    "max-patterns" = "Max patterns"
+    "max-patterns" = "Max patterns",
+    "query" = "Query",
+    "sources" = "Sources",
+    "year-from" = "Year from",
+    "year-to" = "Year to",
+    "max-per-source" = "Max per source",
+    "max-total" = "Max total",
+    "top-n" = "Top N",
+    "timeout" = "Timeout (seconds)",
+    "web" = "Web search"
   )
   if (!is.null(name) && name %in% names(mapping)) return(unname(mapping[[name]]))
   label <- gsub("[-_]", " ", as.character(name))

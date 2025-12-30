@@ -24,9 +24,10 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 2. Ensure a dataset workspace exists (run `init-workspace` if missing).
 3. Log activation with `metaskill-runner`.
 4. Parse hypotheses and ask clarifying questions for each H (variables, direction, design).
-5. Write a plan to `scratchpad.md`, then execute subskills in order.
-6. Update `scratchpad.md` with decisions, assumptions checks, and completion notes.
-7. Generate `report_<YYYYMMDD>_test-hypotheses_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+5. If hypotheses or discussion need literature grounding, run the `research-academia` utility with query variants and curate sources (see utility guidance).
+6. Write a plan to `scratchpad.md`, then execute subskills in order.
+7. Update `scratchpad.md` with decisions, assumptions checks, and completion notes.
+8. Generate `report_<YYYYMMDD>_test-hypotheses_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-Run)
 
@@ -69,6 +70,10 @@ for each hypothesis Hi:
   if DV/IVs/design not specified:
     ask clarifying questions
   record final hypothesis statement in scratchpad.md
+
+  optional:
+    if hypothesis framing or interpretation needs citations:
+      run research-academia (multiple query variants; curate sources)
 
   select test:
     if Hi is group difference with 2 groups -> t-test

@@ -35,9 +35,10 @@ Use this metaskill when the user asks for data screening or diagnostics prior to
 3. Log activation with `metaskill-runner`.
 4. Inspect the dataset to infer variable types, ID columns, candidate outcomes/predictors, and grouping variables.
 5. Ask clarifying questions for scope and screening thresholds.
-6. Write a plan to `scratchpad.md`, then execute subskills in order.
-7. Update `scratchpad.md` with decisions and completion notes.
-8. Generate `report_<YYYYMMDD>_screen-data_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+6. If the user requests citations for screening criteria, run the `research-academia` utility with query variants and curate sources (see utility guidance).
+7. Write a plan to `scratchpad.md`, then execute subskills in order.
+8. Update `scratchpad.md` with decisions and completion notes.
+9. Generate `report_<YYYYMMDD>_screen-data_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-Run)
 
@@ -87,6 +88,10 @@ ask user to confirm:
   Likert handling, outlier policy, missingness handling, visuals
 
 write plan to scratchpad.md
+
+optional:
+  if screening thresholds need literature grounding:
+    run research-academia (multiple query variants; curate sources)
 
 run data-explorer --vars <all non-id vars> [--max-levels <n>] [--top-n <n>]
 

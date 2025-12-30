@@ -60,6 +60,9 @@ explain in a teacher style:
   offer reporting tips when relevant
 check understanding and invite follow-up questions
 
+if the user requests citations or literature support:
+  run research-academia (multiple query variants; curate sources)
+
 if the user asks for an actual analysis:
   pivot to the appropriate NLSS subskill or metaskill
 ```

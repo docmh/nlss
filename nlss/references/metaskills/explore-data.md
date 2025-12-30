@@ -36,9 +36,10 @@ Use this metaskill when the user asks for exploratory overviews or dataset summa
 3. Log activation with `metaskill-runner`.
 4. Inspect the dataset to infer variable types, candidate IDs, demographics, and grouping variables.
 5. Ask clarifying questions for scope (variables to prioritize, grouping, Likert handling, sensitive fields).
-6. Write a plan to `scratchpad.md`, then execute subskills in order.
-7. Update `scratchpad.md` with decisions and completion notes.
-8. Generate `report_<YYYYMMDD>_explore-data_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+6. If the user asks for literature context around key variables or domains, run the `research-academia` utility with query variants and curate sources (see utility guidance).
+7. Write a plan to `scratchpad.md`, then execute subskills in order.
+8. Update `scratchpad.md` with decisions and completion notes.
+9. Generate `report_<YYYYMMDD>_explore-data_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-Run)
 
@@ -86,6 +87,10 @@ ask user to confirm:
   priority variables, grouping variable, Likert handling, visuals
 
 write plan to scratchpad.md
+
+optional:
+  if the overview requires literature context for variables/domains:
+    run research-academia (multiple query variants; curate sources)
 
 run data-explorer --vars <all non-id vars> [--max-levels <n>] [--top-n <n>]
 run descriptive-stats --vars <numeric_vars> [--group <group_var>]

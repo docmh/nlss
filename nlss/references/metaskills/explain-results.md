@@ -60,6 +60,9 @@ explain in a structured, conversational way:
 summarize in 1-3 sentences
 invite follow-up questions or deeper dives
 
+if the user requests literature context or citations:
+  run research-academia (multiple query variants; curate sources)
+
 if the user requests a new analysis or re-computation:
   pivot to the appropriate NLSS subskill or metaskill
 ```

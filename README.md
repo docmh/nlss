@@ -162,6 +162,7 @@ Utilities:
 - `calc`: `nlss/references/utilities/calc.md`
 - `check-integrity`: `nlss/references/utilities/check-integrity.md`
 - `reconstruct-reports`: `nlss/references/utilities/reconstruct-reports.md`
+- `research-academia`: `nlss/references/utilities/research-academia.md`
 
 Reference docs:
 
@@ -203,6 +204,7 @@ Reference docs:
 - `nlss/references/utilities/calc.md`
 - `nlss/references/utilities/check-integrity.md`
 - `nlss/references/utilities/reconstruct-reports.md`
+- `nlss/references/utilities/research-academia.md`
 
 ## Basic Usage by Module
 

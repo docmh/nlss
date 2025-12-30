@@ -35,9 +35,10 @@ Use this metaskill when the user asks for minimal sample size or power planning,
 3. Log activation with `metaskill-runner`.
 4. Inspect the dataset (if available) and summarize candidate DV/IVs and group variables in `scratchpad.md`.
 5. Ask clarifying questions to finalize analysis family, effect size assumptions, alpha, power, and design details.
-6. Write a plan to `scratchpad.md`, then execute the `power` subskill (optionally estimating effect size from pilot data).
-7. Update `scratchpad.md` with decisions and completion notes.
-8. Generate `report_<YYYYMMDD>_plan-power_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+6. If effect size justification needs literature support, run the `research-academia` utility with query variants and curate sources (see utility guidance).
+7. Write a plan to `scratchpad.md`, then execute the `power` subskill (optionally estimating effect size from pilot data).
+8. Update `scratchpad.md` with decisions and completion notes.
+9. Generate `report_<YYYYMMDD>_plan-power_<intent>.md` first, align it using `nlss/references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-Run)
 
@@ -87,6 +88,10 @@ ask clarifying questions to confirm:
   whether to estimate effect size from pilot data
 
 write plan to scratchpad.md
+
+optional:
+  if effect size needs literature grounding or user requests citations:
+    run research-academia (multiple query variants; curate sources)
 
 if pilot data and estimation approved:
   run power --analysis <analysis> --mode apriori --estimate-effect TRUE <vars/ivs/group>

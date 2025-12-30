@@ -304,6 +304,15 @@ get_builtin_config <- function() {
         skew_threshold = 1,
         max_patterns = 10
       ),
+      research_academia = list(
+        sources = "openalex,crossref",
+        max_per_source = 50,
+        max_total = 200,
+        top_n = 10,
+        timeout = 30,
+        abstract_limit = 200,
+        keywords_limit = 80
+      ),
       init_workspace = list(
         agent = "Codex"
       ),
@@ -407,6 +416,9 @@ get_builtin_config <- function() {
       ),
       calc = list(
         default = "calc/default-template.md"
+      ),
+      research_academia = list(
+        default = "research-academia/default-template.md"
       )
     )
   )
