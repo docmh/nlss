@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Workspace-first R statistics suite with subskills and agent-run metaskills (including explain-statistics for concept explanations, explain-results for interpreting outputs, format-document for NLSS format alignment, and screen-data for diagnostics) that produce NLSS format tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
+description: Workspace-first R statistics suite with subskills and agent-run metaskills (including explain-statistics for concept explanations, explain-results for interpreting outputs, format-document for NLSS format alignment, screen-data for diagnostics, and check-assumptions for model-specific checks) that produce NLSS format tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
 license: Apache-2.0
 compatibility: R 4.5.2, Windows, WSL (Ubuntu), Linux, one of Codex IDE with GPT-5.2-Codex Medium/High or Claude Code IDE with Claude Sonnet 4.5/Opus 4.5
 metadata:
@@ -207,7 +207,7 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 - [check-instruments](references/metaskills/check-instruments.md): Item inspection, reverse scoring, scale reliability (alpha/omega) and ICC/kappa/test-retest.
 - [screen-data](references/metaskills/screen-data.md): Data screening for outliers, normality, linearity, homoscedasticity, and multicollinearity with recommendations.
 - [prepare-data](references/metaskills/prepare-data.md): Data cleaning and preparation with missingness handling, recodes/transforms, imputation, documented changes.
-- check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression, mixed models, SEM).
+- [check-assumptions](references/metaskills/check-assumptions.md): Model-specific assumption checks for planned analyses (t-tests, ANOVA, regression, mixed models, SEM).
 - [test-hypotheses](references/metaskills/test-hypotheses.md): Clarify hypotheses, select/run tests, include assumptions checks, produce NLSS format-ready report.
 - full-analysis (planned): End-to-end workflow from exploration through hypothesis testing with full reporting.
 - [generate-r-script](references/metaskills/generate-r-script.md): Permissioned custom R script generation for out-of-scope analyses.

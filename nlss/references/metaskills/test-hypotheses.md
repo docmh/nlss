@@ -9,6 +9,11 @@ description: Agent-run hypothesis testing that clarifies DV/IVs and design, sele
 
 This metaskill helps the agent test hypotheses (H1, H2, H3, ...) when the initial request is vague. The agent gathers the missing details, selects the appropriate subskills, and logs the metaskill activation before running analyses.
 
+## Routing Guardrails
+
+- If the user wants **assumption checks only**, use `check-assumptions`.
+- If the user wants **general screening** without hypotheses, use `screen-data` or `explore-data`.
+
 ## Assistant Researcher Model
 
 NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.

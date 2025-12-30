@@ -22,6 +22,12 @@ Use this metaskill when the user asks for data cleaning or preparation, for exam
 - "Prepare the data (missingness, recodes, transformations)."
 - "Get the data into analysis-ready form."
 
+## Routing Guardrails
+
+- If the user wants **diagnostics only** (outliers/normality/linearity), use `screen-data`.
+- If the user wants **model-specific assumption checks only**, use `check-assumptions`.
+- If the user wants **hypothesis tests**, use `test-hypotheses`.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).

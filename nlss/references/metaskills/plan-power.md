@@ -23,6 +23,11 @@ Use this metaskill when the user asks for minimal sample size or power planning,
 - "We have a vague plan; estimate sample size."
 - "Power analysis for t-test/ANOVA/regression/correlation/SEM."
 
+## Routing Guardrails
+
+- If the request is about **diagnostics or assumptions**, use `check-assumptions` or `screen-data`.
+- If the request is about **testing hypotheses**, use `test-hypotheses`.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).

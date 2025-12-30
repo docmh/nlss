@@ -22,6 +22,12 @@ Use this metaskill when the user asks for instrument quality, reliability, or sc
 - "Assess scale quality for these survey items."
 - "Run item analysis and reliability."
 
+## Routing Guardrails
+
+- If the request is about **demographics or sample description**, use `describe-sample`.
+- If the request is a **general dataset overview**, use `explore-data`.
+- If the request is **screening diagnostics** (outliers/normality) not tied to instruments, use `screen-data`.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).

@@ -22,6 +22,12 @@ Use this metaskill when the user asks for data screening or diagnostics prior to
 - "Do a data screening pass (outliers, linearity, homoscedasticity)."
 - "Run diagnostics before analysis."
 
+## Routing Guardrails
+
+- If the request is **model-specific assumptions only**, use `check-assumptions`.
+- If the request includes **data changes** (recode/transform/impute/drop), use `prepare-data`.
+- If the request is a **general overview** without diagnostics, use `explore-data`.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).
@@ -115,7 +121,8 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>"
 - Treat factor/character variables as categorical; treat numeric variables with low cardinality (for example <= 10 unique values) as categorical unless the user prefers numeric summaries.
 - Do not run `missings` or `data-transform` unless the user approves a handling strategy; these update the workspace parquet copy in place.
 - Flag outliers and distributional issues rather than removing cases unless the user provides explicit exclusion criteria.
-- If the analysis type is unknown, limit assumptions to descriptive/plot-based screening and document that model-specific diagnostics require DV/IV specification.
+- If the analysis type is known and the user wants assumptions only, route to `check-assumptions`.
+- If the analysis type is unknown, limit diagnostics to descriptive/plot-based screening and document that model-specific checks require DV/IV specification.
 
 ## Outputs
 

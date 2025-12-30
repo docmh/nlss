@@ -22,6 +22,12 @@ Use this metaskill when the user asks for sample or demographic descriptions, fo
 - "Summarize participant characteristics."
 - "Describe age, gender, education, and employment."
 
+## Routing Guardrails
+
+- If the request is a **general dataset overview**, use `explore-data`.
+- If the request is about **screening diagnostics** (outliers/normality), use `screen-data`.
+- If the request is about **data cleaning or transformations**, use `prepare-data`.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).

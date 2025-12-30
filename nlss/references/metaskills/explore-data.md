@@ -22,6 +22,13 @@ Use this metaskill when the user asks for exploratory overviews or dataset summa
 - "Give me a broad look at distributions, missingness, and relationships."
 - "Quick data audit before analysis."
 
+## Routing Guardrails
+
+- If the request is specifically about **demographics or participant characteristics**, use `describe-sample`.
+- If the request is explicitly about **diagnostics or screening** (outliers/normality/linearity), use `screen-data`.
+- If the user wants **data cleaning or transformations**, use `prepare-data`.
+- If the user wants **model-specific assumptions**, use `check-assumptions`.
+
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).

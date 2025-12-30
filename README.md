@@ -154,6 +154,7 @@ Available metaskills:
 - `explore-data`: `nlss/references/metaskills/explore-data.md`
 - `prepare-data`: `nlss/references/metaskills/prepare-data.md`
 - `screen-data`: `nlss/references/metaskills/screen-data.md`
+- `check-assumptions`: `nlss/references/metaskills/check-assumptions.md`
 - `test-hypotheses`: `nlss/references/metaskills/test-hypotheses.md`
 
 Utilities:
@@ -196,6 +197,7 @@ Reference docs:
 - `nlss/references/metaskills/explore-data.md`
 - `nlss/references/metaskills/prepare-data.md`
 - `nlss/references/metaskills/screen-data.md`
+- `nlss/references/metaskills/check-assumptions.md`
 - `nlss/references/metaskills/test-hypotheses.md`
 - `nlss/references/metaskills/formatting/*.md`
 - `nlss/references/utilities/calc.md`
