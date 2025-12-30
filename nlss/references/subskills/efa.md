@@ -1,17 +1,17 @@
 ---
 name: efa
-description: Exploratory factor analysis with PCA/EFA extraction, rotation, eigenvalue retention, KMO/Bartlett diagnostics, and APA outputs.
+description: Exploratory factor analysis with PCA/EFA extraction, rotation, eigenvalue retention, KMO/Bartlett diagnostics, and NLSS format outputs.
 ---
 
-# Exploratory Factor Analysis (Psych, APA 7)
+# Exploratory Factor Analysis (Psych, NLSS format)
 
 ## Overview
 
-Run exploratory factor analysis (EFA) or PCA with rotation using psych, and generate APA 7-style tables and narrative text (loadings + diagnostics).
+Run exploratory factor analysis (EFA) or PCA with rotation using psych, and generate NLSS format tables and narrative text (loadings + diagnostics).
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -58,7 +58,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--sort-loadings` sorts rows by primary loading (default: `modules.efa.sort_loadings`).
 - `--coerce` coerces non-numeric columns to numeric (default: `modules.efa.coerce`).
 - `--digits` controls rounding (default: `defaults.digits`).
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -67,10 +67,10 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `report_canonical.md`: APA 7 report containing loadings table and narrative summary.
+- `report_canonical.md`: NLSS format report containing loadings table and narrative summary.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
-## APA 7 Template (YAML)
+## NLSS format Template (YAML)
 
 Use the Markdown template at `nlss/assets/efa/default-template.md` when assembling EFA outputs. If the template exists, it must be used for `report_canonical.md`.
 
@@ -100,7 +100,7 @@ Use `narrative.row_template` for per-group lines. Available row tokens include:
 
 `group`, `group_label`, `n_obs`, `n_items`, `n_factors`, `variance_explained`, `kmo`, `bartlett`, `full_sentence`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report KMO and Bartlett tests before interpreting loadings.
 - Report the factor retention rule (eigen > 1 vs fixed), rotation type, and total variance explained.

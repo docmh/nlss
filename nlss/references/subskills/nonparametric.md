@@ -1,24 +1,24 @@
 ---
 name: nonparametric
-description: Nonparametric tests (Wilcoxon one-sample/paired, Mann-Whitney, Kruskal-Wallis, Friedman) with auto selection, effect sizes, post-hoc pairwise tests, and APA outputs.
+description: Nonparametric tests (Wilcoxon one-sample/paired, Mann-Whitney, Kruskal-Wallis, Friedman) with auto selection, effect sizes, post-hoc pairwise tests, and NLSS format outputs.
 ---
 
-# Nonparametric Tests (Base R, APA 7)
+# Nonparametric Tests (Base R, NLSS format)
 
 ## Overview
 
-Run nonparametric tests in base R and generate APA 7-ready tables and narratives. Supported tests include Wilcoxon signed-rank (one-sample and paired), Mann-Whitney *U* (two independent groups), Kruskal-Wallis (*k* independent groups), and Friedman (*k* repeated measures). Optional post-hoc pairwise Wilcoxon comparisons are available for Kruskal-Wallis and Friedman.
+Run nonparametric tests in base R and generate NLSS format-ready tables and narratives. Supported tests include Wilcoxon signed-rank (one-sample and paired), Mann-Whitney *U* (two independent groups), Kruskal-Wallis (*k* independent groups), and Friedman (*k* repeated measures). Optional post-hoc pairwise Wilcoxon comparisons are available for Kruskal-Wallis and Friedman.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose a test (`--test auto` or an explicit type) and specify variables/grouping.
 3. Run `scripts/R/nonparametric.R` with the correct flags.
-4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
+4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for NLSS format reporting.
 
 ## Script: `scripts/R/nonparametric.R`
 
@@ -84,7 +84,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--p-adjust` uses `modules.nonparametric.p_adjust` (e.g., `holm`, `bonferroni`, `BH`).
 - `--effect-size` uses `modules.nonparametric.effect_size` (`r`, `rb`, `epsilon_sq`, `kendall_w`).
 - `--digits` controls rounding (default: `defaults.digits`).
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -104,10 +104,10 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `report_canonical.md`: APA 7 report containing the nonparametric table and narrative.
+- `report_canonical.md`: NLSS format report containing the nonparametric table and narrative.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `summary_df`, `posthoc_df`, and `diagnostics_df`.
 
-## APA 7 Templates (YAML)
+## NLSS format Templates (YAML)
 
 Templates are stored under `nlss/assets/nonparametric/` and mapped in `nlss/scripts/config.yml`:
 
@@ -147,7 +147,7 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 `n_1`, `n_2`, `n_total`, `median_1`, `median_2`, `iqr_1`, `iqr_2`, `median`, `iqr`, `median_diff`, `iqr_diff`,
 `stat_label`, `statistic`, `df`, `p`, `effect_size_label`, `effect_size_value`, `ci`, `conf_level`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report the test type, test statistic, df (where applicable), *p*-value, and effect size.
 - For two-group tests, report group medians and IQRs.

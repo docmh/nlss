@@ -250,19 +250,19 @@ resolve_select_variables <- function(df, vars, group_var = NULL, default = "all"
   requested
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -1205,7 +1205,7 @@ main <- function() {
   if (ignored_map) {
     sentences <- c(sentences, "Method/value maps apply only to engine 'simple'.")
   }
-  apa_text <- paste(sentences, collapse = " ")
+  nlss_text <- paste(sentences, collapse = " ")
 
   template_override <- resolve_template_override(opts$template, module = "impute")
   template_path <- if (!is.null(template_override)) {
@@ -1218,20 +1218,20 @@ main <- function() {
   narrative_rows <- build_impute_narrative_rows(summary_df, digits)
   note_tokens <- build_impute_note_tokens(summary_df, engine_requested, engine_used, indicator, indicator_suffix, m, maxit, k, seed, ignored_map, skipped_vars_display)
 
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
 
   template_context <- list(
     tokens = c(
       list(
         table_body = table_result$body,
-        narrative_default = apa_text
+        narrative_default = nlss_text
       ),
       note_tokens
     ),
     narrative_rows = narrative_rows
   )
 
-  apa_table <- paste(
+  nlss_table <- paste(
     "Table 1",
     "Imputation summary.",
     table_result$body,
@@ -1260,11 +1260,11 @@ main <- function() {
     digits = digits
   )
 
-  resolve_append_apa_report(
-    apa_report_path,
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Imputation",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
@@ -1281,7 +1281,7 @@ main <- function() {
   }
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
   cat("- ", render_output_path(output_path, out_dir), "\n", sep = "")
 
   log_default <- resolve_config_value("defaults.log", TRUE)

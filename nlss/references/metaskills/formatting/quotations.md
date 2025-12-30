@@ -1,17 +1,17 @@
 ---
 name: formatting-quotations
-description: APA 7 short and block quotation formatting with Markdown guidance.
+description: NLSS format short and block quotation formatting with Markdown guidance.
 ---
 
-# Quotations (APA 7 Formatting)
+# Quotations (NLSS format)
 
 ## Overview
 
-Format direct quotations using APA 7 rules, including short quotes and block quotes. Apply this when integrating quoted material into NLSS narratives.
+Format direct quotations using NLSS format rules, including short quotes and block quotes. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. Apply this when integrating quoted material into NLSS narratives.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 
@@ -61,4 +61,4 @@ Use this when you need to:
 
 - Short vs. block quote threshold is applied correctly.
 - Every quote includes a locator.
-- Citation placement follows APA rules for the quote type.
+- Citation placement follows NLSS format rules for the quote type.

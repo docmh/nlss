@@ -1,17 +1,17 @@
 ---
 name: data-explorer
-description: Data dictionary overview with variable types/storage, inferred measurement levels, missingness, numeric summaries, and top-N value tables with truncation notes and APA outputs.
+description: Data dictionary overview with variable types/storage, inferred measurement levels, missingness, numeric summaries, and top-N value tables with truncation notes and NLSS format outputs.
 ---
 
-# Data Explorer (Base R, APA 7)
+# Data Explorer (Base R, NLSS format)
 
 ## Overview
 
-Create a data dictionary-style overview with variable names, inferred measurement levels, missingness, and value levels. Outputs include an APA-ready report and JSONL logging.
+Create a data dictionary-style overview with variable names, inferred measurement levels, missingness, and value levels. Outputs include an NLSS format-ready report and JSONL logging.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -62,7 +62,7 @@ Rscript <path to scripts/R/data_explorer.R> --interactive
 - `--max-levels` controls when level tables are truncated (default: `modules.data_explorer.max_levels`). Categorical variables with more levels are summarized with top `--top-n` levels and an "Other (remaining)" row.
 - `--top-n` controls how many levels to keep when truncating (default: `modules.data_explorer.top_n`).
 - `--digits` controls rounding (default: `defaults.digits`).
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -72,10 +72,10 @@ Subskills append to `report_canonical.md` and do not create separate report file
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 
-- `report_canonical.md`: APA 7 report containing analysis type, tables, and narrative text.
+- `report_canonical.md`: NLSS format report containing analysis type, tables, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
-## APA 7 Template (YAML)
+## NLSS format Template (YAML)
 
 Use the Markdown template at `nlss/assets/data-explorer/default-template.md` when assembling a data exploration report. If the template exists, `data_explorer.R` uses it for `report_canonical.md`.
 
@@ -117,7 +117,7 @@ Use `narrative.row_template` for per-variable lines. Available row tokens includ
 
 `label`, `variable`, `class`, `storage`, `measurement_level`, `measurement_note`, `total_n`, `valid_n`, `missing_n`, `missing_pct`, `unique_n`, `example_values`, `mean`, `sd`, `min`, `max`, `median`, `q1`, `q3`, `levels_text`, `missing_text`, `levels_truncated`, `full_sentence`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Treat the measurement level as a heuristic; the script uses `interval/ratio` for numeric variables and cannot distinguish interval from ratio scales automatically.
 - Use `Table 1` for a concise overview of variable types, missingness, and numeric summaries.

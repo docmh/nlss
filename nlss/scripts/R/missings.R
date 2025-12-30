@@ -241,19 +241,19 @@ resolve_select_variables <- function(df, vars, group_var = NULL, default = "all"
   requested
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -923,7 +923,7 @@ main <- function() {
   if (length(indicator_vars) > 0) {
     sentences <- c(sentences, paste0("Missingness indicators added for: ", paste(indicator_vars_display, collapse = ", "), "."))
   }
-  apa_text <- paste(sentences, collapse = " ")
+  nlss_text <- paste(sentences, collapse = " ")
 
   summary_table_note <- paste0(
     "Missing % uses total N. ",
@@ -952,8 +952,8 @@ main <- function() {
   }
   patterns_table <- build_patterns_table_body(patterns_df, digits, pattern_spec)
 
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
-  table_start <- as.integer(resolve_get_next_table_number(apa_report_path))
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
+  table_start <- as.integer(resolve_get_next_table_number(nlss_report_path))
   narrative_rows <- build_narrative_rows(summary_df, digits)
   template_context <- list(
     tokens = list(
@@ -963,12 +963,12 @@ main <- function() {
       patterns_note_body = pattern_note,
       table_number_next = as.character(table_start + 1),
       pattern_limit = as.character(max_patterns),
-      narrative_default = apa_text
+      narrative_default = nlss_text
     ),
     narrative_rows = narrative_rows
   )
 
-  apa_table <- paste(
+  nlss_table <- paste(
     "Table 1",
     "Missingness summary.",
     summary_table$body,
@@ -993,11 +993,11 @@ main <- function() {
     digits = digits
   )
 
-  resolve_append_apa_report(
-    apa_report_path,
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Missing data assessment",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
@@ -1014,7 +1014,7 @@ main <- function() {
   }
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
   cat("- ", render_output_path(output_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {

@@ -1,24 +1,24 @@
 ---
 name: formatting-headings
-description: APA 7 heading levels, section labels, and Markdown mapping for NLSS reports.
+description: NLSS format heading levels, section labels, and Markdown mapping for NLSS reports.
 ---
 
-# Headings and Section Labels (APA 7 Formatting)
+# Headings and Section Labels (NLSS format)
 
 ## Overview
 
-Apply APA 7 heading hierarchy and section labels in Markdown for NLSS reports. This guidance focuses on how to format headings (Levels 1-5), apply Title Case, and handle run-in headings in Markdown-first outputs.
+Apply NLSS format heading hierarchy and section labels in Markdown for NLSS reports. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. This guidance focuses on how to format headings (Levels 1-5), apply Title Case, and handle run-in headings in Markdown-first outputs.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 
 Use this when you need to:
 
 - Structure a report into sections and subsections.
-- Apply APA 7 heading levels.
+- Apply NLSS format heading levels.
 - Format section labels (e.g., Abstract, References) in Markdown.
 
 ## Inputs/Clarifications
@@ -39,7 +39,7 @@ Use this when you need to:
 
 - Level 1: `# Heading` (centered by renderer if supported)
 - Level 2: `## Heading`
-- Level 3: `### **_Heading_**`
+- Level 3: `### Heading`
 - Level 4: `**Heading.**` followed by text on the same line (run-in)
 - Level 5: `**_Heading._**` followed by text on the same line (run-in)
 

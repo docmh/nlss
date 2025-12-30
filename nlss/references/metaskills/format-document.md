@@ -1,24 +1,24 @@
 ---
 name: format-document
-description: Agent-run APA 7 formatting pass that standardizes a report using NLSS formatting guides and produces a journal-ready Markdown output.
+description: Agent-run NLSS format pass that standardizes a report using NLSS formatting guides and produces a journal-ready Markdown output.
 ---
 
-# Format Document (Agent-Run, APA 7)
+# Format Document (Agent-Run, NLSS format)
 
 ## Overview
 
-This metaskill formats an existing report so it conforms to APA 7 rules that are representable in Markdown. It applies the NLSS formatting guides in a fixed order and produces a clean, journal-ready Markdown report without altering substantive content.
+This metaskill formats an existing report so it conforms to NLSS format rules that are representable in Markdown. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. It applies the NLSS formatting guides in a fixed order and produces a clean, journal-ready Markdown report without altering substantive content.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 
 Use this metaskill when the user asks to:
 
-- "Format this report in APA 7."
-- "Make the report APA-compliant."
+- "Format this report in NLSS format."
+- "Make the report NLSS format-compliant."
 - "Standardize headings, citations, tables, and references."
 
 ## Inputs/Clarifications
@@ -61,7 +61,7 @@ Apply each guide in order and record changes in `scratchpad.md`:
 7. `nlss/references/metaskills/formatting/tables-figures.md`
 8. `nlss/references/metaskills/formatting/reference-list.md`
 
-Use `nlss/references/metaskills/formatting/` as the global reference for Markdown-compatible APA 7 rules.
+Use `nlss/references/metaskills/formatting/` as the global reference for Markdown-compatible NLSS format rules.
 
 ## Procedure (Pseudocode)
 
@@ -89,7 +89,7 @@ apply tables/figures guide
 apply reference list guide
 ensure blank lines between paragraphs and block elements (use `\n\n`)
 
-verify APA 7 Markdown constraints using the formatting guides
+verify NLSS format Markdown constraints using the formatting guides
 save formatted report to output_path
 
 run metaskill-runner --phase finalization --synopsis "<synopsis>"
@@ -97,7 +97,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis>"
 
 ## Outputs
 
-- `<filename>-formatted.md`: Formatted APA 7-ready report.
+- `<filename>-formatted.md`: Formatted NLSS format-ready report.
 - `report_canonical.md`: Updated only by the `metaskill-runner` finalization synopsis.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries.
 - `scratchpad.md`: Formatting plan, decisions, and completion notes.

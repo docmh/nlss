@@ -134,7 +134,7 @@ get_builtin_config <- function() {
       ),
       crosstabs = list(
         percent = "all",
-        apa_percent = "row",
+        nlss_percent = "row",
         chisq = TRUE,
         yates = FALSE,
         fisher = FALSE,

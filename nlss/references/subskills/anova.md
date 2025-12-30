@@ -1,19 +1,19 @@
 ---
 name: anova
-description: Between/within/mixed ANOVA and ANCOVA with effect sizes, post-hoc tests, planned contrasts (emmeans/custom), sphericity checks, optional bootstrap CIs, and APA outputs.
+description: Between/within/mixed ANOVA and ANCOVA with effect sizes, post-hoc tests, planned contrasts (emmeans/custom), sphericity checks, optional bootstrap CIs, and NLSS format outputs.
 ---
 
-# ANOVA (Base R, APA 7)
+# ANOVA (Base R, NLSS format)
 
 ## Overview
 
-Run between-subjects, within-subjects (repeated measures), or mixed ANOVA in base R and produce APA 7-ready tables and narratives. Optional covariates (ANCOVA), post-hoc comparisons, and planned contrasts (custom JSON or built-in `emmeans` methods) are supported. Outputs include sums of squares, *df*, *F*, *p*, and effect sizes.
+Run between-subjects, within-subjects (repeated measures), or mixed ANOVA in base R and produce NLSS format-ready tables and narratives. Optional covariates (ANCOVA), post-hoc comparisons, and planned contrasts (custom JSON or built-in `emmeans` methods) are supported. Outputs include sums of squares, *df*, *F*, *p*, and effect sizes.
 
 Post-hoc behavior: Tukey HSD is used for between-subjects factors; paired t-tests are used for within-subjects comparisons (and for mixed designs, within comparisons are computed separately per between-group combination).
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -21,7 +21,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 2. Choose a design (between/within/mixed) and specify variables.
 3. Optionally request planned contrasts (`--emmeans`, `--contrasts`, `--contrast-file`).
 4. Run `scripts/R/anova.R` with the correct flags.
-5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting and diagnostics.
+5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for NLSS format reporting and diagnostics.
 
 ## Script: `scripts/R/anova.R`
 
@@ -96,7 +96,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--bootstrap` uses `modules.anova.bootstrap` (TRUE/FALSE).
 - `--bootstrap-samples` uses `modules.anova.bootstrap_samples` (default: 1000).
 - `--digits` uses `defaults.digits`.
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` uses `defaults.log`.
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -140,12 +140,12 @@ Example (built-in method with args):
 Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `report_canonical.md`: APA 7 report containing the ANOVA table and narrative.
+- `report_canonical.md`: NLSS format report containing the ANOVA table and narrative.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `summary_df`, `posthoc_df`, `contrasts_df`, and `assumptions_df`.
 - When `--bootstrap TRUE`, `summary_df` includes `boot_ci_low` and `boot_ci_high` for the selected effect size.
 - Assumption diagnostics (Shapiro-Wilk residual normality, homogeneity tests, and Mauchly for sphericity when applicable) are recorded in `analysis_log.jsonl`.
 
-## APA 7 Templates (YAML)
+## NLSS format Templates (YAML)
 
 Templates are stored under `nlss/assets/anova/` and mapped in `nlss/scripts/config.yml`:
 
@@ -193,7 +193,7 @@ Contrast narrative row tokens include:
 
 `full_sentence`, `term`, `contrast`, `estimate`, `se`, `df`, `t`, `p`, `p_adj`, `ci`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report *F*, *df*, *p*, and effect sizes for each omnibus effect (include bootstrap CIs when enabled).
 - Indicate post-hoc method and *p*-value adjustment when reported.

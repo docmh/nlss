@@ -234,19 +234,19 @@ resolve_as_cell_text <- function(value) {
   as.character(value)
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -561,7 +561,7 @@ build_dataset_section <- function(label, source_path, type_label, rows, columns,
     "  - [ ] Check assumptions\n",
     "  - [ ] Execute models/tests\n",
     "- [ ] Report results\n",
-    "  - [ ] Draft APA table and narrative\n",
+    "  - [ ] Draft NLSS format table and narrative\n",
     "  - [ ] Record decisions here\n",
     "\n",
     "## To Be Considered\n",
@@ -672,7 +672,7 @@ build_workspace_table_body <- function(summary_df, table_meta, workspace_root = 
   list(body = body, columns = cleaned$columns)
 }
 
-build_apa_table <- function(table_body, note_text) {
+build_nlss_table <- function(table_body, note_text) {
   header <- "Table 1\nWorkspace initialization\n"
   body <- trimws(table_body)
   if (!nzchar(body)) {
@@ -681,7 +681,7 @@ build_apa_table <- function(table_body, note_text) {
   paste0(header, "\n", body, "\n\nNote. ", note_text, "\n")
 }
 
-build_apa_text <- function(info, labels) {
+build_nlss_text <- function(info, labels) {
   count <- length(labels)
   if (count == 0) {
     return(paste0(
@@ -741,7 +741,7 @@ template_path <- if (!is.null(template_override)) {
   )
 }
 if (is.null(template_path) || !file.exists(template_path)) {
-  stop("APA template not found: ", template_path)
+  stop("NLSS format template not found: ", template_path)
 }
 template_meta <- resolve_get_template_meta(template_path)
 
@@ -776,8 +776,8 @@ for (target in targets) {
   } else {
     "Dataset copy saved as .parquet in the dataset workspace."
   }
-  apa_table <- build_apa_table(table_result$body, note_text)
-  apa_text <- build_apa_text(env_info, dataset_labels)
+  nlss_table <- build_nlss_table(table_result$body, note_text)
+  nlss_text <- build_nlss_text(env_info, dataset_labels)
 
   analysis_flags <- list(
     datasets = if (length(dataset_labels) == 0) "None" else dataset_labels
@@ -794,15 +794,15 @@ for (target in targets) {
       dataset_count = as.character(length(dataset_labels)),
       dataset_list = if (length(dataset_labels) == 0) "None" else paste(dataset_labels, collapse = ", "),
       table_body = table_result$body,
-      narrative_default = apa_text
+      narrative_default = nlss_text
     )
   )
 
-  resolve_append_apa_report(
+  resolve_append_nlss_report(
     file.path(target$out_dir, "report_canonical.md"),
     "Workspace initialization",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
@@ -830,7 +830,7 @@ for (target in targets) {
       results = list(
         workspace_dir = env_info$workspace_path,
         scratchpad_path = render_output_path(scratchpad_path, workspace_root = workspace_root),
-        apa_report_path = render_output_path(file.path(target$out_dir, "report_canonical.md"), workspace_root = workspace_root),
+        nlss_report_path = render_output_path(file.path(target$out_dir, "report_canonical.md"), workspace_root = workspace_root),
         datasets = rendered_summary
       ),
       options = list(

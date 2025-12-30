@@ -1,17 +1,17 @@
 ---
 name: descriptive-stats
-description: Numeric descriptives with missingness, robust and percentile metrics, outlier counts (Tukey/z), CI/SE, skew/kurtosis, optional grouping, and APA outputs.
+description: Numeric descriptives with missingness, robust and percentile metrics, outlier counts (Tukey/z), CI/SE, skew/kurtosis, optional grouping, and NLSS format outputs.
 ---
 
-# Descriptive Stats (Base R, APA 7)
+# Descriptive Stats (Base R, NLSS format)
 
 ## Overview
 
-Generate descriptive statistics in base R for psychology coursework or reports, and return an APA 7-style report (table + narrative).
+Generate descriptive statistics in base R for psychology coursework or reports, and return an NLSS format report (table + narrative).
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -64,7 +64,7 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 - `--trim` controls the trimmed mean proportion (default: `modules.descriptive_stats.trim`).
 - `--iqr-multiplier` sets the Tukey IQR multiplier for outlier counts (default: `modules.descriptive_stats.iqr_multiplier`).
 - `--outlier-z` sets the z-threshold for outlier counts (default: `modules.descriptive_stats.outlier_z`).
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -74,10 +74,10 @@ Subskills append to `report_canonical.md` and do not create separate report file
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 
-- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: NLSS format report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
-## APA 7 Template (YAML)
+## NLSS format Template (YAML)
 
 Use the Markdown templates under `nlss/assets/descriptive-stats` when assembling a descriptive statistics report. If a template exists, it must be used for `report_canonical.md`.
 Available templates include `default-template.md`, `robust-template.md`, and `distribution-template.md`.
@@ -110,7 +110,7 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 `label`, `variable`, `group`, `n`, `missing_n`, `missing_pct`, `mean`, `sd`, `median`, `min`, `max`, `variance`, `range`, `q1`, `q3`, `iqr`, `mad`, `cv`, `trimmed_mean`, `p5`, `p10`, `p90`, `p95`, `outliers_tukey`, `outliers_z`, `mode`, `n_unique`, `se`, `ci_low`, `ci_high`, `full_sentence`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Use the narrative lines as the base: Variable: *M* = x.xx, *SD* = x.xx, 95% CI [x.xx, x.xx], *n* = xx, missing = x (x.x%).
 - If `n < 2` or *SD* is missing, state that variability cannot be estimated.

@@ -1,9 +1,9 @@
 ---
 name: impute
-description: Impute missing values into new _imp columns using simple methods or mice/VIM kNN, with per-variable method maps, optional indicators, parquet updates with backups, and APA outputs.
+description: Impute missing values into new _imp columns using simple methods or mice/VIM kNN, with per-variable method maps, optional indicators, parquet updates with backups, and NLSS format outputs.
 ---
 
-# Impute (Base R With Optional Mice/VIM, APA 7)
+# Impute (Base R With Optional Mice/VIM, NLSS format)
 
 ## Overview
 
@@ -11,7 +11,7 @@ Impute missing values into new columns (suffix `_imp`) while preserving the orig
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -72,7 +72,7 @@ Rscript <path to scripts/R/impute.R> --interactive
 - `--k` controls `VIM::kNN` neighbors (default: `modules.impute.k`).
 - `--seed` sets random seed for random/engine methods.
 - `--digits` controls rounding (default: `defaults.digits`).
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -85,12 +85,12 @@ Subskills append to `report_canonical.md` and do not create separate report file
 - `<workspace-root>/<dataset-name>/<dataset-name>.parquet`: Workspace dataset copy updated in place (preferred; backup created before overwrite).
 - `<workspace-root>/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet`: Backup of the previous parquet before overwrites.
 - `imputed_data.rds`: Fallback output only if no workspace `.parquet` copy is available (written in the dataset workspace).
-- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: NLSS format report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 Undo: replace `<workspace-root>/<dataset-name>/<dataset-name>.parquet` with the most recent backup in `<workspace-root>/<dataset-name>/backup/`.
 
-## APA 7 Templates
+## NLSS format Templates
 
 Use the Markdown template at `nlss/assets/impute/default-template.md` when assembling imputation reports. If the template exists, `impute.R` uses it for `report_canonical.md`.
 
@@ -122,7 +122,7 @@ Use `narrative.row_template` for per-variable lines. Available row tokens includ
 
 `variable`, `type`, `missing_n`, `missing_pct`, `engine`, `method`, `impute_value`, `imputed_n`, `target`, `indicator`, `note`, `full_sentence`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report missingness range and the imputation engine used (including `m`/`maxit` for `mice` or `k` for `kNN`).
 - State that imputed values were written to new `_imp` columns and originals were preserved.

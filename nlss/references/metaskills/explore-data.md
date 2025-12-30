@@ -1,9 +1,9 @@
 ---
 name: explore-data
-description: Agent-run dataset overview using data-explorer, descriptives, frequencies, correlations, optional plots, and missingness summaries to produce an APA-ready audit.
+description: Agent-run dataset overview using data-explorer, descriptives, frequencies, correlations, optional plots, and missingness summaries to produce an NLSS format-ready audit.
 ---
 
-# Explore Data (Agent-Run, APA 7)
+# Explore Data (Agent-Run, NLSS format)
 
 ## Overview
 
@@ -11,7 +11,7 @@ This metaskill guides the agent to provide a structured overview of a dataset wh
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 
@@ -110,10 +110,10 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 
 ## Outputs
 
-- `report_canonical.md`: APA-ready outputs from `data-explorer`, `descriptive-stats`, `frequencies`, optional `correlations`/`plots`, plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
+- `report_canonical.md`: NLSS format-ready outputs from `data-explorer`, `descriptive-stats`, `frequencies`, optional `correlations`/`plots`, plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
-- `report_<YYYYMMDD>_explore-data_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
+- `report_<YYYYMMDD>_explore-data_<intent>.md`: NLSS format-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
 ### Final Report Requirements
 
@@ -122,7 +122,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 - Use standard journal subsections when they fit (Methods: Participants/Measures/Procedure/Analytic Strategy; Results: Preliminary/Primary/Secondary; Discussion: Summary/Limitations/Implications/Future Directions), but rename or replace them when the metaskill warrants it.
 - Synthesize results across subskills with interpretation; integrate tables/figures with captions and in-text references.
 - Craft tables and figures specifically for the report rather than copying them from `report_canonical.md`.
-- Keep the report APA 7-ready and suitable for journal submission.
+- Keep the report NLSS format-ready and suitable for journal submission.
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
 All artifacts (reports, tables, figures) must be created inside the dataset workspace folder; do not write outside the workspace root.
@@ -133,9 +133,9 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 - Align the report using `nlss/references/metaskills/formatting/align-report.md` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
-## APA 7 Templates
+## NLSS format Templates
 
-This metaskill does not define its own APA template. It relies on the templates configured for the subskills it invokes:
+This metaskill does not define its own NLSS format template. It relies on the templates configured for the subskills it invokes:
 
 - `data-explorer` uses `nlss/assets/data-explorer/default-template.md`.
 - `descriptive-stats` uses `nlss/assets/descriptive-stats/default-template.md`.
@@ -145,7 +145,7 @@ This metaskill does not define its own APA template. It relies on the templates 
 - `plot` uses `nlss/assets/plot/default-template.md`.
 - `metaskill-runner` uses `nlss/assets/metaskill-runner/default-template.md` for activation and `nlss/assets/metaskill-runner/finalization-template.md` for finalization logging.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report sample size (*N*), missingness patterns, and variable types.
 - Summarize distributions for numeric variables and frequency tables for categorical variables.

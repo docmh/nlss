@@ -1,14 +1,14 @@
 # NLSS - Natural Language Statistics Suite
 
-R-based statistics helpers that produce an APA 7-ready report plus machine-readable JSONL logs. The repo is organized as "subskills" with a shared workflow and consistent output locations.
+R-based statistics helpers that produce an NLSS format-ready report plus machine-readable JSONL logs. The repo is organized as "subskills" with a shared workflow and consistent output locations. NLSS format is inspired by APA 7 and aims to approximate it in Markdown.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Requirements and System Support
 
-- R 4.4+ (base R is enough for CSV/APA outputs).
+- R 4.4+ (base R is enough for CSV/NLSS format outputs).
 - `Rscript` available on PATH in the shell where you run NLSS.
 - Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), `arrow` (parquet workspace copies), and `ggplot2` (plot subskill).
 - Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `psych` (EFA/PCA, KMO/Bartlett); `GPArotation` for oblique rotations; `lme4` + `performance` for mixed models (required when using mixed-models); `lmerTest` for df/*p*-values; `emmeans` for marginal means/contrasts; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power; `viridisLite` for palettes; `influence.ME` and `DHARMa` for mixed-model diagnostics; `MVN` for Mardia test.
@@ -113,9 +113,9 @@ nlss is stateful. The workspace root is the current directory, its parent, or a 
 
 Each subskill has a reference file describing inputs, flags, and outputs. Template-driven modules can be customized via `nlss/assets/<subskill>/` and `templates.*` in `nlss/scripts/config.yml`.
 
-| Subskill | Script | Purpose | APA template |
+| Subskill | Script | Purpose | NLSS format template |
 | --- | --- | --- | --- |
-| `descriptive-stats` | `nlss/scripts/R/descriptive_stats.R` | Descriptive statistics with APA tables/text. | Yes (`descriptive-stats/default-template.md`, `descriptive-stats/robust-template.md`, `descriptive-stats/distribution-template.md`) |
+| `descriptive-stats` | `nlss/scripts/R/descriptive_stats.R` | Descriptive statistics with NLSS format tables/text. | Yes (`descriptive-stats/default-template.md`, `descriptive-stats/robust-template.md`, `descriptive-stats/distribution-template.md`) |
 | `frequencies` | `nlss/scripts/R/frequencies.R` | Frequency tables for categorical variables. | Yes (`frequencies/default-template.md`, `frequencies/grouped-template.md`) |
 | `crosstabs` | `nlss/scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
 | `correlations` | `nlss/scripts/R/correlations.R` | Correlations, partial correlations, diagnostics, bootstrap CIs, Fisher r-to-z comparisons. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`, `correlations/matrix-template.md`, `correlations/comparison-template.md`) |
@@ -123,7 +123,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `efa` | `nlss/scripts/R/efa.R` | Exploratory factor analysis / PCA with rotation, KMO/Bartlett diagnostics, and loadings tables. | Yes (`efa/default-template.md`) |
 | `reliability` | `nlss/scripts/R/reliability.R` | Inter-rater/test-retest reliability (ICC, kappa, correlations). | Yes (`reliability/default-template.md`) |
 | `data-explorer` | `nlss/scripts/R/data_explorer.R` | Data dictionary exploration with missingness and level summaries. | Yes (`data-explorer/default-template.md`) |
-| `plot` | `nlss/scripts/R/plot.R` | APA-ready figures (histogram, bar, box/violin, scatter/line, QQ, correlation heatmaps). | Yes (`plot/default-template.md`) |
+| `plot` | `nlss/scripts/R/plot.R` | NLSS format-ready figures (histogram, bar, box/violin, scatter/line, QQ, correlation heatmaps). | Yes (`plot/default-template.md`) |
 | `data-transform` | `nlss/scripts/R/data_transform.R` | Derived variables, recoding, binning, renaming, and drop operations. | Yes (`data-transform/default-template.md`) |
 | `missings` | `nlss/scripts/R/missings.R` | Missing-data patterns, handling decisions, and transformed datasets. | Yes (`missings/default-template.md`) |
 | `impute` | `nlss/scripts/R/impute.R` | Imputation into new columns with optional mice/VIM engines. | Yes (`impute/default-template.md`) |
@@ -135,12 +135,12 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | `anova` | `nlss/scripts/R/anova.R` | Between-, within-, and mixed ANOVA with post-hoc comparisons and planned contrasts. | Yes (`anova/default-template.md`, `anova/posthoc-template.md`, `anova/contrasts-template.md`) |
 | `t-test` | `nlss/scripts/R/t_test.R` | One-sample, independent-samples, and paired-samples t-tests. | Yes (`t-test/default-template.md`) |
 | `nonparametric` | `nlss/scripts/R/nonparametric.R` | Wilcoxon, Mann-Whitney, Kruskal-Wallis, and Friedman tests. | Yes (`nonparametric/default-template.md`, `nonparametric/posthoc-template.md`) |
-| `init-workspace` | `nlss/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, APA report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
+| `init-workspace` | `nlss/scripts/R/init_workspace.R` | Initialize workspace folder with scratchpad.md, NLSS format report, and .parquet copies. | Yes (`init-workspace/default-template.md`) |
 | `metaskill-runner` | `nlss/scripts/R/metaskill_runner.R` | Log metaskill activations (intent + dataset) for traceability. | Yes (`metaskill-runner/default-template.md`, `metaskill-runner/finalization-template.md`) |
 
 Metaskill specs live under `nlss/references/metaskills/` and are executed by the agent; use `metaskill-runner` to log activations and finalizations. Exception: `explain-statistics` and `explain-results` are conversational and do not require `metaskill-runner` or report outputs unless explicitly requested. Metaskill completion writes `report_<YYYYMMDD>_<metaskill>_<intent>.md` first, then logs finalization with `metaskill-runner --synopsis` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
-Default metaskill reports should follow `nlss/assets/metaskills/report-template.md` (APA-style paper sections). Omit Introduction and Keywords when no theoretical context is available, adjust subsections as needed, and design tables/figures specifically for the report rather than copying from `report_canonical.md`.
+Default metaskill reports should follow `nlss/assets/metaskills/report-template.md` (NLSS format paper sections). Omit Introduction and Keywords when no theoretical context is available, adjust subsections as needed, and design tables/figures specifically for the report rather than copying from `report_canonical.md`.
 
 Available metaskills:
 
@@ -367,11 +367,11 @@ Defaults live in `nlss/scripts/config.yml` and are loaded via `nlss/scripts/R/li
 
 - `defaults.*` apply across all modules (for example `defaults.output_dir`, `defaults.workspace_manifest`).
 - `modules.<subskill>.*` holds per-module defaults (for example `modules.crosstabs.percent`).
-- `templates.<subskill>.*` controls the template file used for APA outputs (see next section).
+- `templates.<subskill>.*` controls the template file used for NLSS format outputs (see next section).
 - CLI flags always override config values at runtime (for example `--digits`, module-specific flags).
 - When `config.yml` is missing or unreadable, built-in defaults in `config.R` are used.
 
-## APA Template Logic (YAML)
+## NLSS format Template Logic (YAML)
 
 Templates are Markdown files under `nlss/assets/<subskill>/` with YAML front matter. They drive `report_canonical.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, plotting, data transformation, missingness handling, imputation, assumptions, regression, power, SEM, ANOVA, and t-tests).
 
@@ -382,7 +382,7 @@ Key YAML fields:
 - `note.template`: controls `{{note_body}}` rendering (defaults to `{{note_default}}`).
 - `narrative.template` or `narrative.row_template`: controls `{{narrative}}` rendering; `row_template` repeats over `narrative_rows` and can be joined with `narrative.join`.
 
-Template paths can be overridden in `nlss/scripts/config.yml` under `templates.<subskill>.<name>` (for example `templates.crosstabs.grouped`). Edit the template files or point to your own to change APA output without touching the R scripts.
+Template paths can be overridden in `nlss/scripts/config.yml` under `templates.<subskill>.<name>` (for example `templates.crosstabs.grouped`). Edit the template files or point to your own to change NLSS format output without touching the R scripts.
 You can also pass `--template <name|path>` to any subskill to select a configured template reference (for example `default` or `grouped`) or a direct template path; unresolved references fall back to the default template selection.
 
 ## Using With Codex (Codes)
@@ -393,7 +393,7 @@ Example prompt:
 
 ```
 Use nlss to run correlations (Pearson) on data.csv for age, score, and stress.
-Write outputs to outputs/tmp and summarize the APA text.
+Write outputs to outputs/tmp and summarize the NLSS format text.
 ```
 
 ## Using With Claude Code
@@ -404,5 +404,5 @@ Example prompt:
 
 ```
 Use the nlss repo. Run descriptive_stats on data.csv for age and score.
-Use outputs/tmp and report the APA narrative and table file names.
+Use outputs/tmp and report the NLSS format narrative and table file names.
 ```

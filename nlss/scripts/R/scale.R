@@ -297,19 +297,19 @@ resolve_round_numeric <- function(df, digits) {
   out
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -632,7 +632,7 @@ format_num_text <- function(value, digits) {
   format(round(value, digits), nsmall = digits, trim = TRUE)
 }
 
-format_apa_text <- function(reliability_df, digits) {
+format_nlss_text <- function(reliability_df, digits) {
   display <- resolve_round_numeric(reliability_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
@@ -878,7 +878,7 @@ build_scale_narrative_rows <- function(reliability_df, digits) {
   rows
 }
 
-format_apa_table <- function(item_df, digits, note_text) {
+format_nlss_table <- function(item_df, digits, note_text) {
   table_body <- build_scale_table_body(item_df, digits, table_spec = NULL)
   header <- "Table 1\nScale item analysis\n\n"
   note_line <- if (nzchar(note_text)) paste0("Note. ", note_text) else "Note."
@@ -1029,7 +1029,7 @@ main <- function() {
     resolve_get_template_path("scale.default", "scale/default-template.md")
   }
   template_meta <- resolve_get_template_meta(template_path)
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
 
   omega_statuses <- character(0)
   if (!is.null(reliability_df$omega_status)) {
@@ -1037,15 +1037,15 @@ main <- function() {
   }
 
   note_tokens <- build_scale_note_tokens(reverse_info, missing_method, score_method, omega_flag, omega_statuses)
-  apa_text <- format_apa_text(reliability_df, digits)
-  apa_table <- format_apa_table(item_df, digits, note_tokens$note_default)
+  nlss_text <- format_nlss_text(reliability_df, digits)
+  nlss_table <- format_nlss_table(item_df, digits, note_tokens$note_default)
   table_body <- build_scale_table_body(item_df, digits, template_meta$table)
   narrative_rows <- build_scale_narrative_rows(reliability_df, digits)
   template_context <- list(
     tokens = c(
       list(
         table_body = table_body,
-        narrative_default = apa_text
+        narrative_default = nlss_text
       ),
       note_tokens
     ),
@@ -1065,18 +1065,18 @@ main <- function() {
     digits = digits
   )
 
-  resolve_append_apa_report(
-    apa_report_path,
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Scale analysis",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
   )
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

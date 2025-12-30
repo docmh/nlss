@@ -224,19 +224,19 @@ resolve_get_workspace_out_dir <- function(df) {
   stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -1010,7 +1010,7 @@ if (!is.null(workspace_parquet_path) && nzchar(workspace_parquet_path)) {
 }
 
 if (nrow(log_df) == 0) {
-  apa_text <- "No transformations applied. Data exported unchanged."
+  nlss_text <- "No transformations applied. Data exported unchanged."
 } else {
   total_steps <- nrow(log_df)
   actions <- unique(log_df$action)
@@ -1047,7 +1047,7 @@ if (nrow(log_df) == 0) {
     vars <- unique(log_df$variable[log_df$action == "drop"])
     sentences <- c(sentences, paste0("Variables dropped: ", paste(vars, collapse = ", "), "."))
   }
-  apa_text <- paste(sentences, collapse = " ")
+  nlss_text <- paste(sentences, collapse = " ")
 }
 
 table_df <- if (nrow(log_df) == 0) {
@@ -1070,7 +1070,7 @@ table_df <- if (nrow(log_df) == 0) {
   )
 }
 
-apa_table <- make_markdown_table(table_df)
+nlss_table <- make_markdown_table(table_df)
 summary_tokens <- build_transform_summary_tokens(log_df)
 note_tokens <- build_transform_note_tokens(log_df, summary_tokens)
 template_override <- resolve_template_override(opts$template, module = "data_transform")
@@ -1086,7 +1086,7 @@ template_context <- list(
   tokens = c(
     list(
       table_body = table_result$body,
-      narrative_default = apa_text
+      narrative_default = nlss_text
     ),
     summary_tokens,
     note_tokens
@@ -1105,11 +1105,11 @@ analysis_flags <- list(
   coerce = resolve_dt_bool(opts$coerce, "coerce", FALSE),
   "overwrite-vars" = resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE)
 )
-resolve_append_apa_report(
+resolve_append_nlss_report(
   file.path(out_dir, "report_canonical.md"),
   "Data transformation",
-  apa_table,
-  apa_text,
+  nlss_table,
+  nlss_text,
   analysis_flags = analysis_flags,
   template_path = template_path,
   template_context = template_context

@@ -307,9 +307,9 @@ resolve_template_override <- local({
   }
 })
 
-resolve_append_apa_figure_report <- function(path, analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, template_context = NULL, figure_start = NULL) {
-  if (exists("append_apa_figure_report", mode = "function")) {
-    return(get("append_apa_figure_report", mode = "function")(
+resolve_append_nlss_figure_report <- function(path, analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, template_context = NULL, figure_start = NULL) {
+  if (exists("append_nlss_figure_report", mode = "function")) {
+    return(get("append_nlss_figure_report", mode = "function")(
       path,
       analysis_label,
       figure_body,
@@ -319,7 +319,7 @@ resolve_append_apa_figure_report <- function(path, analysis_label, figure_body, 
       figure_start = figure_start
     ))
   }
-  stop("Missing append_apa_figure_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -1354,7 +1354,7 @@ main <- function() {
     dpi = dpi
   )
 
-  resolve_append_apa_figure_report(
+  resolve_append_nlss_figure_report(
     file.path(out_dir, "report_canonical.md"),
     "Plots",
     figure_body,

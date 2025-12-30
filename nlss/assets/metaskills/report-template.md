@@ -1,6 +1,6 @@
 ---
 name: metaskill-report
-description: APA 7 report scaffold for metaskill outputs with standard paper sections and reusable table/figure block tokens.
+description: NLSS format report scaffold for metaskill outputs with standard paper sections and reusable table/figure block tokens.
 tokens:
   table_block: |
     **Table {{table_number}}**
@@ -27,65 +27,99 @@ tokens:
 Default metaskill report template.
 
 - Omit Keywords and Introduction if theoretical context is not available.
+- Do not replace title-page placeholders (user, affiliation, email).
+- Replace {{date-today}} with actual date.
+- Copy {{title}} to the second title header.
 - Adjust or replace subsections when warranted by the study design or metaskill.
 - Tables and figures should be purpose-built for the report (no copy/paste from report_canonical.md).
 - Tables and figures can be added anywhere in the report body as needed using the table_block and figure_block tokens.
+- Use tables to display repetitive information patterns (e.g., descriptive statistics, matrices, hypothesis test results).
+- Use figures to visualize key results (e.g., distributions, model fits, effect sizes) or to illustrate concepts or models.
 
 -->
 
 # {{title}}
 
-**Abstract**
+`<user-placeholder>`  
+
+`<affiliation-placeholder>`
+
+`<email-placeholder>`
+
+{{date-today}}
+
+## Abstract
+
 {{abstract}}
 
 *Keywords:* {{keywords}}
+
+# {{title}}
 
 {{introduction}}
 
 ## Method
 
-### **_Participants_**
+### Participants
+
 {{participants}}
 
-### **_Measures_**
+### Measures
+
 {{measures}}
 
-### **_Procedure_**
+### Procedure
+
 {{procedure}}
 
-### **_Analytic Strategy_**
+### Analytic Strategy
+
 {{analytic_strategy}}
 
 ## Results
 
-### **_Descriptive Statistics_**
+### Descriptive Statistics
+
 {{results_descriptive}}
 
-### **_Preliminary Analyses_**
+### Preliminary Analyses
+
 {{results_preliminary}}
 
-### **_Hypothesis Testing_**
+### Hypothesis Testing
+
 {{results_hypothesis}}
 
-### **_Exploratory Analyses_**
+### Exploratory Analyses
+
 {{results_exploratory}}
 
 ## Discussion
 
-### **_Summary of Findings_**
+### Summary of Findings
+
 {{discussion_summary}}
 
-### **_Limitations_**
+### Limitations
+
 {{discussion_limitations}}
 
-### **_Implications_**
+### Implications
+
 {{discussion_implications}}
 
-### **_Future Directions_**
+### Future Directions
+
 {{discussion_future}}
 
 ## Conclusion
+
 {{conclusion}}
 
-**References**
+## References
+
 {{references}}
+
+---
+
+Created with [NLSS](https://github.com/docmh/nlss-demo).

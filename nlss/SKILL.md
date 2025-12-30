@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Workspace-first R statistics suite with subskills and agent-run metaskills (including explain-statistics for concept explanations, explain-results for interpreting outputs, and format-document for APA formatting) that produce APA 7 tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
+description: Workspace-first R statistics suite with subskills and agent-run metaskills (including explain-statistics for concept explanations, explain-results for interpreting outputs, and format-document for NLSS format alignment) that produce NLSS format tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
 license: Apache-2.0
 compatibility: R 4.5.2, Windows, WSL (Ubuntu), Linux, one of Codex IDE with GPT-5.2-Codex Medium/High or Claude Code IDE with Claude Sonnet 4.5/Opus 4.5
 metadata:
@@ -9,7 +9,7 @@ metadata:
   created: 2025-12-20
   updated: 2025-12-28
   backend: R
-  style: APA 7
+  style: NLSS format
 ---
 
 # NLSS - Natural Language Statistics Suite
@@ -17,10 +17,11 @@ metadata:
 ## Overview
 
 Central guidance for NLSS as an assistant researcher, plus shared conventions for running R scripts and placing outputs.
+NLSS format is inspired by APA 7 and aims to approximate it in Markdown; the formatting guides in `nlss/references/metaskills/formatting/` define the rules.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Instruction Hygiene (Prompt-Injection Safety)
 
@@ -76,7 +77,7 @@ Rscript <path to scripts/R/<subskill-name>.R> --csv <path to CSV file> --vars <v
 - The agent inspects the dataset first, infers candidate variables, and asks clarifying questions only when needed.
 - Enforce the NLSS-first principle: only use `generate-r-script` when the request is out of NLSS scope and explicit permission is granted; save generated scripts to `<workspace-root>/<dataset-name>/scripts/` and document the path in `scratchpad.md`.
 - Each metaskill step calls the existing subskill scripts so templates, JSONL logs, and workspace conventions are reused.
-- On completion, log metaskill finalization with `metaskill-runner --synopsis` to append a `# Synopsis` section to `report_canonical.md`, and generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` with APA 7-ready, journal-ready narrative, tables, and plots when helpful.
+- On completion, log metaskill finalization with `metaskill-runner --synopsis` to append a `# Synopsis` section to `report_canonical.md`, and generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` with NLSS format-ready, journal-ready narrative, tables, and plots when helpful.
 - The agent writes a plan to `scratchpad.md` and marks progress after each step.
 
 ## Common Inputs (Data Sources)
@@ -109,7 +110,7 @@ Metaskills use the same data sources as subskills (CSV/SAV/RDS/RData/Parquet or 
 - `--header TRUE/FALSE`: CSV header row (default from `scripts/config.yml` -> `defaults.csv.header`).
 - `--log TRUE/FALSE`: Append to `analysis_log.jsonl` (default from `scripts/config.yml` -> `defaults.log`).
 - `--user-prompt <text>`: Store the original AI user prompt in the JSONL log (required: always pass the last user message when an analysis is requested).
-- `--digits <n>`: Rounding for APA output where supported (default from `scripts/config.yml` -> `defaults.digits`).
+- `--digits <n>`: Rounding for NLSS format output where supported (default from `scripts/config.yml` -> `defaults.digits`).
 - `--template <ref|path>`: Select a template key (e.g., `default`, `grouped`) or a direct template path; falls back to default selection when not found.
 
 Module-specific analysis options (variables, grouping, method choices, etc.) are described in each subskill reference.
@@ -118,7 +119,7 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 
 - Use the workspace root in the current directory, its parent, or a one-level child if `nlss-workspace.yml` is present; otherwise fall back to `defaults.output_dir` from `scripts/config.yml`.
 - The output directory is fixed to the resolved workspace root and is not user-overridable.
-- Each analysis appends `report_canonical.md` (APA table + narrative) and `analysis_log.jsonl` inside `<workspace-root>/<dataset-name>/` when logging is enabled.
+- Each analysis appends `report_canonical.md` (NLSS format table + narrative) and `analysis_log.jsonl` inside `<workspace-root>/<dataset-name>/` when logging is enabled.
 - The monotonic log counter is stored as `analysis_log_seq` in `nlss-workspace.yml` for each dataset; if `analysis_log.jsonl` is missing, logging restarts at 1.
 - All artifacts (reports, tables, figures, scripts) must be created inside the dataset workspace folder; do not create files or folders outside the workspace root.
 - Subskills do not create separate report files; they only extend `report_canonical.md`. Standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
@@ -131,9 +132,9 @@ Module-specific analysis options (variables, grouping, method choices, etc.) are
 - For `report_canonical.md`, templates in `nlss/assets` must always be used when available.
 - Keep outputs as plain text, Markdown, or JSONL so Codex can summarize them.
 
-## APA Template System (YAML)
+## NLSS format Template System (YAML)
 
-APA templates are Markdown files with optional YAML front matter and `{{token}}` placeholders. They can control table columns, notes, and narrative text.
+NLSS format templates are Markdown files with optional YAML front matter and `{{token}}` placeholders. They can control table columns, notes, and narrative text.
 
 - Template selection is configurable in `scripts/config.yml` under `templates.*` (e.g., `templates.descriptive_stats.default`, `templates.crosstabs.grouped`, `templates.correlations.cross`).
 - CLI runs can override the selection with `--template <ref|path>` when needed.
@@ -144,20 +145,20 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
   - `narrative.template` or `narrative.row_template`: overrides narrative text. `row_template` renders one line per result row; it can be combined with `narrative.join` and `narrative.drop_empty`.
 - Base tokens available in all templates: `analysis_label`, `analysis_flags`, `table_number`, `table_body`, `note_body`, `note_default`, `narrative`, `narrative_default`.
 - Module-specific tokens (e.g., correlation CI labels or cross-tab test fragments) are documented in each subskill reference.
-- Modules without template mappings fall back to the built-in APA report format (no YAML template).
-- Metaskills do not define APA templates for `report_canonical.md`; APA output is produced by their underlying subskills. Final metaskill reports should follow `nlss/assets/metaskills/report-template.md` unless a different structure is warranted.
+- Modules without template mappings fall back to the built-in NLSS format report structure (no YAML template).
+- Metaskills do not define NLSS format templates for `report_canonical.md`; NLSS format output is produced by their underlying subskills. Final metaskill reports should follow `nlss/assets/metaskills/report-template.md` unless a different structure is warranted.
 
 ## Subskills
 
-- [descriptive-stats](references/subskills/descriptive-stats.md): Numeric descriptives with missingness, robust/percentile/outlier metrics, CI/*SE*, grouping, and APA templates.
-- [frequencies](references/subskills/frequencies.md): Categorical counts with valid/total percentages, missingness, optional grouping, and APA tables.
+- [descriptive-stats](references/subskills/descriptive-stats.md): Numeric descriptives with missingness, robust/percentile/outlier metrics, CI/*SE*, grouping, and NLSS format templates.
+- [frequencies](references/subskills/frequencies.md): Categorical counts with valid/total percentages, missingness, optional grouping, and NLSS format tables.
 - [crosstabs](references/subskills/crosstabs.md): Contingency tables with chi-square/Fisher, effect sizes, residuals, percent types, and grouping.
 - [correlations](references/subskills/correlations.md): Pearson/Spearman/Kendall matrices or cross-sets with partial controls, bootstrap CIs, *r*-to-*z*, *p*-adjust, grouping.
 - [scale](references/subskills/scale.md): Item analysis with alpha/omega, item-total stats, reverse scoring, scale scores, grouping.
-- [efa](references/subskills/efa.md): Exploratory factor analysis with PCA/EFA extraction, rotation, eigenvalue retention, KMO/Bartlett, and APA outputs.
+- [efa](references/subskills/efa.md): Exploratory factor analysis with PCA/EFA extraction, rotation, eigenvalue retention, KMO/Bartlett, and NLSS format outputs.
 - [reliability](references/subskills/reliability.md): ICC/kappa/test-retest reliability in wide/long formats with CIs and grouping.
 - [data-explorer](references/subskills/data-explorer.md): Data dictionary with type/level inference, missingness, numeric summaries, and top-*N* value tables.
-- [plot](references/subskills/plot.md): APA figures (hist/bar/box/violin/scatter/line/QQ/heatmap) with numbering and saved files.
+- [plot](references/subskills/plot.md): NLSS format figures (hist/bar/box/violin/scatter/line/QQ/heatmap) with numbering and saved files.
 - [data-transform](references/subskills/data-transform.md): Compute/recode/standardize/bin/rename/drop variables with safeguards and change logs.
 - [assumptions](references/subskills/assumptions.md): Assumption/diagnostic checks for t-tests, ANOVA, regression, mixed models, SEM.
 - [regression](references/subskills/regression.md): OLS/GLM regression with blocks, interactions, standardization, bootstrap CIs, group splits.
@@ -188,7 +189,7 @@ APA templates are Markdown files with optional YAML front matter and `{{token}}`
 These requirements apply when a metaskill produces a formal report; `explain-statistics` and `explain-results` are conversational and use them only if requested.
 
 - `report_canonical.md` is an audit trail; never copy it as the final metaskill report.
-- `report_<YYYYMMDD>_<metaskill>_<intent>.md` must be newly written, APA 7–aligned, and journal-ready.
+- `report_<YYYYMMDD>_<metaskill>_<intent>.md` must be newly written, NLSS format–aligned, and journal-ready.
 - Use `nlss/assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
 - Use standard journal subsections when they fit (Methods: Participants/Measures/Procedure/Analytic Strategy; Results: Preliminary/Primary/Secondary; Discussion: Summary/Limitations/Implications/Future Directions), but rename or replace them when the metaskill warrants it.
 - Synthesize results across subskills with interpretation; do not just list outputs.
@@ -198,7 +199,7 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 ### Available Metaskills
 
 - [explain-statistics](references/metaskills/explain-statistics.md): Student-friendly explanations of statistical concepts, methods, and interpretations (conversational; no metaskill-runner by default).
-- [format-document](references/metaskills/format-document.md): APA 7 formatting pass that standardizes a report using the NLSS formatting guides.
+- [format-document](references/metaskills/format-document.md): NLSS format pass that standardizes a report using the NLSS formatting guides.
 - [explain-results](references/metaskills/explain-results.md): Interpret analysis results in context, covering effect sizes, significance, assumptions, and limitations (conversational; no metaskill-runner by default).
 - [plan-power](references/metaskills/plan-power.md): A priori power/sample-size planning with effect-size clarification or pilot estimation.
 - [explore-data](references/metaskills/explore-data.md): Dataset overview with data dictionary, missingness, distributions, correlations, optional plots.
@@ -207,7 +208,7 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 - screen-data (planned): Data screening for outliers, normality, linearity, homoscedasticity with recommendations.
 - [prepare-data](references/metaskills/prepare-data.md): Data cleaning and preparation with missingness handling, recodes/transforms, imputation, documented changes.
 - check-assumptions (planned): Assumption checks for planned analyses (t-tests, ANOVA, regression, mixed models, SEM).
-- [test-hypotheses](references/metaskills/test-hypotheses.md): Clarify hypotheses, select/run tests, include assumptions checks, produce APA-ready report.
+- [test-hypotheses](references/metaskills/test-hypotheses.md): Clarify hypotheses, select/run tests, include assumptions checks, produce NLSS format-ready report.
 - full-analysis (planned): End-to-end workflow from exploration through hypothesis testing with full reporting.
 - [generate-r-script](references/metaskills/generate-r-script.md): Permissioned custom R script generation for out-of-scope analyses.
 

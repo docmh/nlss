@@ -90,7 +90,7 @@ modules:
     coerce: false
   crosstabs:
     percent: "all"
-    apa_percent: "row"
+    nlss_percent: "row"
     chisq: true
     yates: false
     fisher: false

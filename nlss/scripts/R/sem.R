@@ -339,19 +339,19 @@ resolve_as_cell_text <- function(value) {
   as.character(value)
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 normalize_analysis <- function(value, default = "sem") {
@@ -1160,7 +1160,7 @@ main <- function() {
     }
     template_meta <- resolve_get_template_meta(template_path)
     table_result <- build_invariance_table_body(summary_df, digits, template_meta$table)
-    apa_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
+    nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
 
     template_context <- list(
       tokens = c(
@@ -1173,11 +1173,11 @@ main <- function() {
       )
     )
 
-    apa_report_path <- file.path(out_dir, "report_canonical.md")
-    resolve_append_apa_report(
-      apa_report_path,
+    nlss_report_path <- file.path(out_dir, "report_canonical.md")
+    resolve_append_nlss_report(
+      nlss_report_path,
       analysis_label,
-      apa_table,
+      nlss_table,
       fit_sentence,
       analysis_flags = list(
         analysis = analysis,
@@ -1197,7 +1197,7 @@ main <- function() {
     )
 
     cat("Wrote:\n")
-    cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+    cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
     if (resolve_parse_bool(opts$log, default = log_default)) {
       ctx <- resolve_get_run_context()
@@ -1294,7 +1294,7 @@ main <- function() {
 
   narrative_lines <- c(fit_sentence, r2_sentence, indirect_sentences)
   narrative_lines <- narrative_lines[nzchar(narrative_lines)]
-  apa_text <- paste(narrative_lines, collapse = "\n")
+  nlss_text <- paste(narrative_lines, collapse = "\n")
 
   template_key <- switch(
     analysis,
@@ -1316,13 +1316,13 @@ main <- function() {
   }
   template_meta <- resolve_get_template_meta(template_path)
   table_result <- build_sem_table_body(param_df, digits, template_meta$table)
-  apa_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
+  nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
 
   template_context <- list(
     tokens = c(
       list(
         table_body = table_result$body,
-        narrative_default = apa_text,
+        narrative_default = nlss_text,
         fit_summary = fit_sentence,
         r2_summary = r2_sentence,
         indirect_summary = paste(indirect_sentences, collapse = "\n")
@@ -1332,12 +1332,12 @@ main <- function() {
     )
   )
 
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
-  resolve_append_apa_report(
-    apa_report_path,
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
+  resolve_append_nlss_report(
+    nlss_report_path,
     analysis_label,
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = list(
       analysis = analysis,
       dv = if (analysis %in% c("path", "sem") && nzchar(dv)) dv else NULL,
@@ -1366,7 +1366,7 @@ main <- function() {
   )
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   modindices_df <- NULL
   if (!is.na(modindices_cutoff) && modindices_cutoff > 0) {

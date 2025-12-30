@@ -1,17 +1,17 @@
 ---
 name: formatting-text-style
-description: APA 7 capitalization, italics, and quotation mark usage for NLSS narratives.
+description: NLSS format capitalization, italics, and quotation mark usage for NLSS narratives.
 ---
 
-# Text Style and Capitalization (APA 7 Formatting)
+# Text Style and Capitalization (NLSS format)
 
 ## Overview
 
-Apply APA 7 rules for capitalization, italics, and quotation marks in NLSS narratives. Use this to format titles, headings, and special terms consistently.
+Apply NLSS format rules for capitalization, italics, and quotation marks in NLSS narratives. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. Use this to format titles, headings, and special terms consistently.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 

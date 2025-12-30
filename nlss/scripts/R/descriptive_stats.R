@@ -221,19 +221,19 @@ resolve_select_variables <- function(df, vars, group_var = NULL, default = "nume
   requested
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -538,7 +538,7 @@ build_summary <- function(df, vars, group_var = NULL, digits = 2, trim = 0.1, iq
 }
 
 
-format_apa_table <- function(df, digits) {
+format_nlss_table <- function(df, digits) {
   display <- df
   display <- resolve_round_numeric(display, digits)
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
@@ -564,7 +564,7 @@ format_apa_table <- function(df, digits) {
   md
 }
 
-format_apa_text <- function(df, digits) {
+format_nlss_text <- function(df, digits) {
   display <- resolve_round_numeric(df, digits)
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
@@ -802,9 +802,9 @@ main <- function() {
   label_meta <- resolve_label_metadata(df)
   summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "variable")
   summary_df <- add_group_label_column(summary_df, label_meta, group_var, group_col = "group")
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
-  apa_table <- format_apa_table(summary_df, digits)
-  apa_text <- format_apa_text(summary_df, digits)
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
+  nlss_table <- format_nlss_table(summary_df, digits)
+  nlss_text <- format_nlss_text(summary_df, digits)
   template_override <- resolve_template_override(opts$template, module = "descriptive_stats")
   template_path <- if (!is.null(template_override)) {
     template_override
@@ -819,7 +819,7 @@ main <- function() {
     tokens = c(
       list(
         table_body = table_body,
-        narrative_default = apa_text,
+        narrative_default = nlss_text,
         trim = trim,
         trim_pct = format(round(trim * 100, 1), nsmall = 1, trim = TRUE),
         iqr_multiplier = iqr_multiplier,
@@ -837,18 +837,18 @@ main <- function() {
     `iqr-multiplier` = iqr_multiplier,
     `outlier-z` = outlier_z
   )
-  resolve_append_apa_report(
-    apa_report_path,
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Descriptive statistics",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
   )
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

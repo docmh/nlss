@@ -325,19 +325,19 @@ resolve_as_cell_text <- function(value) {
   as.character(value)
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 parse_numeric <- function(value, default = NA_real_) {
@@ -1233,7 +1233,7 @@ main <- function() {
 
   template_meta <- resolve_get_template_meta(template_path)
   table_result <- build_power_table_body(summary_df, digits, template_meta$table)
-  apa_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
+  nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
 
   template_context <- list(
     tokens = c(
@@ -1246,11 +1246,11 @@ main <- function() {
     narrative_rows = list(list(full_sentence = narrative))
   )
 
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
-  resolve_append_apa_report(
-    apa_report_path,
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Power analysis",
-    apa_table,
+    nlss_table,
     narrative,
     analysis_flags = analysis_flags,
     template_path = template_path,
@@ -1258,7 +1258,7 @@ main <- function() {
   )
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

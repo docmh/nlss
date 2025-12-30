@@ -1,24 +1,24 @@
 ---
 name: t-test
-description: One-sample, independent, and paired t-tests with effect sizes (d), confidence intervals, variance/normality diagnostics, optional bootstrap CIs, and APA tables/narratives.
+description: One-sample, independent, and paired t-tests with effect sizes (d), confidence intervals, variance/normality diagnostics, optional bootstrap CIs, and NLSS format tables/narratives.
 ---
 
-# T-Tests (Base R, APA 7)
+# T-Tests (Base R, NLSS format)
 
 ## Overview
 
-Run one-sample, independent-samples, or paired-samples t-tests in base R and generate APA 7-ready tables and narratives. Outputs include means, standard deviations, mean differences, *t*, *df*, *p*, and Cohen's *d*. Optional bootstrap confidence intervals are available.
+Run one-sample, independent-samples, or paired-samples t-tests in base R and generate NLSS format-ready tables and narratives. Outputs include means, standard deviations, mean differences, *t*, *df*, *p*, and Cohen's *d*. Optional bootstrap confidence intervals are available.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose the t-test type and specify variables (one-sample/independent) or paired measures (paired).
 3. Run `scripts/R/t_test.R` with the correct flags.
-4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
+4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for NLSS format reporting.
 
 ## Script: `scripts/R/t_test.R`
 
@@ -76,7 +76,7 @@ Rscript <path to scripts/R/t_test.R> --interactive
 - `--conf-level` uses `modules.t_test.conf_level`.
 - `--bootstrap` uses `modules.t_test.bootstrap` and `--bootstrap-samples` uses `modules.t_test.bootstrap_samples`.
 - `--digits` controls rounding (default: `defaults.digits`).
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 - `--expect-two-groups` prints an informational message and exits successfully when `--group` has != 2 levels (useful for negative checks).
@@ -93,12 +93,12 @@ Rscript <path to scripts/R/t_test.R> --interactive
 Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: NLSS format report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 - Diagnostics (Shapiro-Wilk per sample and variance tests for independent samples) are included in the JSONL output.
 - Invalid input conditions (e.g., incompatible flags) are logged with `results.status = invalid_input`.
 
-## APA 7 Templates
+## NLSS format Templates
 
 Use the Markdown template in `nlss/assets/t-test/default-template.md` when assembling t-test reports.
 
@@ -133,7 +133,7 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 `full_sentence`, `test_type`, `variable`, `measure_1`, `measure_2`, `group_1`, `group_2`, `n_1`, `n_2`,
 `mean_1`, `mean_2`, `sd_1`, `sd_2`, `mean_diff`, `t`, `df`, `p`, `d`, `ci`, `conf_level`, `mu`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report test type, sample sizes, means/*SD*s, *t*, *df*, *p*, and Cohen's *d*.
 - Include confidence intervals for the mean difference or mean when available.

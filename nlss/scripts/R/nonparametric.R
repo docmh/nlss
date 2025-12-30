@@ -316,19 +316,19 @@ resolve_as_cell_text <- function(value) {
   as.character(value)
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -1204,7 +1204,7 @@ build_posthoc_friedman <- function(df, within_vars, subject_id, alternative, con
   df_out
 }
 
-format_apa_table <- function(summary_df, digits, note_text) {
+format_nlss_table <- function(summary_df, digits, note_text) {
   display <- summary_df
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   display$group_display <- if ("group_label" %in% names(display)) display$group_label else display$group
@@ -1225,7 +1225,7 @@ format_apa_table <- function(summary_df, digits, note_text) {
   paste0(table, "\n\n", note_text)
 }
 
-format_apa_text <- function(summary_df, digits, conf_level) {
+format_nlss_text <- function(summary_df, digits, conf_level) {
   rows <- build_nonparam_narrative_rows(summary_df, digits, conf_level)
   if (length(rows) == 0) return("")
   paste(vapply(rows, function(row) row$full_sentence, character(1)), collapse = "\n")
@@ -1791,10 +1791,10 @@ main <- function() {
     p_adjust = p_adjust
   )
 
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
   narrative_conf <- if (uses_wilcox) conf_level else NA
-  apa_text <- format_apa_text(summary_df, digits, narrative_conf)
-  apa_table <- format_apa_table(summary_df, digits, note_tokens$note_default)
+  nlss_text <- format_nlss_text(summary_df, digits, narrative_conf)
+  nlss_table <- format_nlss_table(summary_df, digits, note_tokens$note_default)
 
   template_override <- resolve_template_override(opts$template, module = "nonparametric")
   template_path <- if (!is.null(template_override)) {
@@ -1809,7 +1809,7 @@ main <- function() {
     tokens = c(
       list(
         table_body = table_result$body,
-        narrative_default = apa_text
+        narrative_default = nlss_text
       ),
       note_tokens
     ),
@@ -1841,11 +1841,11 @@ main <- function() {
     digits = digits
   )
 
-  resolve_append_apa_report(
-    apa_report_path,
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Nonparametric tests",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
@@ -1874,8 +1874,8 @@ main <- function() {
       narrative_rows = posthoc_rows
     )
 
-    resolve_append_apa_report(
-      apa_report_path,
+    resolve_append_nlss_report(
+      nlss_report_path,
       "Nonparametric post-hoc",
       posthoc_table,
       posthoc_text,
@@ -1886,7 +1886,7 @@ main <- function() {
   }
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

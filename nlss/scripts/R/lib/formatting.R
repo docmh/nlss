@@ -59,7 +59,7 @@ humanize_flag_name <- function(name) {
     "cols" = "Column variables",
     "row" = "Row variable",
     "col" = "Column variable",
-    "apa-percent" = "APA percent",
+    "nlss-percent" = "NLSS format percent",
     "chisq" = "Chi-square test",
     "yates" = "Yates correction",
     "fisher" = "Fisher's exact test",
@@ -971,9 +971,9 @@ strip_surrounding_emphasis <- function(text) {
   text
 }
 
-normalize_apa_table_block <- function(apa_table) {
-  if (is.null(apa_table)) return("")
-  text <- as.character(apa_table)
+normalize_nlss_table_block <- function(nlss_table) {
+  if (is.null(nlss_table)) return("")
+  text <- as.character(nlss_table)
   if (length(text) == 0) return("")
   text <- text[1]
   if (!nzchar(text)) return("")
@@ -1044,13 +1044,13 @@ normalize_apa_table_block <- function(apa_table) {
   paste(out, collapse = "\n")
 }
 
-split_table_note <- function(apa_table) {
-  note_match <- regexpr("\n\\s*\\*{0,2}Note\\.?\\*{0,2}", apa_table, perl = TRUE)
+split_table_note <- function(nlss_table) {
+  note_match <- regexpr("\n\\s*\\*{0,2}Note\\.?\\*{0,2}", nlss_table, perl = TRUE)
   if (note_match[1] == -1) {
-    return(list(table = trim_trailing_whitespace(apa_table), note = ""))
+    return(list(table = trim_trailing_whitespace(nlss_table), note = ""))
   }
-  table_part <- substr(apa_table, 1, note_match[1] - 1)
-  note_part <- substr(apa_table, note_match[1] + 1, nchar(apa_table))
+  table_part <- substr(nlss_table, 1, note_match[1] - 1)
+  note_part <- substr(nlss_table, note_match[1] + 1, nchar(nlss_table))
   list(table = trim_trailing_whitespace(table_part), note = trimws(note_part))
 }
 
@@ -1081,16 +1081,16 @@ format_note_body <- function(note_text) {
   italicize_stat_symbols(note_text)
 }
 
-format_template_report <- function(template_path, analysis_label, analysis_flags, table_number, apa_table, apa_text, template_context = NULL) {
+format_template_report <- function(template_path, analysis_label, analysis_flags, table_number, nlss_table, nlss_text, template_context = NULL) {
   template_data <- parse_template_file(template_path)
   template <- template_data$body
   meta <- template_data$meta
   flags_text <- format_analysis_flags(analysis_flags)
   if (!nzchar(flags_text)) flags_text <- "None."
-  split <- split_table_note(apa_table)
+  split <- split_table_note(nlss_table)
   table_body <- strip_table_header(split$table)
   note_body <- format_note_body(split$note)
-  narrative_default <- normalize_paragraph_breaks(apa_text)
+  narrative_default <- normalize_paragraph_breaks(nlss_text)
   narrative_default <- italicize_stat_symbols(narrative_default)
   heading_label <- format_heading_text(analysis_label)
   base_tokens <- list(
@@ -1208,30 +1208,30 @@ format_template_figure_report <- function(template_path, analysis_label, analysi
   ensure_markdown_block_spacing(rendered)
 }
 
-format_apa_report <- function(analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, table_start = 1, template_context = NULL) {
+format_nlss_report <- function(analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, table_start = 1, template_context = NULL) {
   flags_text <- format_analysis_flags(analysis_flags)
   if (!nzchar(flags_text)) flags_text <- "None."
-  apa_text <- normalize_paragraph_breaks(apa_text)
+  nlss_text <- normalize_paragraph_breaks(nlss_text)
   if (!is.null(template_path) && file.exists(template_path)) {
-    return(format_template_report(template_path, analysis_label, analysis_flags, table_start, apa_table, apa_text, template_context = template_context))
+    return(format_template_report(template_path, analysis_label, analysis_flags, table_start, nlss_table, nlss_text, template_context = template_context))
   }
   analysis_block <- if (nzchar(trimws(analysis_label))) format_heading_text(analysis_label) else "Analysis"
-  apa_text <- italicize_stat_symbols(apa_text)
-  apa_table <- italicize_markdown_table_headers(apa_table)
-  apa_table <- normalize_apa_table_block(apa_table)
+  nlss_text <- italicize_stat_symbols(nlss_text)
+  nlss_table <- italicize_markdown_table_headers(nlss_table)
+  nlss_table <- normalize_nlss_table_block(nlss_table)
   report <- paste0(
     "# ", analysis_block, "\n\n",
     "## Analysis\n\n",
     flags_text, "\n\n",
-    apa_table,
+    nlss_table,
     "\n\n## Narrative\n\n",
-    apa_text,
+    nlss_text,
     "\n"
   )
   ensure_markdown_block_spacing(report)
 }
 
-format_apa_figure_report <- function(analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, figure_number = 1, template_context = NULL) {
+format_nlss_figure_report <- function(analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, figure_number = 1, template_context = NULL) {
   flags_text <- format_analysis_flags(analysis_flags)
   if (!nzchar(flags_text)) flags_text <- "None."
   if (!is.null(template_path) && file.exists(template_path)) {
@@ -1250,20 +1250,20 @@ format_apa_figure_report <- function(analysis_label, figure_body, analysis_flags
   ensure_markdown_block_spacing(report)
 }
 
-append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
   table_start <- get_next_table_number(path)
   resolved_template <- template_path
   if (is.null(resolved_template)) {
     resolved_template <- get_template_path(analysis_label)
   }
   if (is.null(resolved_template) || !file.exists(resolved_template)) {
-    renumbered <- renumber_tables(apa_table, table_start)
-    apa_table <- renumbered$text
+    renumbered <- renumber_tables(nlss_table, table_start)
+    nlss_table <- renumbered$text
   }
-  report <- format_apa_report(
+  report <- format_nlss_report(
     analysis_label,
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = resolved_template,
     table_start = table_start,
@@ -1292,13 +1292,13 @@ append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysi
   }
 }
 
-append_apa_figure_report <- function(path, analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, template_context = NULL, figure_start = NULL) {
+append_nlss_figure_report <- function(path, analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, template_context = NULL, figure_start = NULL) {
   figure_number <- if (is.null(figure_start)) get_next_figure_number(path) else as.integer(figure_start)
   resolved_template <- template_path
   if (is.null(resolved_template)) {
     resolved_template <- get_template_path(analysis_label)
   }
-  report <- format_apa_figure_report(
+  report <- format_nlss_figure_report(
     analysis_label,
     figure_body,
     analysis_flags = analysis_flags,

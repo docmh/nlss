@@ -1,6 +1,6 @@
 ---
 name: generate-r-script
-description: Last-resort, permissioned custom R script generation for analyses outside NLSS, saved to workspace scripts/ with documented rationale and APA-aligned outputs.
+description: Last-resort, permissioned custom R script generation for analyses outside NLSS, saved to workspace scripts/ with documented rationale and NLSS format-aligned outputs.
 ---
 
 # Generate R Script (Agent-Run)
@@ -9,11 +9,11 @@ description: Last-resort, permissioned custom R script generation for analyses o
 
 This metaskill is a last resort and is used only when the requested analysis is out of scope for existing NLSS subskills. The agent must first confirm no NLSS subskill can satisfy the request, then ask for explicit permission before generating any script. Generated R scripts are documented in the dataset workspace at `<workspace-root>/<dataset-name>/scripts/`.
 
-The agent should use state-of-the-art methods in psychological and social science research (appropriate models, effect sizes, diagnostics, and APA-aligned reporting conventions) when generating scripts.
+The agent should use state-of-the-art methods in psychological and social science research (appropriate models, effect sizes, diagnostics, and NLSS format-aligned reporting conventions) when generating scripts.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 
@@ -64,7 +64,7 @@ record NLSS subskills considered and why they were insufficient
 generate R script using state-of-the-art methods:
   include required packages + version notes
   include clear data loading from workspace parquet copy
-  include diagnostics, effect sizes, and APA-aligned outputs
+  include diagnostics, effect sizes, and NLSS format-aligned outputs
   avoid destructive writes unless explicitly requested
 
 save script to <workspace-root>/<dataset-name>/scripts/custom_<YYYYMMDD>_<intent>.R
@@ -100,7 +100,7 @@ Include the following where applicable:
 - `scratchpad.md`: Plan, clarifications, and the saved script path.
 - `report_canonical.md`: Includes a final `# Synopsis` describing the generated script and rationale (via `metaskill-runner --synopsis`).
 - `scripts/custom_<YYYYMMDD>_<intent>.R`: The generated script in the dataset workspace folder.
-- `report_<YYYYMMDD>_generate-r-script_<intent>.md`: APA 7-ready, journal-ready narrative report with ad hoc tables/plots as needed.
+- `report_<YYYYMMDD>_generate-r-script_<intent>.md`: NLSS format-ready, journal-ready narrative report with ad hoc tables/plots as needed.
 
 ### Final Report Requirements
 
@@ -109,7 +109,7 @@ Include the following where applicable:
 - Use standard journal subsections when they fit (Methods: Participants/Measures/Procedure/Analytic Strategy; Results: Preliminary/Primary/Secondary; Discussion: Summary/Limitations/Implications/Future Directions), but rename or replace them when the metaskill warrants it.
 - Synthesize results across subskills with interpretation; integrate tables/figures with captions and in-text references.
 - Craft tables and figures specifically for the report rather than copying them from `report_canonical.md`.
-- Keep the report APA 7-ready and suitable for journal submission.
+- Keep the report NLSS format-ready and suitable for journal submission.
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`).
 All artifacts (reports, tables, figures, scripts) must be created inside the dataset workspace folder; do not write outside the workspace root.
@@ -120,9 +120,9 @@ All artifacts (reports, tables, figures, scripts) must be created inside the dat
 - Align the report using `nlss/references/metaskills/formatting/align-report.md` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
-## APA 7 Templates
+## NLSS format Templates
 
-This metaskill does not define its own APA template. Any APA-ready outputs should be produced by the generated script or by existing subskills if they are subsequently run.
+This metaskill does not define its own NLSS format template. Any NLSS format-ready outputs should be produced by the generated script or by existing subskills if they are subsequently run.
 
 ## Parquet Support
 

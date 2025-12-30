@@ -299,19 +299,19 @@ resolve_as_cell_text <- function(value) {
   as.character(value)
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -1344,10 +1344,10 @@ main <- function() {
   )
 
   note_tokens <- build_regression_note_tokens(family, conf_level, bootstrap, bootstrap_samples, standardize)
-  apa_text <- ""
+  nlss_text <- ""
   narrative_rows <- build_regression_narrative_rows(summary_df, comparison_df, digits, family)
   if (length(narrative_rows) > 0) {
-    apa_text <- paste(vapply(narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
+    nlss_text <- paste(vapply(narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
   }
 
   template_override <- resolve_template_override(opts$template, module = "regression")
@@ -1358,25 +1358,25 @@ main <- function() {
   }
   template_meta <- resolve_get_template_meta(template_path)
   table_result <- build_regression_table_body(coef_df, digits, template_meta$table)
-  apa_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
+  nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
 
   template_context <- list(
     tokens = c(
       list(
         table_body = table_result$body,
-        narrative_default = apa_text
+        narrative_default = nlss_text
       ),
       note_tokens
     ),
     narrative_rows = narrative_rows
   )
 
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
-  resolve_append_apa_report(
-    apa_report_path,
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Regression",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
@@ -1392,17 +1392,17 @@ main <- function() {
     }
     model_tests_meta <- resolve_get_template_meta(model_tests_template_path)
     model_tests_table <- build_regression_model_tests_table_body(model_tests_df, digits, model_tests_meta$table)
-    model_tests_apa_table <- paste0("Table 1\n\n", model_tests_table$body, "\n", model_tests_note_tokens$note_default)
+    model_tests_nlss_table <- paste0("Table 1\n\n", model_tests_table$body, "\n", model_tests_note_tokens$note_default)
     model_tests_context <- list(
       tokens = c(
         list(table_body = model_tests_table$body),
         model_tests_note_tokens
       )
     )
-    resolve_append_apa_report(
-      apa_report_path,
+    resolve_append_nlss_report(
+      nlss_report_path,
       model_tests_label,
-      model_tests_apa_table,
+      model_tests_nlss_table,
       "",
       analysis_flags = analysis_flags,
       template_path = model_tests_template_path,
@@ -1411,7 +1411,7 @@ main <- function() {
   }
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

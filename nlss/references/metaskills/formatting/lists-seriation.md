@@ -1,17 +1,17 @@
 ---
 name: formatting-lists
-description: APA 7 seriation rules for ordered, unordered, and in-text lists in Markdown.
+description: NLSS format seriation rules for ordered, unordered, and in-text lists in Markdown.
 ---
 
-# Lists and Seriation (APA 7 Formatting)
+# Lists and Seriation (NLSS format)
 
 ## Overview
 
-Apply APA 7 seriation rules for ordered lists, unordered lists, and in-text lists. Use this when formatting steps, procedures, or grouped items in NLSS narratives.
+Apply NLSS format seriation rules for ordered lists, unordered lists, and in-text lists. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. Use this when formatting steps, procedures, or grouped items in NLSS narratives.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 

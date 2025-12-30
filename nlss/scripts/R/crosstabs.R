@@ -51,7 +51,7 @@ print_usage <- function() {
   cat("  --cols LIST              Comma-separated column variables\n")
   cat("  --group NAME             Grouping variable name (optional)\n")
   cat("  --percent TYPE           row/col/total/all (default: all)\n")
-  cat("  --apa-percent TYPE       row/col/total/all/none (default: row)\n")
+  cat("  --nlss-percent TYPE      row/col/total/all/none (default: row)\n")
   cat("  --chisq TRUE/FALSE        Run chi-square test (default: TRUE)\n")
   cat("  --yates TRUE/FALSE        Yates correction for 2x2 (default: FALSE)\n")
   cat("  --fisher TRUE/FALSE       Run Fisher's exact test (default: FALSE)\n")
@@ -98,7 +98,7 @@ interactive_options <- function() {
   opts$col <- resolve_prompt("Column variable(s) (comma-separated)", "")
   opts$group <- resolve_prompt("Grouping variable (blank for none)", "")
   percent_default <- resolve_config_value("modules.crosstabs.percent", "all")
-  apa_percent_default <- resolve_config_value("modules.crosstabs.apa_percent", "row")
+  nlss_percent_default <- resolve_config_value("modules.crosstabs.nlss_percent", "row")
   chisq_default <- resolve_config_value("modules.crosstabs.chisq", TRUE)
   yates_default <- resolve_config_value("modules.crosstabs.yates", FALSE)
   fisher_default <- resolve_config_value("modules.crosstabs.fisher", FALSE)
@@ -109,7 +109,7 @@ interactive_options <- function() {
   residuals_default <- resolve_config_value("modules.crosstabs.residuals", TRUE)
   digits_default <- resolve_config_value("defaults.digits", 2)
   opts$percent <- resolve_prompt("Percentages to include (row/col/total/all)", percent_default)
-  opts$`apa-percent` <- resolve_prompt("APA percent (row/col/total/all/none)", apa_percent_default)
+  opts$`nlss-percent` <- resolve_prompt("NLSS format percent (row/col/total/all/none)", nlss_percent_default)
   opts$chisq <- resolve_prompt("Run chi-square TRUE/FALSE", ifelse(isTRUE(chisq_default), "TRUE", "FALSE"))
   opts$yates <- resolve_prompt("Use Yates correction for 2x2 TRUE/FALSE", ifelse(isTRUE(yates_default), "TRUE", "FALSE"))
   opts$fisher <- resolve_prompt("Run Fisher's exact test TRUE/FALSE", ifelse(isTRUE(fisher_default), "TRUE", "FALSE"))
@@ -239,19 +239,19 @@ resolve_get_levels <- function(vec) {
   as.character(sort(values))
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -389,7 +389,7 @@ parse_percent_flags <- function(value, default = "all") {
   )
 }
 
-normalize_apa_percent <- function(value, default = "row") {
+normalize_nlss_percent <- function(value, default = "row") {
   val <- if (!is.null(value) && value != "") value else default
   val <- tolower(val)
   if (!(val %in% c("row", "col", "total", "all", "none"))) {
@@ -689,16 +689,16 @@ attach_effect_sizes_to_cells <- function(cells_df, tests_df) {
   cells_df
 }
 
-get_percent_columns <- function(apa_percent) {
-  if (apa_percent == "none") return(character(0))
-  if (apa_percent == "all") return(c("pct_row", "pct_col", "pct_total"))
-  if (apa_percent == "row") return("pct_row")
-  if (apa_percent == "col") return("pct_col")
-  if (apa_percent == "total") return("pct_total")
+get_percent_columns <- function(nlss_percent) {
+  if (nlss_percent == "none") return(character(0))
+  if (nlss_percent == "all") return(c("pct_row", "pct_col", "pct_total"))
+  if (nlss_percent == "row") return("pct_row")
+  if (nlss_percent == "col") return("pct_col")
+  if (nlss_percent == "total") return("pct_total")
   character(0)
 }
 
-format_apa_table <- function(cells_df, digits, apa_percent, layout = "sectioned", include_group = TRUE) {
+format_nlss_table <- function(cells_df, digits, nlss_percent, layout = "sectioned", include_group = TRUE) {
   display <- resolve_round_numeric(cells_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
@@ -715,7 +715,7 @@ format_apa_table <- function(cells_df, digits, apa_percent, layout = "sectioned"
     layout <- "sectioned"
   }
 
-  percent_cols <- get_percent_columns(apa_percent)
+  percent_cols <- get_percent_columns(nlss_percent)
   percent_labels <- c(pct_row = "Row %", pct_col = "Column %", pct_total = "Total %")
 
   if (layout == "long") {
@@ -815,7 +815,7 @@ format_apa_table <- function(cells_df, digits, apa_percent, layout = "sectioned"
   paste(sections, collapse = "\n\n")
 }
 
-format_apa_text <- function(tests_df, diagnostics_df, digits) {
+format_nlss_text <- function(tests_df, diagnostics_df, digits) {
   tests <- resolve_round_numeric(tests_df, digits)
   diagnostics <- resolve_round_numeric(diagnostics_df, digits)
 
@@ -1215,7 +1215,7 @@ main <- function() {
   digits_default <- resolve_config_value("defaults.digits", 2)
   log_default <- resolve_config_value("defaults.log", TRUE)
   percent_default <- resolve_config_value("modules.crosstabs.percent", "all")
-  apa_percent_default <- resolve_config_value("modules.crosstabs.apa_percent", "row")
+  nlss_percent_default <- resolve_config_value("modules.crosstabs.nlss_percent", "row")
   chisq_default <- resolve_config_value("modules.crosstabs.chisq", TRUE)
   yates_default <- resolve_config_value("modules.crosstabs.yates", FALSE)
   fisher_default <- resolve_config_value("modules.crosstabs.fisher", FALSE)
@@ -1243,7 +1243,7 @@ main <- function() {
   }
 
   percent_flags <- parse_percent_flags(opts$percent, default = percent_default)
-  apa_percent <- normalize_apa_percent(opts$`apa-percent`, default = apa_percent_default)
+  nlss_percent <- normalize_nlss_percent(opts$`nlss-percent`, default = nlss_percent_default)
 
   options <- list(
     chisq = resolve_parse_bool(opts$chisq, default = chisq_default),
@@ -1319,7 +1319,7 @@ main <- function() {
     cols = cols,
     group = if (!is.null(group_var) && group_var != "") group_var else "None",
     percent = percent_label,
-    "apa-percent" = apa_percent,
+    "nlss-percent" = nlss_percent,
     chisq = options$chisq,
     yates = if (options$chisq) options$yates else NULL,
     fisher = options$fisher,
@@ -1331,15 +1331,15 @@ main <- function() {
     digits = digits
   )
 
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
-  apa_table <- format_apa_table(
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
+  nlss_table <- format_nlss_table(
     cells_df,
     digits,
-    apa_percent,
+    nlss_percent,
     layout = "long",
     include_group = use_group_template
   )
-  apa_text <- format_apa_text(tests_df, diagnostics_df, digits)
+  nlss_text <- format_nlss_text(tests_df, diagnostics_df, digits)
   template_meta <- resolve_get_template_meta(template_path)
   table_result <- build_crosstabs_table_body(cells_df, digits, template_meta$table)
   note_tokens <- build_crosstabs_note_tokens(table_result$columns)
@@ -1348,24 +1348,24 @@ main <- function() {
     tokens = c(
       list(
         table_body = table_result$body,
-        narrative_default = apa_text
+        narrative_default = nlss_text
       ),
       note_tokens
     ),
     narrative_rows = narrative_rows
   )
-  resolve_append_apa_report(
-    apa_report_path,
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Cross-tabulations",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
   )
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()
@@ -1381,7 +1381,7 @@ main <- function() {
         cols = cols,
         group = group_var,
         percent = percent_flags,
-        apa_percent = apa_percent,
+        nlss_percent = nlss_percent,
         chisq = options$chisq,
         yates = options$yates,
         fisher = options$fisher,

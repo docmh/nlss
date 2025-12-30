@@ -305,19 +305,19 @@ resolve_render_template_tokens <- function(text, tokens) {
   text
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -1208,7 +1208,7 @@ build_assumptions_table_body <- function(checks_df, digits, table_spec = NULL) {
   resolve_render_markdown_table(headers, rows)
 }
 
-format_apa_table <- function(checks_df, digits, note_text) {
+format_nlss_table <- function(checks_df, digits, note_text) {
   body <- build_assumptions_table_body(checks_df, digits, list())
   paste0("Table 1\n\n", body, "\n", note_text)
 }
@@ -2905,10 +2905,10 @@ main <- function() {
   if (is.null(checks_df) || nrow(checks_df) == 0) stop("No assumptions could be computed.")
 
   note_tokens <- build_note_tokens(analysis, settings, homogeneity_tests, checks_df)
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
   narrative_rows <- build_assumptions_narrative_rows(checks_df, digits)
-  apa_text <- paste(vapply(narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
-  apa_table <- format_apa_table(checks_df, digits, note_tokens$note_default)
+  nlss_text <- paste(vapply(narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
+  nlss_table <- format_nlss_table(checks_df, digits, note_tokens$note_default)
 
   template_key <- switch(
     analysis,
@@ -2940,7 +2940,7 @@ main <- function() {
     tokens = c(
       list(
         table_body = table_body,
-        narrative_default = apa_text
+        narrative_default = nlss_text
       ),
       note_tokens
     ),
@@ -3024,18 +3024,18 @@ main <- function() {
     digits = digits
   )
 
-  resolve_append_apa_report(
-    apa_report_path,
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Assumption checks",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
   )
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

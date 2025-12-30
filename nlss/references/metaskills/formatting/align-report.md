@@ -1,17 +1,17 @@
 ---
 name: formatting-align-report
-description: Step-by-step guide for aligning a finished report with NLSS APA 7 formatting rules.
+description: Step-by-step guide for aligning a finished report with NLSS format rules.
 ---
 
 # Align Report With Formatting Guides
 
 ## Overview
 
-Use this helper to align a finished report with NLSS APA 7 formatting rules. It is intended for metaskills that produce `report_<YYYYMMDD>_<metaskill>_<intent>.md` files and need a final formatting pass before metaskill finalization.
+Use this helper to align a finished report with NLSS format rules. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. It is intended for metaskills that produce `report_<YYYYMMDD>_<metaskill>_<intent>.md` files and need a final formatting pass before metaskill finalization.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 
@@ -51,7 +51,7 @@ save report
 
 ## Outputs
 
-- Updated report file, aligned to APA 7 rules in `nlss/references/metaskills/formatting/`.
+- Updated report file, aligned to NLSS format rules in `nlss/references/metaskills/formatting/`.
 - `scratchpad.md` note indicating the alignment pass is complete (when applicable).
 
 ## Checks

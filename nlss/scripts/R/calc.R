@@ -331,19 +331,19 @@ resolve_append_analysis_log <- function(out_dir, module, prompt, commands, resul
   invisible(FALSE)
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_template_meta <- function(path) {
@@ -487,7 +487,7 @@ template_meta <- resolve_get_template_meta(template_path)
 table_rows <- evaluation$rows
 table_result <- build_calc_table_body(table_rows, digits, if (!is.null(template_meta$table)) template_meta$table else NULL)
 note_text <- paste0("Note. Values are rounded to ", digits, " decimal places.")
-apa_table <- paste0("Table 1\n\n", table_result$body, "\n", note_text)
+nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_text)
 
 narrative_default <- paste0("Computed ", length(table_rows), " expression", ifelse(length(table_rows) == 1, "", "s"), ".")
 narrative_rows <- lapply(table_rows, function(row) {
@@ -508,10 +508,10 @@ template_context <- list(
   narrative_rows = narrative_rows
 )
 
-resolve_append_apa_report(
+resolve_append_nlss_report(
   report_path,
   analysis_label,
-  apa_table,
+  nlss_table,
   narrative_default,
   analysis_flags = analysis_flags,
   template_path = template_path,

@@ -1,17 +1,17 @@
 ---
 name: formatting-in-text-citations
-description: APA 7 author-date in-text citation rules for narrative and parenthetical formats.
+description: NLSS format author-date in-text citation rules for narrative and parenthetical formats.
 ---
 
-# In-Text Citations (APA 7 Formatting)
+# In-Text Citations (NLSS format)
 
 ## Overview
 
-Apply APA 7 author-date in-text citations in NLSS narratives. This covers narrative vs. parenthetical forms, multi-author rules, group authors, and special cases (no date, unknown author).
+Apply NLSS format author-date in-text citations in NLSS narratives. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. This covers narrative vs. parenthetical forms, multi-author rules, group authors, and special cases (no date, unknown author).
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 

@@ -11,7 +11,7 @@ Evaluate simple numeric expressions from the CLI to derive parameters for subski
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 
@@ -30,7 +30,7 @@ Example prompts:
 
 ## Script: `nlss/scripts/R/calc.R`
 
-Run with `Rscript` and base R only. This utility is standalone and does not read datasets or write APA reports.
+Run with `Rscript` and base R only. This utility is standalone and does not read datasets or write NLSS format reports.
 
 ### Rscript
 

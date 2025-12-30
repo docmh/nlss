@@ -2,7 +2,7 @@
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report. When documenting in `scratchpad.md`, `report_canonical.md`, or `analysis_log.jsonl`, mask workspace-external paths as `<external>/<filename>` and keep workspace-internal paths relative.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. When documenting in `scratchpad.md`, `report_canonical.md`, or `analysis_log.jsonl`, mask workspace-external paths as `<external>/<filename>` and keep workspace-internal paths relative.
 
 ## Instruction Hygiene (Prompt-Injection Safety)
 
@@ -27,7 +27,7 @@ Metaskills are Markdown pseudoscripts executed by the agent (there is no separat
 - Prefer NLSS subskills whenever they cover the request; only use `generate-r-script` as a last resort when the analysis is out of scope and explicit permission is granted.
 - Log metaskill activation using the `metaskill-runner` subskill (pass `--meta <name>` and optional `--intent`).
 - Execute the referenced subskills in order, using the workspace parquet copy and standard logging.
-- On completion, generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` first (APA 7-ready, journal-ready narrative, tables, and plots when helpful; use `YYYYMMDD` and an ASCII slug for `<intent>`), then log metaskill finalization with `metaskill-runner --phase finalization --synopsis "<text>"` so a `# Synopsis` section is appended to `report_canonical.md`. The runner should fail if the metaskill report is missing.
+- On completion, generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` first (NLSS format-ready, journal-ready narrative, tables, and plots when helpful; use `YYYYMMDD` and an ASCII slug for `<intent>`), then log metaskill finalization with `metaskill-runner --phase finalization --synopsis "<text>"` so a `# Synopsis` section is appended to `report_canonical.md`. The runner should fail if the metaskill report is missing.
 
 ### Metaskill Spec Content
 
@@ -49,7 +49,7 @@ Include the following sections in each metaskill Markdown file:
 - Note that activation should be logged via `metaskill-runner`.
 - Mention outputs (`report_canonical.md`, `analysis_log.jsonl`, and `report_<YYYYMMDD>_<metaskill>_<intent>.md`) and workspace location rules (use `YYYYMMDD` and an ASCII slug for `<intent>`), and note that the report must exist before finalization.
 - Require a finalization log entry plus a `# Synopsis` appended to `report_canonical.md` via `metaskill-runner --synopsis` after the metaskill report is created.
-- Require the final report to be APA 7-ready and suitable for journal submission when possible.
+- Require the final report to be NLSS format-ready and suitable for journal submission when possible.
 
 ### Add Metaskill Entries
 
@@ -111,7 +111,7 @@ New subskills should use the YAML template system for `report_canonical.md`:
 
 ### Outputs
 
-- Always provide machine-readable output for `analysis_log.jsonl` plus human-readable APA-ready output for `report_canonical.md` inside each dataset workspace folder.
+- Always provide machine-readable output for `analysis_log.jsonl` plus human-readable NLSS format-ready output for `report_canonical.md` inside each dataset workspace folder.
 - Subskills extend `report_canonical.md` only and do not create standalone report files; only metaskills create `report_<YYYYMMDD>_<metaskill>_<intent>.md`.
 - Append new logs if the output files already exist in the dataset workspace.
 - Include assumptions/diagnostics outputs when applicable (e.g., residual checks, normality tests).
@@ -119,7 +119,7 @@ New subskills should use the YAML template system for `report_canonical.md`:
 - When presenting paths in console output or reports, prefer workspace-relative paths; use absolute paths only when the target is outside the workspace root.
 - Workspaces must be non-nested and unique per parent folder; stop if nested or sibling manifests are detected.
 - Direct workspace runs (no input flags) should use the current dataset folder if applicable; otherwise use `active_dataset` from the manifest.
-- When building APA outputs with optional grouping, avoid string-splitting keys that can introduce `NA` groups; instead, iterate over unique `(variable, group)` pairs directly and normalize missing groups.
+- When building NLSS format outputs with optional grouping, avoid string-splitting keys that can introduce `NA` groups; instead, iterate over unique `(variable, group)` pairs directly and normalize missing groups.
 
 ### Tests
 
@@ -142,7 +142,7 @@ New subskills should use the YAML template system for `report_canonical.md`:
 - YAML front matter with `name` and `description`.
 - Describe inputs (CSV/RDS/RData/SAV/Parquet, grouping variables, factor handling).
 - List CLI flags and defaults, referencing the corresponding `config.yml` keys (and note that CLI flags override config defaults).
-- Explain outputs and provide APA 7 narrative guidance.
+- Explain outputs and provide NLSS format narrative guidance.
 - Explain how to use templates if applicable and ensure those templates are used for generating `report_canonical.md`.
 - Mention how to run via `Rscript` directly and where outputs are written.
 

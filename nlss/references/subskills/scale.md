@@ -1,17 +1,17 @@
 ---
 name: scale
-description: Scale item analysis with item stats, item-total and alpha-if-deleted, alpha/omega reliability, reverse scoring, scale scores, missing handling, grouping, and APA outputs.
+description: Scale item analysis with item stats, item-total and alpha-if-deleted, alpha/omega reliability, reverse scoring, scale scores, missing handling, grouping, and NLSS format outputs.
 ---
 
-# Scale Analysis (Base R, APA 7)
+# Scale Analysis (Base R, NLSS format)
 
 ## Overview
 
-Compute item-level statistics and scale reliability metrics for psychometric scales. Outputs include an APA-ready table with item analysis and a narrative summary of internal consistency.
+Compute item-level statistics and scale reliability metrics for psychometric scales. Outputs include an NLSS format-ready table with item analysis and a narrative summary of internal consistency.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -79,7 +79,7 @@ Rscript <path to scripts/R/scale.R> --interactive
 - `--omega` toggles omega total estimation (default: `modules.scale.omega`).
 - `--coerce` coerces non-numeric columns to numeric (default: `modules.scale.coerce`).
 - `--digits` controls rounding (default: `defaults.digits`).
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -89,10 +89,10 @@ Subskills append to `report_canonical.md` and do not create separate report file
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 
-- `report_canonical.md`: APA 7 report containing the item analysis table and narrative reliability summary.
+- `report_canonical.md`: NLSS format report containing the item analysis table and narrative reliability summary.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
-## APA 7 Templates
+## NLSS format Templates
 
 Use the Markdown template at `nlss/assets/scale/default-template.md` when assembling scale reports. If the template exists, it must be used for `report_canonical.md`.
 
@@ -122,7 +122,7 @@ Use `narrative.row_template` for per-group lines. Available row tokens include:
 
 `group`, `group_label`, `n_items`, `n_total`, `n_complete`, `missing_n`, `missing_pct`, `alpha`, `alpha_std`, `omega_total`, `r_bar`, `r_min`, `r_max`, `score_method`, `score_mean`, `score_sd`, `score_min`, `score_max`, `missing_text`, `full_sentence`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report item means, *SD*s, corrected item-total correlations, and alpha-if-deleted alongside overall reliability.
 - Include Cronbach's alpha and (when available) omega total; note missing-data handling and any reverse-scored items.

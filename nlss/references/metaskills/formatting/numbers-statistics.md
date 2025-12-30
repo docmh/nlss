@@ -1,17 +1,17 @@
 ---
 name: formatting-numbers-statistics
-description: APA 7 number rules, decimal formatting, and statistical notation for NLSS reports.
+description: NLSS format number rules, decimal formatting, and statistical notation for NLSS reports.
 ---
 
-# Numbers and Statistical Notation (APA 7 Formatting)
+# Numbers and Statistical Notation (NLSS format)
 
 ## Overview
 
-Apply APA 7 rules for numbers, decimals, and statistical notation in NLSS reports. Use this when writing results, tables, and narrative summaries.
+Apply NLSS format rules for numbers, decimals, and statistical notation in NLSS reports. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. Use this when writing results, tables, and narrative summaries.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 
@@ -64,6 +64,6 @@ Use this when you need to:
 
 ## Checks
 
-- Numerals vs. words are consistent with APA rules.
+- Numerals vs. words are consistent with NLSS format rules.
 - Statistical symbols are italicized.
 - *p* values and confidence intervals are formatted consistently.

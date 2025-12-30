@@ -1,17 +1,17 @@
 ---
 name: assumptions
-description: Assumption and diagnostic checks for t-tests, ANOVA, regression, mixed models, and SEM (normality, homogeneity, sphericity, VIF, influence, convergence) with APA outputs.
+description: Assumption and diagnostic checks for t-tests, ANOVA, regression, mixed models, and SEM (normality, homogeneity, sphericity, VIF, influence, convergence) with NLSS format outputs.
 ---
 
-# Assumptions Checks (APA 7)
+# Assumptions Checks (NLSS format)
 
 ## Overview
 
-Run assumption and diagnostic checks for t-tests, ANOVA (between, within, mixed), regression (including multiple and hierarchical models), mixed models, and SEM/CFA/mediation/path models. The script outputs APA-ready tables/narratives plus a machine-readable JSONL log.
+Run assumption and diagnostic checks for t-tests, ANOVA (between, within, mixed), regression (including multiple and hierarchical models), mixed models, and SEM/CFA/mediation/path models. The script outputs NLSS format-ready tables/narratives plus a machine-readable JSONL log.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -111,7 +111,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
   - `--std` uses `modules.sem.std`.
   - SEM assumption toggles: `--mardia`, `--mahalanobis`, `--mahalanobis-alpha`, `--collinearity`, `--max-cor`, `--max-kappa`, `--heywood`, `--convergence` (defaults from `modules.assumptions.sem.*`).
 - `--digits` uses `defaults.digits`.
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` uses `defaults.log`.
 
 ## Inputs and Handling
@@ -139,11 +139,11 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `report_canonical.md`: APA 7 report containing analysis flags, table, and narrative.
+- `report_canonical.md`: NLSS format report containing analysis flags, table, and narrative.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 - Diagnostics include normality tests, homogeneity tests, sphericity (when applicable), regression diagnostics (VIF, Breusch-Pagan, Durbin-Watson, outliers, influence), mixed-model checks (singularity, convergence, random-effects normality, optional DHARMa/performance/influence.ME), and SEM checks (univariate/multivariate normality, Mahalanobis outliers, collinearity, Heywood cases, convergence).
 
-## APA 7 Templates (YAML)
+## NLSS format Templates (YAML)
 
 Templates are stored under `nlss/assets/assumptions/` and mapped in `nlss/scripts/config.yml`:
 
@@ -179,7 +179,7 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 `full_sentence`, `analysis_type`, `model`, `assumption`, `test`, `target`, `group`, `statistic`, `df`, `p`, `value`, `decision`, `n`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report the assumption tests used (e.g., Shapiro-Wilk, Levene, Mauchly, Breusch-Pagan) with statistics and *p*-values.
 - For regression, report VIF values and any influence/outlier flags.

@@ -1,17 +1,17 @@
 ---
 name: formatting-reference-list
-description: APA 7 reference list ordering, author formatting, and Markdown implementation notes.
+description: NLSS format reference list ordering, author formatting, and Markdown implementation notes.
 ---
 
-# Reference List (APA 7 Formatting)
+# Reference List (NLSS format)
 
 ## Overview
 
-Format the APA 7 reference list in Markdown, including ordering, author formatting, and hanging indents. This guidance is used when generating or reviewing `References` sections in NLSS reports.
+Format the reference list using NLSS format rules in Markdown, including ordering, author formatting, and hanging indents. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. This guidance is used when generating or reviewing `References` sections in NLSS reports.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 

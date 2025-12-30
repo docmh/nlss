@@ -304,19 +304,19 @@ resolve_as_cell_text <- function(value) {
   as.character(value)
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -1218,7 +1218,7 @@ summarize_assumptions <- function(assumptions_df, alpha) {
   paste0("Potential violations: ", paste(labels, collapse = "; "), ".")
 }
 
-format_apa_table <- function(summary_df, digits, note_text, effect_size, effect_size_label) {
+format_nlss_table <- function(summary_df, digits, note_text, effect_size, effect_size_label) {
   display <- summary_df
   display$term_display <- if ("term_label" %in% names(display)) display$term_label else display$term
   headers <- c("Model", "Effect", "df1", "df2", "F", "p", effect_size_label)
@@ -1274,7 +1274,7 @@ format_posthoc_table <- function(posthoc_df, digits, note_text) {
   paste0("Table 1\n\n", table_md, "\n", note_text)
 }
 
-format_apa_text <- function(summary_df, digits, effect_size, effect_size_label) {
+format_nlss_text <- function(summary_df, digits, effect_size, effect_size_label) {
   display <- summary_df
   display$term_display <- if ("term_label" %in% names(display)) display$term_label else display$term
   lines <- character(0)
@@ -1455,8 +1455,8 @@ build_anova_narrative_rows <- function(summary_df, digits, effect_size, effect_s
   display <- summary_df
   display$term_display <- if ("term_label" %in% names(display)) display$term_label else display$term
   rows <- list()
-  apa_text <- format_apa_text(display, digits, effect_size, effect_size_label)
-  lines <- strsplit(apa_text, "\n", fixed = TRUE)[[1]]
+  nlss_text <- format_nlss_text(display, digits, effect_size, effect_size_label)
+  lines <- strsplit(nlss_text, "\n", fixed = TRUE)[[1]]
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
     full_sentence <- if (i <= length(lines)) lines[i] else ""
@@ -1891,7 +1891,7 @@ main <- function() {
     contrast_note
   )
 
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
   template_override <- resolve_template_override(opts$template, module = "anova")
   template_path <- if (!is.null(template_override)) {
     template_override
@@ -1928,25 +1928,25 @@ main <- function() {
   for (group in table_groups) {
     group_df <- group$data
     analysis_label <- format_anova_section_label(group$label)
-    apa_text <- format_apa_text(group_df, digits, effect_size, effect_size_label)
-    apa_table <- format_apa_table(group_df, digits, note_tokens$note_default, effect_size, effect_size_label)
+    nlss_text <- format_nlss_text(group_df, digits, effect_size, effect_size_label)
+    nlss_table <- format_nlss_table(group_df, digits, note_tokens$note_default, effect_size, effect_size_label)
     table_result <- build_anova_table_body(group_df, digits, template_meta$table, effect_size)
     narrative_rows <- build_anova_narrative_rows(group_df, digits, effect_size, effect_size_label)
     template_context <- list(
       tokens = c(
         list(
           table_body = table_result$body,
-          narrative_default = apa_text
+          narrative_default = nlss_text
         ),
         note_tokens
       ),
       narrative_rows = narrative_rows
     )
-    resolve_append_apa_report(
-      apa_report_path,
+    resolve_append_nlss_report(
+      nlss_report_path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
@@ -1955,7 +1955,7 @@ main <- function() {
 
   if (nrow(posthoc_df) > 0) {
     posthoc_note_tokens <- build_posthoc_note_tokens(posthoc_used, p_adjust)
-    posthoc_apa_table <- format_posthoc_table(posthoc_df, digits, posthoc_note_tokens$note_default)
+    posthoc_nlss_table <- format_posthoc_table(posthoc_df, digits, posthoc_note_tokens$note_default)
     posthoc_template_path <- if (!is.null(template_override)) {
       template_override
     } else {
@@ -1975,10 +1975,10 @@ main <- function() {
       ),
       narrative_rows = posthoc_narrative_rows
     )
-    resolve_append_apa_report(
-      apa_report_path,
+    resolve_append_nlss_report(
+      nlss_report_path,
       "ANOVA post-hoc",
-      posthoc_apa_table,
+      posthoc_nlss_table,
       posthoc_text,
       analysis_flags = analysis_flags,
       template_path = posthoc_template_path,
@@ -2003,7 +2003,7 @@ main <- function() {
     contrast_table <- build_contrast_table_body(contrasts_df, digits, contrast_meta$table)
     contrast_narrative_rows <- build_contrast_narrative_rows(contrasts_df, digits)
     contrast_text <- paste(vapply(contrast_narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
-    contrast_apa_table <- paste0("Table 1\n\n", contrast_table$body, "\n", contrast_note_tokens$note_default)
+    contrast_nlss_table <- paste0("Table 1\n\n", contrast_table$body, "\n", contrast_note_tokens$note_default)
     contrast_context <- list(
       tokens = c(
         list(
@@ -2014,10 +2014,10 @@ main <- function() {
       ),
       narrative_rows = contrast_narrative_rows
     )
-    resolve_append_apa_report(
-      apa_report_path,
+    resolve_append_nlss_report(
+      nlss_report_path,
       "ANOVA contrasts",
-      contrast_apa_table,
+      contrast_nlss_table,
       contrast_text,
       analysis_flags = analysis_flags,
       template_path = contrast_template_path,
@@ -2026,7 +2026,7 @@ main <- function() {
   }
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

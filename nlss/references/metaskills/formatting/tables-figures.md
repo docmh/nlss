@@ -1,17 +1,17 @@
 ---
 name: formatting-tables-figures
-description: APA 7 table and figure numbering, titles, notes, and Markdown layout.
+description: NLSS format table and figure numbering, titles, notes, and Markdown layout.
 ---
 
-# Tables and Figures (APA 7 Formatting)
+# Tables and Figures (NLSS format)
 
 ## Overview
 
-Format tables and figures according to APA 7 rules using Markdown-first layouts. Apply this when placing tables and figures in NLSS reports.
+Format tables and figures according to NLSS format rules using Markdown-first layouts. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. Apply this when placing tables and figures in NLSS reports.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Intent/Triggers
 

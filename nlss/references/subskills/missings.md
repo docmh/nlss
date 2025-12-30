@@ -1,17 +1,17 @@
 ---
 name: missings
-description: Missingness summaries and pattern tables with auto or manual handling (listwise, impute, indicator, drop), threshold rules, and in-place parquet updates with backups plus APA outputs.
+description: Missingness summaries and pattern tables with auto or manual handling (listwise, impute, indicator, drop), threshold rules, and in-place parquet updates with backups plus NLSS format outputs.
 ---
 
-# Missings (Base R, APA 7)
+# Missings (Base R, NLSS format)
 
 ## Overview
 
-Analyze missing-data patterns for selected variables, choose a handling strategy, and export a transformed dataset alongside APA-ready tables and narratives.
+Analyze missing-data patterns for selected variables, choose a handling strategy, and export a transformed dataset alongside NLSS format-ready tables and narratives.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -71,7 +71,7 @@ Rscript <path to scripts/R/missings.R> --interactive
 - `--skew-threshold` controls mean vs. median imputation for numeric variables (default: `modules.missings.skew_threshold`).
 - `--max-patterns` caps the number of patterns shown (default: `modules.missings.max_patterns`).
 - `--digits` controls rounding (default: `defaults.digits`).
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -84,12 +84,12 @@ Subskills append to `report_canonical.md` and do not create separate report file
 - `<workspace-root>/<dataset-name>/<dataset-name>.parquet`: Workspace dataset copy updated in place (preferred; backup created before overwrite).
 - `<workspace-root>/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet`: Backup of the previous parquet before overwrites.
 - `missing_handled_data.rds`: Fallback output only if no workspace `.parquet` copy is available (written in the dataset workspace).
-- `report_canonical.md`: APA 7 report containing analysis type, tables, and narrative text.
+- `report_canonical.md`: NLSS format report containing analysis type, tables, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
 Undo: replace `<workspace-root>/<dataset-name>/<dataset-name>.parquet` with the most recent backup in `<workspace-root>/<dataset-name>/backup/`.
 
-## APA 7 Templates
+## NLSS format Templates
 
 Use the Markdown template at `nlss/assets/missings/default-template.md` when assembling missingness reports. If the template exists, `missings.R` uses it for `report_canonical.md`.
 
@@ -132,7 +132,7 @@ Use `narrative.row_template` for per-variable lines. Available row tokens includ
 
 `variable`, `missing_n`, `missing_pct`, `decision`, `impute_method`, `impute_value`, `indicator`, `full_sentence`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report the overall missingness range and complete-case percentage.
 - Describe the selected handling method and any dropped variables or indicator columns.

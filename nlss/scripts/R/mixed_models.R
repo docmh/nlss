@@ -298,19 +298,19 @@ resolve_as_cell_text <- function(value) {
   as.character(value)
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -1455,13 +1455,13 @@ main <- function() {
     emmeans_note
   )
   narrative_rows <- build_fixed_effects_narrative_rows(fixed_df, digits)
-  apa_text <- ""
+  nlss_text <- ""
   if (length(narrative_rows) > 0) {
-    apa_text <- paste(vapply(narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
+    nlss_text <- paste(vapply(narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
   }
 
   template_override <- resolve_template_override(opts$template, module = "mixed_models")
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
 
   anova_template_path <- if (!is.null(template_override)) {
     template_override
@@ -1477,7 +1477,7 @@ main <- function() {
     if (length(anova_narrative_rows) > 0) {
       anova_text <- paste(vapply(anova_narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
     }
-    anova_apa_table <- paste0("Table 1\n\n", anova_table$body, "\n", anova_note_tokens$note_default)
+    anova_nlss_table <- paste0("Table 1\n\n", anova_table$body, "\n", anova_note_tokens$note_default)
     anova_context <- list(
       tokens = c(
         list(
@@ -1488,10 +1488,10 @@ main <- function() {
       ),
       narrative_rows = anova_narrative_rows
     )
-    resolve_append_apa_report(
-      apa_report_path,
+    resolve_append_nlss_report(
+      nlss_report_path,
       "Mixed Models: Tests of Fixed Effects",
-      anova_apa_table,
+      anova_nlss_table,
       anova_text,
       analysis_flags = analysis_flags,
       template_path = anova_template_path,
@@ -1506,24 +1506,24 @@ main <- function() {
   }
   coef_template_meta <- resolve_get_template_meta(coef_template_path)
   table_result <- build_fixed_effects_table_body(fixed_df, digits, coef_template_meta$table)
-  apa_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
+  nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
 
   template_context <- list(
     tokens = c(
       list(
         table_body = table_result$body,
-        narrative_default = apa_text
+        narrative_default = nlss_text
       ),
       note_tokens
     ),
     narrative_rows = narrative_rows
   )
 
-  resolve_append_apa_report(
-    apa_report_path,
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Mixed Models: Estimates of Fixed Effects",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = coef_template_path,
     template_context = template_context
@@ -1588,7 +1588,7 @@ main <- function() {
     if (length(emmeans_narrative_rows) > 0) {
       emmeans_text <- paste(vapply(emmeans_narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
     }
-    emmeans_apa_table <- paste0("Table 1\n\n", emmeans_table$body, "\n", emmeans_note_tokens$note_default)
+    emmeans_nlss_table <- paste0("Table 1\n\n", emmeans_table$body, "\n", emmeans_note_tokens$note_default)
     emmeans_context <- list(
       tokens = c(
         list(
@@ -1599,10 +1599,10 @@ main <- function() {
       ),
       narrative_rows = emmeans_narrative_rows
     )
-    resolve_append_apa_report(
-      apa_report_path,
+    resolve_append_nlss_report(
+      nlss_report_path,
       "Mixed Models emmeans",
-      emmeans_apa_table,
+      emmeans_nlss_table,
       emmeans_text,
       analysis_flags = analysis_flags,
       template_path = emmeans_template_path,
@@ -1611,7 +1611,7 @@ main <- function() {
   }
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

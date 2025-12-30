@@ -242,19 +242,19 @@ resolve_as_cell_text <- function(value) {
   as.character(value)
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
@@ -543,15 +543,15 @@ template_path <- if (!is.null(template_override)) {
   resolve_get_template_path(template_key, template_fallback)
 }
 if (is.null(template_path) || !file.exists(template_path)) {
-  stop("APA template not found: ", template_path)
+  stop("NLSS format template not found: ", template_path)
 }
 template_meta <- resolve_get_template_meta(template_path)
 
 timestamp <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
 rows <- build_activation_rows(meta_name, intent, dataset_label, timestamp, notes = notes)
 table_result <- build_activation_table_body(rows, template_meta$table)
-apa_table <- build_activation_table(table_result$body, analysis_label, note_default)
-apa_text <- build_activation_text(meta_name, intent, dataset_label, timestamp)
+nlss_table <- build_activation_table(table_result$body, analysis_label, note_default)
+nlss_text <- build_activation_text(meta_name, intent, dataset_label, timestamp)
 
 analysis_flags <- list(
   metaskill = meta_name,
@@ -572,12 +572,12 @@ template_context <- list(
   )
 )
 
-apa_report_path <- file.path(out_dir, "report_canonical.md")
-resolve_append_apa_report(
-  apa_report_path,
+nlss_report_path <- file.path(out_dir, "report_canonical.md")
+resolve_append_nlss_report(
+  nlss_report_path,
   analysis_label,
-  apa_table,
-  apa_text,
+  nlss_table,
+  nlss_text,
   analysis_flags = analysis_flags,
   template_path = template_path,
   template_context = template_context
@@ -608,7 +608,7 @@ if (resolve_parse_bool(opts$log, default = log_default)) {
       phase = phase,
       dataset = dataset_label,
       timestamp = timestamp,
-      apa_report_path = render_output_path(apa_report_path, out_dir),
+      nlss_report_path = render_output_path(nlss_report_path, out_dir),
       metaskill_report_path = if (nzchar(metaskill_report_path)) render_output_path(metaskill_report_path, out_dir) else NULL
     ),
     options = list(
@@ -624,4 +624,4 @@ if (resolve_parse_bool(opts$log, default = log_default)) {
 }
 
 cat("Metaskill ", phase, " logged.\n", sep = "")
-cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")

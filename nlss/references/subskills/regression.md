@@ -1,17 +1,17 @@
 ---
 name: regression
-description: OLS/GLM regression (gaussian/binomial/poisson) with blocks, interactions, centering/standardization, grouped runs, bootstrap CIs, change stats, diagnostics, and APA outputs.
+description: OLS/GLM regression (gaussian/binomial/poisson) with blocks, interactions, centering/standardization, grouped runs, bootstrap CIs, change stats, diagnostics, and NLSS format outputs.
 ---
 
-# Regression (Base R, APA 7)
+# Regression (Base R, NLSS format)
 
 ## Overview
 
-Run linear regression (OLS) or generalized linear models (binomial/logistic, Poisson) with optional hierarchical blocks, interaction terms, grouping, and bootstrap confidence intervals. Outputs include APA 7-ready tables and narratives plus JSONL logs.
+Run linear regression (OLS) or generalized linear models (binomial/logistic, Poisson) with optional hierarchical blocks, interaction terms, grouping, and bootstrap confidence intervals. Outputs include NLSS format-ready tables and narratives plus JSONL logs.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -19,7 +19,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 2. Specify the dependent variable and predictors (either `--ivs` or hierarchical `--blocks`).
 3. Optionally add `--interactions`, `--center`, and bootstrap options.
 4. Run `scripts/R/regression.R` with the correct flags.
-5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for APA reporting.
+5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for NLSS format reporting.
 
 ## Script: `scripts/R/regression.R`
 
@@ -84,7 +84,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--bootstrap` and `--bootstrap-samples` use `modules.regression.bootstrap` and `modules.regression.bootstrap_samples`.
 - `--seed` sets the random seed for bootstrap resampling (optional).
 - `--digits` uses `defaults.digits`.
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` uses `defaults.log`.
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -103,10 +103,10 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `report_canonical.md`: APA 7 report containing regression coefficients and narrative summaries.
+- `report_canonical.md`: NLSS format report containing regression coefficients and narrative summaries.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `coefficients_df`, `summary_df`, `comparisons_df`, and `diagnostics_df` (Shapiro-Wilk residual checks for OLS).
 
-## APA 7 Templates (YAML)
+## NLSS format Templates (YAML)
 
 Templates are stored under `nlss/assets/regression/` and mapped in `nlss/scripts/config.yml`:
 
@@ -137,7 +137,7 @@ Use `narrative.row_template` for per-model lines. Available row tokens include:
 `full_sentence`, `model`, `group`, `n`, `f`, `df1`, `df2`, `p`, `r2`, `adj_r2`, `rmse`, `chisq`, `pseudo_r2`,
 `f2`, `delta_r2`, `delta_f2`, `delta_f`, `delta_df1`, `delta_df2`, `delta_p`, `delta_deviance`, `delta_chisq`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report model fit (*F*/Chi-square, *df*, *p*, *R*²/pseudo *R*², *f*²) for each block.
 - Report unstandardized coefficients (*b*), *SE*, and *p*-values; include standardized betas when requested.

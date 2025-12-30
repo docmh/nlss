@@ -1,17 +1,17 @@
 ---
 name: correlations
-description: Pearson/Spearman/Kendall correlations as matrices or cross-sets, with partial controls, bootstrap CIs, Fisher r-to-z tests, p-adjustments, grouping, and APA outputs.
+description: Pearson/Spearman/Kendall correlations as matrices or cross-sets, with partial controls, bootstrap CIs, Fisher r-to-z tests, p-adjustments, grouping, and NLSS format outputs.
 ---
 
-# Correlations (Base R, APA 7)
+# Correlations (Base R, NLSS format)
 
 ## Overview
 
-Compute correlations for numeric variables (pairwise or matrix), with optional grouping, partial correlations, bootstrap CIs, Fisher r-to-z comparisons, and matrix-layout templates. Outputs include an APA-ready report and JSONL logging with diagnostics.
+Compute correlations for numeric variables (pairwise or matrix), with optional grouping, partial correlations, bootstrap CIs, Fisher r-to-z comparisons, and matrix-layout templates. Outputs include an NLSS format-ready report and JSONL logging with diagnostics.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -108,7 +108,7 @@ Rscript <path to scripts/R/correlations.R> --interactive
 - `--coerce` coerces non-numeric columns to numeric (default: `modules.correlations.coerce`).
 - `--digits` controls rounding (default: `defaults.digits`).
 - `--interactive` prompts for inputs.
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
 
@@ -118,11 +118,11 @@ Subskills append to `report_canonical.md` and do not create separate report file
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 
-- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: NLSS format report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
   - When `--compare-groups` is enabled, an additional "Correlation comparisons" section is appended.
 
-## APA 7 Templates
+## NLSS format Templates
 
 Use the Markdown templates in `nlss/assets/correlations` when assembling correlation reports. If the template exists, it must be used for `report_canonical.md`.
 
@@ -168,7 +168,7 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 `label`, `group`, `var1`, `var2`, `stat_text`, `r`, `r0`, `z_r0`, `p_r0`, `ci`, `ci_text`, `boot_ci`, `boot_ci_text`, `p`, `n`, `missing_n`, `missing_pct`, `missing_text`, `full_sentence`, `group1`, `group2`, `r1`, `r2`, `n1`, `n2`, `z`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report method-specific coefficients (Pearson's *r*, Spearman's rho, Kendall's tau) with *p*-values and sample size.
 - If using partial correlations, state the control variables explicitly.

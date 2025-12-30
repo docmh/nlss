@@ -307,19 +307,19 @@ resolve_as_cell_text <- function(value) {
   as.character(value)
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -835,7 +835,7 @@ build_summary_paired <- function(df, x_vars, y_vars, alternative, conf_level, bo
   list(summary = do.call(rbind, rows), diagnostics = do.call(rbind, diagnostics))
 }
 
-format_apa_table <- function(summary_df, digits, note_text) {
+format_nlss_table <- function(summary_df, digits, note_text) {
   display <- summary_df
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   display$group_1_display <- if ("group_1_label" %in% names(display)) display$group_1_label else display$group_1
@@ -888,7 +888,7 @@ format_apa_table <- function(summary_df, digits, note_text) {
   paste0("Table 1\n\n", table_md, "\n", note_text)
 }
 
-format_apa_text <- function(summary_df, digits, conf_level, alternative, var_equal) {
+format_nlss_text <- function(summary_df, digits, conf_level, alternative, var_equal) {
   display <- summary_df
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   display$measure_1_display <- if ("measure_1_label" %in% names(display)) display$measure_1_label else display$measure_1
@@ -1074,8 +1074,8 @@ build_ttest_narrative_rows <- function(summary_df, digits, conf_level, alternati
   display$group_1_display <- if ("group_1_label" %in% names(display)) display$group_1_label else display$group_1
   display$group_2_display <- if ("group_2_label" %in% names(display)) display$group_2_label else display$group_2
   rows <- list()
-  apa_text <- format_apa_text(display, digits, conf_level, alternative, var_equal)
-  lines <- strsplit(apa_text, "\n", fixed = TRUE)[[1]]
+  nlss_text <- format_nlss_text(display, digits, conf_level, alternative, var_equal)
+  lines <- strsplit(nlss_text, "\n", fixed = TRUE)[[1]]
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
     full_sentence <- if (i <= length(lines)) lines[i] else ""
@@ -1258,9 +1258,9 @@ main <- function() {
     mu_value = mu_value,
     test_type = mode
   )
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
-  apa_text <- format_apa_text(summary_df, digits, conf_level, alternative, var_equal)
-  apa_table <- format_apa_table(summary_df, digits, note_tokens$note_default)
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
+  nlss_text <- format_nlss_text(summary_df, digits, conf_level, alternative, var_equal)
+  nlss_table <- format_nlss_table(summary_df, digits, note_tokens$note_default)
   template_override <- resolve_template_override(opts$template, module = "t_test")
   template_path <- if (!is.null(template_override)) {
     template_override
@@ -1274,7 +1274,7 @@ main <- function() {
     tokens = c(
       list(
         table_body = table_result$body,
-        narrative_default = apa_text
+        narrative_default = nlss_text
       ),
       note_tokens
     ),
@@ -1295,18 +1295,18 @@ main <- function() {
     digits = digits
   )
 
-  resolve_append_apa_report(
-    apa_report_path,
+  resolve_append_nlss_report(
+    nlss_report_path,
     "t-tests",
-    apa_table,
-    apa_text,
+    nlss_table,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
   )
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

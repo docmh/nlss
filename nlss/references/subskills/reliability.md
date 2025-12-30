@@ -1,9 +1,9 @@
 ---
 name: reliability
-description: Inter-rater/test-retest reliability with ICC (oneway/twoway, agreement/consistency), kappa (weighted), or test-retest correlations; wide/long formats, CIs, grouping, and APA outputs.
+description: Inter-rater/test-retest reliability with ICC (oneway/twoway, agreement/consistency), kappa (weighted), or test-retest correlations; wide/long formats, CIs, grouping, and NLSS format outputs.
 ---
 
-# Reliability Analysis (Base R, APA 7)
+# Reliability Analysis (Base R, NLSS format)
 
 ## Overview
 
@@ -15,7 +15,7 @@ Compute reliability for ratings or repeated measurements:
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -72,7 +72,7 @@ Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis te
 - `--conf-level` sets the confidence level for CIs (default: `modules.reliability.conf_level`).
 - `--coerce` coerces non-numeric inputs for numeric analyses (default: `modules.reliability.coerce`).
 - `--digits` controls rounding (default: `defaults.digits`).
-- `--template` selects a template key or file path for APA outputs.
+- `--template` selects a template key or file path for NLSS format outputs.
 - `--log` toggles JSONL logging (default: `defaults.log`).
 - `--expect-invalid` treats invalid input as expected (default: `FALSE`).
 - `--user-prompt` stores the original AI prompt in the JSONL log (optional).
@@ -82,10 +82,10 @@ Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis te
 Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `report_canonical.md`: APA 7 report with reliability table and narrative.
+- `report_canonical.md`: NLSS format report with reliability table and narrative.
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
-## APA 7 Templates
+## NLSS format Templates
 
 Use the Markdown template at `nlss/assets/reliability/default-template.md` when assembling reliability reports. If the template exists, it must be used for `report_canonical.md`.
 
@@ -115,7 +115,7 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 `analysis`, `analysis_label`, `group`, `group_label`, `method_label`, `icc_label`, `estimate`, `ci`, `ci_text`, `p`, `n`, `n_raters`, `var1`, `var2`, `missing_text`, `full_sentence`.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report the ICC model, type (agreement vs. consistency), and unit (single vs. average).
 - For kappa, state whether weights are used (none/linear/quadratic).

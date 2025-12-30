@@ -231,19 +231,19 @@ resolve_get_levels <- function(vec) {
   as.character(sort(values))
 }
 
-resolve_append_apa_report <- function(path, analysis_label, apa_table, apa_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_apa_report", mode = "function")) {
-    return(get("append_apa_report", mode = "function")(
+resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("append_nlss_report", mode = "function")) {
+    return(get("append_nlss_report", mode = "function")(
       path,
       analysis_label,
-      apa_table,
-      apa_text,
+      nlss_table,
+      nlss_text,
       analysis_flags = analysis_flags,
       template_path = template_path,
       template_context = template_context
     ))
   }
-  stop("Missing append_apa_report. Ensure lib/formatting.R is sourced.")
+  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
 }
 
 resolve_get_run_context <- function() {
@@ -867,7 +867,7 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
   rows
 }
 
-format_apa_overview_table <- function(df, digits) {
+format_nlss_overview_table <- function(df, digits) {
   display <- resolve_round_numeric(df, digits)
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   headers <- c("Variable", "Class", "Scale", "n", "Missing %", "Unique", "M", "SD", "Min", "Max")
@@ -895,7 +895,7 @@ format_apa_overview_table <- function(df, digits) {
   md
 }
 
-format_apa_levels_table <- function(df, digits) {
+format_nlss_levels_table <- function(df, digits) {
   if (nrow(df) == 0) {
     return("Table 2\nValue levels\n\n(No level tables produced; see variable overview for unique counts.)\n")
   }
@@ -942,7 +942,7 @@ format_apa_levels_table <- function(df, digits) {
   md
 }
 
-format_apa_text <- function(overview_df, levels_df, digits) {
+format_nlss_text <- function(overview_df, levels_df, digits) {
   overview_display <- overview_df
   overview_display$variable_display <- if ("variable_label" %in% names(overview_display)) overview_display$variable_label else overview_display$variable
   levels_display <- levels_df
@@ -1112,13 +1112,13 @@ main <- function() {
   levels_df <- add_variable_label_column(levels_df, label_meta, var_col = "variable")
   levels_df <- add_value_label_column(levels_df, label_meta, var_col = "variable", value_col = "level")
 
-  apa_report_path <- file.path(out_dir, "report_canonical.md")
-  apa_tables <- paste(
-    format_apa_overview_table(overview_df, digits),
+  nlss_report_path <- file.path(out_dir, "report_canonical.md")
+  nlss_tables <- paste(
+    format_nlss_overview_table(overview_df, digits),
     "\n",
-    format_apa_levels_table(levels_df, digits)
+    format_nlss_levels_table(levels_df, digits)
   )
-  apa_text <- format_apa_text(overview_df, levels_df, digits)
+  nlss_text <- format_nlss_text(overview_df, levels_df, digits)
   template_override <- resolve_template_override(opts$template, module = "data_explorer")
   template_path <- if (!is.null(template_override)) {
     template_override
@@ -1145,14 +1145,14 @@ main <- function() {
   overview_note_tokens <- build_overview_note_tokens()
   levels_note_tokens <- build_levels_note_tokens(levels_df, overview_df, levels_table$columns, top_n)
   narrative_rows <- build_explorer_narrative_rows(overview_df, levels_df, digits)
-  table_start <- as.integer(resolve_get_next_table_number(apa_report_path))
+  table_start <- as.integer(resolve_get_next_table_number(nlss_report_path))
   template_context <- list(
     tokens = c(
       list(
         overview_table_body = overview_table$body,
         levels_table_body = levels_table$body,
         table_number_next = as.character(table_start + 1),
-        narrative_default = apa_text
+        narrative_default = nlss_text
       ),
       overview_note_tokens,
       levels_note_tokens
@@ -1165,18 +1165,18 @@ main <- function() {
     `top-n` = top_n,
     digits = digits
   )
-  resolve_append_apa_report(
-    apa_report_path,
+  resolve_append_nlss_report(
+    nlss_report_path,
     "Data exploration",
-    apa_tables,
-    apa_text,
+    nlss_tables,
+    nlss_text,
     analysis_flags = analysis_flags,
     template_path = template_path,
     template_context = template_context
   )
 
   cat("Wrote:\n")
-  cat("- ", render_output_path(apa_report_path, out_dir), "\n", sep = "")
+  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()

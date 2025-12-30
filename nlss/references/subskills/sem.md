@@ -1,17 +1,17 @@
 ---
 name: sem-lavaan
-description: SEM/CFA/path/mediation/invariance via lavaan with model builders, multi-group support, robust or bootstrapped SEs/CIs, fit indices, standardized estimates, and APA outputs.
+description: SEM/CFA/path/mediation/invariance via lavaan with model builders, multi-group support, robust or bootstrapped SEs/CIs, fit indices, standardized estimates, and NLSS format outputs.
 ---
 
-# SEM (Lavaan, APA 7)
+# SEM (Lavaan, NLSS format)
 
 ## Overview
 
-Run SEM/CFA/path/mediation models with lavaan and produce APA 7-style tables and narrative text. Supports multi-group models, robust estimators, bootstrap CIs, and invariance sequences.
+Run SEM/CFA/path/mediation models with lavaan and produce NLSS format tables and narrative text. Supports multi-group models, robust estimators, bootstrap CIs, and invariance sequences.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -88,7 +88,7 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 - `--modindices`: modification index cutoff (default: `modules.sem.modindices`).
 - `--residuals`: include standardized residuals in the JSONL log (default: `modules.sem.residuals`).
 - `--digits`: rounding (default: `defaults.digits`).
-- `--template` selects a template key or file path for APA outputs (falls back to defaults).
+- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log`: JSONL logging (default: `defaults.log`).
 - `--user-prompt`: original AI prompt for logging.
 
@@ -97,10 +97,10 @@ Defaults are loaded from `nlss/scripts/config.yml` (requires R package `yaml`); 
 Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
-- `report_canonical.md`: APA 7 report containing analysis type, table, and narrative text.
+- `report_canonical.md`: NLSS format report containing analysis type, table, and narrative text.
 - `analysis_log.jsonl`: machine-readable results and options (appended per run when logging is enabled).
 
-## APA 7 Template (YAML)
+## NLSS format Template (YAML)
 
 Templates live under `nlss/assets/sem/` and are selected via `templates.sem.*` in `nlss/scripts/config.yml`.
 
@@ -131,7 +131,7 @@ Templates use YAML front matter with `{{token}}` placeholders. Supported section
 
 `narrative_default`, `fit_summary`, `r2_summary`, `indirect_summary`
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Report fit indices (chi-square, *df*, CFI, TLI, RMSEA, SRMR) and the estimator/missing handling used.
 - For mediation, report indirect effects with bootstrap CIs and note the model type (parallel vs serial).

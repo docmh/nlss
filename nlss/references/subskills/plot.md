@@ -1,17 +1,17 @@
 ---
 name: plot
-description: APA-ready figures (histogram, bar, box/violin, scatter/line, QQ, correlation heatmap) with grouping/smoothing options, automatic figure numbering, and images saved to workspace plots/.
+description: NLSS format-ready figures (histogram, bar, box/violin, scatter/line, QQ, correlation heatmap) with grouping/smoothing options, automatic figure numbering, and images saved to workspace plots/.
 ---
 
-# Plot (ggplot2, APA 7)
+# Plot (ggplot2, NLSS format)
 
 ## Overview
 
-Generate APA-ready figures (with numbered captions) and save plot images to a `plots/` subfolder inside the dataset workspace. Each run appends a figure block to `report_canonical.md` and adds an entry to `analysis_log.jsonl`.
+Generate NLSS format-ready figures (with numbered captions) and save plot images to a `plots/` subfolder inside the dataset workspace. Each run appends a figure block to `report_canonical.md` and adds an entry to `analysis_log.jsonl`.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, APA 7-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
 ## Core Workflow
 
@@ -73,10 +73,10 @@ Subskills append to `report_canonical.md` and do not create separate report file
 
 - Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `nlss/scripts/config.yml`; not user-overridable).
 - Plot images are saved in `<workspace-root>/<dataset-name>/plots/` with a figure-numbered filename (for example `figure-001-histogram-age.png`).
-- `report_canonical.md`: APA-ready figure blocks with **Figure N** numbering (independent from table numbering).
+- `report_canonical.md`: NLSS format-ready figure blocks with **Figure N** numbering (independent from table numbering).
 - `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
 
-## APA Figure Template (YAML)
+## NLSS format Figure Template (YAML)
 
 Use the Markdown template at `nlss/assets/plot/default-template.md` when assembling plot reports. If the template exists, `plot.R` uses it for `report_canonical.md`.
 
@@ -93,7 +93,7 @@ Available tokens include:
 
 Use `narrative.row_template` to render one figure block per plot.
 
-## APA 7 Reporting Guidance
+## NLSS format Reporting Guidance
 
 - Use `Figure N. Title` for captions and keep titles concise.
 - If missing values were omitted, note it in the figure note.
