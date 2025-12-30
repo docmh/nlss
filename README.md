@@ -156,6 +156,7 @@ Available metaskills:
 - `screen-data`: `nlss/references/metaskills/screen-data.md`
 - `check-assumptions`: `nlss/references/metaskills/check-assumptions.md`
 - `test-hypotheses`: `nlss/references/metaskills/test-hypotheses.md`
+- `write-full-report`: `nlss/references/metaskills/write-full-report.md`
 
 Utilities:
 
@@ -200,6 +201,7 @@ Reference docs:
 - `nlss/references/metaskills/screen-data.md`
 - `nlss/references/metaskills/check-assumptions.md`
 - `nlss/references/metaskills/test-hypotheses.md`
+- `nlss/references/metaskills/write-full-report.md`
 - `nlss/references/metaskills/formatting/*.md`
 - `nlss/references/utilities/calc.md`
 - `nlss/references/utilities/check-integrity.md`
