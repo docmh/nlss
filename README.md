@@ -153,6 +153,7 @@ Available metaskills:
 - `plan-power`: `nlss/references/metaskills/plan-power.md`
 - `explore-data`: `nlss/references/metaskills/explore-data.md`
 - `prepare-data`: `nlss/references/metaskills/prepare-data.md`
+- `screen-data`: `nlss/references/metaskills/screen-data.md`
 - `test-hypotheses`: `nlss/references/metaskills/test-hypotheses.md`
 
 Utilities:
@@ -194,6 +195,7 @@ Reference docs:
 - `nlss/references/metaskills/plan-power.md`
 - `nlss/references/metaskills/explore-data.md`
 - `nlss/references/metaskills/prepare-data.md`
+- `nlss/references/metaskills/screen-data.md`
 - `nlss/references/metaskills/test-hypotheses.md`
 - `nlss/references/metaskills/formatting/*.md`
 - `nlss/references/utilities/calc.md`
