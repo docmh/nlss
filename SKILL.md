@@ -4,7 +4,6 @@ description: Workspace-first R statistics suite with subskills and agent-run met
 compatibility: R 4.5.2, IDE (e.g., VS Code, Cursor), agentskills.io compatible coding agent (e.g., Codex IDE, Claude Code IDE)
 license: Apache-2.0
 metadata:
-  nlss.author: "Mike Hammes"
   nlss.copyright: "Copyright (c) 2025-2026 Mike Hammes"
   nlss.trademark: "NLSS™ is a trademark of Mike Hammes"
   nlss.version: "1.0.0"
