@@ -414,3 +414,25 @@ Example prompt:
 Use the nlss repo. Run descriptive_stats on data.csv for age and score.
 Use outputs/tmp and report the NLSS format narrative and table file names.
 ```
+## License and Copyright
+
+### License
+
+NLSS is licensed under the Apache License, Version 2.0. See the `LICENSE` file for details.
+
+If a `NOTICE` file is present, redistributions must include the attribution notices as described in the license.
+
+### Trademark
+
+NLSS™ is a trademark of Mike Hammes. 
+
+The Apache License 2.0 does not grant permission to use the NLSS™ name or branding beyond reasonable and customary use to describe the origin of the Work and to reproduce the content of the `NOTICE` file. See `TRADEMARKS.md`.
+
+### Dependencies
+
+NLSS relies on R packages from CRAN which are installed by the user. No third-party source code is bundled in this repository.
+
+### Maintainer
+
+Prof. Dr. Mike Hammes (mike.hammes@mikehammes.name)
+
