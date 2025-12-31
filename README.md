@@ -19,84 +19,226 @@ You can run NLSS either:
 
 ## Part I — For Researchers (Get Running Quickly)
 
-### 0) Install NLSS as a skill in your agent (Codex or Claude Code)
-
-Agent Skills are installed by placing the skill folder in the tool’s skill directory (the folder must contain `SKILL.md`, and the folder name should match `name: nlss` in `SKILL.md`). Codex and Claude Code are examples; any Agent Skills–compatible agent host can work.
-
-**Codex (OpenAI; example agent host)**
-
-- **User-wide (recommended):** clone NLSS into your Codex skills folder, e.g. `~/.codex/skills/nlss/` (macOS/Linux/WSL).
-- **Per-repo (team/shared):** put NLSS under your project’s `.codex/skills/nlss/`.
-- See Codex skills docs for supported locations and discovery behavior: https://developers.openai.com/codex/skills
-- In Codex, run `/skills` to confirm NLSS is installed, and use `$nlss` for explicit invocation when needed.
-- In Codex, you can also install skills from inside the chat via `$skill-installer` (restart required after installing).
-
-**Claude Code (Anthropic; example agent host)**
-
-- **Personal skills:** `~/.claude/skills/nlss/` (available across projects).
-- **Project skills:** `.claude/skills/nlss/` (committed to your repo and shared with your team).
-- **Plugin skills:** bundled with installed Claude Code plugins.
-- Docs: https://docs.claude.com/en/docs/claude-code/skills (overview: https://www.claude.com/blog/skills)
-
-If you want the quickest path: ask your agent to install NLSS from your repo URL into its skills directory.
-After installing, restart Codex / Claude Code so the new skill is loaded.
+This section is ordered for a smooth, non-technical setup: **IDE → agent → R → verify agent shell → NLSS skill → demo**.
 
 <details>
-<summary>Example installs (macOS/Linux/WSL)</summary>
+<summary>Windows quick path (no PowerShell/WSL required)</summary>
 
-Codex user-wide:
+If you are on Windows and don’t want to learn terminals yet:
 
-```bash
-mkdir -p ~/.codex/skills
-git clone <repo-url> ~/.codex/skills/nlss
-```
-
-Claude Code manual install:
-
-```bash
-mkdir -p ~/.claude/skills
-git clone <repo-url> ~/.claude/skills/nlss
-```
-
-Claude Code project skill (run in your analysis repo root):
-
-```bash
-mkdir -p .claude/skills
-git clone <repo-url> .claude/skills/nlss
-```
+1. Install an IDE + an agent (Steps 1–2).
+2. Install R from CRAN (Step 3, Windows native).
+3. Open **R x64** from the Start menu and run the `install.packages(...)` snippet (Step 3).
+4. Install NLSS by downloading the repo as a ZIP and copying it into your skills folder (Step 5).
+5. Ask your agent: “Can you run `Rscript --version`?” (Step 4).
 
 </details>
 
-### 1) Install an Agent IDE + plugin (Codex or Claude Code)
+### 1) Install an IDE (examples only)
 
-Pick one setup:
+Use any IDE/editor you’re comfortable with. NLSS is commonly used with an IDE that supports agentic coding plugins and an integrated terminal. Examples (not recommendations):
 
-- Install an IDE that can host agentic tooling (for example Visual Studio Code or Cursor). These are examples only—use whatever IDE/agent setup your environment supports.
-- Install either **Codex** (OpenAI) or **Claude Code** (Anthropic) and make sure it can run shell commands in your project.
+- Visual Studio Code: https://code.visualstudio.com/
+  - WSL guide (Windows): https://code.visualstudio.com/docs/remote/wsl
+- Cursor: https://www.cursor.com/
 
-### 2) Install R so `Rscript` works in the agent terminal
+### 2) Install a coding agent (examples: Codex or Claude Code)
 
-NLSS runs `.R` scripts directly with `Rscript`, even when invoked by an agent. Verify it in the *same* shell your agent uses:
+Install a coding agent that can:
 
-- Windows PowerShell: `Get-Command Rscript` or `Rscript --version`
-- WSL/Linux (bash): `which Rscript` or `Rscript --version`
+- read/write files in your project, and
+- run shell commands (to call `Rscript`).
 
-Install R (examples):
+Examples (not recommendations): **OpenAI Codex** and **Anthropic Claude Code**.
 
-- Windows (PowerShell): install R (CRAN or `winget install --id RProject.R -e`) and ensure it is on `PATH`.
-- WSL (Ubuntu): `sudo apt update && sudo apt install r-base`
+Where to get them / installation guides:
 
-### 3) Install R package dependencies (full list, once)
+- OpenAI Codex: https://developers.openai.com/codex/ (see also: CLI + Windows notes at https://developers.openai.com/codex/cli/windows)
+- Anthropic Claude Code: https://docs.claude.com/en/docs/claude-code/overview
 
-NLSS uses base R packages (`base`, `stats`, `utils`, `graphics`, `grDevices`, `tools`) plus the following CRAN packages. Install all to avoid missing features:
+### 3) Install R (so `Rscript` works) and the NLSS R packages
+
+NLSS executes `.R` scripts via `Rscript`. Install R in the environment you plan to use (macOS Terminal, Linux shell, Windows PowerShell, or WSL bash).
+
+#### macOS
+
+- Install R from CRAN (recommended for most users): https://cran.r-project.org/bin/macosx/
+- Verify in Terminal: `which Rscript` and `Rscript --version`
+- Note: the macOS installer places `R`/`Rscript` under `/usr/local/bin/` (symlinks). If your IDE/agent terminal can’t find `Rscript`, restart the IDE, or ensure `/usr/local/bin` is on `PATH`. See: https://mac.r-project.org/doc/manuals/R-admin.html
+
+#### Linux (Ubuntu example)
+
+```bash
+sudo apt update
+sudo apt install r-base
+Rscript --version
+```
+
+#### Windows (choose one; this affects “bash”)
+
+- **Windows native (PowerShell; easiest for most users):**
+  - Install R from CRAN (download + installer): https://cran.r-project.org/bin/windows/base/
+  - If you’ve never used PowerShell: that’s fine—your IDE will usually open it for you as the integrated terminal. You mostly just copy/paste.
+  - Important caveat: the R for Windows installer does **not** always add `Rscript` to your `PATH` (and `winget` installs may not either). If your agent can’t find `Rscript`, follow the “PATH fix” in Step 4 below.
+
+- **Windows + WSL (best if you want Linux bash):**
+  - Install WSL, open an Ubuntu terminal, then install R inside WSL:
+
+    ```bash
+    sudo apt update
+    sudo apt install r-base
+    Rscript --version
+    ```
+
+  - Make sure your IDE/agent is running in the WSL environment (for example, open your repo from WSL so the agent terminal is Linux bash). Codex Windows guidance: https://developers.openai.com/codex/cli/windows
+
+#### Install the R packages NLSS depends on (full list, once)
+
+NLSS uses base R packages (`base`, `stats`, `utils`, `graphics`, `grDevices`, `tools`) plus these CRAN packages:
 
 `arrow`, `car`, `curl`, `DHARMa`, `emmeans`, `foreign`, `ggplot2`, `haven`, `influence.ME`, `jsonlite`, `lavaan`, `lme4`, `lmerTest`, `mice`, `MVN`, `performance`, `psych`, `pwr`, `semPower`, `VIM`, `viridisLite`, `yaml`
+
+Easiest option: ask your coding agent to install them (for example: “Install the NLSS R packages and tell me if anything fails.”).
+
+If you prefer to do it yourself without any terminal (beginner-friendly on Windows), open **R x64** from the Start menu and paste:
+
+```r
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+install.packages(c("arrow","car","curl","DHARMa","emmeans","foreign","ggplot2","haven","influence.ME","jsonlite","lavaan","lme4","lmerTest","mice","MVN","performance","psych","pwr","semPower","VIM","viridisLite","yaml"))
+```
+
+If you are comfortable using the agent terminal, you can also run:
 
 ```bash
 Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('arrow','car','curl','DHARMa','emmeans','foreign','ggplot2','haven','influence.ME','jsonlite','lavaan','lme4','lmerTest','mice','MVN','performance','psych','pwr','semPower','VIM','viridisLite','yaml'))"
 ```
 
-### 4) Fastest onboarding: ask for the `run-demo` metaskill
+<details>
+<summary>If package installation fails on Linux (common system dependencies)</summary>
+
+Some packages may need system libraries when binaries are not available. For Apache Arrow (`arrow`) on Ubuntu, the Arrow project recommends:
+
+```bash
+sudo apt update
+sudo apt install -y libcurl4-openssl-dev libssl-dev
+```
+
+Then rerun the `install.packages(...)` command. See: https://arrow.apache.org/docs/r/articles/install.html
+
+</details>
+
+### 4) Verify your coding agent can run `Rscript` (agent terminal check)
+
+Easiest option: ask your coding agent to run the checks and paste back the output (for example: “Please run `Rscript --version` in your terminal and tell me what you see.”).
+
+If you need to run commands yourself: open your IDE’s integrated terminal (in VS Code: **Terminal → New Terminal**).
+
+**PowerShell (Windows native):**
+
+```powershell
+Get-Command Rscript
+Rscript --version
+Rscript -e "cat('Rscript OK\n')"
+```
+
+**bash (macOS/Linux/WSL):**
+
+```bash
+which Rscript
+Rscript --version
+Rscript -e "cat('Rscript OK\\n')"
+```
+
+#### PATH fix (Windows) if `Rscript` is “not recognized”
+
+If `Rscript` is not found, add R’s `bin` folder to your Windows `PATH`:
+
+1. Open Start → search “environment variables” → click **Edit the system environment variables**
+2. Click **Environment Variables…**
+3. Under “User variables”, select **Path** → **Edit** → **New**
+4. Add your R `bin` path, typically one of:
+   - `C:\\Program Files\\R\\R-<version>\\bin`
+   - `C:\\Program Files\\R\\R-<version>\\bin\\x64`
+5. Click OK/OK/OK and restart your IDE (so the agent terminal reloads `PATH`).
+
+Tip: if you’re unsure which path you have, open **R** (Start → “R x64 …”) and run `R.home("bin")` to print the folder.
+
+### 5) Install NLSS as a skill (so the agent can invoke it by name)
+
+NLSS is an Agent Skill (it ships with `SKILL.md`). Install it into your agent’s skills folder, then restart the agent so it reloads skills.
+
+**Codex (OpenAI; example agent host)**
+
+- Skill locations and scopes: https://developers.openai.com/codex/skills
+- Typical user-wide install (macOS/Linux/WSL):
+
+  ```bash
+  mkdir -p ~/.codex/skills
+  git clone <repo-url> ~/.codex/skills/nlss
+  ```
+
+<details>
+<summary>No-terminal / no-git install (Windows/macOS/Linux)</summary>
+
+1. Download the NLSS repo as a ZIP from wherever it is hosted (look for a “Download ZIP” / “Download source” button).
+2. Extract it and rename the extracted folder to `nlss` (important: the folder must contain `SKILL.md` directly inside it).
+3. Move the `nlss` folder into a Codex skills folder:
+   - Windows (File Explorer address bar): `%USERPROFILE%\.codex\skills\nlss`
+   - macOS/Linux: `~/.codex/skills/nlss`
+   - Per-project (shared): `<your-project>/.codex/skills/nlss`
+4. Restart Codex and run `/skills` to confirm it’s loaded.
+
+</details>
+
+- Team/shared install (per repo): `.codex/skills/nlss/`
+- Verify in Codex: run `/skills`, and use `$nlss` for explicit invocation when needed.
+
+<details>
+<summary>Windows notes (PowerShell vs WSL)</summary>
+
+- If your agent runs in **WSL bash**, use the macOS/Linux/WSL install commands inside WSL.
+- If your agent runs in **Windows PowerShell**, install into your Windows home directory (PowerShell `$HOME`):
+
+  ```powershell
+  New-Item -ItemType Directory -Force -Path "$HOME\.codex\skills" | Out-Null
+  git clone <repo-url> "$HOME\.codex\skills\nlss"
+  ```
+
+</details>
+
+**Claude Code (Anthropic; example agent host)**
+
+- Skill locations: https://docs.claude.com/en/docs/claude-code/skills
+- Personal skills (macOS/Linux/WSL): `~/.claude/skills/nlss/`
+- Project skills (shared with your team): `.claude/skills/nlss/`
+
+<details>
+<summary>No-terminal / no-git install (Windows/macOS/Linux)</summary>
+
+1. Download the NLSS repo as a ZIP from wherever it is hosted.
+2. Extract it and rename the extracted folder to `nlss` (important: `SKILL.md` must be directly inside the `nlss` folder).
+3. Move the `nlss` folder into a Claude skills folder:
+   - Windows: `%USERPROFILE%\.claude\skills\nlss`
+   - macOS/Linux (personal): `~/.claude/skills/nlss`
+   - Per-project (shared): `<your-project>/.claude/skills/nlss`
+4. Restart Claude Code and ask: “What Skills are available?”
+
+</details>
+
+<details>
+<summary>Windows notes (PowerShell vs WSL)</summary>
+
+- If your agent runs in **WSL bash**, use the macOS/Linux/WSL paths inside WSL.
+- If your agent runs in **Windows PowerShell**, your personal skills folder is under your Windows home directory (PowerShell `$HOME`):
+
+  ```powershell
+  New-Item -ItemType Directory -Force -Path "$HOME\.claude\skills" | Out-Null
+  git clone <repo-url> "$HOME\.claude\skills\nlss"
+  ```
+
+</details>
+
+### 6) Fastest onboarding: ask for the `run-demo` metaskill
 
 NLSS includes a guided onboarding metaskill called `run-demo`. It explains the workflow, then (with your permission) sets up a demo workspace using the bundled sample dataset.
 
@@ -108,16 +250,34 @@ Try a natural language prompt like:
 
 The demo uses `assets/sample-data/golden_dataset.csv` by default and will ask before creating any workspace files.
 
-### 5) First example (agent-first): analyze the bundled golden dataset
+### 7) First example (agent-first): analyze the bundled golden dataset
 
-This repo ships a small demo dataset: [tests/data/golden_dataset.csv](tests/data/golden_dataset.csv).
+This repo ships a small demo dataset at `assets/sample-data/golden_dataset.csv` (and a test fixture copy at [tests/data/golden_dataset.csv](tests/data/golden_dataset.csv)).
 
-1) From the NLSS repo folder (the one containing `SKILL.md`), create a working folder and copy the dataset (you can do this yourself, or ask your agent to do it):
+1) From the NLSS repo folder (the one containing `SKILL.md`), create a working folder and copy the dataset (you can do this yourself, or ask your agent to do it).
+
+- **No terminal (Windows/macOS):**
+  - Inside your NLSS repo folder, create a folder named `demo`.
+  - Copy `assets/sample-data/golden_dataset.csv` into `demo/` and keep the name `golden_dataset.csv`.
+
+<details>
+<summary>Terminal option (PowerShell or bash)</summary>
+
+PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force -Path demo | Out-Null
+Copy-Item assets\sample-data\golden_dataset.csv demo\golden_dataset.csv
+```
+
+bash:
 
 ```bash
 mkdir -p demo
-cp tests/data/golden_dataset.csv demo/golden_dataset.csv
+cp assets/sample-data/golden_dataset.csv demo/golden_dataset.csv
 ```
+
+</details>
 
 2) Prompt your agent with natural language, for example:
 
@@ -146,7 +306,7 @@ Rscript ../scripts/R/correlations.R --csv golden_dataset.csv --vars age,score,st
 
 </details>
 
-### 6) The workspace structure (what NLSS creates)
+### 8) The workspace structure (what NLSS creates)
 
 By default, NLSS writes into `./nlss-workspace/` (see Part II to change this). A typical first-run folder looks like:
 
@@ -175,13 +335,13 @@ What the files mean:
 - `backup/`: timestamped parquet backups created before destructive updates.
 - `plots/`: saved figures (from `plot` and some model modules).
 
-### 7) How output + logging works
+### 9) How output + logging works
 
 - **Subskills** append sections to `report_canonical.md` and (by default) append one JSON line to `analysis_log.jsonl`.
 - **Metaskills** (agent-run workflows) may additionally create a standalone, journal-ready file `report_<YYYYMMDD>_<metaskill>_<intent>.md` in the dataset folder.
 - Output directories are intentionally not a per-run CLI flag; choose a workspace root by where you run, or by changing `defaults.output_dir` (Part II).
 
-### 8) Easy prompts to give your agent (copy/paste)
+### 10) Easy prompts to give your agent (copy/paste)
 
 Try these in Codex / Claude Code:
 
@@ -207,7 +367,7 @@ NLSS follows the **Agent Skills** standard (https://agentskills.io/specification
 
 How you install skills depends on the agent. Examples:
 
-- **Codex (OpenAI):** Codex discovers skills by scanning these locations (in order): `./.codex/skills`, `../.codex/skills`, `$REPO_ROOT/.codex/skills`, `$CODEX_HOME/skills`, `/etc/codex/skills`, `/usr/share/codex/skills`. Install NLSS by placing it in one of those locations under a folder named `nlss/` (matching `name: nlss`). Docs: https://developers.openai.com/codex/skills
+- **Codex (OpenAI):** Codex discovers skills by scanning (in order): `$PWD/.codex/skills`, `$PWD/../.codex/skills`, `$REPO_ROOT/.codex/skills`, `$CODEX_HOME/skills`, `/etc/codex/skills`, and skills bundled with Codex. Install NLSS by placing it in one of those locations under a folder named `nlss/` (matching `name: nlss`). Docs: https://developers.openai.com/codex/skills
 - **Claude Code (Anthropic):** Claude Code loads skills from project skills (`.claude/skills/`), personal skills (`~/.claude/skills/`), and plugin-bundled skills. Docs: https://docs.claude.com/en/docs/claude-code/skills
 
 ### Requirements and system support
