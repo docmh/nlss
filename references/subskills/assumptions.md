@@ -12,7 +12,7 @@ Run assumption and diagnostic checks for t-tests, ANOVA (between, within, mixed)
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -182,7 +182,7 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 ## NLSS format Reporting Guidance
 
-- Report the assumption tests used (e.g., Shapiro-Wilk, Levene, Mauchly, Breusch-Pagan) with statistics and *p*-values.
+- Report the assumption tests used (e.g., Shapiro-Wilk, Levene, Mauchly, Breusch-Pagan) with statistics and p-values.
 - For regression, report VIF values and any influence/outlier flags.
 - For mixed models, report singularity/convergence flags, residual diagnostics, and any random-effects normality/outlier findings.
 - For SEM, report multivariate normality (Mardia), Mahalanobis outliers, collinearity/Heywood cases, and convergence status.

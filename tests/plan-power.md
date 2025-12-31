@@ -4,7 +4,7 @@
 
 - Validate power analysis in `scripts/R/power.R` for t-tests, ANOVA, correlations, regression, and SEM (RMSEA).
 - Cover a priori, post hoc, and sensitivity modes.
-- Exercise effect-size inputs, effect estimation from data, and conversions (eta2 -> f, r2 -> *f*²).
+- Exercise effect-size inputs, effect estimation from data, and conversions (eta² -> f, r² -> f²).
 - Verify `analysis_log.jsonl` logging for both successful runs and invalid inputs.
 
 ## Data Sources
@@ -37,7 +37,7 @@ Positive coverage:
 - Correlation post hoc with `--n` and alternative `less`.
 - Correlation effect estimation.
 - Regression post hoc with `--effect-metric r2`.
-- Regression sensitivity with `--n` (detectable *f*²).
+- Regression sensitivity with `--n` (detectable f²).
 - Regression a priori with `--effect-metric f2`.
 - Regression effect estimation.
 - SEM a priori, post hoc, and sensitivity when `semPower` is installed.

@@ -15,14 +15,14 @@ table:
       label: "Label"
       drop_if_empty: true
     - key: "est"
-      label: "*b*"
+      label: "b"
     - key: "se"
-      label: "*SE*"
+      label: "SE"
     - key: "z"
-      label: "*z*"
+      label: "z"
       drop_if_empty: true
     - key: "p"
-      label: "*p*"
+      label: "p"
     - key: "ci_low"
       label: "CI low"
       drop_if_empty: true

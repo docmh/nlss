@@ -12,28 +12,28 @@ Apply NLSS format rules for numbers, decimals, and statistical notation in NLSS 
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
 Use this when you need to:
 
 - Decide between numerals and words.
-- Format decimals, percentages, and statistical symbols.
-- Report test statistics and *p* values.
+- Format decimals, percentages, and statistical notation.
+- Report test statistics and p values.
 
 ## Inputs/Clarifications
 
 - Measurement units, scale ranges, and reporting precision.
 - Whether the number starts a sentence.
-- Which statistics are being reported (e.g., *t*, *F*, *r*).
+- Which statistics are being reported (e.g., t, F, r).
 
 ## Core Workflow
 
 1. Apply the numeral vs. word rules.
 2. Format decimals and leading zeros consistently.
-3. Italicize statistical symbols and format test statistics.
-4. Report exact *p* values when possible; use thresholds for very small values.
+3. Keep statistical symbols in plain text (no italics or special styling) and format test statistics.
+4. Report exact p values when possible; use thresholds for very small values.
 5. Apply spacing around operators.
 
 ## Numerals vs. Words
@@ -45,19 +45,21 @@ Use this when you need to:
 ## Decimals and Leading Zeros
 
 - Use a leading zero for values that can exceed 1 (e.g., 0.75).
-- Omit the leading zero for values that cannot exceed 1 (e.g., *p* values, correlations).
+- Omit the leading zero for values that cannot exceed 1 (e.g., p values, correlations).
 
 ## Statistical Symbols and Tests
 
-- Italicize statistical symbols (e.g., *t*, *F*, *r*, *p*, *M*, *SD*, *N*, *n*).
+- **NLSS rule:** statistical symbols are plain text only (no italics, bold, or special styling) for readability in plain text.
+- Examples: t, F, r, p, M, SD, N, n.
+- Use superscript ² for squared statistics (e.g., R², f², eta²).
 - Use parentheses for test statistics and degrees of freedom.
 - Use brackets for confidence intervals.
-- Use spaces around operators (e.g., *t*(45) = 2.14).
+- Use spaces around operators (e.g., t(45) = 2.14).
 
-## *p* Values (NLSS Default)
+## p Values (NLSS Default)
 
-- Report exact *p* values to two or three decimals when possible.
-- Use *p* < .001 for very small values.
+- Report exact p values to two or three decimals when possible.
+- Use p < .001 for very small values.
 
 ## Markdown Paragraph Separation
 
@@ -66,5 +68,5 @@ Use this when you need to:
 ## Checks
 
 - Numerals vs. words are consistent with NLSS format rules.
-- Statistical symbols are italicized.
-- *p* values and confidence intervals are formatted consistently.
+- Statistical symbols are plain text (no italics or special styling).
+- p values and confidence intervals are formatted consistently.

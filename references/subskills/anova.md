@@ -8,13 +8,13 @@ license: Apache-2.0
 
 ## Overview
 
-Run between-subjects, within-subjects (repeated measures), or mixed ANOVA in base R and produce NLSS format-ready tables and narratives. Optional covariates (ANCOVA), post-hoc comparisons, and planned contrasts (custom JSON or built-in `emmeans` methods) are supported. Outputs include sums of squares, *df*, *F*, *p*, and effect sizes.
+Run between-subjects, within-subjects (repeated measures), or mixed ANOVA in base R and produce NLSS format-ready tables and narratives. Optional covariates (ANCOVA), post-hoc comparisons, and planned contrasts (custom JSON or built-in `emmeans` methods) are supported. Outputs include sums of squares, df, F, p, and effect sizes.
 
 Post-hoc behavior: Tukey HSD is used for between-subjects factors; paired t-tests are used for within-subjects comparisons (and for mixed designs, within comparisons are computed separately per between-group combination).
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -196,8 +196,8 @@ Contrast narrative row tokens include:
 
 ## NLSS format Reporting Guidance
 
-- Report *F*, *df*, *p*, and effect sizes for each omnibus effect (include bootstrap CIs when enabled).
-- Indicate post-hoc method and *p*-value adjustment when reported.
+- Report F, df, p, and effect sizes for each omnibus effect (include bootstrap CIs when enabled).
+- Indicate post-hoc method and p-value adjustment when reported.
 - For repeated measures, report sphericity results (Mauchly) and note any violations.
 
 ## Dependencies

@@ -1,6 +1,6 @@
 ---
 name: crosstabs
-description: Contingency tables for categorical row/col pairs with chi-square/Fisher tests, effect sizes, expected counts and residuals, optional grouping, and NLSS format outputs.
+description: Contingency tables for categorical row/col pairs with chi²/Fisher tests, effect sizes, expected counts and residuals, optional grouping, and NLSS format outputs.
 license: Apache-2.0
 ---
 
@@ -8,11 +8,11 @@ license: Apache-2.0
 
 ## Overview
 
-Generate cross-tabulations for two categorical variables, optional stratification by a grouping variable, and common association statistics (chi-square, Fisher's exact test, Cramer's V, phi, contingency coefficient). Outputs include an NLSS format-ready report and JSONL logging.
+Generate cross-tabulations for two categorical variables, optional stratification by a grouping variable, and common association statistics (chi², Fisher's exact test, Cramer's V, phi, contingency coefficient). Outputs include an NLSS format-ready report and JSONL logging.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -64,7 +64,7 @@ Rscript <path to scripts/R/crosstabs.R> --interactive
 - `--group`: Optional grouping variable (stratified cross-tabs).
 - `--percent`: Which percentages to include in the raw results (row, col, total, all). Default: `modules.crosstabs.percent`.
 - `--nlss-percent`: Percentage column(s) for the NLSS format table section (row, col, total, all, none). Default: `modules.crosstabs.nlss_percent`.
-- `--chisq`: Run chi-square test (default: `modules.crosstabs.chisq`).
+- `--chisq`: Run chi² test (default: `modules.crosstabs.chisq`).
 - `--yates`: Apply Yates continuity correction for 2x2 tables (default: `modules.crosstabs.yates`).
 - `--fisher`: Run Fisher's exact test (default: `modules.crosstabs.fisher`).
 - `--fisher-simulate`: Use Monte Carlo simulation for Fisher's exact test (default: `modules.crosstabs.fisher_simulate`).
@@ -125,6 +125,6 @@ When multiple `--rows`/`--cols` combinations are requested, all results are rend
 
 ## NLSS format Reporting Guidance
 
-- Report chi-square (or Fisher's exact test) with *df*, *N*, *p*-value, and effect size (Cramer's V or phi for 2x2).
+- Report chi² (or Fisher's exact test) with df, N, p-value, and effect size (Cramer's V or phi for 2x2).
 - Note expected count diagnostics when assumptions are questionable (e.g., > 20% cells < 5).
 - Missing values are excluded from valid counts and reported in the test outputs.

@@ -926,47 +926,32 @@ run_fail "calc invalid expr" run_rscript "${R_SCRIPT_DIR}/calc.R" --expr "1+"
 run_fail "calc invalid set" run_rscript "${R_SCRIPT_DIR}/calc.R" --set "1a=3" --expr "1"
 run_fail "calc restricted function" run_rscript "${R_SCRIPT_DIR}/calc.R" --expr "c(1,2)"
 
-run_fail "research_academia web disabled" run_rscript "${R_SCRIPT_DIR}/research_academia.R" --query "effect size" --web FALSE
-
-ALLOW_WEB="${NLSS_TEST_ALLOW_WEB:-}"
-if [ -z "${ALLOW_WEB}" ]; then
-  if [ "${NLSS_WEB_SEARCH:-}" = "1" ] || [ "${NLSS_WEB_SEARCH:-}" = "TRUE" ] || [ "${NLSS_WEB_SEARCH:-}" = "true" ]; then
-    ALLOW_WEB="1"
-  else
-    ALLOW_WEB="0"
-  fi
-fi
-
-if [ "${ALLOW_WEB}" = "1" ]; then
-  if [ -f "${WORKSPACE_MANIFEST_PATH}" ]; then
-    RESEARCH_OUT_DIR="${DATASET_DIR}"
-  else
-    RESEARCH_OUT_DIR_CFG="$(get_config_value defaults.output_dir)"
-    if [ -z "${RESEARCH_OUT_DIR_CFG}" ]; then
-      RESEARCH_OUT_DIR_CFG="./outputs/tmp"
-    fi
-    if [[ "${RESEARCH_OUT_DIR_CFG}" == /* || "${RESEARCH_OUT_DIR_CFG}" =~ ^[A-Za-z]: ]]; then
-      RESEARCH_OUT_DIR="${RESEARCH_OUT_DIR_CFG}"
-    else
-      RESEARCH_OUT_DIR="${RUN_ROOT}/${RESEARCH_OUT_DIR_CFG#./}"
-    fi
-  fi
-  RESEARCH_REPORT_PATH="${RESEARCH_OUT_DIR}/report_canonical.md"
-  RESEARCH_LOG_PATH="${RESEARCH_OUT_DIR}/analysis_log.jsonl"
-  rm -f "${RESEARCH_REPORT_PATH}" "${RESEARCH_LOG_PATH}"
-  NLSS_WEB_SEARCH=1 run_ok "research_academia smoke" run_rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "effect size" --sources openalex,crossref --top-n 3 --max-per-source 3 --max-total 6 --web TRUE
-  assert_marker "\"module\":\"research-academia\"" "${RESEARCH_LOG_PATH}"
-  assert_marker "Research (Academia)" "${RESEARCH_REPORT_PATH}"
-  assert_marker "References" "${RESEARCH_REPORT_PATH}"
-
-  NLSS_WEB_SEARCH=1 run_ok "research_academia smoke openalex variant" run_rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "power analysis" --sources openalex --top-n 2 --max-per-source 2 --max-total 4 --web TRUE
-  NLSS_WEB_SEARCH=1 run_ok "research_academia smoke alternate query" run_rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "stress experience" --sources openalex --top-n 2 --max-per-source 2 --max-total 4 --web TRUE
+if [ -f "${WORKSPACE_MANIFEST_PATH}" ]; then
+  RESEARCH_OUT_DIR="${DATASET_DIR}"
 else
-  echo "[SKIP] research_academia web-enabled smoke (set NLSS_TEST_ALLOW_WEB=1 to enable)" | tee -a "${LOG_PATH}"
+  RESEARCH_OUT_DIR_CFG="$(get_config_value defaults.output_dir)"
+  if [ -z "${RESEARCH_OUT_DIR_CFG}" ]; then
+    RESEARCH_OUT_DIR_CFG="./outputs/tmp"
+  fi
+  if [[ "${RESEARCH_OUT_DIR_CFG}" == /* || "${RESEARCH_OUT_DIR_CFG}" =~ ^[A-Za-z]: ]]; then
+    RESEARCH_OUT_DIR="${RESEARCH_OUT_DIR_CFG}"
+  else
+    RESEARCH_OUT_DIR="${RUN_ROOT}/${RESEARCH_OUT_DIR_CFG#./}"
+  fi
 fi
+RESEARCH_REPORT_PATH="${RESEARCH_OUT_DIR}/report_canonical.md"
+RESEARCH_LOG_PATH="${RESEARCH_OUT_DIR}/analysis_log.jsonl"
+rm -f "${RESEARCH_REPORT_PATH}" "${RESEARCH_LOG_PATH}"
+run_ok "research_academia smoke" run_rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "effect size" --sources openalex,crossref --top-n 3 --max-per-source 3 --max-total 6
+assert_marker "\"module\":\"research-academia\"" "${RESEARCH_LOG_PATH}"
+assert_marker "Research (Academia)" "${RESEARCH_REPORT_PATH}"
+assert_marker "References" "${RESEARCH_REPORT_PATH}"
+
+run_ok "research_academia smoke openalex variant" run_rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "power analysis" --sources openalex --top-n 2 --max-per-source 2 --max-total 4
+run_ok "research_academia smoke alternate query" run_rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "stress experience" --sources openalex --top-n 2 --max-per-source 2 --max-total 4
 
 run_ok "r env info" run_rscript "${CHECK_R_ENV_SCRIPT}"
 

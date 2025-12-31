@@ -693,7 +693,7 @@ build_efa_note_tokens <- function(summary_df, method, rotation, cor_type, missin
   if (!is.null(summary_df) && nrow(summary_df) > 0) {
     if (nrow(summary_df) == 1) {
       bartlett_text <- paste0(
-        "Bartlett chi2(",
+        "Bartlett chi²(",
         ifelse(is.na(summary_df$bartlett_df[1]), "NA", as.character(summary_df$bartlett_df[1])),
         ") = ",
         format_num_text(summary_df$bartlett_chi2[1], 2),
@@ -706,7 +706,7 @@ build_efa_note_tokens <- function(summary_df, method, rotation, cor_type, missin
         label <- ifelse(summary_df$group[i] == "", "Overall", summary_df$group[i])
         paste0(
           label,
-          " chi2(",
+          " chi²(",
           ifelse(is.na(summary_df$bartlett_df[i]), "NA", as.character(summary_df$bartlett_df[i])),
           ") = ",
           format_num_text(summary_df$bartlett_chi2[i], 2),
@@ -744,7 +744,7 @@ build_efa_narrative_rows <- function(summary_df, digits, n_factors_rule, eigen_t
     variance_pct <- ifelse(is.na(row$variance_explained), "NA", format_num_text(row$variance_explained * 100, digits))
     kmo_text <- format_num_text(row$kmo, digits)
     bartlett_line <- paste0(
-      "Bartlett chi2(",
+      "Bartlett chi²(",
       ifelse(is.na(row$bartlett_df), "NA", as.character(row$bartlett_df)),
       ") = ",
       format_num_text(row$bartlett_chi2, digits),

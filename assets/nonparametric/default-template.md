@@ -26,19 +26,19 @@ table:
       label: "Group 2"
       drop_if_empty: true
     - key: "n_1"
-      label: "*n*1"
+      label: "n1"
       drop_if_empty: true
     - key: "n_2"
-      label: "*n*2"
+      label: "n2"
       drop_if_empty: true
     - key: "n_total"
-      label: "*n*"
+      label: "n"
       drop_if_empty: true
     - key: "median_1"
-      label: "*Mdn*1"
+      label: "Mdn1"
       drop_if_empty: true
     - key: "median_2"
-      label: "*Mdn*2"
+      label: "Mdn2"
       drop_if_empty: true
     - key: "iqr_1"
       label: "IQR1"
@@ -47,13 +47,13 @@ table:
       label: "IQR2"
       drop_if_empty: true
     - key: "median"
-      label: "*Mdn*"
+      label: "Mdn"
       drop_if_empty: true
     - key: "iqr"
       label: "IQR"
       drop_if_empty: true
     - key: "median_diff"
-      label: "*Mdn* diff"
+      label: "Mdn diff"
       drop_if_empty: true
     - key: "iqr_diff"
       label: "IQR diff"
@@ -70,10 +70,10 @@ table:
     - key: "statistic"
       label: "Value"
     - key: "df"
-      label: "*df*"
+      label: "df"
       drop_if_empty: true
     - key: "p"
-      label: "*p*"
+      label: "p"
     - key: "effect_size_value"
       label: "Effect size"
     - key: "ci_low"

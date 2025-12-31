@@ -53,7 +53,7 @@ print_usage <- function() {
   cat("  --group NAME             Grouping variable name (optional)\n")
   cat("  --percent TYPE           row/col/total/all (default: all)\n")
   cat("  --nlss-percent TYPE      row/col/total/all/none (default: row)\n")
-  cat("  --chisq TRUE/FALSE        Run chi-square test (default: TRUE)\n")
+  cat("  --chisq TRUE/FALSE        Run chi² test (default: TRUE)\n")
   cat("  --yates TRUE/FALSE        Yates correction for 2x2 (default: FALSE)\n")
   cat("  --fisher TRUE/FALSE       Run Fisher's exact test (default: FALSE)\n")
   cat("  --fisher-simulate TRUE/FALSE  Monte Carlo Fisher (default: FALSE)\n")
@@ -111,7 +111,7 @@ interactive_options <- function() {
   digits_default <- resolve_config_value("defaults.digits", 2)
   opts$percent <- resolve_prompt("Percentages to include (row/col/total/all)", percent_default)
   opts$`nlss-percent` <- resolve_prompt("NLSS format percent (row/col/total/all/none)", nlss_percent_default)
-  opts$chisq <- resolve_prompt("Run chi-square TRUE/FALSE", ifelse(isTRUE(chisq_default), "TRUE", "FALSE"))
+  opts$chisq <- resolve_prompt("Run chi² TRUE/FALSE", ifelse(isTRUE(chisq_default), "TRUE", "FALSE"))
   opts$yates <- resolve_prompt("Use Yates correction for 2x2 TRUE/FALSE", ifelse(isTRUE(yates_default), "TRUE", "FALSE"))
   opts$fisher <- resolve_prompt("Run Fisher's exact test TRUE/FALSE", ifelse(isTRUE(fisher_default), "TRUE", "FALSE"))
   opts$`fisher-simulate` <- resolve_prompt(
@@ -868,7 +868,7 @@ format_nlss_text <- function(tests_df, diagnostics_df, digits) {
     parts <- character(0)
     if (!is.na(row$chi_square[1])) {
       chi_part <- sprintf(
-        "chi-square(%s, N = %s) = %s, p %s",
+        "chi²(%s, N = %s) = %s, p %s",
         ifelse(is.na(row$chi_df[1]), "NA", as.character(row$chi_df[1])),
         as.character(valid_n),
         format_num(row$chi_square[1], digits),
@@ -1117,7 +1117,7 @@ build_crosstabs_narrative_rows <- function(tests_df, diagnostics_df, digits) {
     effect_text <- ""
     if (!is.na(row$chi_square[1])) {
       chisq_text <- sprintf(
-        "chi-square(%s, N = %s) = %s, p %s",
+        "chi²(%s, N = %s) = %s, p %s",
         ifelse(is.na(row$chi_df[1]), "NA", as.character(row$chi_df[1])),
         as.character(valid_n),
         format_num(row$chi_square[1], digits),

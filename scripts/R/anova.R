@@ -462,10 +462,10 @@ format_ci <- function(low, high, digits) {
 }
 
 format_effect_label <- function(effect_size) {
-  if (effect_size == "eta_sq") return("eta_sq")
-  if (effect_size == "partial_eta_sq") return("eta_p2")
-  if (effect_size == "omega_sq") return("omega_sq")
-  if (effect_size == "partial_omega_sq") return("omega_p2")
+  if (effect_size == "eta_sq") return("eta²")
+  if (effect_size == "partial_eta_sq") return("Partial eta²")
+  if (effect_size == "omega_sq") return("omega²")
+  if (effect_size == "partial_omega_sq") return("Partial omega²")
   effect_size
 }
 
@@ -1310,11 +1310,11 @@ build_anova_table_body <- function(summary_df, digits, table_meta, effect_size) 
     list(key = "ss", label = "SS", drop_if_empty = TRUE),
     list(key = "ms", label = "MS", drop_if_empty = TRUE),
     list(key = "f", label = "F", drop_if_empty = TRUE),
-    list(key = "p", label = "Sig.", drop_if_empty = TRUE),
-    list(key = "partial_eta_sq", label = "Partial eta^2", drop_if_empty = TRUE),
-    list(key = "eta_sq", label = "eta^2", drop_if_empty = TRUE),
-    list(key = "partial_omega_sq", label = "Partial omega^2", drop_if_empty = TRUE),
-    list(key = "omega_sq", label = "omega^2", drop_if_empty = TRUE),
+    list(key = "p", label = "p", drop_if_empty = TRUE),
+    list(key = "partial_eta_sq", label = "Partial eta²", drop_if_empty = TRUE),
+    list(key = "eta_sq", label = "eta²", drop_if_empty = TRUE),
+    list(key = "partial_omega_sq", label = "Partial omega²", drop_if_empty = TRUE),
+    list(key = "omega_sq", label = "omega²", drop_if_empty = TRUE),
     list(key = "boot_ci_low", label = "Boot CI low", drop_if_empty = TRUE),
     list(key = "boot_ci_high", label = "Boot CI high", drop_if_empty = TRUE)
   )

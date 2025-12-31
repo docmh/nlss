@@ -12,7 +12,7 @@ Compute item-level statistics and scale reliability metrics for psychometric sca
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -125,6 +125,6 @@ Use `narrative.row_template` for per-group lines. Available row tokens include:
 
 ## NLSS format Reporting Guidance
 
-- Report item means, *SD*s, corrected item-total correlations, and alpha-if-deleted alongside overall reliability.
+- Report item means, SDs, corrected item-total correlations, and alpha-if-deleted alongside overall reliability.
 - Include Cronbach's alpha and (when available) omega total; note missing-data handling and any reverse-scored items.
 - If reliability cannot be estimated (e.g., too few items or insufficient variance), state that explicitly.

@@ -18,7 +18,7 @@ table:
     - key: "col_level"
       label: "Column Level"
     - key: "n"
-      label: "*n*"
+      label: "n"
     - key: "pct_row"
       label: "Row %"
       drop_if_empty: true

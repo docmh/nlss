@@ -12,7 +12,7 @@ This metaskill runs **model-specific** assumptions and diagnostics without execu
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
@@ -121,7 +121,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>"
 - `report_canonical.md`: NLSS format-ready assumptions output plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries plus the `assumptions` subskill log.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
-- `report_<YYYYMMDD>_check-assumptions_<intent>.md`: NLSS format-ready, journal-ready narrative report.
+- `report_<YYYYMMDD>_check-assumptions_<intent>.md`: NLSS format-ready, journal-alike narrative report.
 
 ### Final Report Requirements
 
@@ -148,7 +148,7 @@ This metaskill relies on the templates configured for the subskills it invokes:
 
 ## NLSS format Reporting Guidance
 
-- Report each diagnostic test, statistic, and *p*-value.
+- Report each diagnostic test, statistic, and p-value.
 - Highlight violations and propose corrective options (transformations, robust methods, nonparametric alternatives).
 
 ## Parquet Support

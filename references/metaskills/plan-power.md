@@ -12,7 +12,7 @@ This metaskill guides the agent to turn a vague research design into a concrete,
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
@@ -66,7 +66,7 @@ Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta p
 - What is the primary outcome and primary hypothesis?
 - Which analysis family will you use (t-test, ANOVA, correlation, regression, SEM)?
 - Is the design between-subjects, within-subjects, or paired? Any grouping variable and expected group sizes?
-- What effect size metric and value will you assume (*d*, f, *r*, *f*², eta2, r2, RMSEA)?
+- What effect size metric and value will you assume (d, f, r, f², eta², r², RMSEA)?
 - What alpha and target power should we use? One- or two-sided?
 - Are there multiple primary outcomes or multiple primary tests (alpha adjustment needed)?
 - Do you have pilot data so we can estimate effect size from the dataset?
@@ -125,7 +125,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 - `report_canonical.md`: NLSS format-ready power analysis table and narrative from the `power` subskill plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries plus the `power` subskill log(s).
 - `scratchpad.md`: Plan, clarifications, effect size rationale, and completion notes.
-- `report_<YYYYMMDD>_plan-power_<intent>.md`: NLSS format-ready, journal-ready narrative report with tables/plots as needed.
+- `report_<YYYYMMDD>_plan-power_<intent>.md`: NLSS format-ready, journal-alike narrative report with tables/plots as needed.
 
 ### Final Report Requirements
 

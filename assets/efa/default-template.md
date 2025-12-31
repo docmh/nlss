@@ -15,11 +15,11 @@ table:
       label: "Factor"
     - key: "loading"
       label: "Loading"
-    - key: "h2"
-      label: "h2"
+    - key: "h²"
+      label: "h²"
       drop_if_empty: true
-    - key: "u2"
-      label: "u2"
+    - key: "u²"
+      label: "u²"
       drop_if_empty: true
     - key: "complexity"
       label: "Complexity"

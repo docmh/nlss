@@ -12,7 +12,7 @@ Run linear regression (OLS) or generalized linear models (binomial/logistic, Poi
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -140,10 +140,10 @@ Use `narrative.row_template` for per-model lines. Available row tokens include:
 
 ## NLSS format Reporting Guidance
 
-- Report model fit (*F*/Chi-square, *df*, *p*, *R*²/pseudo *R*², *f*²) for each block.
-- Report unstandardized coefficients (*b*), *SE*, and *p*-values; include standardized betas when requested.
-- For logistic/Poisson models, report exp(*b*) as odds ratios or incidence rate ratios.
-- If hierarchical blocks are used, report change statistics (Delta *R*² or Delta deviance).
+- Report model fit (F/Chi², df, p, R²/pseudo R², f²) for each block.
+- Report unstandardized coefficients (b), SE, and p-values; include standardized betas when requested.
+- For logistic/Poisson models, report exp(b) as odds ratios or incidence rate ratios.
+- If hierarchical blocks are used, report change statistics (Delta R² or Delta deviance).
 
 ## Dependencies
 

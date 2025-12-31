@@ -12,7 +12,7 @@ This metaskill guides the agent to screen a dataset before analysis. It focuses 
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
@@ -136,7 +136,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>"
 - `report_canonical.md`: NLSS format-ready outputs from `data-explorer`, `descriptive-stats`, optional `plot`/`correlations`/`assumptions`, plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
-- `report_<YYYYMMDD>_screen-data_<intent>.md`: NLSS format-ready, journal-ready narrative report with tables/figures as needed.
+- `report_<YYYYMMDD>_screen-data_<intent>.md`: NLSS format-ready, journal-alike narrative report with tables/figures as needed.
 
 ### Final Report Requirements
 
@@ -170,7 +170,7 @@ This metaskill does not define its own NLSS format template. It relies on the te
 
 ## NLSS format Reporting Guidance
 
-- Report sample size (*N*), missingness ranges, and variable types for screened variables.
+- Report sample size (N), missingness ranges, and variable types for screened variables.
 - Summarize distributional shape, skew/kurtosis, and outlier counts for numeric variables.
 - For linearity and homoscedasticity, note visual patterns and any diagnostic test results.
 - If model-specific assumptions were checked, report the tests used and any violations with recommended remedies (transformations, robust tests, or alternative models).

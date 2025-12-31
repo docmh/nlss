@@ -17,7 +17,7 @@ This metaskill helps the agent test hypotheses (H1, H2, H3, ...) when the initia
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -105,14 +105,14 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 - Do not assume DVs/IVs or test direction when hypotheses are vague; request clarification first.
 - Use config defaults for subskills unless the user specifies other options.
 - If the user wants "proof" of hypotheses, clarify that statistical evidence is reported rather than proof.
-- Apply *p*-value adjustments only when the user requests them or multiple tests are planned.
+- Apply p-value adjustments only when the user requests them or multiple tests are planned.
 
 ## Outputs
 
 - `report_canonical.md`: NLSS format-ready outputs from the selected subskills (t-tests, ANOVA, regression, correlations, SEM, etc.) plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
 - `scratchpad.md`: Hypothesis clarifications, plan, assumptions, and completion notes.
-- `report_<YYYYMMDD>_test-hypotheses_<intent>.md`: NLSS format-ready, journal-ready narrative report with ad hoc tables/plots as needed.
+- `report_<YYYYMMDD>_test-hypotheses_<intent>.md`: NLSS format-ready, journal-alike narrative report with ad hoc tables/plots as needed.
 
 ### Final Report Requirements
 
@@ -143,7 +143,7 @@ This metaskill does not define its own NLSS format template. It relies on the te
 
 - Clearly tie each hypothesis to its test and report the corresponding effect sizes and confidence intervals.
 - Document assumptions checks and any departures or alternative tests used.
-- If multiple hypotheses are tested, note any *p*-value adjustment strategy.
+- If multiple hypotheses are tested, note any p-value adjustment strategy.
 
 ## Parquet Support
 

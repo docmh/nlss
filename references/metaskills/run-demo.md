@@ -12,7 +12,7 @@ This metaskill provides a friendly, guided onboarding to NLSS. It explains NLSS 
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 Exception for this metaskill: **only** ask for permission to create the workspace; do not ask any other clarifying questions unless the user explicitly invites them. Also: do not run `metaskill-runner` and do not create a metaskill report file for this onboarding flow.
 

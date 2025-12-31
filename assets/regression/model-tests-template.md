@@ -16,22 +16,22 @@ table:
       label: "SS"
       drop_if_empty: true
     - key: "df"
-      label: "*df*"
+      label: "df"
       drop_if_empty: true
     - key: "ms"
       label: "MS"
       drop_if_empty: true
     - key: "f"
-      label: "*F*"
+      label: "F"
       drop_if_empty: true
     - key: "p"
-      label: "Sig."
+      label: "p"
       drop_if_empty: true
     - key: "deviance"
       label: "Deviance"
       drop_if_empty: true
     - key: "chisq"
-      label: "Chi-square"
+      label: "Chi²"
       drop_if_empty: true
 note:
   template: "{{note_default}}"

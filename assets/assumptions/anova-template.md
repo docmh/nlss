@@ -16,14 +16,14 @@ table:
       label: "Group"
       drop_if_empty: true
     - key: "n"
-      label: "*n*"
+      label: "n"
     - key: "statistic"
       label: "Statistic"
     - key: "df"
-      label: "*df*"
+      label: "df"
       drop_if_empty: true
     - key: "p"
-      label: "*p*"
+      label: "p"
       drop_if_empty: true
     - key: "decision"
       label: "Decision"

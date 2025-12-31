@@ -847,8 +847,8 @@ build_mixed_anova_table_body <- function(anova_df, digits, table_meta) {
     list(key = "den_df", label = "Den df", drop_if_empty = TRUE),
     list(key = "df", label = "df", drop_if_empty = TRUE),
     list(key = "f", label = "F", drop_if_empty = TRUE),
-    list(key = "chisq", label = "Chi-square", drop_if_empty = TRUE),
-    list(key = "p", label = "Sig.", drop_if_empty = TRUE)
+    list(key = "chisq", label = "Chi²", drop_if_empty = TRUE),
+    list(key = "p", label = "p", drop_if_empty = TRUE)
   )
   columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
@@ -919,7 +919,7 @@ build_mixed_anova_narrative_rows <- function(anova_df, digits) {
     } else if (!is.na(chisq_val)) {
       df_text <- if (!is.na(df_val)) paste0("(", format_num(df_val, digits), ")") else ""
       sentence <- sprintf(
-        "%s: Chi-square%s = %s, p %s.",
+        "%s: Chi²%s = %s, p %s.",
         term,
         df_text,
         format_stat(chisq_val, digits),
@@ -1143,7 +1143,7 @@ build_mixed_models_note_tokens <- function(random_terms, conf_level, standardize
     r2_m <- format_stat(r2_df$r2_marginal[1], 2)
     r2_c <- format_stat(r2_df$r2_conditional[1], 2)
     if (nzchar(r2_m) && nzchar(r2_c)) {
-      notes <- c(notes, paste0("R2m = ", r2_m, ", R2c = ", r2_c, "."))
+      notes <- c(notes, paste0("R²m = ", r2_m, ", R²c = ", r2_c, "."))
     }
   }
   icc_val <- ""

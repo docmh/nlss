@@ -1,6 +1,6 @@
 ---
 name: write-full-report
-description: End-to-end metaskill that turns a dataset plus research question/hypotheses into a defensible, NLSS format-ready, journal-ready report by orchestrating screening, preparation, analysis, and literature support.
+description: End-to-end metaskill that turns a dataset plus research question/hypotheses into a defensible, NLSS format-ready, journal-alike report by orchestrating screening, preparation, analysis, and literature support.
 license: Apache-2.0
 ---
 
@@ -8,7 +8,7 @@ license: Apache-2.0
 
 ## Overview
 
-This metaskill is the highest-level orchestration for NLSS. It starts with a dataset plus a research question or hypotheses, then uses the full skill set to screen and prepare the data, select and run analyses, and synthesize a final, journal-ready report. A well grounded theoretical introduction is mandatory for this metaskill and must be supported by academia research and web search.
+This metaskill is the highest-level orchestration for NLSS. It starts with a dataset plus a research question or hypotheses, then uses the full skill set to screen and prepare the data, select and run analyses, and synthesize a final, journal-alike report. A well grounded theoretical introduction is mandatory for this metaskill and must be supported by academia research and curated sources.
 
 ## Intent/Triggers
 
@@ -30,7 +30,7 @@ Use this metaskill when the user asks for an end-to-end analysis and report, for
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -39,7 +39,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 3. Log activation with `metaskill-runner`.
 4. Inspect the dataset to infer candidate variables, IDs, and data quality risks; summarize in `scratchpad.md`.
 5. Ask clarifying questions on hypotheses, variable roles, design, and measurement details.
-6. Always build a well grounded theoretical introduction using `research-academia` with web search enabled and curate sources before writing the report.
+6. Always build a well grounded theoretical introduction using `research-academia` and curate sources before writing the report.
 7. Write a step-by-step plan to `scratchpad.md`, then execute subskills in order.
 8. Update `scratchpad.md` after each step with progress, decisions, and transformations.
 9. Generate `report_<YYYYMMDD>_write-full-report_<intent>.md` first, align it using `references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
@@ -132,14 +132,14 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 - Prefer parametric tests when assumptions are met; switch to nonparametric alternatives only after discussion.
 - Use effect sizes and confidence intervals as primary evidence; do not frame results as proof.
 - If the dataset is large or very wide, ask the user to prioritize domains and outcomes.
-- Always enable web search for the `research-academia` step and use it to ground the Introduction with citations.
+- Use `research-academia` to ground the Introduction with citations, and curate sources for relevance and quality.
 
 ## Outputs
 
 - `report_canonical.md`: NLSS format-ready outputs from the subskills plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
 - `analysis_log.jsonl`: Metaskill activation/finalization entries plus the underlying subskill logs.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
-- `report_<YYYYMMDD>_write-full-report_<intent>.md`: NLSS format-ready, journal-ready narrative report with tables/figures as needed.
+- `report_<YYYYMMDD>_write-full-report_<intent>.md`: NLSS format-ready, journal-alike narrative report with tables/figures as needed.
 
 ### Final Report Requirements
 
@@ -149,7 +149,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 - Synthesize results across subskills with interpretation; integrate tables/figures with captions and in-text references.
 - Craft tables and figures specifically for the report rather than copying them from `report_canonical.md`.
 - Keep the report NLSS format-ready and suitable for journal submission.
-- The Introduction must be a well grounded theoretical synthesis and must cite sources obtained via academia research and web search.
+- The Introduction must be a well grounded theoretical synthesis and must cite sources obtained via academia research.
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`).
 All artifacts (reports, tables, figures) must be created inside the dataset workspace folder; do not write outside the workspace root.

@@ -423,6 +423,19 @@ normalize_effect_metric <- function(value, analysis, default = "auto") {
   val
 }
 
+format_effect_metric_label <- function(value) {
+  if (is.null(value) || !nzchar(as.character(value))) return("")
+  val <- tolower(as.character(value))
+  if (val == "f2") return("f²")
+  if (val == "r2") return("r²")
+  if (val == "eta2") return("eta²")
+  if (val == "rmsea") return("RMSEA")
+  if (val == "d") return("d")
+  if (val == "f") return("f")
+  if (val == "r") return("r")
+  as.character(value)
+}
+
 emit_input_issue <- function(out_dir, opts, message, details = list(), status = "invalid_input") {
   log_default <- resolve_config_value("defaults.log", TRUE)
   if (resolve_parse_bool(opts$log, default = log_default)) {
@@ -519,7 +532,7 @@ estimate_regression_effect <- function(df, dv, ivs) {
   formula <- as.formula(paste(dv, "~", paste(ivs, collapse = " + ")))
   model <- lm(formula, data = data)
   r2 <- summary(model)$r.squared
-  if (is.na(r2) || r2 < 0) stop("Could not compute R2.")
+  if (is.na(r2) || r2 < 0) stop("Could not compute R².")
   f2 <- if (r2 >= 1) NA_real_ else r2 / (1 - r2)
   list(r2 = r2, f2 = f2, n = nrow(data))
 }
@@ -547,12 +560,12 @@ coerce_effect_size <- function(metric, value) {
   if (metric == "eta2") {
     if (value <= 0 || value >= 1) return(list(metric = "f", value = NA_real_, note = "eta2 must be between 0 and 1."))
     f <- sqrt(value / (1 - value))
-    return(list(metric = "f", value = f, note = "Effect size converted from eta2 to f."))
+    return(list(metric = "f", value = f, note = "Effect size converted from eta² to f."))
   }
   if (metric == "r2") {
-    if (value < 0 || value >= 1) return(list(metric = "f2", value = NA_real_, note = "r2 must be between 0 and 1."))
+    if (value < 0 || value >= 1) return(list(metric = "f2", value = NA_real_, note = "r² must be between 0 and 1."))
     f2 <- if (value >= 1) NA_real_ else value / (1 - value)
-    return(list(metric = "f2", value = f2, note = "Effect size converted from r2 to f2."))
+    return(list(metric = "f2", value = f2, note = "Effect size converted from r² to f²."))
   }
   list(metric = metric, value = value, note = "")
 }
@@ -592,7 +605,7 @@ build_power_table_body <- function(summary_df, digits, table_spec = NULL) {
     list(key = "ratio", label = "Ratio", drop_if_empty = TRUE),
     list(key = "u", label = "u", drop_if_empty = TRUE),
     list(key = "df", label = "df", drop_if_empty = TRUE),
-    list(key = "r2", label = "R2", drop_if_empty = TRUE),
+    list(key = "r2", label = "R²", drop_if_empty = TRUE),
     list(key = "rmsea0", label = "RMSEA0", drop_if_empty = TRUE),
     list(key = "rmsea1", label = "RMSEA1", drop_if_empty = TRUE),
     list(key = "t_type", label = "t type", drop_if_empty = TRUE),
@@ -626,7 +639,11 @@ build_power_table_body <- function(summary_df, digits, table_spec = NULL) {
         if (label == "sensitivity") label <- "sensitivity"
         val <- resolve_as_cell_text(label)
       } else if (key %in% c("effect_metric", "t_type", "alternative", "effect_source")) {
-        val <- resolve_as_cell_text(row[[key]])
+        if (key == "effect_metric") {
+          val <- resolve_as_cell_text(format_effect_metric_label(row[[key]]))
+        } else {
+          val <- resolve_as_cell_text(row[[key]])
+        }
       } else if (key %in% c("n_total", "n_per_group", "n1", "n2", "groups", "u", "df")) {
         val <- ifelse(is.na(row[[key]]), "", format_int(row[[key]]))
       } else if (key %in% c("alpha", "power", "effect_size", "ratio", "r2", "rmsea0", "rmsea1")) {
@@ -696,7 +713,7 @@ build_power_narrative <- function(row, digits) {
     analysis_label <- "SEM (RMSEA)"
   }
 
-  effect_text <- paste0(effect_metric, " = ", format_stat(effect_size, digits))
+  effect_text <- paste0(format_effect_metric_label(effect_metric), " = ", format_stat(effect_size, digits))
   alpha_text <- format_stat(alpha, digits)
   power_text <- format_stat(power, digits)
 

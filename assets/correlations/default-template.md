@@ -14,15 +14,15 @@ table:
     - key: "var2"
       label: "Variable 2"
     - key: "r"
-      label: "*r*"
+      label: "r"
     - key: "r0"
-      label: "*r*0"
+      label: "r0"
       drop_if_empty: true
     - key: "z_r0"
-      label: "*z* (*r*0)"
+      label: "z (r0)"
       drop_if_empty: true
     - key: "p_r0"
-      label: "*p* (*r*0)"
+      label: "p (r0)"
       drop_if_empty: true
     - key: "ci"
       label: "{{ci_label}}"
@@ -31,12 +31,12 @@ table:
       label: "Boot CI"
       drop_if_empty: true
     - key: "p"
-      label: "*p*"
+      label: "p"
     - key: "p_adj"
       label: "p_adj"
       drop_if_empty: true
     - key: "n"
-      label: "*n*"
+      label: "n"
 note:
   template: "{{note_default}}"
 narrative:

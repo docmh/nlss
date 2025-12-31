@@ -743,9 +743,9 @@ build_regression_model_tests_table_body <- function(model_tests_df, digits, tabl
     list(key = "df", label = "df", drop_if_empty = TRUE),
     list(key = "ms", label = "MS", drop_if_empty = TRUE),
     list(key = "f", label = "F", drop_if_empty = TRUE),
-    list(key = "p", label = "Sig.", drop_if_empty = TRUE),
+    list(key = "p", label = "p", drop_if_empty = TRUE),
     list(key = "deviance", label = "Deviance", drop_if_empty = TRUE),
-    list(key = "chisq", label = "Chi-square", drop_if_empty = TRUE)
+    list(key = "chisq", label = "Chi²", drop_if_empty = TRUE)
   )
   columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
   show_model <- length(unique(display$model)) > 1
@@ -805,9 +805,9 @@ build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, 
     delta_deviance <- ""
     delta_chisq <- ""
     if (family == "gaussian") {
-      f2_txt <- if (!is.na(row$f2)) paste0(", f2 = ", format_stat(row$f2, digits)) else ""
+      f2_txt <- if (!is.na(row$f2)) paste0(", f² = ", format_stat(row$f2, digits)) else ""
       sentence <- sprintf(
-        "%s%s: F(%s, %s) = %s, p %s, R2 = %s, adj. R2 = %s%s.",
+        "%s%s: F(%s, %s) = %s, p %s, R² = %s, adj. R² = %s%s.",
         group_label,
         model_label,
         format_num(row$model_df1, digits),
@@ -820,7 +820,7 @@ build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, 
       )
     } else {
       sentence <- sprintf(
-        "%s%s: Chi-square(%s) = %s, p %s, McFadden R2 = %s.",
+        "%s%s: Chi²(%s) = %s, p %s, McFadden R² = %s.",
         group_label,
         model_label,
         format_num(row$model_df1, digits),
@@ -844,9 +844,9 @@ build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, 
           sentence <- paste0(
             sentence,
             sprintf(
-              " Delta R2 = %s%s, F-change(%s, %s) = %s, p %s.",
+              " Delta R² = %s%s, F-change(%s, %s) = %s, p %s.",
               delta_r2,
-              if (nzchar(delta_f2)) paste0(", Delta f2 = ", delta_f2) else "",
+              if (nzchar(delta_f2)) paste0(", Delta f² = ", delta_f2) else "",
               delta_df1,
               delta_df2,
               delta_f,
@@ -861,7 +861,7 @@ build_regression_narrative_rows <- function(summary_df, comparisons_df, digits, 
           sentence <- paste0(
             sentence,
             sprintf(
-              " Delta deviance = %s, Chi-square(%s) = %s, p %s.",
+              " Delta deviance = %s, Chi²(%s) = %s, p %s.",
               delta_deviance,
               delta_df1,
               delta_chisq,

@@ -12,7 +12,7 @@ Run SEM/CFA/path/mediation models with lavaan and produce NLSS format tables and
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -85,7 +85,7 @@ Defaults are loaded from `scripts/config.yml` (requires R package `yaml`); CLI f
 
 - `--std`: `none`, `std.lv`, `std.all` (default: `modules.sem.std`).
 - `--fit`: fit indices list (default: `modules.sem.fit`).
-- `--r2`: report *R*² (default: `modules.sem.r2`).
+- `--r2`: report R² (default: `modules.sem.r2`).
 - `--modindices`: modification index cutoff (default: `modules.sem.modindices`).
 - `--residuals`: include standardized residuals in the JSONL log (default: `modules.sem.residuals`).
 - `--digits`: rounding (default: `defaults.digits`).
@@ -134,7 +134,7 @@ Templates use YAML front matter with `{{token}}` placeholders. Supported section
 
 ## NLSS format Reporting Guidance
 
-- Report fit indices (chi-square, *df*, CFI, TLI, RMSEA, SRMR) and the estimator/missing handling used.
+- Report fit indices (chi², df, CFI, TLI, RMSEA, SRMR) and the estimator/missing handling used.
 - For mediation, report indirect effects with bootstrap CIs and note the model type (parallel vs serial).
 - For CFA, report standardized loadings and factor correlations if relevant.
 - For invariance, report delta CFI/RMSEA and the step at which invariance holds.

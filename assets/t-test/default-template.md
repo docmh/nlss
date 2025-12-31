@@ -1,7 +1,7 @@
 ---
 tokens:
-  title: "*t* Tests"
-  table_title: "*t* Test Results"
+  title: "t Tests"
+  table_title: "t Test Results"
   note_prefix: "*Note.*"
   narrative_heading: "## Narrative"
 table:
@@ -23,30 +23,30 @@ table:
       label: "Group 2"
       drop_if_empty: true
     - key: "n_1"
-      label: "*n*1"
+      label: "n1"
     - key: "n_2"
-      label: "*n*2"
+      label: "n2"
       drop_if_empty: true
     - key: "mean_1"
-      label: "*M*1"
+      label: "M1"
     - key: "mean_2"
-      label: "*M*2"
+      label: "M2"
       drop_if_empty: true
     - key: "sd_1"
-      label: "*SD*1"
+      label: "SD1"
     - key: "sd_2"
-      label: "*SD*2"
+      label: "SD2"
       drop_if_empty: true
     - key: "mean_diff"
       label: "Mean diff"
     - key: "t"
-      label: "*t*"
+      label: "t"
     - key: "df"
-      label: "*df*"
+      label: "df"
     - key: "p"
-      label: "*p*"
+      label: "p"
     - key: "d"
-      label: "*d*"
+      label: "d"
     - key: "ci_low"
       label: "CI low"
       drop_if_empty: true
@@ -60,10 +60,10 @@ table:
       label: "Boot CI high"
       drop_if_empty: true
     - key: "boot_d_ci_low"
-      label: "Boot *d* CI low"
+      label: "Boot d CI low"
       drop_if_empty: true
     - key: "boot_d_ci_high"
-      label: "Boot *d* CI high"
+      label: "Boot d CI high"
       drop_if_empty: true
 note:
   template: "{{note_default}}"

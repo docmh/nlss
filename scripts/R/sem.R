@@ -66,7 +66,7 @@ print_usage <- function() {
   cat("  --bootstrap-samples N   Bootstrap resamples (default: 5000)\n")
   cat("  --std TYPE              none/std.lv/std.all\n")
   cat("  --fit LIST              Fit indices to report\n")
-  cat("  --r2 TRUE/FALSE         Report R2 (default: TRUE)\n")
+  cat("  --r2 TRUE/FALSE         Report R² (default: TRUE)\n")
   cat("  --modindices N          Modification index cutoff (0 to skip)\n")
   cat("  --residuals TRUE/FALSE  Store standardized residuals in log\n")
   cat("  --digits N              Rounding digits (default: 2)\n")
@@ -145,7 +145,7 @@ interactive_options <- function() {
   opts$`bootstrap-samples` <- resolve_prompt("Bootstrap samples", as.character(bootstrap_samples_default))
   opts$std <- resolve_prompt("Standardization (none/std.lv/std.all)", std_default)
   opts$fit <- resolve_prompt("Fit indices", fit_default)
-  opts$r2 <- resolve_prompt("Report R2 TRUE/FALSE", ifelse(isTRUE(r2_default), "TRUE", "FALSE"))
+  opts$r2 <- resolve_prompt("Report R² TRUE/FALSE", ifelse(isTRUE(r2_default), "TRUE", "FALSE"))
   opts$modindices <- resolve_prompt("Modindices cutoff", as.character(modindices_default))
   opts$residuals <- resolve_prompt("Include residuals TRUE/FALSE", ifelse(isTRUE(residuals_default), "TRUE", "FALSE"))
   opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
@@ -599,9 +599,9 @@ build_fit_sentence <- function(fit_values, digits) {
     df <- format_stat(fit_values$df, 0)
     p_val <- if (!is.null(fit_values$pvalue)) format_p(fit_values$pvalue) else ""
     if (nzchar(p_val)) {
-      parts <- c(parts, paste0("chi-square(", df, ") = ", chisq, ", p ", p_val))
+      parts <- c(parts, paste0("chi²(", df, ") = ", chisq, ", p ", p_val))
     } else {
-      parts <- c(parts, paste0("chi-square(", df, ") = ", chisq))
+      parts <- c(parts, paste0("chi²(", df, ") = ", chisq))
     }
   }
   metrics <- c("cfi", "tli", "rmsea", "srmr", "aic", "bic")
@@ -664,7 +664,7 @@ build_r2_sentence <- function(r2_values, digits) {
     }
   }
   if (length(parts) == 0) return("")
-  paste0("R2: ", paste(parts, collapse = "; "), ".")
+  paste0("R²: ", paste(parts, collapse = "; "), ".")
 }
 
 build_sem_table_body <- function(param_df, digits, table_meta) {
@@ -715,7 +715,7 @@ build_invariance_table_body <- function(summary_df, digits, table_meta) {
   default_specs <- list(
     list(key = "step", label = "Step"),
     list(key = "group_equal", label = "Constraints", drop_if_empty = TRUE),
-    list(key = "chisq", label = "chisq"),
+    list(key = "chisq", label = "Chi²"),
     list(key = "df", label = "df"),
     list(key = "p", label = "p"),
     list(key = "cfi", label = "CFI"),

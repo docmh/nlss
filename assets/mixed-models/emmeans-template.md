@@ -21,15 +21,15 @@ table:
       label: "Estimate"
       drop_if_empty: true
     - key: "se"
-      label: "*SE*"
+      label: "SE"
     - key: "df"
-      label: "*df*"
+      label: "df"
       drop_if_empty: true
     - key: "t"
-      label: "*t*"
+      label: "t"
       drop_if_empty: true
     - key: "p"
-      label: "*p*"
+      label: "p"
       drop_if_empty: true
     - key: "p_adj"
       label: "p_adj"

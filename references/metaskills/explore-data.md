@@ -12,7 +12,7 @@ This metaskill guides the agent to provide a structured overview of a dataset wh
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
@@ -127,7 +127,7 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runn
 - `report_canonical.md`: NLSS format-ready outputs from `data-explorer`, `descriptive-stats`, `frequencies`, optional `correlations`/`plots`, plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
 - `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
-- `report_<YYYYMMDD>_explore-data_<intent>.md`: NLSS format-ready, journal-ready narrative report with ad hoc tables/plots as needed.
+- `report_<YYYYMMDD>_explore-data_<intent>.md`: NLSS format-ready, journal-alike narrative report with ad hoc tables/plots as needed.
 
 ### Final Report Requirements
 
@@ -161,7 +161,7 @@ This metaskill does not define its own NLSS format template. It relies on the te
 
 ## NLSS format Reporting Guidance
 
-- Report sample size (*N*), missingness patterns, and variable types.
+- Report sample size (N), missingness patterns, and variable types.
 - Summarize distributions for numeric variables and frequency tables for categorical variables.
 - If correlations are included, report method and note any notable associations descriptively.
 

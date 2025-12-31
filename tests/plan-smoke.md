@@ -4,7 +4,7 @@
 
 - Run every current module with a clean variable subset and with edge-case inputs.
 - Exercise the calc utility with basic, vector, unsafe, and failure cases.
-- Exercise the research-academia utility with web-disabled guardrails and multiple web-enabled searches (when allowed).
+- Exercise the research-academia utility with multiple network searches (when allowed).
 - Exercise key flags and template branches (grouped, cross, anova/regression).
 - Verify logging toggles (enabled/fields) change `analysis_log.jsonl` content as expected, including invalid toggle values.
 - Verify check-integrity on `analysis_log.jsonl`, including tampered copies (edit/delete a line) to confirm warning behavior.
@@ -44,7 +44,7 @@
 
 1) `init-workspace` to create the parquet copy.
 2) Calc utility smoke (basic, vector, unsafe, negative).
-3) Research-academia utility guardrail (web disabled) and optional web-enabled run.
+3) Research-academia utility optional network run.
 4) Clean pass for read-only modules.
 5) Generate labeled RDS fixtures and run label-aware modules against them.
 6) Prepare mixed-models long dataset and run mixed models clean pass.
@@ -105,13 +105,10 @@ Rscript scripts/R/calc.R --expr "pnorm(c(-1,0,1))" --unsafe TRUE --digits 3
 ## Research-Academia Utility Examples
 
 ```bash
-# Guardrail (should fail when web is disabled)
-Rscript scripts/R/research_academia.R --query "effect size" --web FALSE
-
-# Web-enabled (only if allowed)
-NLSS_WEB_SEARCH=1 Rscript scripts/R/research_academia.R --query "effect size" --web TRUE --sources openalex,crossref --top-n 5
-NLSS_WEB_SEARCH=1 Rscript scripts/R/research_academia.R --query "power analysis" --web TRUE --sources openalex --top-n 2
-NLSS_WEB_SEARCH=1 Rscript scripts/R/research_academia.R --query "stress experience" --web TRUE --sources openalex --top-n 2
+# Network run (only if allowed)
+Rscript scripts/R/research_academia.R --query "effect size" --sources openalex,crossref --top-n 5
+Rscript scripts/R/research_academia.R --query "power analysis" --sources openalex --top-n 2
+Rscript scripts/R/research_academia.R --query "stress experience" --sources openalex --top-n 2
 ```
 
 ## Example Commands (Edge-Case Pass)

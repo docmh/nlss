@@ -12,7 +12,7 @@ Evaluate simple numeric expressions from the CLI to derive parameters for subski
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
@@ -20,9 +20,9 @@ Use this utility when the request is a quick numeric computation rather than a s
 
 Example prompts:
 
-- "Compute *f*² from *R*² = 0.12."
+- "Compute f² from R² = 0.12."
 - "Adjust alpha for 3 tests."
-- "Convert *r* = 0.30 to *d*."
+- "Convert r = 0.30 to d."
 
 ## Inputs
 
@@ -71,7 +71,7 @@ Rscript <path to scripts/R/calc.R> --expr "0.05/3"
 # Adjust alpha for 3 tests
 Rscript <path to scripts/R/calc.R> --expr "0.05/3"
 
-# Convert r to d and compute r2
+# Convert r to d and compute r²
 Rscript <path to scripts/R/calc.R> --set "r=0.3" --expr "d=2*r/sqrt(1-r^2)|r2=r^2"
 
 # Plain output without assignments

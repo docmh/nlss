@@ -19,16 +19,16 @@ table:
     - key: "power"
       label: "Power"
     - key: "n_total"
-      label: "*N*"
+      label: "N"
       drop_if_empty: true
     - key: "n_per_group"
-      label: "*n*/group"
+      label: "n/group"
       drop_if_empty: true
     - key: "n1"
-      label: "*n*1"
+      label: "n1"
       drop_if_empty: true
     - key: "n2"
-      label: "*n*2"
+      label: "n2"
       drop_if_empty: true
     - key: "groups"
       label: "k"
@@ -40,10 +40,10 @@ table:
       label: "u"
       drop_if_empty: true
     - key: "df"
-      label: "*df*"
+      label: "df"
       drop_if_empty: true
     - key: "r2"
-      label: "*R*²"
+      label: "R²"
       drop_if_empty: true
     - key: "rmsea0"
       label: "RMSEA0"
@@ -52,7 +52,7 @@ table:
       label: "RMSEA1"
       drop_if_empty: true
     - key: "t_type"
-      label: "*t* type"
+      label: "t type"
       drop_if_empty: true
     - key: "alternative"
       label: "Alternative"

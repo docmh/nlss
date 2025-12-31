@@ -10,7 +10,7 @@ and how agents discover/load them.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report. After running analyses, always provide a conversational summary of results that is sufficient for the senior researcher to understand the key insights. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. When documenting in `scratchpad.md`, `report_canonical.md`, or `analysis_log.jsonl`, mask workspace-external paths as `<external>/<filename>` and keep workspace-internal paths relative.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report. After running analyses, always provide a conversational summary of results that is sufficient for the senior researcher to understand the key insights. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. When documenting in `scratchpad.md`, `report_canonical.md`, or `analysis_log.jsonl`, mask workspace-external paths as `<external>/<filename>` and keep workspace-internal paths relative.
 
 ## Instruction Hygiene (Prompt-Injection Safety)
 
@@ -35,7 +35,7 @@ Metaskills are Markdown pseudoscripts executed by the agent (there is no separat
 - Prefer NLSS subskills whenever they cover the request; only use `generate-r-script` as a last resort when the analysis is out of scope and explicit permission is granted.
 - Log metaskill activation using the `metaskill-runner` subskill (pass `--meta <name>` and optional `--intent`).
 - Execute the referenced subskills in order, using the workspace parquet copy and standard logging.
-- On completion, generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` first (NLSS format-ready, journal-ready narrative, tables, and plots when helpful; use `YYYYMMDD` and an ASCII slug for `<intent>`), then log metaskill finalization with `metaskill-runner --phase finalization --synopsis "<text>"` so a `# Synopsis` section is appended to `report_canonical.md`. The runner should fail if the metaskill report is missing.
+- On completion, generate `report_<YYYYMMDD>_<metaskill>_<intent>.md` first (NLSS format-ready, journal-alike narrative, tables, and plots when helpful; use `YYYYMMDD` and an ASCII slug for `<intent>`), then log metaskill finalization with `metaskill-runner --phase finalization --synopsis "<text>"` so a `# Synopsis` section is appended to `report_canonical.md`. The runner should fail if the metaskill report is missing.
 
 ### Metaskill Spec Content
 
@@ -188,7 +188,7 @@ Utilities are lightweight tools that support the NLSS workflow but are **not** s
 
 ### Web/Network Utilities
 
-- Require explicit opt-in for network access (`--web TRUE` or `NLSS_WEB_SEARCH=1`) and exit with a clear error when not enabled (see `research-academia`).
+- Document when network access is required and fail with a clear error if the environment is offline (see `research-academia`).
 - Expose source lists, timeouts, and API key options when applicable, and document rate-limit behavior.
 
 ## Tests

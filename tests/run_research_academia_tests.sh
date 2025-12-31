@@ -182,75 +182,64 @@ ANALYSIS_LOG_PATH="${OUT_DIR}/analysis_log.jsonl"
 
 cd "${RUN_ROOT}"
 
-run_fail "research web disabled" Rscript "${R_SCRIPT_DIR}/research_academia.R" --query "effect size" --web FALSE
-run_fail "research missing query" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" --web TRUE --sources openalex
-run_fail "research invalid sources" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" --web TRUE --query "effect size" --sources invalid_source
-run_fail "research invalid max-per-source" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" --web TRUE --query "effect size" --sources openalex --max-per-source 0
-run_fail "research invalid max-total" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" --web TRUE --query "effect size" --sources openalex --max-total 0
-run_fail "research invalid top-n" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" --web TRUE --query "effect size" --sources openalex --top-n 0
-run_fail "research invalid timeout" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" --web TRUE --query "effect size" --sources openalex --timeout 0
+run_fail "research missing query" Rscript "${R_SCRIPT_DIR}/research_academia.R" --sources openalex
+run_fail "research invalid sources" Rscript "${R_SCRIPT_DIR}/research_academia.R" --query "effect size" --sources invalid_source
+run_fail "research invalid max-per-source" Rscript "${R_SCRIPT_DIR}/research_academia.R" --query "effect size" --sources openalex --max-per-source 0
+run_fail "research invalid max-total" Rscript "${R_SCRIPT_DIR}/research_academia.R" --query "effect size" --sources openalex --max-total 0
+run_fail "research invalid top-n" Rscript "${R_SCRIPT_DIR}/research_academia.R" --query "effect size" --sources openalex --top-n 0
+run_fail "research invalid timeout" Rscript "${R_SCRIPT_DIR}/research_academia.R" --query "effect size" --sources openalex --timeout 0
 
-ALLOW_WEB="${NLSS_TEST_ALLOW_WEB:-}"
-if [ -z "${ALLOW_WEB}" ]; then
-  if [ "${NLSS_WEB_SEARCH:-}" = "1" ] || [ "${NLSS_WEB_SEARCH:-}" = "TRUE" ] || [ "${NLSS_WEB_SEARCH:-}" = "true" ]; then
-    ALLOW_WEB="1"
-  else
-    ALLOW_WEB="0"
-  fi
+rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
+run_ok "research basic" Rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "effect size" --sources openalex,crossref --top-n 5 --max-per-source 5 --max-total 10 --timeout 20
+assert_marker "\"module\":\"research-academia\"" "${ANALYSIS_LOG_PATH}"
+assert_marker "Research (Academia)" "${REPORT_PATH}"
+assert_marker "Most Relevant" "${REPORT_PATH}"
+assert_regex "Sources:.*openalex.*crossref" "${REPORT_PATH}"
+assert_marker "References" "${REPORT_PATH}"
+
+rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
+run_ok "research openalex only" Rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "effect size" --sources openalex --top-n 3 --max-per-source 3 --max-total 6 --timeout 20
+assert_regex "Sources:.*openalex" "${REPORT_PATH}"
+
+rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
+run_ok "research crossref only" Rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "effect size" --sources crossref --top-n 3 --max-per-source 3 --max-total 6 --timeout 20
+assert_regex "Sources:.*crossref" "${REPORT_PATH}"
+
+rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
+run_ok "research comprehensive template" Rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "effect size" --sources openalex --top-n 3 --max-per-source 3 --max-total 6 --timeout 20 --template "${COMPREHENSIVE_TEMPLATE_PATH}"
+assert_marker "Comprehensive Results" "${REPORT_PATH}"
+
+rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
+run_ok "research sources equals syntax" Rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "effect size" --sources=openalex,crossref --top-n 3 --max-per-source 3 --max-total 6 --timeout 20
+assert_regex "Sources:.*openalex.*crossref" "${REPORT_PATH}"
+
+rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
+run_ok "research sources whitespace" Rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "effect size" --sources openalex crossref --top-n 3 --max-per-source 3 --max-total 6 --timeout 20
+assert_regex "Sources:.*openalex.*crossref" "${REPORT_PATH}"
+
+rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
+run_ok "research year bounds" Rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "effect size" --sources openalex --year-from 2018 --year-to 2020 --top-n 3 --max-per-source 3 --max-total 6 --timeout 20
+assert_marker "Year from: 2018" "${REPORT_PATH}"
+assert_marker "Year to: 2020" "${REPORT_PATH}"
+
+rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
+if [ -n "${NLSS_SEMANTIC_SCHOLAR_API_KEY:-}" ] || [ -n "${SEMANTIC_SCHOLAR_API_KEY:-}" ]; then
+  run_ok "research semantic scholar only" Rscript "${R_SCRIPT_DIR}/research_academia.R" \
+    --query "stress experience" --sources semantic_scholar --top-n 3 --max-per-source 3 --max-total 6 --timeout 20
+  assert_regex "Sources:.*semantic_scholar" "${REPORT_PATH}"
+  assert_marker "Research (Academia)" "${REPORT_PATH}"
+else
+  echo "[SKIP] research semantic scholar only (set NLSS_SEMANTIC_SCHOLAR_API_KEY to enable)" | tee -a "${LOG_FILE}"
 fi
 
-if [ "${ALLOW_WEB}" = "1" ]; then
-  rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
-  run_ok "research basic" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "effect size" --sources openalex,crossref --top-n 5 --max-per-source 5 --max-total 10 --timeout 20 --web TRUE
-  assert_marker "\"module\":\"research-academia\"" "${ANALYSIS_LOG_PATH}"
-  assert_marker "Research (Academia)" "${REPORT_PATH}"
-  assert_marker "Most Relevant" "${REPORT_PATH}"
-  assert_regex "Sources:.*openalex.*crossref" "${REPORT_PATH}"
-  assert_marker "References" "${REPORT_PATH}"
-
-  rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
-  run_ok "research openalex only" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "effect size" --sources openalex --top-n 3 --max-per-source 3 --max-total 6 --timeout 20 --web TRUE
-  assert_regex "Sources:.*openalex" "${REPORT_PATH}"
-
-  rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
-  run_ok "research crossref only" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "effect size" --sources crossref --top-n 3 --max-per-source 3 --max-total 6 --timeout 20 --web TRUE
-  assert_regex "Sources:.*crossref" "${REPORT_PATH}"
-
-  rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
-  run_ok "research comprehensive template" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "effect size" --sources openalex --top-n 3 --max-per-source 3 --max-total 6 --timeout 20 --template "${COMPREHENSIVE_TEMPLATE_PATH}" --web TRUE
-  assert_marker "Comprehensive Results" "${REPORT_PATH}"
-
-  rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
-  run_ok "research sources equals syntax" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "effect size" --sources=openalex,crossref --top-n 3 --max-per-source 3 --max-total 6 --timeout 20 --web TRUE
-  assert_regex "Sources:.*openalex.*crossref" "${REPORT_PATH}"
-
-  rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
-  run_ok "research sources whitespace" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "effect size" --sources openalex crossref --top-n 3 --max-per-source 3 --max-total 6 --timeout 20 --web TRUE
-  assert_regex "Sources:.*openalex.*crossref" "${REPORT_PATH}"
-
-  rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
-  run_ok "research year bounds" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "effect size" --sources openalex --year-from 2018 --year-to 2020 --top-n 3 --max-per-source 3 --max-total 6 --timeout 20 --web TRUE
-  assert_marker "Year from: 2018" "${REPORT_PATH}"
-  assert_marker "Year to: 2020" "${REPORT_PATH}"
-
-  rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
-  if [ -n "${NLSS_SEMANTIC_SCHOLAR_API_KEY:-}" ] || [ -n "${SEMANTIC_SCHOLAR_API_KEY:-}" ]; then
-    run_ok "research semantic scholar only" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" \
-      --query "stress experience" --sources semantic_scholar --top-n 3 --max-per-source 3 --max-total 6 --timeout 20 --web TRUE
-    assert_regex "Sources:.*semantic_scholar" "${REPORT_PATH}"
-    assert_marker "Research (Academia)" "${REPORT_PATH}"
-  else
-    echo "[SKIP] research semantic scholar only (set NLSS_SEMANTIC_SCHOLAR_API_KEY to enable)" | tee -a "${LOG_FILE}"
-  fi
-
-  cat > "${TEMPLATE_PATH}" <<'EOF'
+cat > "${TEMPLATE_PATH}" <<'EOF'
 ---
 narrative:
   template: "{{narrative}}"
@@ -266,12 +255,9 @@ narrative:
 {{references}}
 EOF
 
-  rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
-  run_ok "research template override" env NLSS_WEB_SEARCH=1 Rscript "${R_SCRIPT_DIR}/research_academia.R" \
-    --query "effect size" --sources openalex --top-n 3 --max-per-source 3 --max-total 5 --template "${TEMPLATE_PATH}" --web TRUE
-  assert_marker "RESEARCH_TEMPLATE_MARKER" "${REPORT_PATH}"
-else
-  echo "[SKIP] web-enabled research tests (set NLSS_TEST_ALLOW_WEB=1 to enable)" | tee -a "${LOG_FILE}"
-fi
+rm -f "${REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
+run_ok "research template override" Rscript "${R_SCRIPT_DIR}/research_academia.R" \
+  --query "effect size" --sources openalex --top-n 3 --max-per-source 3 --max-total 5 --template "${TEMPLATE_PATH}"
+assert_marker "RESEARCH_TEMPLATE_MARKER" "${REPORT_PATH}"
 
 echo "[DONE] research-academia tests finished" | tee -a "${LOG_FILE}"

@@ -82,7 +82,7 @@ print_usage <- function() {
   cat("  --bootstrap-samples N    SEM bootstrap resamples\n")
   cat("  --std TYPE               SEM standardization\n")
   cat("  --fit LIST               SEM fit indices\n")
-  cat("  --r2 TRUE/FALSE          SEM R2 reporting\n")
+  cat("  --r2 TRUE/FALSE          SEM R² reporting\n")
   cat("  --modindices N           SEM modification index cutoff\n")
   cat("  --residuals TRUE/FALSE   SEM residuals output\n")
   cat("  --normality TYPE         shapiro/none\n")
@@ -2428,7 +2428,7 @@ run_sem_assumptions <- function(df, opts, settings) {
           count <- sum(d2 > cutoff, na.rm = TRUE)
           max_dist <- max(d2, na.rm = TRUE)
           decision <- decision_from_count(count)
-          note <- paste0("Chi-square cutoff (alpha = ", settings$mahalanobis_alpha, "): ", format_stat(cutoff, settings$digits))
+          note <- paste0("Chi² cutoff (alpha = ", settings$mahalanobis_alpha, "): ", format_stat(cutoff, settings$digits))
           rows[[length(rows) + 1]] <- make_check_row(
             analysis_type = "sem",
             model = toupper(sem_type),

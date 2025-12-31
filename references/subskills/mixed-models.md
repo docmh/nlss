@@ -12,7 +12,7 @@ Fit linear mixed-effects models (LMM) for clustered or longitudinal data using `
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -76,7 +76,7 @@ Defaults are loaded from `scripts/config.yml` (requires R package `yaml`); CLI f
 - `--random` required without `--formula` (comma-separated random terms in `term|group` syntax).
 - `--reml` uses `modules.mixed_models.reml` (TRUE/FALSE).
 - `--type` uses `modules.mixed_models.type` (`I`, `II`, `III`) for omnibus tests when available (`lmerTest` or `car` required for Type II/III).
-- `--df-method` uses `modules.mixed_models.df_method` (`satterthwaite`, `kenward-roger`, `none`); df/*p*-values require `lmerTest`.
+- `--df-method` uses `modules.mixed_models.df_method` (`satterthwaite`, `kenward-roger`, `none`); df/p-values require `lmerTest`.
 - `--standardize` uses `modules.mixed_models.standardize` (`none`, `predictors`).
 - `--emmeans` uses `modules.mixed_models.emmeans` (`none` or a factor term such as `time*group`).
 - `--contrasts` uses `modules.mixed_models.contrasts` (`none`, `pairwise`, `custom`, or any `emmeans` method string) and requires `--emmeans` unless the contrast JSON specifies a `term`.
@@ -175,13 +175,13 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 ## NLSS format Reporting Guidance
 
-- Report fixed effects with *b*, *SE*, *df*, *t*, *p*, and confidence intervals.
+- Report fixed effects with b, SE, df, t, p, and confidence intervals.
 - Report random-effects variance components and ICC when relevant.
-- Report model fit indices (AIC/BIC/logLik) and *R*² (marginal/conditional) when available.
-- For marginal means and contrasts, report adjusted *p*-values and confidence intervals.
+- Report model fit indices (AIC/BIC/logLik) and R² (marginal/conditional) when available.
+- For marginal means and contrasts, report adjusted p-values and confidence intervals.
 
 ## Dependencies
 
 - Parquet input requires the R package `arrow`.
-- Mixed models require the R packages `lme4` and `performance` (*R*²/ICC).
-- Optional: `lmerTest` for *df*/*p*-values, `emmeans` for marginal means/contrasts, and `car` for Type II/III omnibus tests.
+- Mixed models require the R packages `lme4` and `performance` (R²/ICC).
+- Optional: `lmerTest` for df/p-values, `emmeans` for marginal means/contrasts, and `car` for Type II/III omnibus tests.

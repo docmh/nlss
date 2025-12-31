@@ -9,13 +9,13 @@ Goal: stress mixed models feature coverage with clean, edge, and negative cases 
 - Type I/II/III tests and df-method fallbacks (including Kenward-Roger when available).
 - Standardization of predictors and standardized betas, plus invalid standardize fallbacks.
 - Diagnostics toggle behavior plus max_shapiro_n gating (Shapiro present/absent).
-- *R*² (marginal/conditional) and ICC reporting via `performance` (required).
+- R² (marginal/conditional) and ICC reporting via `performance` (required).
 - Optimizer/maxfun configuration (including invalid maxfun fallback).
 - emmeans + contrasts + p-adjust and conf-level handling (including custom JSON contrasts, built-in methods, emmeans-only, and contrasts-without-emmeans).
 - Input formats: parquet, CSV (custom sep/header), RDS, RData (df selection), SAV when available.
 - Template overrides for default and emmeans outputs (emmeans tests require the package).
 - Logging controls (`--log FALSE`, `--digits`, `--user-prompt`) in automated coverage; interactive mode is manual-only.
-- Negative cases for missing inputs, missing variables, nonnumeric dv, invalid formula, missing random effects, missing contrast file for custom contrasts, RDS non-data-frame, RData missing *df*, and no complete cases.
+- Negative cases for missing inputs, missing variables, nonnumeric dv, invalid formula, missing random effects, missing contrast file for custom contrasts, RDS non-data-frame, RData missing df, and no complete cases.
 
 ## Data
 

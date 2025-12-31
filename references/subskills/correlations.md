@@ -12,7 +12,7 @@ Compute correlations for numeric variables (pairwise or matrix), with optional g
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -97,7 +97,7 @@ Rscript <path to scripts/R/correlations.R> --interactive
 - `--missing` selects `pairwise` or `complete` (default: `modules.correlations.missing`).
 - `--alternative` selects `two.sided`, `greater`, or `less` (default: `modules.correlations.alternative`).
 - `--controls` enables partial correlations (not supported for Kendall).
-- `--p-adjust` adjusts *p*-values (`none`, `bonferroni`, `holm`, `hochberg`, `hommel`, `BH`, `BY`, `fdr`). Default: `modules.correlations.p_adjust`.
+- `--p-adjust` adjusts p-values (`none`, `bonferroni`, `holm`, `hochberg`, `hommel`, `BH`, `BY`, `fdr`). Default: `modules.correlations.p_adjust`.
 - `--conf-level` sets the Fisher z confidence level for Pearson/partial (default: `modules.correlations.conf_level`).
 - `--bootstrap` enables bootstrap confidence intervals (default: `modules.correlations.bootstrap`).
 - `--bootstrap-samples` sets bootstrap resamples (default: `modules.correlations.bootstrap_samples`).
@@ -105,7 +105,7 @@ Rscript <path to scripts/R/correlations.R> --interactive
 - `--r0` sets the Fisher r-to-z comparison value (optional; must be between -1 and 1).
 - `--compare-groups` compares correlations between two independent groups (default: `modules.correlations.compare_groups`; requires `--group` with exactly two non-missing levels).
   - Fisher r-to-z comparisons are not supported for Kendall's tau.
-  - `--p-adjust` applies to correlation *p*-values; Fisher r-to-z comparison *p*-values are unadjusted.
+  - `--p-adjust` applies to correlation p-values; Fisher r-to-z comparison p-values are unadjusted.
 - `--coerce` coerces non-numeric columns to numeric (default: `modules.correlations.coerce`).
 - `--digits` controls rounding (default: `defaults.digits`).
 - `--interactive` prompts for inputs.
@@ -129,10 +129,10 @@ Use the Markdown templates in `assets/correlations` when assembling correlation 
 
 - Use `assets/correlations/default-template.md` for correlation matrices created from `--vars` (or default numeric columns).
 - Use `assets/correlations/cross-correlation-template.md` for cross-correlations created from `--x` and `--y`.
-- Use `assets/correlations/matrix-template.md` (key: `templates.correlations.matrix` or `--template matrix`) for a true matrix layout with correlations below the diagonal and *p*-values above the diagonal.
+- Use `assets/correlations/matrix-template.md` (key: `templates.correlations.matrix` or `--template matrix`) for a true matrix layout with correlations below the diagonal and p-values above the diagonal.
 - Use `assets/correlations/comparison-template.md` (key: `templates.correlations.comparison`) for Fisher r-to-z group comparisons.
 - For partial correlations, keep the same template as the matrix or cross-correlation output and include the control variables in the analysis flags and note.
-  - When `--p-adjust` is enabled, matrix *p*-values use the adjusted values.
+  - When `--p-adjust` is enabled, matrix p-values use the adjusted values.
   - Matrix layout is intended for full `--vars` correlation matrices; cross-correlations remain row-based.
   - When `--r0` is used, the matrix layout is disabled in favor of row-based output so r0/z columns can be displayed.
   
@@ -171,8 +171,8 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 ## NLSS format Reporting Guidance
 
-- Report method-specific coefficients (Pearson's *r*, Spearman's rho, Kendall's tau) with *p*-values and sample size.
+- Report method-specific coefficients (Pearson's r, Spearman's rho, Kendall's tau) with p-values and sample size.
 - If using partial correlations, state the control variables explicitly.
-- Note missing-data handling (pairwise vs complete) and any *p*-value adjustment.
+- Note missing-data handling (pairwise vs complete) and any p-value adjustment.
 - When bootstrap CIs are enabled, report the bootstrap interval and resample count.
-- For Fisher *r*-to-*z* comparisons, report *z*, *p*, and the group pairing or *r*_0 value.
+- For Fisher r-to-z comparisons, report z, p, and the group pairing or r_0 value.

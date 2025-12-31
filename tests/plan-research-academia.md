@@ -2,10 +2,10 @@
 
 ## Scope
 
-- Validate web-search gating (must fail when disabled).
+- Validate network calls return results when allowed.
 - Validate input validation (missing query, invalid sources).
 - Validate numeric guardrails (invalid max-per-source/max-total/top-n/timeout).
-- Run web-enabled queries and verify NLSS report + log output.
+- Run network queries and verify NLSS report + log output.
 - Verify positive single-source runs (openalex-only, crossref-only).
 - Verify comprehensive template renders the full list when requested.
 - Verify sources parsing variants (`--sources=...`, whitespace tokens).
@@ -18,8 +18,7 @@
 - Run from repo root.
 - Rscript available.
 - R package `jsonlite` installed.
-- Web access enabled when running web tests:
-  - `NLSS_TEST_ALLOW_WEB=1` and/or `NLSS_WEB_SEARCH=1`.
+- Network access available for external APIs.
 
 ## Run
 
@@ -29,11 +28,10 @@ bash tests/run_research_academia_tests.sh
 
 ## Expectations
 
-- `--web FALSE` should fail fast with a web-disabled message.
 - Missing `--query` should fail.
 - Invalid `--sources` should fail.
 - Invalid `--max-per-source`, `--max-total`, `--top-n`, and `--timeout` should fail.
-- When web is enabled:
+- When network runs are enabled:
   - `report_canonical.md` is created under `defaults.output_dir`.
   - Output includes "Research (Academia)", "Most Relevant", and a References section.
   - `analysis_log.jsonl` includes `"module":"research-academia"`.

@@ -16,13 +16,13 @@ table:
     - key: "se"
       label: "Std. Error"
     - key: "df"
-      label: "*df*"
+      label: "df"
       drop_if_empty: true
     - key: "t"
-      label: "*t*"
+      label: "t"
       drop_if_empty: true
     - key: "p"
-      label: "Sig."
+      label: "p"
       drop_if_empty: true
     - key: "ci_low"
       label: "CI lower"

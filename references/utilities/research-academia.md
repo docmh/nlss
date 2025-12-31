@@ -1,20 +1,20 @@
 ---
 name: research-academia
-description: Web-enabled literature search utility that aggregates academic references, outputs a comprehensive list and a ranked top subset, and formats references in NLSS format.
+description: Literature search utility that aggregates academic references, outputs a comprehensive list and a ranked top subset, and formats references in NLSS format.
 license: Apache-2.0
 ---
 
-# Research-Academia (Utility, Web-Enabled)
+# Research-Academia (Utility)
 
 ## Overview
 
 Find academic references for a topic, aggregate results across multiple scholarly sources, and produce an NLSS format-ready report focused on the most relevant items. References are formatted using the NLSS reference list guidance in `references/metaskills/formatting/reference-list.md`. A comprehensive list is still available via the analysis log or by customizing the template.
 
-**Web search is required.** This utility only runs when web search is explicitly enabled (`--web TRUE`). 
+This utility uses live scholarly APIs (OpenAlex, Crossref, Semantic Scholar), so it requires network access at runtime.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
@@ -29,14 +29,14 @@ Use this utility when the user asks for academic sources or a literature scan, f
 - A search query/topic (`--query`).
 - Optional source list (`--sources`).
 - Optional year window (`--year-from`, `--year-to`).
-- Web search must be explicitly enabled (`--web TRUE`).
+- Network access is required for the external APIs.
 
 ## Script: `scripts/R/research_academia.R`
 
 ### Rscript
 
 ```bash
-Rscript <path to scripts/R/research_academia.R> --query "topic" --web TRUE
+Rscript <path to scripts/R/research_academia.R> --query "topic"
 ```
 
 ## Options
@@ -53,7 +53,6 @@ Rscript <path to scripts/R/research_academia.R> --query "topic" --web TRUE
 - `--user-prompt <text>`: Original AI user prompt for logging (optional).
 - `--semantic-key <text>`: Optional Semantic Scholar API key (or set `NLSS_SEMANTIC_SCHOLAR_API_KEY`). Recommended if you hit HTTP 429.
 - `--log TRUE/FALSE`: Write `analysis_log.jsonl` (default: `defaults.log`).
-- `--web TRUE/FALSE`: **Required** to enable web search (or set `NLSS_WEB_SEARCH=1`).
 - `--interactive`: Prompt for inputs instead of flags.
 
 ## Behavior
@@ -68,7 +67,7 @@ When the user needs a defensible, well-grounded response, run **multiple search 
 - Start with a semantic search using `research_academia.R` on the user’s phrasing.
 - Run 2–4 **query variants** (synonyms, related constructs, population/context terms, narrower vs. broader terms). Optionally add year bounds when the topic is time-sensitive.
 - **Curate results** across cycles into a coherent subset (remove duplicates, prioritize peer-reviewed or highly cited items, balance recency vs. foundational).
-- If web search is enabled, **supplement** with manual web search to capture gaps (e.g., key reviews, guidelines, or landmark papers not returned by APIs).
+- **Supplement** with manual web search to capture gaps (e.g., key reviews, guidelines, or landmark papers not returned by APIs).
 - Combine and reconcile findings so the final response/report section is **sufficiently grounded**; if gaps remain, explicitly note limitations.
 - Formats references using NLSS reference list rules (author list length, sentence case titles, source italics, DOI/URL).
 - Does not modify datasets; no workspace parquet is required.
@@ -104,24 +103,9 @@ Available column keys for both tables include:
 The default template uses `most_relevant_sections` only. You can re-enable the comprehensive list by adding `{{comprehensive_table_body}}` and `{{comprehensive_note_body}}` to a custom template.
 The default template now uses `{{references_top}}` so the references list is limited to the most relevant items; `{{references}}` still contains the full deduped set.
 
-## Web Search Requirement
+## Network Access
 
-Web search is only available when explicitly enabled:
-
-- CLI: `--web TRUE`
-- or environment: `NLSS_WEB_SEARCH=1`
-
-If web search is not enabled, the utility exits with an error.
-
-### Test Harness Note
-
-When running smoke/deliberate tests, the web-enabled research steps are gated by the test runner. Enable them with:
-
-```bash
-NLSS_TEST_ALLOW_WEB=1 NLSS_WEB_SEARCH=1 bash cmdscripts/tests.sh smoke
-```
-
-Outside the test harness, only `--web TRUE` or `NLSS_WEB_SEARCH=1` is required.
+This utility calls external APIs and will fail without network access. If you need offline operation, skip this utility and use local reference managers instead.
 
 ## Rate Limits (Semantic Scholar)
 

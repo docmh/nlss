@@ -8,11 +8,11 @@ license: Apache-2.0
 
 ## Overview
 
-Run one-sample, independent-samples, or paired-samples t-tests in base R and generate NLSS format-ready tables and narratives. Outputs include means, standard deviations, mean differences, *t*, *df*, *p*, and Cohen's *d*. Optional bootstrap confidence intervals are available.
+Run one-sample, independent-samples, or paired-samples t-tests in base R and generate NLSS format-ready tables and narratives. Outputs include means, standard deviations, mean differences, t, df, p, and Cohen's d. Optional bootstrap confidence intervals are available.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -136,7 +136,7 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 ## NLSS format Reporting Guidance
 
-- Report test type, sample sizes, means/*SD*s, *t*, *df*, *p*, and Cohen's *d*.
+- Report test type, sample sizes, means/SDs, t, df, p, and Cohen's d.
 - Include confidence intervals for the mean difference or mean when available.
 - For independent samples, report group labels and whether equal variances were assumed.
 - For paired tests, report both measures and the mean difference.

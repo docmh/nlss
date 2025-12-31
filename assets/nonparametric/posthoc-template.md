@@ -19,16 +19,16 @@ table:
       label: "Group 2"
       drop_if_empty: true
     - key: "n_1"
-      label: "*n*1"
+      label: "n1"
       drop_if_empty: true
     - key: "n_2"
-      label: "*n*2"
+      label: "n2"
       drop_if_empty: true
     - key: "median_1"
-      label: "*Mdn*1"
+      label: "Mdn1"
       drop_if_empty: true
     - key: "median_2"
-      label: "*Mdn*2"
+      label: "Mdn2"
       drop_if_empty: true
     - key: "iqr_1"
       label: "IQR1"
@@ -42,7 +42,7 @@ table:
     - key: "statistic"
       label: "Value"
     - key: "p"
-      label: "*p*"
+      label: "p"
     - key: "p_adj"
       label: "p_adj"
       drop_if_empty: true

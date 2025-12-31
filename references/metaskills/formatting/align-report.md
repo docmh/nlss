@@ -12,7 +12,7 @@ Use this helper to align a finished report with NLSS format rules. NLSS format i
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
@@ -44,7 +44,8 @@ apply all formatting guides in order:
 
 ensure blank lines between paragraphs and block elements (\n\n rule)
 verify headings are Title Case
-verify statistical symbols are italicized where required
+verify statistical symbols are plain text (no italics or special styling)
+verify squared statistics use ² (e.g., R², f², eta²)
 verify tables/figures numbers, titles, notes
 verify references are alphabetized and cited
 save report
@@ -58,7 +59,8 @@ save report
 ## Checks
 
 - Headings are Title Case and in a consistent hierarchy.
-- Statistical symbols are italicized in narrative text.
+- Statistical symbols are plain text (no italics or special styling) in narrative text.
+- Squared statistics use ² where appropriate (R², f², eta²).
 - Tables/figures are numbered and titled correctly with notes.
 - References correspond to in-text citations.
 - Paragraphs and block elements are separated by a blank line.

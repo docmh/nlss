@@ -163,7 +163,7 @@ If `Rscript` is not found, add R’s `bin` folder to your Windows `PATH`:
    - `C:\\Program Files\\R\\R-<version>\\bin\\x64`
 5. Click OK/OK/OK and restart your IDE (so the agent terminal reloads `PATH`).
 
-Tip: if you’re unsure which path you have, open **R** (Start → “R x64 …”) and run `R.home("bin")` to print the folder.
+Tip: if you’re unsure which path you have, open *R* (Start → “R x64 …”) and run `R.home("bin")` to print the folder.
 
 ### 5) Install NLSS as a skill (so the agent can invoke it by name)
 
@@ -284,7 +284,7 @@ cp assets/sample-data/golden_dataset.csv demo/golden_dataset.csv
 2) Prompt your agent with natural language, for example:
 
 - "Use `nlss` to initialize a workspace for `demo/golden_dataset.csv`, then run descriptive stats for `age` and `score` grouped by `condition`."
-- "Run a `gender` × `condition` crosstab with chi-square + effect sizes, then interpret."
+- "Run a `gender` × `condition` crosstab with chi² + effect sizes, then interpret."
 - "Run Spearman correlations among `age`, `score`, and `stress`, and summarize the strongest relationships."
 
 3) Open the outputs in:
@@ -340,7 +340,7 @@ What the files mean:
 ### 9) How output + logging works
 
 - **Subskills** append sections to `report_canonical.md` and (by default) append one JSON line to `analysis_log.jsonl`.
-- **Metaskills** (agent-run workflows) may additionally create a standalone, journal-ready file `report_<YYYYMMDD>_<metaskill>_<intent>.md` in the dataset folder.
+- **Metaskills** (agent-run workflows) may additionally create a standalone, journal-alike file `report_<YYYYMMDD>_<metaskill>_<intent>.md` in the dataset folder.
 - Output directories are intentionally not a per-run CLI flag; choose a workspace root by where you run, or by changing `defaults.output_dir` (Part II).
 
 ### 10) Easy prompts to give your agent (copy/paste)
@@ -349,7 +349,7 @@ Try these in Codex / Claude Code:
 
 1. "Use `nlss` to initialize a workspace for `demo/golden_dataset.csv` and tell me which files were created."
 2. "Run descriptive stats for `age` and `score`, grouped by `condition`, and interpret the main differences."
-3. "Run a `gender` × `condition` crosstab with chi-square + effect sizes; interpret."
+3. "Run a `gender` × `condition` crosstab with chi² + effect sizes; interpret."
 4. "Run Spearman correlations among `age`, `score`, and `stress`; summarize and note caveats."
 
 ---
@@ -397,7 +397,19 @@ What these files do:
 
 It’s normal for this file to grow; it’s meant to be an audit trail, not a single clean report.
 
-### 3) Skills, metaskills, and utilities (what they are)
+### 3) NLSS format (the formatting approach)
+
+NLSS outputs are written in **NLSS format**: a consistent, APA‑inspired Markdown style used for tables, notes, and narrative. It’s designed to be readable in plain text and consistent across modules.
+
+Where it is used:
+
+- **`report_canonical.md`**: every subskill appends an NLSS format section (table + narrative + notes).
+- **Metaskill reports** (`report_YYYYMMDD_<metaskill>_<intent>.md`): journal-alike, NLSS format sections assembled into a full report.
+- **Templates**: NLSS format is implemented via templates under `assets/` and can be customized without changing R scripts.
+
+If you want the formatting rules, see `references/metaskills/formatting/` (headings, tables, references, and narrative conventions). NLSS format is close to APA 7 but not a strict substitute for final publication formatting.
+
+### 4) Skills, metaskills, and utilities (what they are)
 
 NLSS uses three kinds of modules:
 
@@ -414,7 +426,15 @@ Where to find documentation:
 
 The full list of available modules also appears later in this README (Part III).
 
-### 4) Logging: what it captures and why it matters
+### 5) Convenient extras: research-academia, explain-statistics, explain-results
+
+These are frequently useful even outside full workflows:
+
+- **`research-academia` (utility):** used by several metaskills, but also valuable as a standalone literature scan in NLSS chat or an IDE coding agent. It calls live scholarly APIs, so **network access is required**; some IDE agents require enabling web/network access before it will run successfully. See `references/utilities/research-academia.md`.
+- **`explain-statistics` (metaskill):** plain-language explanations of statistical concepts, assumptions, and test choices. It’s conversational by default and doesn’t require `metaskill-runner` unless you explicitly request a logged report. See `references/metaskills/explain-statistics.md`.
+- **`explain-results` (metaskill):** helps interpret NLSS output sections (tables, diagnostics, model results) in researcher-friendly language. Like `explain-statistics`, it can be purely conversational unless you ask for a formal report. See `references/metaskills/explain-results.md`.
+
+### 6) Logging: what it captures and why it matters
 
 Every run can record two complementary logs:
 
@@ -428,7 +448,7 @@ Why this matters:
 
 Logging is controlled by `logging.*` in `scripts/config.yml`. Set `logging.enabled: "false"` to disable logging. If you want report reconstruction, keep `logging.include_outputs` enabled so report blocks are stored.
 
-### 5) Configuration: `scripts/config.yml`
+### 7) Configuration: `scripts/config.yml`
 
 `scripts/config.yml` is the main configuration file. The key sections are:
 
@@ -439,7 +459,7 @@ Logging is controlled by `logging.*` in `scripts/config.yml`. Set `logging.enabl
 
 CLI flags always override config values for a specific run. If `config.yml` is missing or unreadable, built-in defaults from `scripts/R/lib/config.R` are used.
 
-### 6) Templates: customize or add your own
+### 8) Templates: customize or add your own
 
 Most NLSS outputs are template-driven. Templates live under `assets/<subskill>/` and are Markdown files with YAML front matter (tokens, column definitions, narrative settings).
 
@@ -457,7 +477,7 @@ Each subskill reference file lists the available template tokens and column keys
 
 ### Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ### Agent Skills standard + installation (framework details)
 
@@ -504,7 +524,7 @@ Each subskill has a reference file describing inputs, flags, and outputs. Templa
 | --- | --- | --- | --- |
 | `descriptive-stats` | `scripts/R/descriptive_stats.R` | Descriptive statistics with NLSS format tables/text. | Yes (`descriptive-stats/default-template.md`, `descriptive-stats/robust-template.md`, `descriptive-stats/distribution-template.md`) |
 | `frequencies` | `scripts/R/frequencies.R` | Frequency tables for categorical variables. | Yes (`frequencies/default-template.md`, `frequencies/grouped-template.md`) |
-| `crosstabs` | `scripts/R/crosstabs.R` | Cross-tabulations with chi-square/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
+| `crosstabs` | `scripts/R/crosstabs.R` | Cross-tabulations with chi²/Fisher tests. | Yes (`crosstabs/default-template.md`, `crosstabs/grouped-template.md`) |
 | `correlations` | `scripts/R/correlations.R` | Correlations, partial correlations, diagnostics, bootstrap CIs, Fisher r-to-z comparisons. | Yes (`correlations/default-template.md`, `correlations/cross-correlation-template.md`, `correlations/matrix-template.md`, `correlations/comparison-template.md`) |
 | `scale` | `scripts/R/scale.R` | Item analysis and reliability (alpha/omega) for scales. | Yes (`scale/default-template.md`) |
 | `efa` | `scripts/R/efa.R` | Exploratory factor analysis / PCA with rotation, KMO/Bartlett diagnostics, and loadings tables. | Yes (`efa/default-template.md`) |

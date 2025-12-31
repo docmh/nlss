@@ -12,7 +12,7 @@ This metaskill explains the meaning of statistical results that the user referen
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
@@ -20,7 +20,7 @@ Use this metaskill when the user asks for the meaning of results or output, for 
 
 - "What does this table mean?"
 - "How should I interpret these coefficients?"
-- "What does this *p*-value and CI imply?"
+- "What does this p-value and CI imply?"
 - "Is this effect meaningful?"
 - "What is the practical meaning of this ANOVA result?"
 

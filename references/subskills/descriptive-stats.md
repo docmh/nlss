@@ -12,7 +12,7 @@ Generate descriptive statistics in base R for psychology coursework or reports, 
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Core Workflow
 
@@ -113,9 +113,9 @@ Use `narrative.row_template` for per-row lines. Available row tokens include:
 
 ## NLSS format Reporting Guidance
 
-- Use the narrative lines as the base: Variable: *M* = x.xx, *SD* = x.xx, 95% CI [x.xx, x.xx], *n* = xx, missing = x (x.x%).
-- If `n < 2` or *SD* is missing, state that variability cannot be estimated.
+- Use the narrative lines as the base: Variable: M = x.xx, SD = x.xx, 95% CI [x.xx, x.xx], n = xx, missing = x (x.x%).
+- If `n < 2` or SD is missing, state that variability cannot be estimated.
 - When grouped, report each group separately before any overall comparison.
-- CV is computed as *SD* / |*M*| and is omitted when *M* = 0.
+- CV is computed as SD / |M| and is omitted when M = 0.
 - Mode is only reported when a single most frequent value exists; ties are omitted.
 - Outlier counts use Tukey fences (`iqr_multiplier` x IQR) and `|z| > outlier_z`.

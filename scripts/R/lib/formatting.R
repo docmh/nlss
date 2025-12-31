@@ -61,7 +61,7 @@ humanize_flag_name <- function(name) {
     "row" = "Row variable",
     "col" = "Column variable",
     "nlss-percent" = "NLSS format percent",
-    "chisq" = "Chi-square test",
+    "chisq" = "Chi² test",
     "yates" = "Yates correction",
     "fisher" = "Fisher's exact test",
     "fisher-simulate" = "Fisher simulation",
@@ -121,7 +121,7 @@ humanize_flag_name <- function(name) {
     "invariance" = "Invariance steps",
     "std" = "Standardization",
     "fit" = "Fit indices",
-    "r2" = "R2 reporting",
+    "r2" = "R² reporting",
     "modindices" = "Mod indices cutoff",
     "residuals" = "Residuals",
     "sphericity" = "Sphericity test",
@@ -524,101 +524,17 @@ italicize_stat_symbols <- function(text) {
   if (is.null(text)) return("")
   out <- as.character(text)
   if (length(out) == 0) return("")
-  patterns <- c(
-    "(?<![*_])\\bN\\b(?=\\s*=)" = "*N*",
-    "(?<![*_])\\bn\\b(?=\\s*=)" = "*n*",
-    "(?<![*_])\\bM\\b(?=\\s*=)" = "*M*",
-    "(?<![*_])\\bSD\\b(?=\\s*=)" = "*SD*",
-    "(?<![*_])\\bSE\\b(?=\\s*=)" = "*SE*",
-    "(?<![*_])\\bdf\\b(?=\\s*=)" = "*df*",
-    "(?<![*_])\\bt\\b(?=\\s*(\\(|=))" = "*t*",
-    "(?<![*_])\\bF\\b(?=\\s*(\\(|=))" = "*F*",
-    "(?<![*_])\\br\\b(?=\\s*(=|<|>))" = "*r*",
-    "(?<![*_])\\bR\\b(?=\\s*(=|<|>))" = "*R*",
-    "(?<![*_])\\bf\\b(?=\\s*(=|<|>))" = "*f*",
-    "(?<![*_])\\bp\\b(?=\\s*(=|<|>))" = "*p*",
-    "(?<![*_])\\bd\\b(?=\\s*=)" = "*d*",
-    "(?<![*_])\\bz\\b(?=\\s*=)" = "*z*",
-    "(?<![*_])\\bb\\b(?=\\s*=)" = "*b*"
-  )
-  for (pat in names(patterns)) {
-    out <- gsub(pat, patterns[[pat]], out, perl = TRUE)
-  }
-  out <- gsub("(?<![*_])\\bp\\b(?=-values?\\b)", "*p*", out, perl = TRUE, ignore.case = TRUE)
-  out <- gsub("(?<![*_])\\bp\\b(?=\\s+values?\\b)", "*p*", out, perl = TRUE, ignore.case = TRUE)
-  out <- gsub("(?<![*_])\\bR2\\b", "*R*²", out, perl = TRUE)
-  out <- gsub("(?<![*_])\\bR\\^2\\b", "*R*²", out, perl = TRUE)
-  out <- gsub("(?<![*_])\\bR²\\b", "*R*²", out, perl = TRUE)
-  out <- gsub("(?<![*_])\\bf2\\b", "*f*²", out, perl = TRUE)
-  out <- gsub("(?<![*_])\\bf\\^2\\b", "*f*²", out, perl = TRUE)
-  out <- gsub("(?<![*_])\\bf²\\b", "*f*²", out, perl = TRUE)
-  list_patterns <- c(
-    "(?<![*_])\\bN\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*N*",
-    "(?<![*_])\\bn\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*n*",
-    "(?<![*_])\\bM\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*M*",
-    "(?<![*_])\\bSD\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*SD*",
-    "(?<![*_])\\bSE\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*SE*",
-    "(?<![*_])\\bdf\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*df*",
-    "(?<![*_])\\bt\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*t*",
-    "(?<![*_])\\bF\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*F*",
-    "(?<![*_])\\br\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*r*",
-    "(?<![*_])\\bR\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*R*",
-    "(?<![*_])\\bf\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*f*",
-    "(?<![*_])\\bp\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*p*",
-    "(?<![*_])\\bd\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*d*",
-    "(?<![*_])\\bz\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*z*",
-    "(?<![*_])\\bb\\b(?=\\s*[,;:\\)\\]]|\\s*$)" = "*b*"
-  )
-  for (pat in names(list_patterns)) {
-    out <- gsub(pat, list_patterns[[pat]], out, perl = TRUE)
-  }
   out
 }
 
 italicize_stat_label <- function(label) {
   if (is.null(label)) return("")
-  text <- as.character(label)
-  if (!nzchar(text)) return(text)
-  tokens <- c("Mdn", "SD", "SE", "df", "M", "N", "n", "t", "F", "r", "R", "p", "b", "d", "f", "z")
-  for (token in tokens) {
-    text <- gsub(
-      paste0("(?<![*_])\\b", token, "(\\d+)\\b"),
-      paste0("*", token, "*\\1"),
-      text,
-      perl = TRUE
-    )
-  }
-  for (token in tokens) {
-    text <- gsub(
-      paste0("(?<![*_])\\b", token, "\\b(?![*_])"),
-      paste0("*", token, "*"),
-      text,
-      perl = TRUE
-    )
-  }
-  text <- gsub("(?<![*_])\\bR2\\b", "*R*²", text, perl = TRUE)
-  text <- gsub("(?<![*_])\\bR\\^2\\b", "*R*²", text, perl = TRUE)
-  text <- gsub("(?<![*_])\\bR²\\b", "*R*²", text, perl = TRUE)
-  text <- gsub("(?<![*_])\\bf2\\b", "*f*²", text, perl = TRUE)
-  text <- gsub("(?<![*_])\\bf\\^2\\b", "*f*²", text, perl = TRUE)
-  text <- gsub("(?<![*_])\\bf²\\b", "*f*²", text, perl = TRUE)
-  text
+  as.character(label)
 }
 
 italicize_markdown_table_headers <- function(table_text) {
   if (is.null(table_text)) return("")
-  text <- as.character(table_text)
-  if (length(text) == 0) return("")
-  lines <- strsplit(text, "\n", fixed = TRUE)[[1]]
-  header_idx <- which(grepl("^\\s*\\|", lines))[1]
-  if (is.na(header_idx)) return(text)
-  cells <- strsplit(lines[header_idx], "\\|", fixed = TRUE)[[1]]
-  if (length(cells) < 3) return(text)
-  cells <- cells[-c(1, length(cells))]
-  cells <- trimws(cells)
-  cells <- vapply(cells, italicize_stat_label, character(1))
-  lines[header_idx] <- paste0("| ", paste(cells, collapse = " | "), " |")
-  paste(lines, collapse = "\n")
+  as.character(table_text)
 }
 
 title_case_heading <- function(text) {
@@ -657,13 +573,11 @@ title_case_heading <- function(text) {
 
 format_heading_text <- function(text) {
   if (is.null(text)) return("")
-  heading <- title_case_heading(text)
-  italicize_stat_symbols(heading)
+  title_case_heading(text)
 }
 
 render_markdown_table <- function(headers, rows) {
   if (length(headers) == 0) return("")
-  headers <- vapply(headers, italicize_stat_label, character(1))
   md <- paste0("| ", paste(headers, collapse = " | "), " |\n")
   md <- paste0(md, "| ", paste(rep("---", length(headers)), collapse = " | "), " |\n")
   for (row in rows) {

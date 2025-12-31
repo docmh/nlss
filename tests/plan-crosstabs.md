@@ -3,7 +3,7 @@
 ## Scope
 
 - Validate cross-tabulation output in `scripts/R/crosstabs.R`.
-- Verify chi-square/Fisher tests and effect-size outputs (phi, Cramer's V, contingency coefficient).
+- Verify chi²/Fisher tests and effect-size outputs (phi, Cramer's V, contingency coefficient).
 - Exercise NLSS format template output (default/grouped) and logging (`analysis_log.jsonl`).
 
 ## Data Sources

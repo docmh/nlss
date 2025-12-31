@@ -21,6 +21,10 @@ tokens:
     
     *Note.* {{figure_note}}
   references: ""
+  nlss_footer: |
+    ---
+
+    Created with [NLSS](https://github.com/docmh/nlss-demo).
 ---
 
 <!--
@@ -30,7 +34,7 @@ Default metaskill report template.
 - Do not replace title-page placeholders (user, affiliation, email).
 - Replace {{date-today}} with actual date.
 - Copy {{title}} to the second title header.
-- Adjust or replace subsections when warranted by the study design or metaskill.
+- Adjust, replace or remove elements or subsections when warranted by the study design or metaskill.
 - Tables and figures should be purpose-built for the report (no copy/paste from report_canonical.md).
 - Tables and figures can be added anywhere in the report body as needed using the table_block and figure_block tokens.
 - Use tables to display repetitive information patterns (e.g., descriptive statistics, matrices, hypothesis test results).
@@ -120,6 +124,4 @@ Default metaskill report template.
 
 {{references}}
 
----
-
-Created with [NLSS](https://github.com/docmh/nlss-demo).
+{{nlss_footer}}

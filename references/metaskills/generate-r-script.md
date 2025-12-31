@@ -14,7 +14,7 @@ The agent should use state-of-the-art methods in psychological and social scienc
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
@@ -39,7 +39,7 @@ Do not use this metaskill when an NLSS subskill already provides the requested a
 - Can the requested analysis be satisfied by an existing NLSS subskill? (Confirm with the user if unclear.)
 - Which variables define outcomes, predictors, and groups?
 - What assumptions or effect sizes are required?
-- Which R packages are acceptable (base *r*, tidyverse, specialized packages)?
+- Which R packages are acceptable (base r, tidyverse, specialized packages)?
 - Permission: “May I generate and save a custom R script in the dataset `scripts/` folder?”
 
 ## Procedure (Pseudocode)
@@ -102,7 +102,7 @@ Include the following where applicable:
 - `scratchpad.md`: Plan, clarifications, and the saved script path.
 - `report_canonical.md`: Includes a final `# Synopsis` describing the generated script and rationale (via `metaskill-runner --synopsis`).
 - `scripts/custom_<YYYYMMDD>_<intent>.R`: The generated script in the dataset workspace folder.
-- `report_<YYYYMMDD>_generate-r-script_<intent>.md`: NLSS format-ready, journal-ready narrative report with ad hoc tables/plots as needed.
+- `report_<YYYYMMDD>_generate-r-script_<intent>.md`: NLSS format-ready, journal-alike narrative report with ad hoc tables/plots as needed.
 
 ### Final Report Requirements
 

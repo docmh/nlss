@@ -12,7 +12,7 @@ This metaskill provides teacher-style explanations of statistical concepts, test
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
 
 ## Intent/Triggers
 
@@ -20,7 +20,7 @@ Use this metaskill when the user asks for an explanation of statistical concepts
 
 - "How do custom contrasts work?"
 - "Explain what an interaction term means."
-- "What does a *p*-value tell me?"
+- "What does a p-value tell me?"
 - "When should I use Spearman instead of Pearson?"
 - "How do I interpret this ANOVA table?"
 

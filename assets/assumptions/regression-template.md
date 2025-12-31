@@ -19,10 +19,10 @@ table:
       label: "Statistic"
       drop_if_empty: true
     - key: "df"
-      label: "*df*"
+      label: "df"
       drop_if_empty: true
     - key: "p"
-      label: "*p*"
+      label: "p"
       drop_if_empty: true
     - key: "value"
       label: "Value"
@@ -31,7 +31,7 @@ table:
       label: "Decision"
       drop_if_empty: true
     - key: "n"
-      label: "*n*"
+      label: "n"
       drop_if_empty: true
 note:
   template: "{{note_default}}"

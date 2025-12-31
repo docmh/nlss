@@ -25,11 +25,11 @@ prompt <- get("prompt", mode = "function")
 source_lib <- get("source_lib", mode = "function")
 
 print_usage <- function() {
-  cat("Research (Academia) utility (web-required)\n")
+  cat("Research (Academia) utility\n")
   cat("\n")
   cat("Usage:\n")
-  cat("  Rscript research_academia.R --query \"topic\" --web TRUE\n")
-  cat("  Rscript research_academia.R --query \"topic\" --sources openalex,crossref --top-n 10 --max-per-source 50 --max-total 200 --web TRUE\n")
+  cat("  Rscript research_academia.R --query \"topic\"\n")
+  cat("  Rscript research_academia.R --query \"topic\" --sources openalex,crossref --top-n 10 --max-per-source 50 --max-total 200\n")
   cat("  Rscript research_academia.R --interactive\n")
   cat("\n")
   cat("Options:\n")
@@ -45,7 +45,6 @@ print_usage <- function() {
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --semantic-key TEXT    Semantic Scholar API key (optional; can use env NLSS_SEMANTIC_SCHOLAR_API_KEY)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
-  cat("  --web TRUE/FALSE       Require web search (default: env NLSS_WEB_SEARCH)\n")
   cat("  --interactive          Prompt for inputs\n")
   cat("  --help                 Show this help\n")
 }
@@ -248,7 +247,6 @@ interactive_options <- function() {
   opts$`semantic-key` <- prompt("Semantic Scholar API key (optional)", "")
   log_default <- resolve_config_value("defaults.log", TRUE)
   opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
-  opts$web <- prompt("Web search enabled TRUE/FALSE", "TRUE")
   opts
 }
 
@@ -1135,13 +1133,6 @@ if (parse_bool(opts$interactive, FALSE)) {
   opts <- interactive_options()
 }
 
-web_env <- parse_bool(Sys.getenv("NLSS_WEB_SEARCH", unset = "FALSE"), FALSE)
-web_enabled <- parse_bool(opts$web, default = web_env)
-if (!isTRUE(web_enabled)) {
-  cat("Web search is disabled. Set --web TRUE or NLSS_WEB_SEARCH=1.\n", file = stderr())
-  quit(status = 2)
-}
-
 query <- normalize_option(opts$query, "query")
 if (!nzchar(query)) {
   query <- normalize_option(opts$topic, "topic")
@@ -1342,8 +1333,7 @@ analysis_flags <- list(
   `max-per-source` = max_per_source,
   `max-total` = max_total,
   `top-n` = top_n,
-  timeout = timeout,
-  web = web_enabled
+  timeout = timeout
 )
 
 resolve_append_nlss_report(

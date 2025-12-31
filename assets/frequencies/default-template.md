@@ -14,7 +14,7 @@ table:
     - key: "level"
       label: "Level"
     - key: "n"
-      label: "*n*"
+      label: "n"
     - key: "pct_total"
       label: "%"
     - key: "pct_valid"

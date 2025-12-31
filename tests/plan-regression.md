@@ -33,7 +33,7 @@ Positive coverage:
 - CSV parsing options (`--sep`, `--header FALSE`).
 - RDS and RData input paths.
 - Hierarchical regression with blocks and model comparisons (OLS and binomial).
-- Effect size reporting (*f*²) and block change effect size (Delta *f*²) for OLS.
+- Effect size reporting (f²) and block change effect size (Delta f²) for OLS.
 - Interaction terms with centering and appended interaction block (OLS and binomial).
 - Grouped regressions across `site` levels (OLS and binomial).
 - Standardized betas for OLS (`--standardize predictors`).

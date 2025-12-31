@@ -8,7 +8,7 @@ table:
     - key: "term"
       label: "Source"
     - key: "df"
-      label: "*df*"
+      label: "df"
     - key: "ss"
       label: "SS"
       drop_if_empty: true
@@ -16,22 +16,22 @@ table:
       label: "MS"
       drop_if_empty: true
     - key: "f"
-      label: "*F*"
+      label: "F"
       drop_if_empty: true
     - key: "p"
-      label: "Sig."
+      label: "p"
       drop_if_empty: true
     - key: "partial_eta_sq"
-      label: "Partial eta^2"
+      label: "Partial eta²"
       drop_if_empty: true
     - key: "eta_sq"
-      label: "eta^2"
+      label: "eta²"
       drop_if_empty: true
     - key: "partial_omega_sq"
-      label: "Partial omega^2"
+      label: "Partial omega²"
       drop_if_empty: true
     - key: "omega_sq"
-      label: "omega^2"
+      label: "omega²"
       drop_if_empty: true
     - key: "boot_ci_low"
       label: "Boot CI low"
