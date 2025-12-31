@@ -426,8 +426,8 @@ check_log "${MAIN_LOG_PATH}" "${start}" "-" "one_sample" "alternative=two.sided"
 require_file "${MAIN_PARQUET_PATH}"
 require_file "${MAIN_NLSS_PATH}"
 require_file "${MAIN_LOG_PATH}"
-assert_contains "${MAIN_NLSS_PATH}" "t-test results."
-assert_contains "${MAIN_NLSS_PATH}" "**Narrative**"
+assert_contains "${MAIN_NLSS_PATH}" "t Test Results"
+assert_contains "${MAIN_NLSS_PATH}" "## Narrative"
 
 start=$(log_count "${MAIN_LOG_PATH}")
 run_ok "one-sample greater mu" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}" --vars score --mu 0.3 --alternative greater

@@ -319,7 +319,7 @@ check_log "${CLEAN_LOG}" "${start}" 8 "calc,transform,standardize,recode,percent
   drop="zero_var"
 
 assert_contains "${CLEAN_REPORT}" "Data Transformations"
-assert_contains "${CLEAN_REPORT}" "Transformation log."
+assert_contains "${CLEAN_REPORT}" "Transformation Log"
 assert_contains "${CLEAN_REPORT}" "Table 1"
 assert_contains "${CLEAN_REPORT}" "Standardized"
 assert_contains "${CLEAN_REPORT}" "Renamed"
@@ -348,9 +348,9 @@ TEMPLATE_ORIG="$(get_config_value "${TEMPLATE_KEY}")"
 TEMPLATE_TMP="${TMP_BASE}/data_transform_template.md"
 cp "$(resolve_template_source "${TEMPLATE_ORIG}")" "${TEMPLATE_TMP}"
 sed -i 's/title: "Data Transformations"/title: "Data Transformations TEMPLATE TEST"/' "${TEMPLATE_TMP}"
-sed -i 's/table_title: "Transformation log\."/table_title: "Transformation log TEST."/' "${TEMPLATE_TMP}"
+sed -i 's/table_title: "Transformation Log"/table_title: "Transformation Log TEST"/' "${TEMPLATE_TMP}"
 sed -i 's/note_prefix: "\*Note\.\*"/note_prefix: "*Note-TEST.*"/' "${TEMPLATE_TMP}"
-sed -i 's/narrative_heading: "\*\*Narrative\*\*"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_TMP}"
+sed -i 's/narrative_heading: "## Narrative"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_TMP}"
 
 set_config_value "${TEMPLATE_KEY}" "${TEMPLATE_TMP}"
 
@@ -359,7 +359,7 @@ run_ok "template override" Rscript "${R_SCRIPT_DIR}/data_transform.R" \
   --calc "score_avg=(pre_score+mid_score+post_score)/3"
 
 assert_contains "${TEMPLATE_REPORT}" "Data Transformations TEMPLATE TEST"
-assert_contains "${TEMPLATE_REPORT}" "Transformation log TEST."
+assert_contains "${TEMPLATE_REPORT}" "Transformation Log TEST"
 assert_contains "${TEMPLATE_REPORT}" "*Note-TEST.*"
 assert_contains "${TEMPLATE_REPORT}" "**Narrative TEST**"
 

@@ -1018,8 +1018,8 @@ if [ ! -f "${NLSS_REPORT_PATH}" ]; then
 fi
 
 assert_contains "${NLSS_REPORT_PATH}" "Mixed Models"
-assert_contains "${NLSS_REPORT_PATH}" "Fixed effects estimates."
-assert_contains "${NLSS_REPORT_PATH}" "**Narrative**"
+assert_contains "${NLSS_REPORT_PATH}" "Fixed Effects Estimates"
+assert_contains "${NLSS_REPORT_PATH}" "## Narrative"
 
 if [ "${HAS_EMMEANS}" -eq 1 ]; then
   reset_report
@@ -1033,21 +1033,21 @@ if [ "${HAS_EMMEANS}" -eq 1 ]; then
     --log FALSE
 
   assert_contains "${NLSS_REPORT_PATH}" "Mixed Models: Marginal Means"
-  assert_contains "${NLSS_REPORT_PATH}" "Estimated marginal means and contrasts."
+  assert_contains "${NLSS_REPORT_PATH}" "Estimated Marginal Means and Contrasts"
 fi
 
 cp "$(resolve_template_source "${TEMPLATE_DEFAULT_ORIG}")" "${TEMPLATE_DEFAULT_TMP}"
 cp "$(resolve_template_source "${TEMPLATE_EMMEANS_ORIG}")" "${TEMPLATE_EMMEANS_TMP}"
 
 sed -i 's/title: "Mixed Models"/title: "Mixed Models TEMPLATE TEST"/' "${TEMPLATE_DEFAULT_TMP}"
-sed -i 's/table_title: "Fixed effects estimates\."/table_title: "Fixed effects estimates TEST."/' "${TEMPLATE_DEFAULT_TMP}"
+sed -i 's/table_title: "Fixed Effects Estimates"/table_title: "Fixed Effects Estimates TEST"/' "${TEMPLATE_DEFAULT_TMP}"
 sed -i 's/note_prefix: "\*Note\.\*"/note_prefix: "*Note-TEST.*"/' "${TEMPLATE_DEFAULT_TMP}"
-sed -i 's/narrative_heading: "\*\*Narrative\*\*"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_DEFAULT_TMP}"
+sed -i 's/narrative_heading: "## Narrative"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_DEFAULT_TMP}"
 
 sed -i 's/title: "Mixed Models: Marginal Means"/title: "Mixed Models: Marginal Means TEMPLATE TEST"/' "${TEMPLATE_EMMEANS_TMP}"
-sed -i 's/table_title: "Estimated marginal means and contrasts\."/table_title: "Estimated marginal means TEST."/' "${TEMPLATE_EMMEANS_TMP}"
+sed -i 's/table_title: "Estimated Marginal Means and Contrasts"/table_title: "Estimated Marginal Means TEST"/' "${TEMPLATE_EMMEANS_TMP}"
 sed -i 's/note_prefix: "\*Note\.\*"/note_prefix: "*Note-TEST.*"/' "${TEMPLATE_EMMEANS_TMP}"
-sed -i 's/narrative_heading: "\*\*Narrative\*\*"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_EMMEANS_TMP}"
+sed -i 's/narrative_heading: "## Narrative"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_EMMEANS_TMP}"
 
 set_config_value templates.mixed_models.default "${TEMPLATE_DEFAULT_TMP}"
 set_config_value templates.mixed_models.emmeans "${TEMPLATE_EMMEANS_TMP}"
@@ -1060,7 +1060,7 @@ run_ok "mixed_models template modified" \
   --log FALSE
 
 assert_contains "${NLSS_REPORT_PATH}" "Mixed Models TEMPLATE TEST"
-assert_contains "${NLSS_REPORT_PATH}" "Fixed effects estimates TEST."
+assert_contains "${NLSS_REPORT_PATH}" "Fixed Effects Estimates TEST"
 assert_contains "${NLSS_REPORT_PATH}" "*Note-TEST.*"
 assert_contains "${NLSS_REPORT_PATH}" "**Narrative TEST**"
 
@@ -1076,7 +1076,7 @@ if [ "${HAS_EMMEANS}" -eq 1 ]; then
     --log FALSE
 
   assert_contains "${NLSS_REPORT_PATH}" "Mixed Models: Marginal Means TEMPLATE TEST"
-  assert_contains "${NLSS_REPORT_PATH}" "Estimated marginal means TEST."
+  assert_contains "${NLSS_REPORT_PATH}" "Estimated Marginal Means TEST"
   assert_contains "${NLSS_REPORT_PATH}" "*Note-TEST.*"
   assert_contains "${NLSS_REPORT_PATH}" "**Narrative TEST**"
 else

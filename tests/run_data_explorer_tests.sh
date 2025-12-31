@@ -839,8 +839,8 @@ if [ ! -f "${NLSS_REPORT_PATH}" ]; then
 fi
 
 assert_contains "${NLSS_REPORT_PATH}" "Data Exploration"
-assert_contains "${NLSS_REPORT_PATH}" "Variable overview."
-assert_contains "${NLSS_REPORT_PATH}" "Value levels."
+assert_contains "${NLSS_REPORT_PATH}" "Variable Overview"
+assert_contains "${NLSS_REPORT_PATH}" "Value Levels"
 assert_contains "${NLSS_REPORT_PATH}" "Table 1"
 assert_contains "${NLSS_REPORT_PATH}" "Table 2"
 

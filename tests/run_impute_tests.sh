@@ -550,9 +550,9 @@ TEMPLATE_ORIG="$(get_config_value "${TEMPLATE_KEY}")"
 TEMPLATE_TMP="${TMP_BASE}/impute_template.md"
 cp "$(resolve_template_source "${TEMPLATE_ORIG}")" "${TEMPLATE_TMP}"
 sed -i 's/title: "Imputation Summary"/title: "Imputation Summary TEMPLATE TEST"/' "${TEMPLATE_TMP}"
-sed -i 's/table_title: "Imputation summary\."/table_title: "Imputation summary TEST."/' "${TEMPLATE_TMP}"
+sed -i 's/table_title: "Imputation Summary"/table_title: "Imputation Summary TEST"/' "${TEMPLATE_TMP}"
 sed -i 's/note_prefix: "\*Note\.\*"/note_prefix: "*Note-TEST.*"/' "${TEMPLATE_TMP}"
-sed -i 's/narrative_heading: "\*\*Narrative\*\*"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_TMP}"
+sed -i 's/narrative_heading: "## Narrative"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_TMP}"
 
 set_config_value "${TEMPLATE_KEY}" "${TEMPLATE_TMP}"
 
@@ -562,7 +562,7 @@ run_ok "template override" Rscript "${R_SCRIPT_DIR}/impute.R" \
   --engine simple
 
 assert_contains "${TEMPLATE_REPORT}" "Imputation Summary TEMPLATE TEST"
-assert_contains "${TEMPLATE_REPORT}" "Imputation summary TEST."
+assert_contains "${TEMPLATE_REPORT}" "Imputation Summary TEST"
 assert_contains "${TEMPLATE_REPORT}" "*Note-TEST.*"
 assert_contains "${TEMPLATE_REPORT}" "**Narrative TEST**"
 

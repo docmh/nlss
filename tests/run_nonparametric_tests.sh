@@ -386,12 +386,12 @@ check_log "${MAIN_LOG_PATH}" "${start}" "-" "mann_whitney" test=mann_whitney gro
 start=$(log_count "${MAIN_LOG_PATH}")
 run_ok "kruskal posthoc bonferroni" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_MAIN}" --vars score,score2 --group group3 --posthoc pairwise --p-adjust bonferroni --effect-size r
 check_log "${MAIN_LOG_PATH}" "${start}" "-" "kruskal" test=kruskal group=group3 vars=score,score2 posthoc=pairwise p_adjust=bonferroni effect_size=epsilon_sq
-assert_contains "${NLSS_MAIN_REPORT_PATH}" "Nonparametric post-hoc"
+assert_contains "${NLSS_MAIN_REPORT_PATH}" "Nonparametric Post Hoc"
 
 start=$(log_count "${GOLDEN_LOG_PATH}")
 run_ok "friedman posthoc" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_GOLDEN}" --within pre_score,mid_score,post_score --subject-id id --posthoc pairwise --p-adjust BH --effect-size r
 check_log "${GOLDEN_LOG_PATH}" "${start}" "-" "friedman" test=friedman within=pre_score,mid_score,post_score subject_id=id posthoc=pairwise p_adjust=BH effect_size=kendall_w
-assert_contains "${NLSS_GOLDEN_REPORT_PATH}" "Nonparametric post-hoc"
+assert_contains "${NLSS_GOLDEN_REPORT_PATH}" "Nonparametric Post Hoc"
 
 start=$(log_count "${LOG_PATH_SEMI}")
 run_ok "csv semicolon" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${CSV_SEMI_PATH}" --sep ";" --header TRUE --vars score --test wilcoxon

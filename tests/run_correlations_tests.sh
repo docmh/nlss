@@ -299,13 +299,13 @@ check_log "${LOG_PATH}" "${start_count}" r0=0.2 expect_r0=true
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "compare groups" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" --group group2 --compare-groups TRUE
 check_log "${LOG_PATH}" "${start_count}" compare_groups=true group=group2 expect_compare=true min_groups=2
-assert_contains "${NLSS_REPORT_PATH}" "Fisher r-to-z comparisons between groups."
+assert_contains "${NLSS_REPORT_PATH}" "Fisher r-to-z Comparisons Between Groups"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "matrix template" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" --template matrix
 check_log "${LOG_PATH}" "${start_count}" vars="${VARS_BASE}"
 assert_contains "${NLSS_REPORT_PATH}" "Correlation Matrix"
-assert_contains "${NLSS_REPORT_PATH}" "Values below the diagonal are correlations; values above are p-values."
+assert_contains "${NLSS_REPORT_PATH}" "Values below the diagonal are correlations; values above are p values."
 
 SEMI_LABEL="$(basename "${CSV_SEMI_PATH}")"
 SEMI_LABEL="${SEMI_LABEL%.*}"
