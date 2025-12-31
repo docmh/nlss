@@ -147,6 +147,9 @@ Common test entrypoints:
    - why it changed
    - how you verified it
    - any compatibility notes
+   - whether AI tools assisted drafting (if so, mention it briefly)
+
+Using AI tools to assist with drafting is welcome; contributors are responsible for correctness and license compliance.
 
 ### PR Checklist
 - [ ] I read `AGENTS.md` and followed the conventions.
