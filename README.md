@@ -221,7 +221,7 @@ NLSS is an Agent Skill (it ships with `SKILL.md`). Install it into your agent’
    - Windows: `%USERPROFILE%\.claude\skills\nlss`
    - macOS/Linux (personal): `~/.claude/skills/nlss`
    - Per-project (shared): `<your-project>/.claude/skills/nlss`
-4. Restart Claude Code and ask: “What Skills are available?”
+4. Restart Claude Code and ask: “What Skills are available?” 
 
 </details>
 
