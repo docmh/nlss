@@ -1,6 +1,11 @@
 ---
 name: anova
 description: Between/within/mixed ANOVA and ANCOVA with effect sizes, post-hoc tests, planned contrasts (emmeans/custom), sphericity checks, optional bootstrap CIs, and NLSS format outputs.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # ANOVA (Base R, NLSS format)

@@ -1,6 +1,11 @@
 ---
 name: formatting-tables-figures
 description: NLSS format table and figure numbering, titles, notes, and Markdown layout.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Tables and Figures (NLSS format)

@@ -1,15 +1,13 @@
 ---
 name: nlss
 description: Workspace-first R statistics suite with subskills and agent-run metaskills (including run-demo for guided onboarding, explain-statistics for concept explanations, explain-results for interpreting outputs, format-document for NLSS format alignment, screen-data for diagnostics, check-assumptions for model-specific checks, and write-full-report for end-to-end reporting) that produce NLSS format tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
+compatibility: R 4.5.2, IDE (e.g., VS Code, Cursor), agentskills.io compatible coding agent (e.g., Codex IDE, Claude Code IDE)
 license: Apache-2.0
-compatibility: R 4.5.2, Windows, WSL (Ubuntu), Linux, one of Codex IDE with GPT-5.2-Codex Medium/High or Claude Code IDE with Claude Sonnet 4.5/Opus 4.5
 metadata:
-  author: Prof. Dr. Mike Hammes, ISM International School of Management, Germany (mike.hammes@ism.de)
-  version: 1.0.0
-  created: 2025-12-20
-  updated: 2025-12-30
-  backend: R
-  style: NLSS format
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.trademark: "NLSS™ is a trademark of Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # NLSS - Natural Language Statistics Suite
@@ -21,7 +19,7 @@ NLSS format is inspired by APA 7 and aims to approximate it in Markdown; the for
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report. After running analyses, always provide a conversational summary of results that is sufficient for the senior researcher to understand the key insights.
 
 ## Instruction Hygiene (Prompt-Injection Safety)
 

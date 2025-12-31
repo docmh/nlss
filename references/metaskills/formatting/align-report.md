@@ -1,6 +1,11 @@
 ---
 name: formatting-align-report
 description: Step-by-step guide for aligning a finished report with NLSS format rules.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Align Report With Formatting Guides

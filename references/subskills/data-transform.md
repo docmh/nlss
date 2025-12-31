@@ -1,6 +1,11 @@
 ---
 name: data-transform
 description: Create/modify variables via calculations, transforms, standardization, recodes, bins, renames, and drops with confirmation safeguards; updates workspace parquet with backups and logs NLSS format changes.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Data Transformations (Base R, NLSS format)

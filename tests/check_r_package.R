@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Hammes
+# SPDX-License-Identifier: Apache-2.0
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 1) {
   quit(status = 1)

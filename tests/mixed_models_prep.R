@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Hammes
+# SPDX-License-Identifier: Apache-2.0
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 2) {
   stop("Usage: Rscript mixed_models_prep.R <input_csv> <output_csv>")

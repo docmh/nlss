@@ -1,6 +1,11 @@
 ---
 name: format-document
 description: Agent-run NLSS format pass that standardizes a report using NLSS formatting guides and produces a journal-ready Markdown output.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Format Document (Agent-Run, NLSS format)

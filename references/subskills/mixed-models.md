@@ -1,6 +1,11 @@
 ---
 name: mixed-models
 description: Linear mixed-effects models (lme4) with formula or dv/fixed/random specs, random-effects reporting, optional emmeans/contrasts (including custom JSON), diagnostics, and NLSS format outputs.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Mixed Models (LMM, NLSS format)

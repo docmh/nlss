@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Hammes
+# SPDX-License-Identifier: Apache-2.0
 get_levels <- function(vec) {
   if (is.factor(vec)) {
     return(as.character(levels(vec)))

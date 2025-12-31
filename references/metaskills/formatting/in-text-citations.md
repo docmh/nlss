@@ -1,6 +1,11 @@
 ---
 name: formatting-in-text-citations
 description: NLSS format author-date in-text citation rules for narrative and parenthetical formats.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # In-Text Citations (NLSS format)

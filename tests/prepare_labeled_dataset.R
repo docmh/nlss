@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Hammes
+# SPDX-License-Identifier: Apache-2.0
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 2) {
   stop("Usage: Rscript prepare_labeled_dataset.R <input_csv> <output_rds> [output_rdata] [rdata_object] [output_sav]")

@@ -1,6 +1,11 @@
 ---
 name: prepare-data
 description: Agent-run data preparation that audits variables, handles missingness (missings/impute), recodes/transforms/renames, optionally builds scales, documents changes, and produces NLSS format-ready reports.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Prepare Data (Agent-Run, NLSS format)

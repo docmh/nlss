@@ -1,6 +1,11 @@
 ---
 name: calc
 description: CLI calculator for safe evaluation of numeric expressions (with named constants) to derive analysis parameters; supports plain/json/csv output and optional logging, no dataset required.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Calc (Utility)

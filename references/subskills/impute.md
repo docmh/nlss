@@ -1,6 +1,11 @@
 ---
 name: impute
 description: Impute missing values into new _imp columns using simple methods or mice/VIM kNN, with per-variable method maps, optional indicators, parquet updates with backups, and NLSS format outputs.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Impute (Base R With Optional Mice/VIM, NLSS format)

@@ -1,6 +1,11 @@
 ---
 name: scale
 description: Scale item analysis with item stats, item-total and alpha-if-deleted, alpha/omega reliability, reverse scoring, scale scores, missing handling, grouping, and NLSS format outputs.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Scale Analysis (Base R, NLSS format)

@@ -1,6 +1,11 @@
 ---
 name: formatting-quotations
 description: NLSS format short and block quotation formatting with Markdown guidance.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Quotations (NLSS format)

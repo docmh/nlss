@@ -1,6 +1,11 @@
 ---
 name: check-integrity
 description: Recover and summarize XOR-based NLSS checksums from analysis_log.jsonl entries to spot mismatches or tampering.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Check-Integrity (Utility)

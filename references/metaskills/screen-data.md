@@ -1,6 +1,11 @@
 ---
 name: screen-data
 description: Agent-run data screening for outliers, normality, linearity, homoscedasticity, and multicollinearity using NLSS subskills with recommendations and NLSS format-ready reporting.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Screen Data (Agent-Run, NLSS format)

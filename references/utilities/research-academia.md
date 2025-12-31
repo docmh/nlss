@@ -1,6 +1,11 @@
 ---
 name: research-academia
 description: Web-enabled literature search utility that aggregates academic references, outputs a comprehensive list and a ranked top subset, and formats references in NLSS format.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Research-Academia (Utility, Web-Enabled)

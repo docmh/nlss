@@ -1,6 +1,11 @@
 ---
 name: data-explorer
 description: Data dictionary overview with variable types/storage, inferred measurement levels, missingness, numeric summaries, and top-N value tables with truncation notes and NLSS format outputs.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Data Explorer (Base R, NLSS format)

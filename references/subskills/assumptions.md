@@ -1,6 +1,11 @@
 ---
 name: assumptions
 description: Assumption and diagnostic checks for t-tests, ANOVA, regression, mixed models, and SEM (normality, homogeneity, sphericity, VIF, influence, convergence) with NLSS format outputs.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Assumptions Checks (NLSS format)

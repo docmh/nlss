@@ -1,6 +1,11 @@
 ---
 name: frequencies
 description: Frequency tables for categorical variables with counts, valid/total percentages, missingness, optional grouping, and NLSS format outputs (optionally include numeric vars).
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Frequencies (Base R, NLSS format)

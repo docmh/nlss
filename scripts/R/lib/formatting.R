@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Hammes
+# SPDX-License-Identifier: Apache-2.0
 round_numeric <- function(df, digits) {
   out <- df
   numeric_cols <- sapply(out, is.numeric)

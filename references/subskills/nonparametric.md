@@ -1,6 +1,11 @@
 ---
 name: nonparametric
 description: Nonparametric tests (Wilcoxon one-sample/paired, Mann-Whitney, Kruskal-Wallis, Friedman) with auto selection, effect sizes, post-hoc pairwise tests, and NLSS format outputs.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Nonparametric Tests (Base R, NLSS format)

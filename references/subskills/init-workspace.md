@@ -1,6 +1,11 @@
 ---
 name: init-workspace
 description: Create workspace root and per-dataset folders with scratchpad.md, report_canonical.md, analysis_log.jsonl, parquet copies, and nlss-workspace.yml; supports multiple datasets and blocks nested manifests.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Init Workspace (Base R)

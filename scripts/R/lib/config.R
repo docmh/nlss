@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Hammes
+# SPDX-License-Identifier: Apache-2.0
 config_env <- new.env(parent = emptyenv())
 
 resolve_script_dir <- function() {

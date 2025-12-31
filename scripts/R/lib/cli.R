@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Mike Hammes
+# SPDX-License-Identifier: Apache-2.0
 parse_args <- function(args) {
   opts <- list()
   i <- 1

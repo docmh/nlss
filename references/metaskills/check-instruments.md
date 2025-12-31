@@ -1,6 +1,11 @@
 ---
 name: check-instruments
 description: Agent-run instrument checks that infer item groups, handle reverse scoring, run scale (alpha/omega) and reliability (ICC/kappa/test-retest), and report NLSS format-ready results.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Check Instruments (Agent-Run, NLSS format)

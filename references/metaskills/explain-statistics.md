@@ -1,6 +1,11 @@
 ---
 name: explain-statistics
 description: Conversational, student-friendly explanations of statistical concepts, methods, outputs, and interpretations without running analyses.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Explain Statistics (Agent-Run, Conversational)

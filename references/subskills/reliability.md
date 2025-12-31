@@ -1,6 +1,11 @@
 ---
 name: reliability
 description: Inter-rater/test-retest reliability with ICC (oneway/twoway, agreement/consistency), kappa (weighted), or test-retest correlations; wide/long formats, CIs, grouping, and NLSS format outputs.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Reliability Analysis (Base R, NLSS format)

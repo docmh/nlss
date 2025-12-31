@@ -1,6 +1,11 @@
 ---
 name: plan-power
 description: Agent-run a priori power planning that clarifies design, effect size, alpha, and power (or estimates effect from pilot data) then runs the power subskill and reports NLSS format-ready results.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Plan Power (Agent-Run, NLSS format)

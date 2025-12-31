@@ -1,6 +1,11 @@
 ---
 name: formatting-lists
 description: NLSS format seriation rules for ordered, unordered, and in-text lists in Markdown.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Lists and Seriation (NLSS format)

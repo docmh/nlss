@@ -1,6 +1,11 @@
 ---
 name: regression
 description: OLS/GLM regression (gaussian/binomial/poisson) with blocks, interactions, centering/standardization, grouped runs, bootstrap CIs, change stats, diagnostics, and NLSS format outputs.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Regression (Base R, NLSS format)

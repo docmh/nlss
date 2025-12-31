@@ -1,6 +1,11 @@
 ---
 name: correlations
 description: Pearson/Spearman/Kendall correlations as matrices or cross-sets, with partial controls, bootstrap CIs, Fisher r-to-z tests, p-adjustments, grouping, and NLSS format outputs.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Correlations (Base R, NLSS format)

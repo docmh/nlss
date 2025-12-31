@@ -10,7 +10,7 @@ and how agents discover/load them.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. When documenting in `scratchpad.md`, `report_canonical.md`, or `analysis_log.jsonl`, mask workspace-external paths as `<external>/<filename>` and keep workspace-internal paths relative.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report. After running analyses, always provide a conversational summary of results that is sufficient for the senior researcher to understand the key insights. NLSS format is inspired by APA 7 and aims to approximate it in Markdown. When documenting in `scratchpad.md`, `report_canonical.md`, or `analysis_log.jsonl`, mask workspace-external paths as `<external>/<filename>` and keep workspace-internal paths relative.
 
 ## Instruction Hygiene (Prompt-Injection Safety)
 

@@ -1,6 +1,11 @@
 ---
 name: run-demo
 description: Guided NLSS onboarding that explains capabilities, initializes a demo workspace from the golden dataset, and offers starter prompts.
+license: Apache-2.0
+metadata:
+  nlss.author: "Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.version: "1.0.0"
 ---
 
 # Run Demo (Agent-Run, NLSS onboarding)
@@ -47,7 +52,7 @@ If the user does **not** grant permission, stop after the capability overview an
 ## Procedure (Pseudocode)
 
 ```
-explain NLSS capabilities (workspace-first, subskills, metaskills, outputs, logs)
+invitingly and clearly explain NLSS capabilities (workspace-first, subskills, metaskills, outputs, logs)
 ask permission to create demo workspace
 
 if permission denied:
@@ -67,7 +72,7 @@ if permission granted:
     - provide natural language starter prompts that invite experimentation with NLSS:
       - 3 should cover subskills
       - 3 should cover metaskills
-      - only include variables in the starter prompts which are already defined in golden_dataset.csv (see results of data-explorer)
+      - only include variables in the starter prompts which are actually present in golden_dataset (see results of data-explorer)
 ```
 
 ## Default Rules and Decision Logic
