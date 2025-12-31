@@ -2,10 +2,6 @@
 name: descriptive-stats
 description: Numeric descriptives with missingness, robust and percentile metrics, outlier counts (Tukey/z), CI/SE, skew/kurtosis, optional grouping, and NLSS format outputs.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Descriptive Stats (Base R, NLSS format)

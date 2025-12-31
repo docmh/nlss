@@ -2,10 +2,6 @@
 name: test-hypotheses
 description: Agent-run hypothesis testing that clarifies DV/IVs and design, selects appropriate subskills, runs assumptions checks, and produces NLSS format-ready results with a final report.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Test Hypotheses (Agent-Run, NLSS format)

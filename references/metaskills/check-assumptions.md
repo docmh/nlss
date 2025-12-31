@@ -2,10 +2,6 @@
 name: check-assumptions
 description: Agent-run, model-specific diagnostics (assumptions only) for t-tests, ANOVA, regression, mixed models, or SEM using the assumptions subskill; no inferential tests.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Check Assumptions (Agent-Run, NLSS format)

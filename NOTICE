@@ -1,9 +1,13 @@
 NLSS
-Copyright (c) 2026 Mike Hammes
+Copyright (c) 2025–2026 Mike Hammes
 
 NLSS™ is a trademark of Mike Hammes.
 
-This product is licensed under the Apache License, Version 2.0 (the "License").
-The License does not grant permission to use trade names, trademarks, service marks,
+This work is licensed under the Apache License, Version 2.0 (the "License").
+The License does not grant permission to use the trade names, trademarks, service marks,
 or product names of the Licensor, except as required for reasonable and customary use
 in describing the origin of the Work and reproducing the content of this NOTICE file.
+
+AI-assisted development notice: Portions of this project were created with the assistance
+of AI tools. The maintainers remain responsible for review, integration, and testing of
+all contributions and for the overall architecture, quality, and functionality of the project.

@@ -2,10 +2,6 @@
 name: write-full-report
 description: End-to-end metaskill that turns a dataset plus research question/hypotheses into a defensible, NLSS format-ready, journal-ready report by orchestrating screening, preparation, analysis, and literature support.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Write Full Report (Agent-Run, NLSS format)

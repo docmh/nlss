@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Mike Hammes
 # SPDX-License-Identifier: Apache-2.0
 resolve_config_value <- function(path, default = NULL) {
   if (exists("get_config_value", mode = "function")) {

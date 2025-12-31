@@ -4,6 +4,8 @@ NLSS is a workspace-first set of R scripts designed to help **researchers** run 
 
 NLSS is packaged as an **Agent Skill** following the open **Agent Skills** standard: https://agentskills.io/specification. This repo’s `SKILL.md` is the entry point that agents use to discover what NLSS can do.
 
+NLSS was developed with the assistance of AI tools for drafting and iteration. All changes are curated, reviewed, and tested by the human maintainer. The architecture, design, and implementation decisions are the maintainer’s own.
+
 NLSS produces:
 
 - `report_canonical.md`: human-readable, NLSS format-ready tables + narrative (append-only audit trail)
@@ -733,17 +735,17 @@ Runs write to `outputs/test-runs/<timestamp>/` by default.
 
 NLSS is licensed under the Apache License, Version 2.0. See the `LICENSE` file for details.
 
-If a `NOTICE` file is present, redistributions must include the attribution notices as described in the license.
+This repository includes a NOTICE file. Redistributions must include it as described by the license.
 
 ### Trademark
 
 NLSS™ is a trademark of Mike Hammes. 
 
-The Apache License 2.0 does not grant permission to use the NLSS™ name or branding beyond reasonable and customary use to describe the origin of the Work and to reproduce the content of the `NOTICE` file. See `TRADEMARKS.md`.
+The Apache License 2.0 does not grant permission to use the NLSS™ name or other branding beyond reasonable and customary use to describe the origin of the Work and to reproduce the content of the `NOTICE` file. See `TRADEMARKS.md`.
 
 ### Dependencies
 
-NLSS relies on R packages from CRAN which are installed by the user. No third-party source code is bundled in this repository.
+NLSS relies on R packages from CRAN which are installed by the user. No third-party code is vendored/bundled in this repository.
 
 ### Maintainer
 

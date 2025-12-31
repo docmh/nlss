@@ -2,10 +2,6 @@
 name: t-test
 description: One-sample, independent, and paired t-tests with effect sizes (d), confidence intervals, variance/normality diagnostics, optional bootstrap CIs, and NLSS format tables/narratives.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # T-Tests (Base R, NLSS format)

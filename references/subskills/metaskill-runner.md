@@ -2,10 +2,6 @@
 name: metaskill-runner
 description: Log metaskill activation/finalization (meta name, intent, phase, dataset, notes) to report_canonical.md and analysis_log.jsonl; no analysis is performed.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Metaskill Runner (Base R, NLSS format)

@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Mike Hammes
 # SPDX-License-Identifier: Apache-2.0
 get_script_dir <- function() {
   cmd_args <- commandArgs(trailingOnly = FALSE)

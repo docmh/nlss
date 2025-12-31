@@ -2,10 +2,6 @@
 name: formatting-text-style
 description: NLSS format capitalization, italics, and quotation mark usage for NLSS narratives.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Text Style and Capitalization (NLSS format)

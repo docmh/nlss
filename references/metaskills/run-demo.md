@@ -2,10 +2,6 @@
 name: run-demo
 description: Guided NLSS onboarding that explains capabilities, initializes a demo workspace from the golden dataset, and offers starter prompts.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Run Demo (Agent-Run, NLSS onboarding)

@@ -1,4 +1,3 @@
-# Copyright (c) 2026 Mike Hammes
 # SPDX-License-Identifier: Apache-2.0
 read_contrast_json <- function(path) {
   if (is.null(path) || !nzchar(path)) return(NULL)

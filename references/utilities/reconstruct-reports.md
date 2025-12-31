@@ -2,10 +2,6 @@
 name: reconstruct-reports
 description: Rebuild report_canonical_reconstructed.md and metaskill reports from analysis_log.jsonl report_block entries (gzip+base64).
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Reconstruct-Reports (Utility)

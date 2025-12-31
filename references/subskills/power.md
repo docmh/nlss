@@ -2,10 +2,6 @@
 name: power
 description: A priori/post hoc/sensitivity power for t-tests, ANOVA, correlations, regression, and SEM (RMSEA), with optional effect-size estimation from data and NLSS format outputs.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Power Analysis (Pwr + semPower, NLSS format)

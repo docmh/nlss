@@ -2,10 +2,6 @@
 name: plot
 description: NLSS format-ready figures (histogram, bar, box/violin, scatter/line, QQ, correlation heatmap) with grouping/smoothing options, automatic figure numbering, and images saved to workspace plots/.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Plot (ggplot2, NLSS format)

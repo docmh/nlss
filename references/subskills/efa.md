@@ -2,10 +2,6 @@
 name: efa
 description: Exploratory factor analysis with PCA/EFA extraction, rotation, eigenvalue retention, KMO/Bartlett diagnostics, and NLSS format outputs.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Exploratory Factor Analysis (Psych, NLSS format)

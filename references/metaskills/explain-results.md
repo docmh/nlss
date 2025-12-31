@@ -2,10 +2,6 @@
 name: explain-results
 description: Conversational, researcher-friendly explanations of the meaning of statistical results using the numbers provided in tables or outputs, without running analyses.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Explain Results (Agent-Run, Conversational)

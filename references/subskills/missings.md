@@ -2,10 +2,6 @@
 name: missings
 description: Missingness summaries and pattern tables with auto or manual handling (listwise, impute, indicator, drop), threshold rules, and in-place parquet updates with backups plus NLSS format outputs.
 license: Apache-2.0
-metadata:
-  nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
-  nlss.version: "1.0.0"
 ---
 
 # Missings (Base R, NLSS format)

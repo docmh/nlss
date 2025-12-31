@@ -5,7 +5,7 @@ compatibility: R 4.5.2, IDE (e.g., VS Code, Cursor), agentskills.io compatible c
 license: Apache-2.0
 metadata:
   nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
+  nlss.copyright: "Copyright (c) 2025-2026 Mike Hammes"
   nlss.trademark: "NLSS™ is a trademark of Mike Hammes"
   nlss.version: "1.0.0"
 ---
