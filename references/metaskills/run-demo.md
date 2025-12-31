@@ -47,7 +47,7 @@ If the user does **not** grant permission, stop after the capability overview an
 ## Procedure (Pseudocode)
 
 ```
-explain NLSS capabilities (workspace-first, subskills, outputs, logs)
+explain NLSS capabilities (workspace-first, subskills, metaskills, outputs, logs)
 ask permission to create demo workspace
 
 if permission denied:
@@ -56,24 +56,24 @@ if permission denied:
 
 if permission granted:
   briefly explain the next steps and note that setup can take a little time
-  ensure workspace root is valid (no nested/sibling manifests)
-  run init-workspace --csv <assets/sample-data/golden_dataset.csv> --user-prompt <last user message>
+  run init-workspace --csv assets/sample-data/golden_dataset.csv --user-prompt <last user message>
   write a short demo plan to scratchpad.md
-  optionally inspect dataset (data-explorer) only if explicitly requested by the user
+  inspect dataset (data-explorer)
   summarize progress updates in scratchpad.md
 
   provide friendly guidance:
     - where files live (scratchpad.md, report_canonical.md, analysis_log.jsonl, parquet)
     - how to run common tasks
-    - 4 natural language starter prompts that encourage experiential use of NLSS
+    - provide natural language starter prompts that invite experimentation with NLSS, based on data exploration:
+      - 3 should cover subskills
+      - 3 should cover metaskills
 ```
 
 ## Default Rules and Decision Logic
 
 - Always ask permission before creating a workspace. Do not ask any other follow-up questions.
 - Default dataset path is `assets/sample-data/golden_dataset.csv` unless the user explicitly requests the test copy.
-- Keep the demo lightweight: avoid running analysis subskills unless the user explicitly asks for them.
-- Do not run `data-explorer` unless the user explicitly requests a scan.
+- Keep the demo lightweight: start with simple, easy to-understand analyses and avoid complex modeling.
 - Update `scratchpad.md` with the demo plan before running scripts and mark progress after each step.
 - When running any subskill, pass `--user-prompt` with the last user message for traceability.
 - Do not run `metaskill-runner` and do not create any `report_<YYYYMMDD>_run-demo_<intent>.md` file for this metaskill.
@@ -90,7 +90,7 @@ If permission is **not** granted, the response is conversational only (no files 
 
 ### Final Report Requirements
 
-This metaskill does **not** create a standalone metaskill report file. All onboarding guidance is delivered conversationally, and the only persistent artifacts (if permission is granted) are the standard workspace files created by `init-workspace` (and optional `data-explorer`).
+This metaskill does **not** create a standalone metaskill report file. All onboarding guidance is delivered conversationally, and the only persistent artifacts (if permission is granted) are the standard workspace files created by `init-workspace` and `data-explorer`.
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`).
 All artifacts (reports, tables, figures) must be created inside the dataset workspace folder; do not write outside the workspace root.
@@ -108,9 +108,9 @@ This metaskill does not define its own NLSS format template. It relies on the te
 
 ## NLSS format Reporting Guidance
 
-- Explain what NLSS is and what it can do (subskills, workspace-first outputs, reporting/logging).
+- Explain what NLSS is and what it can do (subskills, metaskills, workspace-first outputs, reporting/logging).
 - Summarize the demo workspace creation (dataset used, files created, and where to find them).
-- Provide 4 natural language starter prompts that invite the user to experiment and learn how to work with the agent (for example, planning, clarifying variables, choosing analyses, and interpreting results).
+- Provide 6 natural language starter prompts (3 for subskills and 3 for metaskills) that invite the user to experiment and learn how to work with the agent.
 
 ## Parquet Support
 
