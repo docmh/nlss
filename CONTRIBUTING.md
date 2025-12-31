@@ -1,6 +1,6 @@
-# Contributing to NLSS™
+# Contributing to NLSS™ 
 
-Thanks for your interest in contributing to NLSS! 
+Thanks for your interest in contributing to NLSS! 🙏❤️
 
 This document explains how to contribute in a way that fits the project’s structure and agent-governed workflow.
 
