@@ -354,7 +354,106 @@ Try these in Codex / Claude Code:
 
 ---
 
-## Part II — For Developers / Maintainers
+## Part II — How to Use NLSS (Workspaces, Logs, and Customization)
+
+This section is a practical guide for day-to-day use after installation. It explains where NLSS puts files, how to watch progress, what the different module types mean, how logging works, and how to customize behavior.
+
+### 1) Workspaces and the files inside them
+
+NLSS is workspace-first: every dataset gets a dedicated folder under a workspace root. The workspace root is detected by `nlss-workspace.yml` (current directory, parent, or one-level child). If no manifest exists, NLSS uses `defaults.output_dir` from `scripts/config.yml` (default: `./nlss-workspace`).
+
+Typical layout:
+
+```text
+nlss-workspace/
+  nlss-workspace.yml
+  <dataset>/
+    <dataset>.parquet
+    scratchpad.md
+    report_canonical.md
+    analysis_log.jsonl
+    plots/
+    backup/
+    report_YYYYMMDD_<metaskill>_<intent>.md
+```
+
+What these files do:
+
+- `<dataset>.parquet`: the working copy every module reads (some modules update it with backups).
+- `scratchpad.md`: planning + decisions (especially for metaskills).
+- `report_canonical.md`: append-only NLSS format output log.
+- `analysis_log.jsonl`: append-only machine log for audit and reconstruction.
+- `plots/`: saved figures (when modules emit plots).
+- `backup/`: timestamped parquet backups before destructive updates.
+- `report_YYYYMMDD_<metaskill>_<intent>.md`: full metaskill report (only when a metaskill produces one).
+
+### 2) Keep `report_canonical.md` open while you run analyses
+
+`report_canonical.md` is your live lab notebook. NLSS appends new sections after every run, so keeping it open lets you:
+
+- watch progress in real time,
+- validate that the right tables/narratives were produced,
+- copy/share results immediately without hunting through logs.
+
+It’s normal for this file to grow; it’s meant to be an audit trail, not a single clean report.
+
+### 3) Skills, metaskills, and utilities (what they are)
+
+NLSS uses three kinds of modules:
+
+- **Subskills**: single-purpose analysis modules (descriptive stats, t-tests, regression, etc.).
+- **Metaskills**: agent-run workflows that chain subskills into a research task.
+- **Utilities**: helper tools (integrity checking, report reconstruction, quick calculations).
+
+Where to find documentation:
+
+- `SKILL.md` is the index (names + short descriptions).
+- `references/subskills/` has one doc per analysis module.
+- `references/metaskills/` has one doc per workflow.
+- `references/utilities/` has one doc per helper tool.
+
+The full list of available modules also appears later in this README (Part III).
+
+### 4) Logging: what it captures and why it matters
+
+Every run can record two complementary logs:
+
+- `report_canonical.md`: human-readable NLSS format output.
+- `analysis_log.jsonl`: machine-readable JSONL entries with metadata and (optionally) report blocks.
+
+Why this matters:
+
+- **Integrity checks**: `check-integrity` can recover checksums from `analysis_log.jsonl` to spot inconsistent or tampered logs.
+- **Report recovery**: `reconstruct-reports` can rebuild `report_canonical.md` (and metaskill reports) from log entries *when outputs are logged*.
+
+Logging is controlled by `logging.*` in `scripts/config.yml`. Set `logging.enabled: "false"` to disable logging. If you want report reconstruction, keep `logging.include_outputs` enabled so report blocks are stored.
+
+### 5) Configuration: `scripts/config.yml`
+
+`scripts/config.yml` is the main configuration file. The key sections are:
+
+- `defaults.*`: global defaults (e.g., `defaults.output_dir`, `defaults.workspace_manifest`, `defaults.csv.sep`, `defaults.digits`, `defaults.interactive`).
+- `logging.*`: what gets recorded in `analysis_log.jsonl` (e.g., `enabled`, `include_timestamps`, `include_versions`, `include_inputs`, `include_outputs`, `include_checksum`).
+- `modules.<subskill>.*`: per-module defaults (for example, `modules.crosstabs.percent`, `modules.regression.bootstrap`).
+- `templates.<subskill>.*`: which template file a module uses by default.
+
+CLI flags always override config values for a specific run. If `config.yml` is missing or unreadable, built-in defaults from `scripts/R/lib/config.R` are used.
+
+### 6) Templates: customize or add your own
+
+Most NLSS outputs are template-driven. Templates live under `assets/<subskill>/` and are Markdown files with YAML front matter (tokens, column definitions, narrative settings).
+
+Common ways to customize:
+
+- **Edit an existing template**: tweak wording, table columns, or narrative.
+- **Add a new template**: copy an existing template, save it under `assets/<subskill>/`, then register it in `scripts/config.yml` under `templates.<subskill>.<name>`.
+- **Select per run**: pass `--template <name>` (from config) or `--template <path>` (direct path). Relative paths are resolved under `assets/`.
+
+Each subskill reference file lists the available template tokens and column keys (see `references/subskills/<subskill>.md`). Metaskill reports use `assets/metaskills/report-template.md` by default and can be overridden with `templates.metaskill_report.default` in `scripts/config.yml`.
+
+---
+
+## Part III — For Developers / Maintainers
 
 ### Assistant Researcher Model
 
