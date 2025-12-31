@@ -94,7 +94,7 @@ if the user requests a new analysis or re-computation:
 ## Finalization
 
 - No finalization step is required for conversational use.
-- If a formal report is requested, write `report_<YYYYMMDD>_explain-results_<intent>.md` (ASCII slug for `<intent>`), align it using `references/metaskills/formatting/align-report.md`, then append a brief `# Synopsis` to `report_canonical.md` manually (no `metaskill-runner`).
+- If a formal report is requested, write `report_<YYYYMMDD>_explain-results_<intent>.md` (ASCII slug for `<intent>`), align it using `references/metaskills/format-document.md`, then append a brief `# Synopsis` to `report_canonical.md` manually (no `metaskill-runner`).
 
 ## NLSS format Templates
 

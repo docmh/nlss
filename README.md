@@ -444,7 +444,7 @@ Where it is used:
 - **Metaskill reports** (`report_YYYYMMDD_<metaskill>_<intent>.md`): journal-alike, NLSS format sections assembled into a full report.
 - **Templates**: NLSS format is implemented via templates under `assets/` and can be customized without changing R scripts.
 
-If you want the formatting rules, see `references/metaskills/formatting/` (headings, tables, references, and narrative conventions). NLSS format is close to APA 7 but not a strict substitute for final publication formatting.
+If you want the formatting rules, see `references/metaskills/format-document.md`. NLSS format is close to APA 7 but not a strict substitute for final publication formatting.
 
 ### 5) Skills, metaskills, and utilities (what they are)
 
@@ -648,7 +648,7 @@ Reference docs:
 - `references/metaskills/check-assumptions.md`
 - `references/metaskills/test-hypotheses.md`
 - `references/metaskills/write-full-report.md`
-- `references/metaskills/formatting/*.md`
+- `references/metaskills/format-document.md`
 - `references/utilities/calc.md`
 - `references/utilities/check-integrity.md`
 - `references/utilities/reconstruct-reports.md`

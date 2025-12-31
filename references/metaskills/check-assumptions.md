@@ -39,7 +39,7 @@ Use this metaskill when the user asks for assumption checks or diagnostics **for
 6. If the user requests citations for diagnostic criteria or thresholds, run the `research-academia` utility with query variants and curate sources (see utility guidance).
 7. Write a plan to `scratchpad.md`, then run `assumptions` with the appropriate flags.
 8. Update `scratchpad.md` with decisions and completion notes.
-9. Generate `report_<YYYYMMDD>_check-assumptions_<intent>.md` first, align it using `references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+9. Generate `report_<YYYYMMDD>_check-assumptions_<intent>.md` first, align it using `references/metaskills/format-document.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-Run)
 
@@ -103,7 +103,7 @@ if plots requested:
 
 update scratchpad.md with decisions and completion
 write report_<YYYYMMDD>_check-assumptions_<intent>.md
-align report using references/metaskills/formatting/align-report.md
+align report using references/metaskills/format-document.md
 run metaskill-runner --phase finalization --synopsis "<synopsis text>"
 ```
 
@@ -135,7 +135,7 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 ## Finalization
 
 - Write `report_<YYYYMMDD>_check-assumptions_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report using `references/metaskills/formatting/align-report.md` (must be the last step before finalization).
+- Align the report using `references/metaskills/format-document.md` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## NLSS format Templates

@@ -42,7 +42,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 6. Always build a well grounded theoretical introduction using `research-academia` and curate sources before writing the report.
 7. Write a step-by-step plan to `scratchpad.md`, then execute subskills in order.
 8. Update `scratchpad.md` after each step with progress, decisions, and transformations.
-9. Generate `report_<YYYYMMDD>_write-full-report_<intent>.md` first, align it using `references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+9. Generate `report_<YYYYMMDD>_write-full-report_<intent>.md` first, align it using `references/metaskills/format-document.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-Run)
 
@@ -118,7 +118,7 @@ generate visuals as needed:
 
 update scratchpad.md with decisions, assumptions checks, and completion notes
 write report_<YYYYMMDD>_write-full-report_<intent>.md
-align report_<YYYYMMDD>_write-full-report_<intent>.md using references/metaskills/formatting/align-report.md
+align report_<YYYYMMDD>_write-full-report_<intent>.md using references/metaskills/format-document.md
 run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
@@ -157,7 +157,7 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 ## Finalization
 
 - Write `report_<YYYYMMDD>_write-full-report_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report using `references/metaskills/formatting/align-report.md` (must be the last step before finalization).
+- Align the report using `references/metaskills/format-document.md` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## NLSS format Templates

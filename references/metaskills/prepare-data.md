@@ -39,7 +39,7 @@ Use this metaskill when the user asks for data cleaning or preparation, for exam
 6. If preprocessing choices need literature support (imputation, transformations, exclusions), run the `research-academia` utility with query variants and curate sources (see utility guidance).
 7. Write a step-by-step plan to `scratchpad.md`, then execute subskills in order.
 8. Update `scratchpad.md` after each step with progress, decisions, and transformations.
-9. Generate `report_<YYYYMMDD>_prepare-data_<intent>.md` first, align it using `references/metaskills/formatting/align-report.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+9. Generate `report_<YYYYMMDD>_prepare-data_<intent>.md` first, align it using `references/metaskills/format-document.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
 
 ## Execution (Agent-Run)
 
@@ -120,7 +120,7 @@ if post-clean checks requested:
 update scratchpad.md after each step
 finalize scratchpad.md with decisions and completion summary
 write report_<YYYYMMDD>_prepare-data_<intent>.md
-align report_<YYYYMMDD>_prepare-data_<intent>.md using references/metaskills/formatting/align-report.md
+align report_<YYYYMMDD>_prepare-data_<intent>.md using references/metaskills/format-document.md
 run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
 ```
 
@@ -158,7 +158,7 @@ All artifacts (reports, tables, figures) must be created inside the dataset work
 ## Finalization
 
 - Write `report_<YYYYMMDD>_prepare-data_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report using `references/metaskills/formatting/align-report.md` (must be the last step before finalization).
+- Align the report using `references/metaskills/format-document.md` (must be the last step before finalization).
 - Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
 
 ## NLSS format Templates

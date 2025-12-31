@@ -14,7 +14,7 @@ metadata:
 ## Overview
 
 Central guidance for NLSS as an assistant researcher, plus shared conventions for running R scripts and placing outputs.
-NLSS format is inspired by APA 7 and aims to approximate it in Markdown; the formatting guides in `references/metaskills/formatting/` define the rules.
+NLSS format is inspired by APA 7 and aims to approximate it in Markdown; the rules live in `references/metaskills/format-document.md`.
 
 ## Assistant Researcher Model
 
@@ -198,7 +198,7 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 ### Available Metaskills
 
 - [explain-statistics](references/metaskills/explain-statistics.md): Student-friendly explanations of statistical concepts, methods, and interpretations (conversational; no metaskill-runner by default).
-- [format-document](references/metaskills/format-document.md): NLSS format pass that standardizes a report using the NLSS formatting guides.
+- [format-document](references/metaskills/format-document.md): NLSS format specification and formatting pass (single source of truth for NLSS format rules).
 - [explain-results](references/metaskills/explain-results.md): Interpret analysis results in context, covering effect sizes, significance, assumptions, and limitations (conversational; no metaskill-runner by default).
 - [run-demo](references/metaskills/run-demo.md): Guided NLSS onboarding that explains capabilities, initializes a demo workspace, and offers starter prompts.
 - [plan-power](references/metaskills/plan-power.md): A priori power/sample-size planning with effect-size clarification or pilot estimation.

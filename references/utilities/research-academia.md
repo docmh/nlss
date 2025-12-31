@@ -8,7 +8,7 @@ license: Apache-2.0
 
 ## Overview
 
-Find academic references for a topic, aggregate results across multiple scholarly sources, and produce an NLSS format-ready report focused on the most relevant items. References are formatted using the NLSS reference list guidance in `references/metaskills/formatting/reference-list.md`. A comprehensive list is still available via the analysis log or by customizing the template.
+Find academic references for a topic, aggregate results across multiple scholarly sources, and produce an NLSS format-ready report focused on the most relevant items. References are formatted using the NLSS reference list guidance in `references/metaskills/format-document.md`. A comprehensive list is still available via the analysis log or by customizing the template.
 
 This utility uses live scholarly APIs (OpenAlex, Crossref, Semantic Scholar), so it requires network access at runtime.
 
@@ -115,7 +115,7 @@ Semantic Scholar may return HTTP 429 (rate limit). If this happens, retry later 
 
 Reference formatting follows:
 
-- `references/metaskills/formatting/reference-list.md`
+- `references/metaskills/format-document.md`
 
 This includes author limits, sentence case for titles, Title Case and italics for source titles, alphabetical ordering by first author, and a centered **References** heading.
 
