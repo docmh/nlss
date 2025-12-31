@@ -58,6 +58,31 @@ Where to get them / installation guides:
 - OpenAI Codex: https://developers.openai.com/codex/ (see also: CLI + Windows notes at https://developers.openai.com/codex/cli/windows)
 - Anthropic Claude Code: https://docs.claude.com/en/docs/claude-code/overview
 
+### 2a) Configure Codex IDE for NLSS (mode, reasoning, web, privacy)
+
+Codex IDE exposes key controls in the top bar/model switcher (Agent/Chat, model, reasoning effort, Auto context) plus a settings panel. Use these guidelines:
+
+- **Mode/permissions:** Use **Agent** mode (not Chat) so the agent can edit files and run commands. In Codex’s default approval mode, it can read/write inside the working directory and run commands there; it will ask before operating outside the workspace or accessing the network. Docs: https://developers.openai.com/codex/ide and https://developers.openai.com/codex/security
+- **Reasoning effort:** If the UI exposes a reasoning‑effort slider (low/medium/high), consider increasing it for statistics‑heavy tasks (higher effort is slower but more thorough). This maps to `model_reasoning_effort` in Codex settings. Docs: https://developers.openai.com/codex/ide and https://developers.openai.com/codex/configure/local-config
+- **Personal experience (what worked best):** Agent mode (not Chat), **GPT‑5.2‑Codex** (not GPT‑5.2), and higher reasoning effort when you want more polished reports. NLSS runs even on Low, but higher effort usually produces clearer narratives and more informed chat answers.
+- **Web/network access (for `research-academia`):** `research-academia` calls live scholarly APIs. Codex disables network access by default in `workspace-write`. If your UI has a web/network toggle, enable it; otherwise open Codex Settings (gear icon) → `Open config.toml` and set:
+
+  ```toml
+  [sandbox_workspace_write]
+  network_access = true
+  ```
+  Docs: https://developers.openai.com/codex/security and https://developers.openai.com/codex/configure/local-config
+
+- **Privacy controls:** If you prefer not to contribute prompts/results to model training, use OpenAI’s data controls (privacy portal or product settings). OpenAI’s consumer services (including Codex) may use content to improve models unless you opt out; business/API data is not used for training by default. Codex also has separate “full environment” training controls in its settings. See: https://help.openai.com/en/articles/5722486-how-your-data-is-used-to-improve-model-performance/ and https://openai.com/policies/how-your-data-is-used-to-improve-model-performance/
+
+### 2b) Configure Claude Code (UI notes)
+
+Claude Code exposes settings and model selection inside its UI via slash commands:
+
+- **Settings UI:** In the interactive REPL, run `/config` to open a tabbed Settings interface where you can view status and modify options. Settings live in `~/.claude/settings.json` (user) and `.claude/settings.json` / `.claude/settings.local.json` (project). Docs: https://docs.claude.com/en/docs/claude-code/settings
+- **Model picker:** Run `/model` to open the interactive model menu; `/status` shows the active model. Docs: https://support.claude.com/en/articles/11940350-claude-code-model-configuration
+- **Personal experience (what worked best):** Sonnet 4.5 already runs NLSS; Opus 4.5 tends to produce more polished reports when available. Opus access may require extra usage depending on plan. Docs: https://support.claude.com/en/articles/11940350-claude-code-model-configuration
+
 ### 3) Install R (so `Rscript` works) and the NLSS R packages
 
 NLSS executes `.R` scripts via `Rscript`. Install R in the environment you plan to use (macOS Terminal, Linux shell, Windows PowerShell, or WSL bash).
