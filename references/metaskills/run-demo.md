@@ -64,9 +64,10 @@ if permission granted:
   provide friendly guidance:
     - where files live (scratchpad.md, report_canonical.md, analysis_log.jsonl, parquet)
     - how to run common tasks
-    - provide natural language starter prompts that invite experimentation with NLSS, based on data exploration:
+    - provide natural language starter prompts that invite experimentation with NLSS:
       - 3 should cover subskills
       - 3 should cover metaskills
+      - only include variables in the starter prompts which are already defined in golden_dataset.csv (see results of data-explorer)
 ```
 
 ## Default Rules and Decision Logic
