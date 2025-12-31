@@ -1,4 +1,4 @@
-# Contributing to NLSS
+# Contributing to NLSS™
 
 Thanks for your interest in contributing to NLSS! 
 
