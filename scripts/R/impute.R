@@ -921,7 +921,7 @@ main <- function() {
   }
 
   m_default <- resolve_config_value("modules.impute.m", 5)
-  m <- parse_int(opts$m, default = m_default)
+  m <- parse_int(opts[["m"]], default = m_default)
   if (is.null(m) || is.na(m) || m < 1) m <- 1
   if (engine_used == "mice" && m < 2) m <- 2
   maxit_default <- resolve_config_value("modules.impute.maxit", 5)

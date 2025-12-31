@@ -553,7 +553,7 @@ title_case_heading <- function(text) {
   result <- out
   matches <- gregexpr("[A-Za-z0-9']+", out, perl = TRUE)[[1]]
   if (matches[1] == -1) return(out)
-  regmatches(result, list(matches)) <- lapply(word_values, function(word) {
+  replacements <- vapply(word_values, function(word) {
     if (nchar(word) == 0) return(word)
     is_first <- word_idx == 1L
     is_last <- word_idx == word_count
@@ -567,7 +567,8 @@ title_case_heading <- function(text) {
     }
     if (lower %in% minor) return(lower)
     paste0(toupper(substr(word, 1, 1)), tolower(substr(word, 2, nchar(word))))
-  })
+  }, character(1))
+  regmatches(result, list(matches)) <- list(replacements)
   result
 }
 

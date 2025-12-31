@@ -412,7 +412,19 @@ What these files do:
 - `backup/`: timestamped parquet backups before destructive updates.
 - `report_YYYYMMDD_<metaskill>_<intent>.md`: full metaskill report (only when a metaskill produces one).
 
-### 2) Keep `report_canonical.md` open while you run analyses
+### 2) Supported input file formats
+
+NLSS accepts the following dataset formats as inputs (via the standard CLI flags or agent prompts):
+
+- **CSV (`.csv`)**: use `--csv <path>` for comma-separated text data.
+- **SPSS (`.sav`)**: use `--sav <path>` for SPSS data files.
+- **RDS (`.rds`)**: use `--rds <path>` and ensure the file contains a data frame.
+- **RData (`.RData` / `.rdata`)**: use `--rdata <path>` plus `--df <data_frame_name>` to select the data frame when multiple objects exist.
+- **Parquet (`.parquet`)**: use `--parquet <path>`; this is the preferred workspace format and requires the `arrow` R package for I/O.
+
+Regardless of input type, NLSS creates (or reuses) a workspace copy at `<workspace-root>/<dataset-name>/<dataset-name>.parquet` and reads from that copy for all analyses. If your data is in another format (e.g., Excel), export it to CSV or Parquet first.
+
+### 3) Keep `report_canonical.md` open while you run analyses
 
 `report_canonical.md` is your live lab notebook. NLSS appends new sections after every run, so keeping it open lets you:
 
@@ -422,7 +434,7 @@ What these files do:
 
 It’s normal for this file to grow; it’s meant to be an audit trail, not a single clean report.
 
-### 3) NLSS format (the formatting approach)
+### 4) NLSS format (the formatting approach)
 
 NLSS outputs are written in **NLSS format**: a consistent, APA‑inspired Markdown style used for tables, notes, and narrative. It’s designed to be readable in plain text and consistent across modules.
 
@@ -434,7 +446,7 @@ Where it is used:
 
 If you want the formatting rules, see `references/metaskills/formatting/` (headings, tables, references, and narrative conventions). NLSS format is close to APA 7 but not a strict substitute for final publication formatting.
 
-### 4) Skills, metaskills, and utilities (what they are)
+### 5) Skills, metaskills, and utilities (what they are)
 
 NLSS uses three kinds of modules:
 
@@ -451,7 +463,7 @@ Where to find documentation:
 
 The full list of available modules also appears later in this README (Part III).
 
-### 5) Convenient extras: research-academia, explain-statistics, explain-results
+### 6) Convenient extras: research-academia, explain-statistics, explain-results
 
 These are frequently useful even outside full workflows:
 

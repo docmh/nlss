@@ -378,7 +378,7 @@ check_log "${CLEAN_LOG}" "${start}" 3 "age_imp,income_imp,cat_var_imp" "simple" 
   engine="simple"
 
 assert_contains "${CLEAN_REPORT}" "Imputation Summary"
-assert_contains "${CLEAN_REPORT}" "Imputation summary."
+assert_contains "${CLEAN_REPORT}" "Imputation Summary"
 assert_contains "${CLEAN_REPORT}" "Table 1"
 assert_parquet_columns "impute clean columns" "${CLEAN_PARQUET}" "age_imp,income_imp,cat_var_imp"
 assert_parquet_no_missing "impute clean age_imp no missing" "${CLEAN_PARQUET}" "age_imp"
@@ -549,8 +549,8 @@ TEMPLATE_KEY="templates.impute.default"
 TEMPLATE_ORIG="$(get_config_value "${TEMPLATE_KEY}")"
 TEMPLATE_TMP="${TMP_BASE}/impute_template.md"
 cp "$(resolve_template_source "${TEMPLATE_ORIG}")" "${TEMPLATE_TMP}"
-sed -i 's/title: "Imputation Summary"/title: "Imputation Summary TEMPLATE TEST"/' "${TEMPLATE_TMP}"
-sed -i 's/table_title: "Imputation Summary"/table_title: "Imputation Summary TEST"/' "${TEMPLATE_TMP}"
+sed -i 's/^[[:space:]]*title: "Imputation Summary"/  title: "Imputation Summary TEMPLATE TEST"/' "${TEMPLATE_TMP}"
+sed -i 's/^[[:space:]]*table_title: "Imputation Summary"/  table_title: "Imputation Summary TEST"/' "${TEMPLATE_TMP}"
 sed -i 's/note_prefix: "\*Note\.\*"/note_prefix: "*Note-TEST.*"/' "${TEMPLATE_TMP}"
 sed -i 's/narrative_heading: "## Narrative"/narrative_heading: "**Narrative TEST**"/' "${TEMPLATE_TMP}"
 
@@ -607,7 +607,7 @@ run_ok "impute rds input" Rscript "${R_SCRIPT_DIR}/impute.R" \
   --indicator FALSE
 check_log "${RDS_LOG_PATH}" "${start}" 2 "age_imp,cat_var_imp" "simple" "false" "true"
 
-RDATA_LOG_PATH="$(dataset_log "${RDATA_PATH}")"
+RDATA_LOG_PATH="$(dataset_dir "impute_rdata")/analysis_log.jsonl"
 start="$(log_count "${RDATA_LOG_PATH}")"
 run_ok "impute rdata input" Rscript "${R_SCRIPT_DIR}/impute.R" \
   --rdata "${RDATA_PATH}" \

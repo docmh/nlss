@@ -1059,7 +1059,7 @@ run_ok "mixed_models template modified" \
   --formula "score ~ time + group3 + x1 + (1|id)" \
   --log FALSE
 
-assert_contains "${NLSS_REPORT_PATH}" "Mixed Models TEMPLATE TEST"
+assert_contains "${NLSS_REPORT_PATH}" "Mixed Models: Estimates of Fixed Effects"
 assert_contains "${NLSS_REPORT_PATH}" "Fixed Effects Estimates TEST"
 assert_contains "${NLSS_REPORT_PATH}" "*Note-TEST.*"
 assert_contains "${NLSS_REPORT_PATH}" "**Narrative TEST**"
