@@ -1,124 +1,229 @@
-# NLSS - Natural Language Statistics Suite
+# NLSS — Natural Language Statistics Suite
 
-R-based statistics helpers that produce an NLSS format-ready report plus machine-readable JSONL logs. The repo is organized as "subskills" with a shared workflow and consistent output locations. NLSS format is inspired by APA 7 and aims to approximate it in Markdown.
+NLSS is a workspace-first set of R scripts designed to help **researchers** run common analyses quickly—primarily **through a coding agent in an IDE** (e.g., Codex or Claude Code). These third-party tools are mentioned as recognizable examples, not endorsements or recommendations.
 
-## Assistant Researcher Model
+NLSS is packaged as an **Agent Skill** following the open **Agent Skills** standard: https://agentskills.io/specification. This repo’s `SKILL.md` is the entry point that agents use to discover what NLSS can do.
+
+NLSS produces:
+
+- `report_canonical.md`: human-readable, NLSS format-ready tables + narrative (append-only audit trail)
+- `analysis_log.jsonl`: machine-readable JSONL run log (append-only)
+- `<dataset>.parquet`: a stateful workspace copy of your dataset (used by all modules)
+
+You can run NLSS either:
+
+- **via an Agent IDE (recommended):** prompt your agent to use the `nlss` skill and work inside an NLSS workspace, or
+- **via terminal (secondary):** run the R scripts directly with `Rscript`.
+
+---
+
+## Part I — For Researchers (Get Running Quickly)
+
+### 0) Install NLSS as a skill in your agent (Codex or Claude Code)
+
+Agent Skills are installed by placing the skill folder in the tool’s skill directory (the folder must contain `SKILL.md`, and the folder name should match `name: nlss` in `SKILL.md`). Codex and Claude Code are examples; any Agent Skills–compatible agent host can work.
+
+**Codex (OpenAI; example agent host)**
+
+- **User-wide (recommended):** clone NLSS into your Codex skills folder, e.g. `~/.codex/skills/nlss/` (macOS/Linux/WSL).
+- **Per-repo (team/shared):** put NLSS under your project’s `.codex/skills/nlss/`.
+- See Codex skills docs for supported locations and discovery behavior: https://developers.openai.com/codex/skills
+- In Codex, run `/skills` to confirm NLSS is installed, and use `$nlss` for explicit invocation when needed.
+- In Codex, you can also install skills from inside the chat via `$skill-installer` (restart required after installing).
+
+**Claude Code (Anthropic; example agent host)**
+
+- **Personal skills:** `~/.claude/skills/nlss/` (available across projects).
+- **Project skills:** `.claude/skills/nlss/` (committed to your repo and shared with your team).
+- **Plugin skills:** bundled with installed Claude Code plugins.
+- Docs: https://docs.claude.com/en/docs/claude-code/skills (overview: https://www.claude.com/blog/skills)
+
+If you want the quickest path: ask your agent to install NLSS from your repo URL into its skills directory.
+After installing, restart Codex / Claude Code so the new skill is loaded.
+
+<details>
+<summary>Example installs (macOS/Linux/WSL)</summary>
+
+Codex user-wide:
+
+```bash
+mkdir -p ~/.codex/skills
+git clone <repo-url> ~/.codex/skills/nlss
+```
+
+Claude Code manual install:
+
+```bash
+mkdir -p ~/.claude/skills
+git clone <repo-url> ~/.claude/skills/nlss
+```
+
+Claude Code project skill (run in your analysis repo root):
+
+```bash
+mkdir -p .claude/skills
+git clone <repo-url> .claude/skills/nlss
+```
+
+</details>
+
+### 1) Install an Agent IDE + plugin (Codex or Claude Code)
+
+Pick one setup:
+
+- Install an IDE that can host agentic tooling (for example Visual Studio Code or Cursor). These are examples only—use whatever IDE/agent setup your environment supports.
+- Install either **Codex** (OpenAI) or **Claude Code** (Anthropic) and make sure it can run shell commands in your project.
+
+### 2) Install R so `Rscript` works in the agent terminal
+
+NLSS runs `.R` scripts directly with `Rscript`, even when invoked by an agent. Verify it in the *same* shell your agent uses:
+
+- Windows PowerShell: `Get-Command Rscript` or `Rscript --version`
+- WSL/Linux (bash): `which Rscript` or `Rscript --version`
+
+Install R (examples):
+
+- Windows (PowerShell): install R (CRAN or `winget install --id RProject.R -e`) and ensure it is on `PATH`.
+- WSL (Ubuntu): `sudo apt update && sudo apt install r-base`
+
+### 3) Install R package dependencies (full list, once)
+
+NLSS uses base R packages (`base`, `stats`, `utils`, `graphics`, `grDevices`, `tools`) plus the following CRAN packages. Install all to avoid missing features:
+
+`arrow`, `car`, `curl`, `DHARMa`, `emmeans`, `foreign`, `ggplot2`, `haven`, `influence.ME`, `jsonlite`, `lavaan`, `lme4`, `lmerTest`, `mice`, `MVN`, `performance`, `psych`, `pwr`, `semPower`, `VIM`, `viridisLite`, `yaml`
+
+```bash
+Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('arrow','car','curl','DHARMa','emmeans','foreign','ggplot2','haven','influence.ME','jsonlite','lavaan','lme4','lmerTest','mice','MVN','performance','psych','pwr','semPower','VIM','viridisLite','yaml'))"
+```
+
+### 4) First example (agent-first): analyze the bundled golden dataset
+
+This repo ships a small demo dataset: [tests/data/golden_dataset.csv](tests/data/golden_dataset.csv).
+
+1) From the NLSS repo folder (the one containing `SKILL.md`), create a working folder and copy the dataset (you can do this yourself, or ask your agent to do it):
+
+```bash
+mkdir -p demo
+cp tests/data/golden_dataset.csv demo/golden_dataset.csv
+```
+
+2) Prompt your agent with natural language, for example:
+
+- "Use `nlss` to initialize a workspace for `demo/golden_dataset.csv`, then run descriptive stats for `age` and `score` grouped by `condition`."
+- "Run a `gender` × `condition` crosstab with chi-square + effect sizes, then interpret."
+- "Run Spearman correlations among `age`, `score`, and `stress`, and summarize the strongest relationships."
+
+3) Open the outputs in:
+
+- `nlss-workspace/golden_dataset/report_canonical.md`
+- `nlss-workspace/golden_dataset/analysis_log.jsonl`
+
+<details>
+<summary>Terminal fallback (run the scripts yourself)</summary>
+
+From the repo root:
+
+```bash
+cd demo
+Rscript ../scripts/R/init_workspace.R --csv golden_dataset.csv
+Rscript ../scripts/R/descriptive_stats.R --csv golden_dataset.csv --vars age,score --group condition
+Rscript ../scripts/R/frequencies.R --csv golden_dataset.csv --vars gender,condition
+Rscript ../scripts/R/crosstabs.R --csv golden_dataset.csv --row gender --col condition
+Rscript ../scripts/R/correlations.R --csv golden_dataset.csv --vars age,score,stress --method spearman
+```
+
+</details>
+
+### 5) The workspace structure (what NLSS creates)
+
+By default, NLSS writes into `./nlss-workspace/` (see Part II to change this). A typical first-run folder looks like:
+
+```text
+demo/
+  golden_dataset.csv
+  nlss-workspace/
+    nlss-workspace.yml
+    golden_dataset/
+      golden_dataset.parquet
+      scratchpad.md
+      report_canonical.md
+      analysis_log.jsonl
+      plots/
+      backup/
+      report_YYYYMMDD_<metaskill>_<intent>.md  (only when a metaskill produces a full report)
+```
+
+What the files mean:
+
+- `nlss-workspace.yml`: workspace manifest (datasets, active dataset, log sequence counters).
+- `<dataset>.parquet`: the working copy *every module reads*; some modules update it in place (with backups).
+- `scratchpad.md`: planning, decisions, assumptions (especially for agent-run metaskills).
+- `report_canonical.md`: append-only “lab notebook” of NLSS tables + narrative for each run.
+- `analysis_log.jsonl`: append-only JSONL log entries for audit/reproducibility.
+- `backup/`: timestamped parquet backups created before destructive updates.
+- `plots/`: saved figures (from `plot` and some model modules).
+
+### 6) How output + logging works
+
+- **Subskills** append sections to `report_canonical.md` and (by default) append one JSON line to `analysis_log.jsonl`.
+- **Metaskills** (agent-run workflows) may additionally create a standalone, journal-ready file `report_<YYYYMMDD>_<metaskill>_<intent>.md` in the dataset folder.
+- Output directories are intentionally not a per-run CLI flag; choose a workspace root by where you run, or by changing `defaults.output_dir` (Part II).
+
+### 7) Easy prompts to give your agent (copy/paste)
+
+Try these in Codex / Claude Code:
+
+1. "Use `nlss` to initialize a workspace for `demo/golden_dataset.csv` and tell me which files were created."
+2. "Run descriptive stats for `age` and `score`, grouped by `condition`, and interpret the main differences."
+3. "Run a `gender` × `condition` crosstab with chi-square + effect sizes; interpret."
+4. "Run Spearman correlations among `age`, `score`, and `stress`; summarize and note caveats."
+
+---
+
+## Part II — For Developers / Maintainers
+
+### Assistant Researcher Model
 
 NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
-## Requirements and System Support
+### Agent Skills standard + installation (framework details)
 
-- R 4.4+ (base R is enough for CSV/NLSS format outputs).
-- `Rscript` available on PATH in the shell where you run NLSS.
-- Required R packages: `yaml` (configuration + templates), `jsonlite` (analysis logging), `arrow` (parquet workspace copies), and `ggplot2` (plot subskill).
-- Optional R packages: `haven` (preferred) or `foreign` for SPSS `.sav` input support; `mice` or `VIM` for imputation engines; `car` for Type II/III ANOVA sums of squares; `psych` (EFA/PCA, KMO/Bartlett); `GPArotation` for oblique rotations; `lme4` + `performance` for mixed models (required when using mixed-models); `lmerTest` for df/*p*-values; `emmeans` for marginal means/contrasts; `lavaan` for SEM/CFA/mediation; `pwr` for power analysis; `semPower` for SEM power; `viridisLite` for palettes; `influence.ME` and `DHARMa` for mixed-model diagnostics; `MVN` for Mardia test.
+NLSS follows the **Agent Skills** standard (https://agentskills.io/specification). In practice, that means:
+
+- A skill is a **folder** containing `SKILL.md` (YAML front matter with `name`/`description` + human-readable docs).
+- The skill may also ship `references/` (how-to docs), `scripts/` (runnables), and `assets/` (templates).
+
+How you install skills depends on the agent. Examples:
+
+- **Codex (OpenAI):** Codex discovers skills by scanning these locations (in order): `./.codex/skills`, `../.codex/skills`, `$REPO_ROOT/.codex/skills`, `$CODEX_HOME/skills`, `/etc/codex/skills`, `/usr/share/codex/skills`. Install NLSS by placing it in one of those locations under a folder named `nlss/` (matching `name: nlss`). Docs: https://developers.openai.com/codex/skills
+- **Claude Code (Anthropic):** Claude Code loads skills from project skills (`.claude/skills/`), personal skills (`~/.claude/skills/`), and plugin-bundled skills. Docs: https://docs.claude.com/en/docs/claude-code/skills
+
+### Requirements and system support
+
+- R 4.4+.
+- `Rscript` available on `PATH` in the shell where you run NLSS.
+- Base R packages used: `base`, `stats`, `utils`, `graphics`, `grDevices`, `tools`.
+- CRAN dependencies used across modules: `arrow`, `car`, `curl`, `DHARMa`, `emmeans`, `foreign`, `ggplot2`, `haven`, `influence.ME`, `jsonlite`, `lavaan`, `lme4`, `lmerTest`, `mice`, `MVN`, `performance`, `psych`, `pwr`, `semPower`, `VIM`, `viridisLite`, `yaml`.
 - Windows, WSL (Ubuntu), or Linux.
 
-## Rscript Setup (Required)
-
-NLSS runs `.R` scripts directly with `Rscript`. Ensure `Rscript` is available in the same shell where you run NLSS.
-
-### Check Availability
-
-- Windows PowerShell: `Get-Command Rscript` or `Rscript --version`
-- WSL/Linux: `which Rscript` or `Rscript --version`
-
-### Install R With Rscript on PATH
-
-- Windows (PowerShell):
-  - Install R from CRAN or with `winget install --id RProject.R -e`.
-  - Ensure the installer option "Add R to PATH" is enabled, or add `C:\Program Files\R\R-x.y.z\bin` (or `bin\x64`) to PATH manually, then restart the terminal.
-- WSL (Ubuntu):
-  - `sudo apt update && sudo apt install r-base`
-
-### Windows + WSL Environment Choice
-
-- If `Rscript` is available in WSL but not in Windows PowerShell: prefer switching the Codex IDE to a WSL environment; alternatively install R in Windows.
-- If `Rscript` is available in Windows PowerShell but not in WSL: prefer installing R in WSL and switching Codex to WSL; alternatively stay in Windows PowerShell.
-
-Install the R dependencies:
-
-```bash
-Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','psych','GPArotation','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower','viridisLite','influence.ME','DHARMa','MVN'))"
-```
-
-Or install them interactively in *r*:
-
-```r
-install.packages(c('yaml','jsonlite','arrow','ggplot2','haven','foreign','mice','VIM','car','psych','GPArotation','lme4','lmerTest','emmeans','performance','lavaan','pwr','semPower','viridisLite','influence.ME','DHARMa','MVN'))
-```
-
-## Open Source and Third-Party Software
-
-NLSS is licensed under Apache-2.0 (see `LICENSE` and `NOTICE`). It relies on open-source R and CRAN packages that are installed separately and remain under their respective licenses.
-
-- Core runtime packages: `yaml`, `jsonlite`, `arrow`, `ggplot2`.
-- Optional feature packages: `haven`, `foreign`, `mice`, `VIM`, `car`, `psych`, `GPArotation`, `lme4`, `lmerTest`, `emmeans`, `performance`, `lavaan`, `pwr`, `semPower`.
-- Optional packages used when available: `viridisLite`, `influence.ME`, `DHARMa`, `MVN`.
-- Test tooling (optional): Python 3 for the test harness.
-
-## Disclaimer and Intended Use
-
-- Provided "AS IS" under Apache-2.0; no warranties or conditions of any kind.
-- Users are responsible for validating results and decisions made from them; outputs are aids, not a substitute for expert review.
-- Source availability helps transparency, but does not guarantee correctness or fitness for a particular purpose.
-- Not intended for safety-critical, medical, legal, or regulatory decision making without independent verification.
-- Modified versions may behave differently; anyone distributing changes should review and test their modifications.
-
-
-## Install
-
-No build step. Clone and run the scripts directly:
-
-```bash
-git clone <repo-url>
-cd <repo-name>
-```
-
-If you are on Windows, ensure `Rscript.exe` is on your PATH.
-
-## Quick Start
-
-Outputs always go to the dataset workspace at `<workspace-root>/<dataset-name>/` and are not user-overridable. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml`; if no manifest is present, scripts fall back to `defaults.output_dir` in `scripts/config.yml`. Each run writes `report_canonical.md` and, when logging is enabled, appends to `analysis_log.jsonl` inside that dataset folder (the monotonic log counter is stored in `nlss-workspace.yml` as `analysis_log_seq`; if `analysis_log.jsonl` is missing, the counter restarts at 1).
-
-### Path Handling
+### Path handling
 
 - Displayed paths in console output and reports default to workspace-relative when the target is inside the workspace root; absolute paths are used only for locations outside the workspace.
-- Mask workspace-external paths in `scratchpad.md`, `report_canonical.md`, and `analysis_log.jsonl` as `<external>/<filename>`; avoid full absolute external paths in documentation and logs.
-- Use workspace-relative paths in examples and configs; use absolute paths when referencing files outside the workspace root.
+- Mask workspace-external paths in `scratchpad.md`, `report_canonical.md`, and `analysis_log.jsonl` as `<external>/<filename>`.
+- Prefer workspace-relative paths in examples and configs; use absolute paths only when referencing files outside the workspace root.
 
-### Rscript (All Platforms)
+### Stateful workspace architecture
 
-```bash
-Rscript scripts/R/descriptive_stats.R --csv data.csv --vars age,score
-```
+NLSS is stateful. The workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml`; if no manifest is present, scripts fall back to `defaults.output_dir` in `scripts/config.yml` (default: `./nlss-workspace`).
 
-Notes:
-
-- Use Windows paths (for example `C:\path\file.csv`) in Windows PowerShell.
-- Use WSL paths (for example `/mnt/c/path/file.csv`) in WSL.
-
-## Tests
-
-Test scripts, plans, and fixtures live under `tests/`, and the harness reads `tests/tests.yml`.
-
-- Unix/WSL: `bash cmdscripts/tests.sh smoke`
-- Windows PowerShell: `.\cmdscripts\tests.ps1 smoke`
-
-Runs write to `outputs/test-runs/<timestamp>/` by default.
-
-## Stateful Workspace Architecture
-
-nlss is stateful. The workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir`), and each dataset gets its own subfolder.
-
-- Run `scripts/R/init_workspace.R` to create `<workspace-root>/<dataset-name>/scratchpad.md`, `report_canonical.md`, `analysis_log.jsonl`, a parquet workspace copy, and `nlss-workspace.yml` in the workspace root.
+- `scripts/R/init_workspace.R` creates `<workspace-root>/<dataset-name>/scratchpad.md`, `report_canonical.md`, `analysis_log.jsonl`, a parquet workspace copy, and `nlss-workspace.yml` in the workspace root.
 - For any input dataset (CSV/SAV/RDS/RData/Parquet), the workspace copy lives at `<workspace-root>/<dataset-name>/<dataset-name>.parquet`.
 - All subskills read from the workspace parquet copy (prefer `--parquet` pointing to the workspace file or rely on auto-copy).
 - When running from a dataset folder without input flags, scripts select that dataset; otherwise they load `active_dataset` from the manifest.
 - Workspaces must be non-nested and unique per parent folder; scripts stop if nested or sibling workspace manifests are detected.
 - `data-transform` and `missings` update the workspace parquet copy in place and save a backup to `<workspace-root>/<dataset-name>/backup/<dataset-name>-<timestamp>.parquet` before overwriting.
 
-## Available Modules (Subskills)
+### Available modules (subskills)
 
 Each subskill has a reference file describing inputs, flags, and outputs. Template-driven modules can be customized via `assets/<subskill>/` and `templates.*` in `scripts/config.yml`.
 
@@ -217,7 +322,7 @@ Reference docs:
 - `references/utilities/reconstruct-reports.md`
 - `references/utilities/research-academia.md`
 
-## Basic Usage by Module
+### Basic usage by module
 
 Each run writes `report_canonical.md` in the output directory and appends to `analysis_log.jsonl` when logging is enabled.
 
@@ -302,7 +407,7 @@ Rscript scripts/R/missings.R \
 
 ```bash
 Rscript scripts/R/metaskill_runner.R \
-  --csv data.csv --meta sample-description --intent "describe the sample"
+  --csv data.csv --meta describe-sample --intent "describe the sample"
 ```
 
 ### Assumptions Checks
@@ -372,13 +477,13 @@ Rscript scripts/R/init_workspace.R \
   --csv data.csv
 ```
 
-## Where Outputs Go
+### Where outputs go
 
 All scripts write to the dataset workspace at `<workspace-root>/<dataset-name>/` and do not accept a custom output directory. Workspace root is the current directory, its parent, or a one-level child containing `nlss-workspace.yml` (fallback: `defaults.output_dir` in `scripts/config.yml`). Subskills only extend `report_canonical.md` and never create standalone report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
 Workspace dataset copies are stored as `<workspace-root>/<dataset-name>/<dataset-name>.parquet`; `data_transform` and `missings` update these copies in place and create backups in `<workspace-root>/<dataset-name>/backup/`.
 Plots are saved under `<workspace-root>/<dataset-name>/plots/` with figure-numbered filenames.
 
-## Configuration Logic
+### Configuration
 
 Defaults live in `scripts/config.yml` and are loaded via `scripts/R/lib/config.R`.
 
@@ -388,7 +493,7 @@ Defaults live in `scripts/config.yml` and are loaded via `scripts/R/lib/config.R
 - CLI flags always override config values at runtime (for example `--digits`, module-specific flags).
 - When `config.yml` is missing or unreadable, built-in defaults in `config.R` are used.
 
-## NLSS format Template Logic (YAML)
+### Templates (NLSS format, YAML)
 
 Templates are Markdown files under `assets/<subskill>/` with YAML front matter. They drive `report_canonical.md` output for the subskills that ship with templates (descriptive stats, frequencies, crosstabs, correlations, scale, data exploration, plotting, data transformation, missingness handling, imputation, assumptions, regression, power, SEM, ANOVA, and t-tests).
 
@@ -402,28 +507,52 @@ Key YAML fields:
 Template paths can be overridden in `scripts/config.yml` under `templates.<subskill>.<name>` (for example `templates.crosstabs.grouped`). Edit the template files or point to your own to change NLSS format output without touching the R scripts.
 You can also pass `--template <name|path>` to any subskill to select a configured template reference (for example `default` or `grouped`) or a direct template path; unresolved references fall back to the default template selection.
 
-## Using With Codex (Codes)
+### Using with Codex
 
-Codex discovers this repo's skill via `SKILL.md`. Open Codex in the repo root and ask for a statistical task; it should route to the correct subskill automatically.
+Once NLSS is installed as a Codex skill (see Part I / Part II), open Codex in your analysis repo.
+
+- Run `/skills` to confirm NLSS is available.
+- Use `$nlss` for explicit invocation when you want to force Codex to use this skill.
 
 Example prompt:
 
 ```
 Use nlss to run correlations (Pearson) on data.csv for age, score, and stress.
-Write outputs to outputs/tmp and summarize the NLSS format text.
+Use the default `nlss-workspace/` workspace output and summarize the NLSS format text.
 ```
 
-## Using With Claude Code
+### Using with Claude Code
 
-Claude Code can use the same repo structure. Open the repo and tell Claude to use the nlss subskill reference files and scripts.
+Once NLSS is installed as a Claude skill (see Part I / Part II), restart Claude Code and open it in your analysis repo.
+
+- Ask: "What Skills are available?" to confirm NLSS is loaded.
+- When needed, explicitly tell Claude: "Use the `nlss` skill."
 
 Example prompt:
 
 ```
 Use the nlss repo. Run descriptive_stats on data.csv for age and score.
-Use outputs/tmp and report the NLSS format narrative and table file names.
+Use the default `nlss-workspace/` workspace output and report the NLSS format narrative and table file names.
 ```
-## Open Source Notices
+
+### Tests
+
+Test scripts, plans, and fixtures live under `tests/`, and the harness reads `tests/tests.yml`.
+
+- Unix/WSL: `bash cmdscripts/tests.sh smoke`
+- Windows PowerShell: `.\cmdscripts\tests.ps1 smoke`
+
+Runs write to `outputs/test-runs/<timestamp>/` by default.
+
+## Disclaimer and intended use
+
+- Provided "AS IS" under Apache-2.0; no warranties or conditions of any kind.
+- Users are responsible for validating results and decisions made from them; outputs are aids, not a substitute for expert review.
+- Source availability helps transparency, but does not guarantee correctness or fitness for a particular purpose.
+- Not intended for safety-critical, medical, legal, or regulatory decision making without independent verification.
+- Modified versions may behave differently; anyone distributing changes should review and test their modifications.
+
+## Open source notices
 
 ### License
 

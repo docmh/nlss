@@ -151,7 +151,47 @@ New subskills should use the YAML template system for `report_canonical.md`:
 - Keep the `description` field and **Subskills** section in `SKILL.md` updated after adding a new subskill.
 - Always update `README.md` to reflect new subskills (module list, templates, reference docs, and example usage).
 
-### Tests
+## Utility Implementation Guide
+
+Utilities are lightweight tools that support the NLSS workflow but are **not** subskills or metaskills. Some utilities emit NLSS-format outputs (for example `calc`, `research-academia`); others are stdout/file-only helpers (`check-integrity`, `reconstruct-reports`). Use the existing utilities as reference implementations and follow the conventions below.
+
+### Structure
+
+- Create a new file `references/utilities/<utility-name>.md` with YAML front matter (`name`, `description`) and the standard sections (Overview, Intent/Triggers, Inputs, Script, Options, Behavior, Outputs, Examples, Non-Goals, Implementation Notes, Dependencies).
+- Add an R script at `scripts/R/<utility_name>.R` (underscore naming in filenames; hyphenated names in docs/CLI).
+- If the utility renders NLSS output, create `assets/<utility-name>/default-template.md` and register it under `templates.<utility_name>.default` in both `scripts/config.yml` and `scripts/R/lib/config.R`.
+
+### Script Conventions
+
+- Use the standard `bootstrap_dir` + `source_lib("paths.R")` pattern, then source `config.R` and `io.R` early (plus `formatting.R` if writing NLSS reports).
+- Prefer `cli.R` helpers (`parse_args`, `parse_bool`, `prompt`) for consistency; include `--help` output and `--interactive` when inputs benefit from prompting.
+- Normalize file inputs with `normalize_input_path` and handle Windows drive-letter splits (see `check_integrity.R` and `reconstruct_reports.R`).
+- Guard non-base dependencies with `requireNamespace()` and emit a clear install message with a non-zero exit status when missing.
+
+### Outputs and Logging
+
+- Choose the output model explicitly:
+  - **Report/log utilities** (for example `calc`, `research-academia`): resolve the output directory via `io.R` (workspace root if a manifest exists; otherwise `defaults.output_dir`), write to `report_canonical.md`, and append to `analysis_log.jsonl` when `--log` is enabled. Include `--user-prompt` for traceability.
+  - **Standalone utilities** (for example `check-integrity`, `reconstruct-reports`): write to stdout or an explicit `--out-dir` and **do not** create workspaces or modify manifests.
+- Utilities must never create `report_<YYYYMMDD>_<metaskill>_<intent>.md` files (metaskills only).
+- When using templates, compute `table_body`/tokens and pass `template_context` into `append_nlss_report`.
+
+### Configuration Defaults
+
+- Read defaults with `get_config_value()` and let CLI flags override them.
+- Add module-specific defaults under `modules.<utility_name>` in `scripts/config.yml` and `scripts/R/lib/config.R` when needed (see `modules.research_academia`).
+
+### Documentation & Registration
+
+- Document all flags, behaviors, outputs, non-goals, and dependencies in the utility reference file.
+- Add the utility to `SKILL.md` under **Utilities** (relative link) and update `README.md` (module list, reference docs, and usage notes).
+
+### Web/Network Utilities
+
+- Require explicit opt-in for network access (`--web TRUE` or `NLSS_WEB_SEARCH=1`) and exit with a clear error when not enabled (see `research-academia`).
+- Expose source lists, timeouts, and API key options when applicable, and document rate-limit behavior.
+
+## Tests
 
 - Use `tests/tests.yml` `tests.*` as the source of truth for test planning and execution, including all paths.
 - Use `tests.scripts.harness_unix` or `tests.scripts.harness_windows` for suite runs; these harnesses call `tests.scripts.smoke_unix` and `tests.scripts.deliberate_unix` as defined in `tests/tests.yml`.
@@ -166,4 +206,3 @@ New subskills should use the YAML template system for `report_canonical.md`:
 - For expected failures, treat "expected error + informational feedback" as a pass (log-based checks are acceptable when stderr/stdout is not reliable).
 - Add output-generation coverage for templates: verify default templates and temporarily altered templates produce the expected changes.
 - Ensure tests demonstrate robust, expected, and reliable behavior for the new subskill. Cover all statistic features and options of this new subskill and apply positive, edge, and negative test cases as appropriate.
-
