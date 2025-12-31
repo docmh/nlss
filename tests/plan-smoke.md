@@ -14,6 +14,7 @@
 ## Prereqs
 
 - Run from the repo root.
+- Python 3 available as `python3` or `python` (or set `PYTHON_BIN`).
 - Rscript available.
 - R package `arrow` installed (Parquet support).
 - R package `lavaan` installed (SEM/CFA/mediation coverage).

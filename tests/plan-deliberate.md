@@ -6,6 +6,10 @@
 - Use a shared run root so module workspaces stay grouped per run.
 - Defer detailed coverage to the module plans listed below.
 
+## Prereqs
+
+- Python 3 available as `python3` or `python` (or set `PYTHON_BIN`).
+
 ## How to Run
 
 Preferred (uses `tests/tests.yml` paths):

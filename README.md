@@ -715,6 +715,7 @@ Test scripts, plans, and fixtures live under `tests/`, and the harness reads `te
 
 - Unix/WSL: `bash cmdscripts/tests.sh smoke`
 - Windows PowerShell: `.\cmdscripts\tests.ps1 smoke`
+- Test harness requires Python 3 available as `python3` or `python` (or set `PYTHON_BIN`).
 
 Runs write to `outputs/test-runs/<timestamp>/` by default.
 
