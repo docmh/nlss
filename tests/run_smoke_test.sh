@@ -530,6 +530,17 @@ print(count)
 PY
 }
 
+assert_log_unchanged() {
+  local before="$1"
+  local after="$2"
+  local label="$3"
+  if [ "${before}" -ne "${after}" ]; then
+    echo "[FAIL] ${label} (log changed)" | tee -a "${LOG_PATH}"
+    exit 1
+  fi
+  echo "[PASS] ${label}" | tee -a "${LOG_PATH}"
+}
+
 log_has_expected() {
   local log_file="$1"
   local start_count="$2"
@@ -568,6 +579,72 @@ with path.open("r", encoding="utf-8") as handle:
         sys.exit(0)
 sys.exit(1)
 PY
+}
+
+assert_log_field() {
+  local label="$1"; shift
+  local log_file="$1"; shift
+  local start_count="$1"; shift
+  local module="$1"; shift
+  local field="$1"; shift
+  local expected="$1"; shift
+  if "${PYTHON_BIN}" - "$log_file" "$start_count" "$module" "$field" "$expected" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+log_path = Path(sys.argv[1])
+start_count = int(sys.argv[2])
+module = sys.argv[3]
+field = sys.argv[4]
+expected = sys.argv[5]
+
+if not log_path.exists():
+    raise SystemExit(f"Missing log: {log_path}")
+
+entries = []
+with log_path.open("r", encoding="utf-8") as handle:
+    for idx, line in enumerate(handle, start=1):
+        if idx <= start_count:
+            continue
+        if line.strip():
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+
+if not entries:
+    raise SystemExit("No new log entries found.")
+
+entry = None
+for candidate in reversed(entries):
+    if candidate.get("module") == module:
+        entry = candidate
+        break
+if entry is None:
+    raise SystemExit(f"No {module} log entry found.")
+
+def resolve_path(obj, path):
+    current = obj
+    for part in path.split("."):
+        if isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
+            return False
+    return True
+
+has_field = resolve_path(entry, field)
+if expected == "present" and not has_field:
+    raise SystemExit(f"Expected {field} present.")
+if expected == "absent" and has_field:
+    raise SystemExit(f"Expected {field} absent.")
+PY
+  then
+    echo "[PASS] ${label}" | tee -a "${LOG_PATH}"
+  else
+    echo "[FAIL] ${label}" | tee -a "${LOG_PATH}"
+    exit 1
+  fi
 }
 
 run_expect_log() {
@@ -941,6 +1018,75 @@ EOF
 assert_marker "# Dummy Metaskill Report" "${METASKILL_REPORT_ORIGINAL_PATH}"
 run_ok "metaskill_runner finalization" run_rscript "${R_SCRIPT_DIR}/metaskill_runner.R" --parquet "${PARQUET_PATH_WIN}" --meta sample-description --intent "describe the sample" --phase finalization
 run_ok "descriptive_stats clean" run_rscript "${R_SCRIPT_DIR}/descriptive_stats.R" --parquet "${PARQUET_PATH_WIN}" --vars outcome_anova,x1,x2,x3,mediator --group group3 --digits 3
+
+reset_to_base
+set_config_value "logging.enabled" "true"
+set_config_value "logging.include_checksum" "true"
+set_config_value "logging.include_timestamps" "true"
+set_config_value "logging.include_versions" "true"
+set_config_value "logging.include_environment" "true"
+set_config_value "logging.include_user_prompt" "true"
+set_config_value "logging.include_cli_args" "true"
+set_config_value "logging.include_inputs" "true"
+set_config_value "logging.include_outputs" "true"
+start_count="$(log_count "${ANALYSIS_LOG_PATH}")"
+run_ok "logging toggles all on" run_rscript "${R_SCRIPT_DIR}/descriptive_stats.R" --parquet "${PARQUET_PATH_WIN}" --vars x1 --user-prompt "logging toggles on"
+assert_log_field "logging on timestamp" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "timestamp_utc" "present"
+assert_log_field "logging on versions" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "nlss_version" "present"
+assert_log_field "logging on r_version" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "r_version" "present"
+assert_log_field "logging on os" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "os" "present"
+assert_log_field "logging on user_prompt" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "user_prompt" "present"
+assert_log_field "logging on prompt" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "prompt" "present"
+assert_log_field "logging on commands" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "commands" "present"
+assert_log_field "logging on options" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "options" "present"
+assert_log_field "logging on results" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "results" "present"
+assert_log_field "logging on checksum" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "checksum_version" "present"
+
+reset_to_base
+set_config_value "logging.enabled" "true"
+set_config_value "logging.include_checksum" "false"
+set_config_value "logging.include_timestamps" "false"
+set_config_value "logging.include_versions" "false"
+set_config_value "logging.include_environment" "false"
+set_config_value "logging.include_user_prompt" "false"
+set_config_value "logging.include_cli_args" "false"
+set_config_value "logging.include_inputs" "false"
+set_config_value "logging.include_outputs" "false"
+start_count="$(log_count "${ANALYSIS_LOG_PATH}")"
+run_ok "logging toggles all off" run_rscript "${R_SCRIPT_DIR}/descriptive_stats.R" --parquet "${PARQUET_PATH_WIN}" --vars x2 --user-prompt "logging toggles off"
+assert_log_field "logging off timestamp" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "timestamp_utc" "absent"
+assert_log_field "logging off versions" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "nlss_version" "absent"
+assert_log_field "logging off r_version" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "r_version" "absent"
+assert_log_field "logging off os" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "os" "absent"
+assert_log_field "logging off user_prompt" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "user_prompt" "absent"
+assert_log_field "logging off prompt" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "prompt" "absent"
+assert_log_field "logging off commands" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "commands" "absent"
+assert_log_field "logging off options" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "options" "absent"
+assert_log_field "logging off results" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "results" "absent"
+assert_log_field "logging off checksum" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "checksum_version" "absent"
+
+reset_to_base
+set_config_value "logging.enabled" "true"
+set_config_value "logging.include_outputs" "maybe"
+start_count="$(log_count "${ANALYSIS_LOG_PATH}")"
+run_ok "logging outputs broken" run_rscript "${R_SCRIPT_DIR}/descriptive_stats.R" --parquet "${PARQUET_PATH_WIN}" --vars x3
+assert_log_field "logging outputs broken results" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "results" "absent"
+
+reset_to_base
+set_config_value "logging.enabled" "false"
+start_count="$(log_count "${ANALYSIS_LOG_PATH}")"
+run_ok "logging disabled" run_rscript "${R_SCRIPT_DIR}/descriptive_stats.R" --parquet "${PARQUET_PATH_WIN}" --vars x1 --log TRUE
+end_count="$(log_count "${ANALYSIS_LOG_PATH}")"
+assert_log_unchanged "${start_count}" "${end_count}" "logging disabled"
+
+reset_to_base
+set_config_value "logging.enabled" "maybe"
+start_count="$(log_count "${ANALYSIS_LOG_PATH}")"
+run_ok "logging enabled broken" run_rscript "${R_SCRIPT_DIR}/descriptive_stats.R" --parquet "${PARQUET_PATH_WIN}" --vars x1 --log TRUE
+end_count="$(log_count "${ANALYSIS_LOG_PATH}")"
+assert_log_unchanged "${start_count}" "${end_count}" "logging enabled broken"
+
+reset_to_base
 run_ok "plot clean histogram" run_rscript "${R_SCRIPT_DIR}/plot.R" --parquet "${PARQUET_PATH_WIN}" --type histogram --vars age --bins 12
 run_ok "plot clean bar percent" run_rscript "${R_SCRIPT_DIR}/plot.R" --parquet "${PARQUET_PATH_WIN}" --type bar --vars gender --group group3 --stat percent --percent-base group --position stack
 run_ok "frequencies clean" run_rscript "${R_SCRIPT_DIR}/frequencies.R" --parquet "${PARQUET_PATH_WIN}" --vars gender,education,cat_var2,ordinal_var --group group3

@@ -6,6 +6,7 @@
 - Exercise the calc utility with basic, vector, unsafe, and failure cases.
 - Exercise the research-academia utility with web-disabled guardrails and multiple web-enabled searches (when allowed).
 - Exercise key flags and template branches (grouped, cross, anova/regression).
+- Verify logging toggles (enabled/fields) change `analysis_log.jsonl` content as expected, including invalid toggle values.
 - Verify check-integrity on `analysis_log.jsonl`, including tampered copies (edit/delete a line) to confirm warning behavior.
 - Verify reconstruct-reports rebuilds `report_canonical_reconstructed.md` from `analysis_log.jsonl`.
 - Verify label-aware modules render variable/value labels using a labeled RDS dataset derived from the golden dataset and mixed-models long data.

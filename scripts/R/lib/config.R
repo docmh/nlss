@@ -42,10 +42,19 @@ get_builtin_config <- function() {
         sep = ",",
         header = TRUE
       ),
-      log = TRUE,
-      log_nlss_checksum = TRUE,
       digits = 2,
       interactive = FALSE
+    ),
+    logging = list(
+      enabled = TRUE,
+      include_checksum = TRUE,
+      include_timestamps = TRUE,
+      include_versions = TRUE,
+      include_environment = FALSE,
+      include_user_prompt = TRUE,
+      include_cli_args = TRUE,
+      include_inputs = TRUE,
+      include_outputs = TRUE
     ),
     modules = list(
       descriptive_stats = list(
@@ -463,6 +472,12 @@ get_config <- function() {
 get_config_value <- function(path, default = NULL) {
   cfg <- get_config()
   if (is.null(path) || path == "") return(cfg)
+  if (path == "defaults.log") {
+    if (is.list(cfg$logging) && "enabled" %in% names(cfg$logging)) {
+      val <- cfg$logging$enabled
+      if (!is.null(val)) return(val)
+    }
+  }
   parts <- strsplit(path, ".", fixed = TRUE)[[1]]
   val <- cfg
   for (part in parts) {

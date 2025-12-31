@@ -6,10 +6,18 @@ defaults:
   csv:
     sep: ","
     header: true
-  log: true
-  log_nlss_checksum: true
   digits: 2
   interactive: false
+logging:
+  enabled: true
+  include_checksum: true
+  include_timestamps: true
+  include_versions: true
+  include_environment: false
+  include_user_prompt: true
+  include_cli_args: true
+  include_inputs: true
+  include_outputs: true
 modules:
   descriptive_stats:
     vars_default: "numeric"

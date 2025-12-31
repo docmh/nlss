@@ -567,6 +567,12 @@ resolve_parse_bool <- function(value, default = FALSE) {
   val %in% c("true", "t", "1", "yes", "y")
 }
 
+resolve_logging_bool <- function(key, default = FALSE) {
+  if (is.null(key) || !nzchar(key)) return(default)
+  value <- resolve_config_value(paste0("logging.", key), default)
+  resolve_parse_bool(value, default = default)
+}
+
 get_run_context <- function() {
   args <- commandArgs(trailingOnly = FALSE)
   file_arg <- sub("^--file=", "", args[grep("^--file=", args)])
@@ -1114,9 +1120,22 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     return(invisible(FALSE))
   }
 
-  log_checksum_default <- resolve_config_value("defaults.log_nlss_checksum", FALSE)
+  logging_enabled <- resolve_logging_bool("enabled", default = TRUE)
+  if (!isTRUE(logging_enabled)) {
+    return(invisible(FALSE))
+  }
+
+  include_checksum <- resolve_logging_bool("include_checksum", default = TRUE)
+  include_timestamps <- resolve_logging_bool("include_timestamps", default = TRUE)
+  include_versions <- resolve_logging_bool("include_versions", default = TRUE)
+  include_environment <- resolve_logging_bool("include_environment", default = FALSE)
+  include_user_prompt <- resolve_logging_bool("include_user_prompt", default = FALSE)
+  include_cli_args <- resolve_logging_bool("include_cli_args", default = TRUE)
+  include_inputs <- resolve_logging_bool("include_inputs", default = TRUE)
+  include_outputs <- resolve_logging_bool("include_outputs", default = TRUE)
+
   checksum <- NULL
-  if (resolve_parse_bool(log_checksum_default, default = FALSE)) {
+  if (isTRUE(include_checksum)) {
     checksum <- get_nlss_checksum()
   }
 
@@ -1129,52 +1148,81 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
     workspace_root <- dirname(manifest_path)
   }
   log_seq <- NULL
-  log_commands <- render_paths_for_log(commands, workspace_root = workspace_root)
-  log_options <- render_paths_for_log(options, workspace_root = workspace_root)
-  log_results <- render_paths_for_log(results, workspace_root = workspace_root)
-  log_prompt <- prompt
-  if (!is.null(log_commands) && is.character(log_commands) && length(log_commands) > 0) {
-    log_prompt <- paste(log_commands, collapse = " ")
+  log_commands <- if (isTRUE(include_cli_args)) {
+    render_paths_for_log(commands, workspace_root = workspace_root)
+  } else {
+    NULL
   }
-
-  entry <- list(
-    timestamp_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-    nlss_version = get_nlss_version(),
-    r_version = R.version.string,
-    os = format_log_os_string(),
-    module = module,
-    user_prompt = user_prompt,
-    prompt = log_prompt,
-    commands = log_commands,
-    results = log_results,
-    options = log_options
-  )
-
-  report_blocks <- consume_report_blocks()
-  if (length(report_blocks) > 0) {
-    combined <- paste(report_blocks, collapse = "")
-    encoded <- compress_report_text(combined)
-    if (nzchar(encoded$data)) {
-      entry$report_block_b64 <- encoded$data
-      entry$report_block_encoding <- encoded$encoding
+  log_options <- if (isTRUE(include_inputs)) {
+    render_paths_for_log(options, workspace_root = workspace_root)
+  } else {
+    NULL
+  }
+  log_results <- if (isTRUE(include_outputs)) {
+    render_paths_for_log(results, workspace_root = workspace_root)
+  } else {
+    NULL
+  }
+  log_prompt <- NULL
+  if (isTRUE(include_cli_args)) {
+    log_prompt <- prompt
+    if (!is.null(log_commands) && is.character(log_commands) && length(log_commands) > 0) {
+      log_prompt <- paste(log_commands, collapse = " ")
     }
   }
 
-  report_snapshot <- consume_report_snapshot()
-  if (nzchar(report_snapshot)) {
-    encoded_snapshot <- compress_report_text(report_snapshot)
-    if (nzchar(encoded_snapshot$data)) {
-      entry$report_block_full_b64 <- encoded_snapshot$data
-      entry$report_block_full_encoding <- encoded_snapshot$encoding
-    }
+  entry <- list(module = module)
+  if (isTRUE(include_timestamps)) {
+    entry$timestamp_utc <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  }
+  if (isTRUE(include_versions)) {
+    entry$nlss_version <- get_nlss_version()
+    entry$r_version <- R.version.string
+  }
+  if (isTRUE(include_environment)) {
+    entry$os <- format_log_os_string()
+  }
+  if (isTRUE(include_user_prompt)) {
+    entry$user_prompt <- user_prompt
+  }
+  if (isTRUE(include_cli_args)) {
+    entry$prompt <- log_prompt
+    entry$commands <- log_commands
+  }
+  if (isTRUE(include_outputs)) {
+    entry$results <- log_results
+  }
+  if (isTRUE(include_inputs)) {
+    entry$options <- log_options
   }
 
-  metaskill_block <- consume_metaskill_report_block()
-  if (nzchar(metaskill_block)) {
-    encoded_meta <- compress_report_text(metaskill_block)
-    if (nzchar(encoded_meta$data)) {
-      entry$metaskill_report_block_b64 <- encoded_meta$data
-      entry$metaskill_report_block_encoding <- encoded_meta$encoding
+  if (isTRUE(include_outputs)) {
+    report_blocks <- consume_report_blocks()
+    if (length(report_blocks) > 0) {
+      combined <- paste(report_blocks, collapse = "")
+      encoded <- compress_report_text(combined)
+      if (nzchar(encoded$data)) {
+        entry$report_block_b64 <- encoded$data
+        entry$report_block_encoding <- encoded$encoding
+      }
+    }
+
+    report_snapshot <- consume_report_snapshot()
+    if (nzchar(report_snapshot)) {
+      encoded_snapshot <- compress_report_text(report_snapshot)
+      if (nzchar(encoded_snapshot$data)) {
+        entry$report_block_full_b64 <- encoded_snapshot$data
+        entry$report_block_full_encoding <- encoded_snapshot$encoding
+      }
+    }
+
+    metaskill_block <- consume_metaskill_report_block()
+    if (nzchar(metaskill_block)) {
+      encoded_meta <- compress_report_text(metaskill_block)
+      if (nzchar(encoded_meta$data)) {
+        entry$metaskill_report_block_b64 <- encoded_meta$data
+        entry$metaskill_report_block_encoding <- encoded_meta$encoding
+      }
     }
   }
 
