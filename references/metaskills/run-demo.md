@@ -7,13 +7,13 @@ description: Guided NLSS onboarding that explains capabilities, initializes a de
 
 ## Overview
 
-This metaskill provides a friendly, guided onboarding to NLSS. It first explains NLSS capabilities (workspace-first workflow, subskills, outputs), then **asks for explicit permission** to create a demo workspace from the sample `golden_dataset.csv`. After setup, it offers natural language starter prompts that encourage the user to build experiences about how to work with the agent in NLSS.
+This metaskill provides a friendly, guided onboarding to NLSS. It explains NLSS capabilities (workspace-first workflow, subskills, outputs), **asks for explicit permission** to create a demo workspace from the sample `golden_dataset.csv`, and then guides the user conversationally with starter prompts so they can learn how to work with NLSS.
 
 ## Assistant Researcher Model
 
 NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-ready report.
 
-Exception for this metaskill: **only** ask for permission to create the workspace; do not ask any other clarifying questions unless the user explicitly invites them.
+Exception for this metaskill: **only** ask for permission to create the workspace; do not ask any other clarifying questions unless the user explicitly invites them. Also: do not run `metaskill-runner` and do not create a metaskill report file for this onboarding flow.
 
 ## Intent/Triggers
 
@@ -58,8 +58,6 @@ if permission granted:
   briefly explain the next steps and note that setup can take a little time
   ensure workspace root is valid (no nested/sibling manifests)
   run init-workspace --csv <assets/sample-data/golden_dataset.csv> --user-prompt <last user message>
-  run metaskill-runner --meta run-demo --intent <intent> --phase activation
-
   write a short demo plan to scratchpad.md
   optionally inspect dataset (data-explorer) only if explicitly requested by the user
   summarize progress updates in scratchpad.md
@@ -68,10 +66,6 @@ if permission granted:
     - where files live (scratchpad.md, report_canonical.md, analysis_log.jsonl, parquet)
     - how to run common tasks
     - 4 natural language starter prompts that encourage experiential use of NLSS
-
-  write report_<YYYYMMDD>_run-demo_<intent>.md (NLSS format-ready, onboarding-focused)
-  align report using references/metaskills/formatting/align-report.md
-  run metaskill-runner --phase finalization --synopsis "<short demo synopsis>"
 ```
 
 ## Default Rules and Decision Logic
@@ -82,32 +76,28 @@ if permission granted:
 - Do not run `data-explorer` unless the user explicitly requests a scan.
 - Update `scratchpad.md` with the demo plan before running scripts and mark progress after each step.
 - When running any subskill, pass `--user-prompt` with the last user message for traceability.
+- Do not run `metaskill-runner` and do not create any `report_<YYYYMMDD>_run-demo_<intent>.md` file for this metaskill.
 
 ## Outputs
 
 When permission is granted and the demo runs:
 
-- `report_canonical.md`: NLSS format entries from `init-workspace`, optional `data-explorer`, and metaskill activation/finalization logs.
-- `analysis_log.jsonl`: JSONL entries for `init-workspace`, optional `data-explorer`, and metaskill activation/finalization.
+- `report_canonical.md`: NLSS format entries from `init-workspace` and optional `data-explorer`.
+- `analysis_log.jsonl`: JSONL entries for `init-workspace` and optional `data-explorer`.
 - `scratchpad.md`: Demo plan, dataset notes, and completion summary.
-- `report_<YYYYMMDD>_run-demo_<intent>.md`: A friendly, onboarding-focused report that explains capabilities, records workspace setup, and lists starter prompts.
 
 If permission is **not** granted, the response is conversational only (no files are created or modified).
 
 ### Final Report Requirements
 
-- Do not copy `report_canonical.md`; write a new narrative report.
-- Use `assets/metaskills/report-template.md` as the default structure, but replace academic sections with onboarding-appropriate headings when needed (for example, Overview, Workspace Setup, Starter Prompts, Next Steps).
-- Keep the report NLSS format-ready and suitable for journal submission when applicable (for a demo, focus on clarity and traceability).
+This metaskill does **not** create a standalone metaskill report file. All onboarding guidance is delivered conversationally, and the only persistent artifacts (if permission is granted) are the standard workspace files created by `init-workspace` (and optional `data-explorer`).
 
 Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`).
 All artifacts (reports, tables, figures) must be created inside the dataset workspace folder; do not write outside the workspace root.
 
 ## Finalization
 
-- Write `report_<YYYYMMDD>_run-demo_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report using `references/metaskills/formatting/align-report.md` (must be the last step before finalization).
-- Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
+No metaskill finalization step. Do **not** run `metaskill-runner` and do **not** create a metaskill report for this onboarding flow.
 
 ## NLSS format Templates
 
@@ -115,7 +105,6 @@ This metaskill does not define its own NLSS format template. It relies on the te
 
 - `init-workspace` uses `assets/init-workspace/default-template.md`.
 - `data-explorer` uses `assets/data-explorer/default-template.md` (if run).
-- `metaskill-runner` uses `assets/metaskill-runner/default-template.md` for activation and `assets/metaskill-runner/finalization-template.md` for finalization logging.
 
 ## NLSS format Reporting Guidance
 
