@@ -96,7 +96,19 @@ NLSS uses base R packages (`base`, `stats`, `utils`, `graphics`, `grDevices`, `t
 Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('arrow','car','curl','DHARMa','emmeans','foreign','ggplot2','haven','influence.ME','jsonlite','lavaan','lme4','lmerTest','mice','MVN','performance','psych','pwr','semPower','VIM','viridisLite','yaml'))"
 ```
 
-### 4) First example (agent-first): analyze the bundled golden dataset
+### 4) Fastest onboarding: ask for the `run-demo` metaskill
+
+NLSS includes a guided onboarding metaskill called `run-demo`. It explains the workflow, then (with your permission) sets up a demo workspace using the bundled sample dataset.
+
+Try a natural language prompt like:
+
+- "Run the `run-demo` metaskill to onboard me to NLSS."
+- "Show me what NLSS can do and set up a demo workspace."
+- "Give me a quick NLSS walkthrough, then prepare the demo."
+
+The demo uses `assets/sample-data/golden_dataset.csv` by default and will ask before creating any workspace files.
+
+### 5) First example (agent-first): analyze the bundled golden dataset
 
 This repo ships a small demo dataset: [tests/data/golden_dataset.csv](tests/data/golden_dataset.csv).
 
@@ -134,7 +146,7 @@ Rscript ../scripts/R/correlations.R --csv golden_dataset.csv --vars age,score,st
 
 </details>
 
-### 5) The workspace structure (what NLSS creates)
+### 6) The workspace structure (what NLSS creates)
 
 By default, NLSS writes into `./nlss-workspace/` (see Part II to change this). A typical first-run folder looks like:
 
@@ -163,13 +175,13 @@ What the files mean:
 - `backup/`: timestamped parquet backups created before destructive updates.
 - `plots/`: saved figures (from `plot` and some model modules).
 
-### 6) How output + logging works
+### 7) How output + logging works
 
 - **Subskills** append sections to `report_canonical.md` and (by default) append one JSON line to `analysis_log.jsonl`.
 - **Metaskills** (agent-run workflows) may additionally create a standalone, journal-ready file `report_<YYYYMMDD>_<metaskill>_<intent>.md` in the dataset folder.
 - Output directories are intentionally not a per-run CLI flag; choose a workspace root by where you run, or by changing `defaults.output_dir` (Part II).
 
-### 7) Easy prompts to give your agent (copy/paste)
+### 8) Easy prompts to give your agent (copy/paste)
 
 Try these in Codex / Claude Code:
 
@@ -260,6 +272,7 @@ Available metaskills:
 
 - `explain-statistics`: `references/metaskills/explain-statistics.md`
 - `explain-results`: `references/metaskills/explain-results.md`
+- `run-demo`: `references/metaskills/run-demo.md`
 - `format-document`: `references/metaskills/format-document.md`
 - `describe-sample`: `references/metaskills/describe-sample.md`
 - `generate-r-script`: `references/metaskills/generate-r-script.md`
@@ -306,6 +319,7 @@ Reference docs:
 - `references/metaskills/describe-sample.md`
 - `references/metaskills/explain-statistics.md`
 - `references/metaskills/explain-results.md`
+- `references/metaskills/run-demo.md`
 - `references/metaskills/format-document.md`
 - `references/metaskills/generate-r-script.md`
 - `references/metaskills/check-instruments.md`

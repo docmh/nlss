@@ -1,6 +1,6 @@
 ---
 name: nlss
-description: Workspace-first R statistics suite with subskills and agent-run metaskills (including explain-statistics for concept explanations, explain-results for interpreting outputs, format-document for NLSS format alignment, screen-data for diagnostics, check-assumptions for model-specific checks, and write-full-report for end-to-end reporting) that produce NLSS format tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
+description: Workspace-first R statistics suite with subskills and agent-run metaskills (including run-demo for guided onboarding, explain-statistics for concept explanations, explain-results for interpreting outputs, format-document for NLSS format alignment, screen-data for diagnostics, check-assumptions for model-specific checks, and write-full-report for end-to-end reporting) that produce NLSS format tables/narratives and JSONL logs from CSV/SAV/RDS/RData/Parquet. Covers descriptives, frequencies/crosstabs, correlations, t-tests/ANOVA/nonparametric, regression/mixed models, SEM/CFA/mediation, EFA, power, reliability/scale analysis, assumptions, plots, missingness/imputation, data transforms, and workspace management.
 license: Apache-2.0
 compatibility: R 4.5.2, Windows, WSL (Ubuntu), Linux, one of Codex IDE with GPT-5.2-Codex Medium/High or Claude Code IDE with Claude Sonnet 4.5/Opus 4.5
 metadata:
@@ -203,6 +203,7 @@ These requirements apply when a metaskill produces a formal report; `explain-sta
 - [explain-statistics](references/metaskills/explain-statistics.md): Student-friendly explanations of statistical concepts, methods, and interpretations (conversational; no metaskill-runner by default).
 - [format-document](references/metaskills/format-document.md): NLSS format pass that standardizes a report using the NLSS formatting guides.
 - [explain-results](references/metaskills/explain-results.md): Interpret analysis results in context, covering effect sizes, significance, assumptions, and limitations (conversational; no metaskill-runner by default).
+- [run-demo](references/metaskills/run-demo.md): Guided NLSS onboarding that explains capabilities, initializes a demo workspace, and offers starter prompts.
 - [plan-power](references/metaskills/plan-power.md): A priori power/sample-size planning with effect-size clarification or pilot estimation.
 - [explore-data](references/metaskills/explore-data.md): Dataset overview with data dictionary, missingness, distributions, correlations, optional plots.
 - [describe-sample](references/metaskills/describe-sample.md): Demographic-first sample description via descriptives, frequencies, optional crosstabs/missings.
