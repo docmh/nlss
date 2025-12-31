@@ -1,0 +1,86 @@
+version: 2
+tests:
+  output_dir: "outputs/test-runs"
+  data_dir: "tests/data"
+  golden_dataset: "tests/data/golden_dataset.csv"
+  template_dir: "templates"
+  template_marker: "TEMPLATE_SMOKE_TEST"
+  keep_runs_default: 10
+  scripts:
+    harness_unix: "cmdscripts/tests.sh"
+    harness_windows: "cmdscripts/tests.ps1"
+    smoke_unix: "tests/run_smoke_test.sh"
+    deliberate_unix: "tests/run_deliberate_tests.sh"
+    modules:
+      calc: "tests/run_calc_tests.sh"
+      research_academia: "tests/run_research_academia_tests.sh"
+      descriptive_stats: "tests/run_descriptive_stats_tests.sh"
+      data_explorer: "tests/run_data_explorer_tests.sh"
+      data_transform: "tests/run_data_transform_tests.sh"
+      impute: "tests/run_impute_tests.sh"
+      plot: "tests/run_plot_tests.sh"
+      crosstabs: "tests/run_crosstabs_tests.sh"
+      correlations: "tests/run_correlations_tests.sh"
+      scale: "tests/run_scale_tests.sh"
+      efa: "tests/run_efa_tests.sh"
+      reliability: "tests/run_reliability_tests.sh"
+      regression: "tests/run_regression_tests.sh"
+      power: "tests/run_power_tests.sh"
+      sem: "tests/run_sem_tests.sh"
+      mixed_models: "tests/run_mixed_models_tests.sh"
+      assumptions: "tests/run_assumptions_tests.sh"
+      anova: "tests/run_anova_tests.sh"
+      t_test: "tests/run_t_test_tests.sh"
+      nonparametric: "tests/run_nonparametric_tests.sh"
+      metaskill_runner: "tests/run_metaskill_runner_tests.sh"
+      check_integrity: "tests/run_check_integrity_tests.sh"
+      reconstruct_reports: "tests/run_reconstruct_reports_tests.sh"
+  plans:
+    smoke: "tests/plan-smoke.md"
+    deliberate: "tests/plan-deliberate.md"
+    anova: "tests/plan-anova.md"
+    assumptions: "tests/plan-assumptions.md"
+    mixed_models: "tests/plan-mixed-models.md"
+    regression: "tests/plan-regression.md"
+    power: "tests/plan-power.md"
+    sem: "tests/plan-sem.md"
+    plot: "tests/plan-plot.md"
+    crosstabs: "tests/plan-crosstabs.md"
+    correlations: "tests/plan-correlations.md"
+    descriptive_stats: "tests/plan-descriptive-stats.md"
+    efa: "tests/plan-efa.md"
+    check_integrity: "tests/plan-check-integrity.md"
+    reconstruct_reports: "tests/plan-reconstruct-reports.md"
+    research_academia: "tests/plan-research-academia.md"
+  suites:
+    smoke:
+      script: "tests/run_smoke_test.sh"
+      plan: "tests/plan-smoke.md"
+      description: "Fast coverage across all modules plus template overrides."
+    deliberate:
+      script: "tests/run_deliberate_tests.sh"
+      plan: "tests/plan-deliberate.md"
+      modules:
+        - calc
+        - research_academia
+        - descriptive_stats
+        - data_explorer
+        - data_transform
+        - impute
+        - plot
+        - crosstabs
+        - correlations
+        - scale
+        - efa
+        - reliability
+        - regression
+        - power
+        - sem
+        - mixed_models
+        - assumptions
+        - anova
+        - t_test
+        - nonparametric
+        - metaskill_runner
+        - check_integrity
+        - reconstruct_reports

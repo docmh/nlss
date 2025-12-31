@@ -1,0 +1,7 @@
+id,group,gender,dv_num,dv_char,covar_num,covar_char,pre,mid,post,pre_text
+1,A,F,10,low,5,A,3,4,5,a
+2,A,M,12,high,6,B,2,3,4,b
+3,B,F,14,low,7,A,4,5,6,c
+4,B,M,11,high,8,B,,,d
+5,C,F,13,low,9,A,5,6,7,e
+6,C,M,15,high,10,B,6,7,8,f
