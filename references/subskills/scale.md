@@ -4,7 +4,7 @@ description: Scale item analysis with item stats, item-total and alpha-if-delete
 license: Apache-2.0
 metadata:
   nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
   nlss.version: "1.0.0"
 ---
 

@@ -4,7 +4,7 @@ description: CLI calculator for safe evaluation of numeric expressions (with nam
 license: Apache-2.0
 metadata:
   nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
   nlss.version: "1.0.0"
 ---
 

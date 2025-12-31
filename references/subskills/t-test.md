@@ -4,7 +4,7 @@ description: One-sample, independent, and paired t-tests with effect sizes (d), 
 license: Apache-2.0
 metadata:
   nlss.author: "Mike Hammes"
-  nlss.copyright: "Copyright (c) 2025 Mike Hammes"
+  nlss.copyright: "Copyright (c) 2026 Mike Hammes"
   nlss.version: "1.0.0"
 ---
 
