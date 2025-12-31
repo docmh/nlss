@@ -905,4 +905,4 @@ NLSS relies on R packages from CRAN which are installed by the user. No third-pa
 
 ### Maintainer
 
-Prof. Dr. Mike Hammes (mike.hammes@mikehammes.name)
+Mike Hammes (mike.hammes@mikehammes.name)
