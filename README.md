@@ -23,7 +23,7 @@ You can run NLSS either:
 
 This section is ordered for a smooth, non-technical setup: **IDE → agent → R → verify agent shell → NLSS skill → demo**.
 
-<summary>Quick path</summary>
+### Overview
 
 1. Install an IDE + an agent (Steps 1–2).
 2. Install R from CRAN (Step 3).
