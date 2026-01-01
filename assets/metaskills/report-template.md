@@ -24,7 +24,7 @@ tokens:
   nlss_footer: |
     ---
 
-    Created with [NLSS](https://github.com/docmh/nlss-demo).
+    Created with [NLSS](https://github.com/docmh/nlss).
 ---
 
 <!--
