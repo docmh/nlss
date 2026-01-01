@@ -6,8 +6,6 @@
 
 💪 NLSS is packaged as an **Agent Skill** following the open **Agent Skills** standard: https://agentskills.io/specification. This repo’s `SKILL.md` is the entry point that agents use to discover what NLSS can do.
 
-NLSS was developed with the assistance of AI tools for drafting and iteration. All changes are curated, reviewed, and tested by the human maintainer. The architecture, design, and implementation decisions are the maintainer’s own.
-
 🤖📊📚 NLSS produces:
 
 - `report_canonical.md`: human-readable, NLSS format-ready tables + narrative (append-only audit trail)
@@ -18,6 +16,8 @@ You can run NLSS either:
 
 - **via an Agent IDE (recommended):** prompt your agent to use the `nlss` skill and work inside an NLSS workspace, or
 - **via terminal (secondary):** run the R scripts directly with `Rscript`.
+
+NLSS was developed with the assistance of AI tools for drafting and iteration. All changes are curated, reviewed, and tested by the human maintainer. The architecture, design, and implementation decisions are the maintainer’s own.
 
 ---
 
