@@ -2,7 +2,7 @@
 
 NLSS is a workspace-first set of R scripts designed to help **researchers** run common analyses quickly—primarily **through a coding agent in an IDE** (e.g., Codex or Claude Code). 
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
+NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Your requests as a senior researcher may be vague or jargon-heavy; the agent will inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in their scratchpad, and produce detailed, NLSS format-aligned, journal-alike reports based on templates. It also logs all deterministic R scripts used for analysis. 
 
 NLSS is packaged as an **Agent Skill** following the open **Agent Skills** standard: https://agentskills.io/specification. This repo’s `SKILL.md` is the entry point that agents use to discover what NLSS can do.
 
