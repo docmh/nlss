@@ -1,6 +1,6 @@
 # NLSS™ — Natural Language Statistics Suite
 
-NLSS is a workspace-first set of R scripts designed to help **researchers** run common analyses quickly—primarily **through a coding agent in an IDE** (e.g., Codex or Claude Code). These third-party tools are mentioned as recognizable examples, not endorsements or recommendations.
+NLSS is a workspace-first set of R scripts designed to help **researchers** run common analyses quickly—primarily **through a coding agent in an IDE** (e.g., Codex or Claude Code). 
 
 NLSS is packaged as an **Agent Skill** following the open **Agent Skills** standard: https://agentskills.io/specification. This repo’s `SKILL.md` is the entry point that agents use to discover what NLSS can do.
 
@@ -23,18 +23,13 @@ You can run NLSS either:
 
 This section is ordered for a smooth, non-technical setup: **IDE → agent → R → verify agent shell → NLSS skill → demo**.
 
-<details>
-<summary>Windows quick path (no PowerShell/WSL required)</summary>
-
-If you are on Windows and don’t want to learn terminals yet:
+<summary>Quick path</summary>
 
 1. Install an IDE + an agent (Steps 1–2).
-2. Install R from CRAN (Step 3, Windows native).
-3. Open **R x64** from the Start menu and run the `install.packages(...)` snippet (Step 3).
+2. Install R from CRAN (Step 3).
+3. Open **R** from the Start menu or in bash and run the `install.packages(...)` snippet (Step 3).
 4. Install NLSS by downloading the repo as a ZIP and copying it into your skills folder (Step 5).
 5. Ask your agent: “Can you run `Rscript --version`?” (Step 4).
-
-</details>
 
 ### 1) Install an IDE (examples only)
 
@@ -60,11 +55,11 @@ Where to get them / installation guides:
 
 ### 2a) Configure Codex IDE for NLSS (mode, reasoning, web, privacy)
 
-Codex IDE exposes key controls in the top bar/model switcher (Agent/Chat, model, reasoning effort, Auto context) plus a settings panel. Use these guidelines:
+Codex IDE exposes key controls in the bottom bar/model switcher (Agent/Chat, model, reasoning effort, Auto context) plus a settings panel. Use these guidelines:
 
 - **Mode/permissions:** Use **Agent** mode (not Chat) so the agent can edit files and run commands. In Codex’s default approval mode, it can read/write inside the working directory and run commands there; it will ask before operating outside the workspace or accessing the network. Docs: https://developers.openai.com/codex/ide and https://developers.openai.com/codex/security
 - **Reasoning effort:** If the UI exposes a reasoning‑effort slider (low/medium/high), consider increasing it for statistics‑heavy tasks (higher effort is slower but more thorough). This maps to `model_reasoning_effort` in Codex settings. Docs: https://developers.openai.com/codex/ide and https://developers.openai.com/codex/configure/local-config
-- **Personal experience (what worked best):** Agent mode (not Chat), **GPT‑5.2‑Codex** (not GPT‑5.2), and higher reasoning effort when you want more polished reports. NLSS runs even on Low, but higher effort usually produces clearer narratives and more informed chat answers.
+- **Personal experience (what worked best):** Agent mode (not Chat), Auto context activated, **GPT‑5.2‑Codex** (not GPT‑5.2), and higher reasoning effort when you want more polished reports. NLSS runs even on Low reasoning effort, but higher effort usually produces clearer narratives and more informed chat answers.
 - **Web/network access (for `research-academia`):** `research-academia` calls live scholarly APIs. Codex disables network access by default in `workspace-write`. If your UI has a web/network toggle, enable it; otherwise open Codex Settings (gear icon) → `Open config.toml` and set:
 
   ```toml
@@ -125,16 +120,14 @@ NLSS uses base R packages (`base`, `stats`, `utils`, `graphics`, `grDevices`, `t
 
 `arrow`, `car`, `curl`, `DHARMa`, `emmeans`, `foreign`, `ggplot2`, `haven`, `influence.ME`, `jsonlite`, `lavaan`, `lme4`, `lmerTest`, `mice`, `MVN`, `performance`, `psych`, `pwr`, `semPower`, `VIM`, `viridisLite`, `yaml`
 
-Easiest option: ask your coding agent to install them (for example: “Install the NLSS R packages and tell me if anything fails.”).
-
-If you prefer to do it yourself without any terminal (beginner-friendly on Windows), open **R x64** from the Start menu and paste:
+If you prefer to install them without any terminal (beginner-friendly on Windows), open **R x64** from the Start menu and paste:
 
 ```r
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 install.packages(c("arrow","car","curl","DHARMa","emmeans","foreign","ggplot2","haven","influence.ME","jsonlite","lavaan","lme4","lmerTest","mice","MVN","performance","psych","pwr","semPower","VIM","viridisLite","yaml"))
 ```
 
-If you are comfortable using the agent terminal, you can also run:
+If you are comfortable using terminal, you can also run:
 
 ```bash
 Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages(c('arrow','car','curl','DHARMa','emmeans','foreign','ggplot2','haven','influence.ME','jsonlite','lavaan','lme4','lmerTest','mice','MVN','performance','psych','pwr','semPower','VIM','viridisLite','yaml'))"
@@ -196,6 +189,10 @@ NLSS is an Agent Skill (it ships with `SKILL.md`). Install it into your agent’
 
 **Codex (OpenAI; example agent host)**
 
+Codex allows to install Agent Skills conversationally. Just prompt Codex: "$skill-intaller Install NLSS from https://github.com/docmh/nlss.git" and follow the instructions. 
+
+Manual installation:
+
 - Skill locations and scopes: https://developers.openai.com/codex/skills
 - Typical user-wide install (macOS/Linux/WSL):
 
@@ -214,6 +211,8 @@ NLSS is an Agent Skill (it ships with `SKILL.md`). Install it into your agent’
    - macOS/Linux: `~/.codex/skills/nlss`
    - Per-project (shared): `<your-project>/.codex/skills/nlss`
 4. Restart Codex and run `/skills` to confirm it’s loaded.
+
+`SKILL.md` must have the path `<your-skills-location>/.codex/skills/nlss/SKILL.md`. 
 
 </details>
 
@@ -248,7 +247,9 @@ NLSS is an Agent Skill (it ships with `SKILL.md`). Install it into your agent’
    - Windows: `%USERPROFILE%\.claude\skills\nlss`
    - macOS/Linux (personal): `~/.claude/skills/nlss`
    - Per-project (shared): `<your-project>/.claude/skills/nlss`
-4. Restart Claude Code and ask: “What Skills are available?” 
+4. Restart Claude Code and ask: “What Skills are available?”
+
+`SKILL.md` must have the path `<your-skills-location>/.codex/skills/nlss/SKILL.md`. 
 
 </details>
 
