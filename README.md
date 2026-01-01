@@ -216,7 +216,7 @@ Manual installation:
    - Per-project (shared): `<your-project>/.codex/skills/nlss`
 4. Restart Codex and run `/skills` to confirm it’s loaded.
 
-`SKILL.md` must have the path `<your-skills-location>/.codex/skills/nlss/SKILL.md`. 
+`SKILL.md` must be located at `<your-skills-location>/.codex/skills/nlss/SKILL.md`. 
 
 </details>
 
@@ -253,7 +253,7 @@ Manual installation:
    - Per-project (shared): `<your-project>/.claude/skills/nlss`
 4. Restart Claude Code and ask: “What Skills are available?”
 
-`SKILL.md` must have the path `<your-skills-location>/.codex/skills/nlss/SKILL.md`. 
+`SKILL.md` must be located at `<your-skills-location>/.codex/skills/nlss/SKILL.md`. 
 
 </details>
 
