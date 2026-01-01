@@ -472,7 +472,7 @@ These are frequently useful even outside full workflows:
 - **`explain-statistics` (metaskill):** plain-language explanations of statistical concepts, assumptions, and test choices. It’s conversational by default and doesn’t require `metaskill-runner` unless you explicitly request a logged report. See `references/metaskills/explain-statistics.md`.
 - **`explain-results` (metaskill):** helps interpret NLSS output sections (tables, diagnostics, model results) in researcher-friendly language. Like `explain-statistics`, it can be purely conversational unless you ask for a formal report. See `references/metaskills/explain-results.md`.
 
-### 6) Logging: what it captures and why it matters
+### 7) Logging: what it captures and why it matters
 
 Every run can record two complementary logs:
 
@@ -486,7 +486,7 @@ Why this matters:
 
 Logging is controlled by `logging.*` in `scripts/config.yml`. Set `logging.enabled: "false"` to disable logging. If you want report reconstruction, keep `logging.include_outputs` enabled so report blocks are stored.
 
-### 7) Configuration: `scripts/config.yml`
+### 8) Configuration: `scripts/config.yml`
 
 `scripts/config.yml` is the main configuration file. The key sections are:
 
@@ -497,7 +497,7 @@ Logging is controlled by `logging.*` in `scripts/config.yml`. Set `logging.enabl
 
 CLI flags always override config values for a specific run. If `config.yml` is missing or unreadable, built-in defaults from `scripts/R/lib/config.R` are used.
 
-### 8) Templates: customize or add your own
+### 9) Templates: customize or add your own
 
 Most NLSS outputs are template-driven. Templates live under `assets/<subskill>/` and are Markdown files with YAML front matter (tokens, column definitions, narrative settings).
 
