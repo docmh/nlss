@@ -202,7 +202,7 @@ Manual installation:
 
   ```bash
   mkdir -p ~/.codex/skills
-  git clone <repo-url> ~/.codex/skills/nlss
+  git clone https://github.com/docmh/nlss.git ~/.codex/skills/nlss
   ```
 
 <details>
@@ -231,7 +231,7 @@ Manual installation:
 
   ```powershell
   New-Item -ItemType Directory -Force -Path "$HOME\.codex\skills" | Out-Null
-  git clone <repo-url> "$HOME\.codex\skills\nlss"
+  git clone https://github.com/docmh/nlss.git "$HOME\.codex\skills\nlss"
   ```
 
 </details>
@@ -265,7 +265,7 @@ Manual installation:
 
   ```powershell
   New-Item -ItemType Directory -Force -Path "$HOME\.claude\skills" | Out-Null
-  git clone <repo-url> "$HOME\.claude\skills\nlss"
+  git clone https://github.com/docmh/nlss.git "$HOME\.claude\skills\nlss"
   ```
 
 </details>
