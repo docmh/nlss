@@ -8,7 +8,8 @@
 
 🤖📊📚 NLSS produces:
 
-- `report_canonical.md`: human-readable, NLSS format-ready tables + narrative (append-only audit trail)
+- `report_canonical.md`: human-readable, NLSS format-ready tables and narrative from used subskills like `descriptive-stats`, `sem` or `metaskill-runner`
+- Plots, if you aks for them through the `plot` subskill
 - Detailed reports if you use metaskills like `describe-sample`, `test-hypothesis` or `write-full-report`
 - `analysis_log.jsonl`: machine-readable JSONL run log (append-only)
 - `<dataset>.parquet`: a stateful workspace copy of your dataset (used by all modules)
