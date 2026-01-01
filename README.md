@@ -1,14 +1,14 @@
 # NLSS™ — Natural Language Statistics Suite
 
-NLSS is a workspace-first set of R scripts designed to help **researchers** run common analyses quickly—primarily **through a coding agent in an IDE** (e.g., Codex or Claude Code). 
+📁 NLSS is a workspace-first set of R scripts designed to help **researchers** run common analyses quickly—primarily **through a coding agent in an IDE** (e.g., Codex or Claude Code). 
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Your requests as a senior researcher may be vague or jargon-heavy; the agent will inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in their scratchpad, and produce detailed, NLSS format-aligned, journal-alike reports based on templates. It also logs all deterministic R scripts used for analysis. 
+🧑🤝🤖 NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Your requests as a senior researcher may be vague or jargon-heavy; the agent will inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in their scratchpad, and produce detailed, NLSS format-aligned, journal-alike reports based on templates. It also logs all deterministic R scripts used for analysis. 
 
-NLSS is packaged as an **Agent Skill** following the open **Agent Skills** standard: https://agentskills.io/specification. This repo’s `SKILL.md` is the entry point that agents use to discover what NLSS can do.
+💪 NLSS is packaged as an **Agent Skill** following the open **Agent Skills** standard: https://agentskills.io/specification. This repo’s `SKILL.md` is the entry point that agents use to discover what NLSS can do.
 
 NLSS was developed with the assistance of AI tools for drafting and iteration. All changes are curated, reviewed, and tested by the human maintainer. The architecture, design, and implementation decisions are the maintainer’s own.
 
-NLSS produces:
+🤖📊📚 NLSS produces:
 
 - `report_canonical.md`: human-readable, NLSS format-ready tables + narrative (append-only audit trail)
 - `analysis_log.jsonl`: machine-readable JSONL run log (append-only)
