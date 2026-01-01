@@ -1,6 +1,6 @@
 # These are supported funding model platforms
 
-github: docmh
+github: [docmh]
 patreon: # Replace with a single Patreon username
 open_collective: # Replace with a single Open Collective username
 ko_fi: mikehammes
