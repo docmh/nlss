@@ -1,4 +1,4 @@
-# NLSS™ — Natural Language Statistics Suite
+# NLSS — Natural Language Statistics Suite
 
 📁 NLSS is a workspace-first set of R scripts designed to help **researchers** run common analyses quickly—primarily **through a coding agent in an IDE** (e.g., Codex or Claude Code). 
 
