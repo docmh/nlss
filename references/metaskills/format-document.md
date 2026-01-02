@@ -233,7 +233,7 @@ Additional table/figure rules:
 
 ### Reference Section Label
 
-- Add a bold, centered **References** label on its own line.
+- Add a level 1 heading: `# References` (centered by renderer if supported).
 
 ### Ordering and Author Rules
 

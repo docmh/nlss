@@ -870,7 +870,7 @@ Use the default `nlss-workspace/` workspace output and report the NLSS format na
 
 ### Tests
 
-Test scripts, plans, and fixtures live under `tests/`, and the harness reads `tests/tests.yml`.
+Test scripts, plans, and fixtures live under `tests/smoke/`, and the harness reads `tests/tests.yml`.
 
 - Unix/WSL: `bash cmdscripts/tests.sh smoke`
 - Windows PowerShell: `.\cmdscripts\tests.ps1 smoke`

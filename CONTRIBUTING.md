@@ -10,7 +10,7 @@ This document explains how to contribute in a way that fits the project’s stru
 
 1) Open an issue (recommended) to align on scope and approach.  
 2) Read `AGENTS.md` (project rules for maintaining, improving, or adding subskills/metaskills/utilities/templates).  
-3) Create a branch, make your change, add tests/docs as needed.  
+3) Create a branch, make your change, add tests and docs as needed.  
 4) Open a PR and follow the checklist.
 
 ---
@@ -90,7 +90,7 @@ Key directories in the repo root:
 - `assets/`: NLSS format templates used by subskills.
 - `scripts/`: R scripts and shared libraries (`scripts/R/lib`).
 - `references/`: subskill/metaskill/utilities reference docs.
-- `tests/`: test scripts, plans, and fixtures (plus `tests/tests.yml`).
+- `tests/smoke/`: test scripts, plans, and fixtures (plus `tests/tests.yml`).
 - `cmdscripts/`: test harness entrypoints and helper scripts.
 - `outputs/`: generated artifacts only (e.g., `outputs/test-runs/`).
 
