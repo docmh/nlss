@@ -19,6 +19,8 @@ You can run NLSS either:
 - **via an Agent IDE (recommended):** prompt your agent to use the `nlss` skill and work inside an NLSS workspace, or
 - **via terminal (secondary):** run the R scripts directly with `Rscript`.
 
+🔬 Find detailed information on how NLSS was tested at https://github.com/docmh/nlss-demo. 
+
 NLSS was developed with the assistance of AI tools for drafting and iteration. All changes are curated, reviewed, and tested by the human maintainer. The architecture, design, and implementation decisions are the maintainer’s own.
 
 ---
