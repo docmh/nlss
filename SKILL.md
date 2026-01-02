@@ -6,7 +6,7 @@ license: Apache-2.0
 metadata:
   nlss.copyright: "Copyright (c) 2025-2026 Mike Hammes"
   nlss.trademark: "NLSS™ is a trademark of Mike Hammes"
-  nlss.version: "1.0.0"
+  nlss.version: "1.0.1"
 ---
 
 # NLSS - Natural Language Statistics Suite

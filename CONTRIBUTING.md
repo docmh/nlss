@@ -135,6 +135,13 @@ Common test entrypoints:
 - Windows PowerShell: `.\cmdscripts\tests.ps1 smoke`
 - WSL/Linux: `bash cmdscripts/tests.sh smoke`
 
+Prompt robustness harness (manual, Codex CLI):
+
+- Scripts: `tests/prompt-robustness/run_prompts.ps1` and `tests/prompt-robustness/run_prompts.sh`
+- Prompts: `tests/prompt-robustness/prompts.csv`
+- Outputs: `outputs/prompt-robustness-runs/<YYYYMMDD_HHMMSS>/` (keeps latest 10 runs)
+- Flags: `--cd <path>`, `--prompt-cursor <n>`, `--effort <low|medium|high|xhigh>`
+
 ---
 
 ## Pull Request Process

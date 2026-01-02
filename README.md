@@ -878,6 +878,52 @@ Test scripts, plans, and fixtures live under `tests/smoke/`, and the harness rea
 
 Runs write to `outputs/test-runs/<timestamp>/` by default.
 
+#### Prompt robustness harness (Codex CLI)
+
+For prompt‑robustness testing (running a batch of NLSS prompts through Codex CLI and capturing logs), use:
+
+- **Scripts:** `tests/prompt-robustness/run_prompts.sh` and `tests/prompt-robustness/run_prompts.ps1`
+- **Prompts file:** `tests/prompt-robustness/prompts.csv` (one prompt per row)
+- **Outputs:** `outputs/prompt-robustness-runs/<YYYYMMDD_HHMMSS>/`
+
+Each run creates a new timestamped folder with:
+
+- `codex_last.out` / `codex_last.err` (Codex stdout/stderr for the last prompt)
+- `protocol_log.jsonl` (last JSONL line from `analysis_log.jsonl` per prompt)
+- `prompts.cursor` (current prompt index)
+
+Developers can create a test workspace for prompt‑robustness runs by asking NLSS to initialize a workspace from the demo dataset, for example:
+
+```
+Use nlss to run init-workspace on assets/sample-data/golden_dataset.csv.
+```
+
+Common usage:
+
+```bash
+# WSL / bash
+./tests/prompt-robustness/run_prompts.sh --cd "C:\dev\nlss-demo\prompt-robustness" --effort low
+```
+
+```powershell
+# PowerShell
+.\tests\prompt-robustness\run_prompts.ps1 --cd "C:\dev\nlss-demo\prompt-robustness" --effort low
+```
+
+Options:
+
+- `--cd <path>`: directory passed to `codex exec --cd` (should be adjacent to the workspace manifest)
+- `--prompt-cursor <n>`: start at prompt row `n` (writes a new cursor file in the run folder before execution)
+- `--effort <low|medium|high|xhigh>`: sets `model_reasoning_effort` via `--config` (best‑effort; depends on Codex CLI support)
+
+The harness keeps the latest 10 runs and deletes older run folders.
+
+Behavior details:
+
+- On startup, the scripts create a temporary backup of the target dataset workspace under the run folder and restore from it after each prompt run.
+- `protocol_log.jsonl` receives a header line for each prompt (current `prompts.csv` row + target subskill + target prompt), followed by all JSONL entries from `analysis_log.jsonl` for that run.
+- Entries with `"module":"init_workspace"` are skipped when copying into `protocol_log.jsonl`.
+
 ## Disclaimer and intended use
 
 - Provided "AS IS" under Apache-2.0; no warranties or conditions of any kind.
