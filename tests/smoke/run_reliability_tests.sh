@@ -22,6 +22,9 @@ R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_reliability_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
 MIXED_MODELS_PREP_SCRIPT="${ROOT_DIR}/tests/smoke/mixed_models_prep.R"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_RELIABILITY_PATH="${GOLDEN_VALUES_DIR}/reliability_golden.csv"
+CHECK_RELIABILITY_GOLDEN_SCRIPT="${GOLDEN_VALUES_DIR}/check_reliability_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -136,6 +139,16 @@ if [[ ! -f "${DATA_GOLDEN}" ]]; then
   exit 1
 fi
 
+if [[ ! -f "${GOLDEN_RELIABILITY_PATH}" ]]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_RELIABILITY_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+
+if [[ ! -f "${CHECK_RELIABILITY_GOLDEN_SCRIPT}" ]]; then
+  echo "[FAIL] missing golden check script: ${CHECK_RELIABILITY_GOLDEN_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+
 if ! Rscript "${CHECK_R_PACKAGE_SCRIPT}" jsonlite >/dev/null 2>&1; then
   echo "[FAIL] jsonlite not installed." | tee -a "${LOG_FILE}"
   exit 1
@@ -167,6 +180,20 @@ check_reliability_log() {
   local log_path="$1"; shift
   local start_count="$1"; shift
   "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${log_path}" "${start_count}" "$@"
+}
+
+check_reliability_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_RELIABILITY_GOLDEN_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_RELIABILITY_PATH}" "${case_id}"
+}
+
+run_ok() {
+  local label="$1"; shift
+  echo "[RUN] ${label}" | tee -a "${LOG_FILE}"
+  "$@" >>"${LOG_FILE}" 2>&1
+  echo "[PASS] ${label}" | tee -a "${LOG_FILE}"
 }
 
 assert_contains() {
@@ -223,30 +250,37 @@ fi
 start_count=$(log_count "${LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${PARQUET_GOLDEN}" --analysis icc --vars pre_score,mid_score,post_score --icc-model twoway-random --icc-type agreement --icc-unit single --missing pairwise >>"${LOG_FILE}" 2>&1
 check_reliability_log "${LOG_PATH}" "${start_count}" analysis=icc min_rows=1 vars=pre_score,mid_score,post_score icc_model=twoway-random icc_type=agreement icc_unit=single missing=complete
+run_ok "reliability golden (icc twoway-random agreement single)" check_reliability_golden "${LOG_PATH}" "${start_count}" "icc_twoway_random_agreement_single"
 
 start_count=$(log_count "${LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${PARQUET_GOLDEN}" --analysis icc --vars pre_score,mid_score,post_score --icc-model oneway --icc-type consistency --icc-unit average --conf-level 0.9 >>"${LOG_FILE}" 2>&1
 check_reliability_log "${LOG_PATH}" "${start_count}" analysis=icc min_rows=1 icc_model=oneway icc_type=consistency icc_unit=average conf_level=0.9
+run_ok "reliability golden (icc oneway average, 0.9 CI)" check_reliability_golden "${LOG_PATH}" "${start_count}" "icc_oneway_consistency_average_0.9"
 
 start_count=$(log_count "${LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${PARQUET_GOLDEN}" --analysis icc --vars pre_score,mid_score,post_score --icc-model twoway-random --icc-type consistency --icc-unit single >>"${LOG_FILE}" 2>&1
 check_reliability_log "${LOG_PATH}" "${start_count}" analysis=icc min_rows=1 icc_model=twoway-random icc_type=consistency icc_unit=single
+run_ok "reliability golden (icc twoway-random consistency)" check_reliability_golden "${LOG_PATH}" "${start_count}" "icc_twoway_random_consistency_single"
 
 start_count=$(log_count "${LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${PARQUET_GOLDEN}" --analysis icc --vars pre_score,mid_score,post_score --icc-model twoway-mixed --icc-type agreement --icc-unit average >>"${LOG_FILE}" 2>&1
 check_reliability_log "${LOG_PATH}" "${start_count}" analysis=icc min_rows=1 icc_model=twoway-mixed icc_type=consistency icc_unit=average
+run_ok "reliability golden (icc twoway-mixed consistency average)" check_reliability_golden "${LOG_PATH}" "${start_count}" "icc_twoway_mixed_consistency_average"
 
 start_count=$(log_count "${LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${PARQUET_GOLDEN}" --analysis test_retest --vars pre_score,post_score --method spearman --conf-level 0.9 >>"${LOG_FILE}" 2>&1
 check_reliability_log "${LOG_PATH}" "${start_count}" analysis=test_retest min_rows=1 method=spearman conf_level=0.9
+run_ok "reliability golden (test-retest spearman 0.9 CI)" check_reliability_golden "${LOG_PATH}" "${start_count}" "test_retest_spearman_0.9"
 
 start_count=$(log_count "${LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${PARQUET_GOLDEN}" --analysis kappa --vars cat_var,cat_var2 --kappa-weight none >>"${LOG_FILE}" 2>&1
 check_reliability_log "${LOG_PATH}" "${start_count}" analysis=kappa min_rows=1 kappa_weight=none
+run_ok "reliability golden (kappa none)" check_reliability_golden "${LOG_PATH}" "${start_count}" "kappa_none_cat_var"
 
 start_count=$(log_count "${LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${PARQUET_GOLDEN}" --analysis kappa --vars cat_var,cat_var2 --kappa-weight none --group group3 >>"${LOG_FILE}" 2>&1
 check_reliability_log "${LOG_PATH}" "${start_count}" analysis=kappa min_rows=2 min_groups=2 group=group3
+run_ok "reliability golden (kappa none group A)" check_reliability_golden "${LOG_PATH}" "${start_count}" "kappa_none_cat_var_group_A"
 
 LONG_DATA_PATH="${TMP_BASE}/reliability_long.csv"
 Rscript "${MIXED_MODELS_PREP_SCRIPT}" "${DATA_GOLDEN}" "${LONG_DATA_PATH}" >>"${LOG_FILE}" 2>&1
@@ -259,6 +293,7 @@ LONG_LOG_PATH="${LONG_DIR}/analysis_log.jsonl"
 start_count=$(log_count "${LONG_LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${LONG_PARQUET}" --analysis icc --format long --id id --rater time --score score --group group3 >>"${LOG_FILE}" 2>&1
 check_reliability_log "${LONG_LOG_PATH}" "${start_count}" analysis=icc min_rows=1 min_groups=2 format=long id=id rater=time score=score group=group3
+run_ok "reliability golden (icc long group A)" check_reliability_golden "${LONG_LOG_PATH}" "${start_count}" "icc_long_twoway_random_agreement_single_group_A"
 
 start_count=$(log_count "${LONG_LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${LONG_PARQUET}" --analysis icc --format long --id id --rater time --expect-invalid TRUE >>"${LOG_FILE}" 2>&1
@@ -289,10 +324,12 @@ ORDINAL_LOG_PATH="${ORDINAL_DIR}/analysis_log.jsonl"
 start_count=$(log_count "${ORDINAL_LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${ORDINAL_PARQUET}" --analysis kappa --vars ordinal_var,ordinal_var2 --kappa-weight quadratic >>"${LOG_FILE}" 2>&1
 check_reliability_log "${ORDINAL_LOG_PATH}" "${start_count}" analysis=kappa min_rows=1 kappa_weight=quadratic
+run_ok "reliability golden (kappa quadratic)" check_reliability_golden "${ORDINAL_LOG_PATH}" "${start_count}" "kappa_quadratic_ordinal"
 
 start_count=$(log_count "${ORDINAL_LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${ORDINAL_PARQUET}" --analysis kappa --vars ordinal_var,ordinal_var2 --kappa-weight linear >>"${LOG_FILE}" 2>&1
 check_reliability_log "${ORDINAL_LOG_PATH}" "${start_count}" analysis=kappa min_rows=1 kappa_weight=linear
+run_ok "reliability golden (kappa linear)" check_reliability_golden "${ORDINAL_LOG_PATH}" "${start_count}" "kappa_linear_ordinal"
 
 KAPPA_CONST_DATA="${TMP_BASE}/kappa_constant.csv"
 KAPPA_CONST_SCRIPT="${TMP_BASE}/kappa_constant_prep.R"
@@ -347,6 +384,7 @@ COERCE_LOG_PATH="${COERCE_DIR}/analysis_log.jsonl"
 start_count=$(log_count "${COERCE_LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${COERCE_PARQUET}" --analysis test_retest --vars pre_score,post_score --method pearson --missing pairwise --coerce TRUE >>"${LOG_FILE}" 2>&1
 check_reliability_log "${COERCE_LOG_PATH}" "${start_count}" analysis=test_retest min_rows=1 method=pearson missing=pairwise coerce=true
+run_ok "reliability golden (test-retest pearson coerce)" check_reliability_golden "${COERCE_LOG_PATH}" "${start_count}" "test_retest_pearson_coerce"
 
 start_count=$(log_count "${COERCE_LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${COERCE_PARQUET}" --analysis test_retest --vars pre_score,post_score --coerce FALSE --expect-invalid TRUE >>"${LOG_FILE}" 2>&1
@@ -387,6 +425,7 @@ RETEST_LONG_LOG_PATH="${RETEST_LONG_DIR}/analysis_log.jsonl"
 start_count=$(log_count "${RETEST_LONG_LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${RETEST_LONG_PARQUET}" --analysis test_retest --format long --id id --rater time --score score --group group3 --method pearson >>"${LOG_FILE}" 2>&1
 check_reliability_log "${RETEST_LONG_LOG_PATH}" "${start_count}" analysis=test_retest min_rows=1 min_groups=2 format=long id=id rater=time score=score group=group3 method=pearson
+run_ok "reliability golden (test-retest long group A)" check_reliability_golden "${RETEST_LONG_LOG_PATH}" "${start_count}" "test_retest_long_pearson_group_A"
 
 TEMPLATE_PATH="${ROOT_DIR}/assets/reliability/default-template.md"
 TEMPLATE_TMP="${TMP_BASE}/reliability-template-override.md"
