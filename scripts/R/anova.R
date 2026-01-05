@@ -833,14 +833,15 @@ extract_within_summary <- function(aov_fit, subject_id, within_name) {
     table <- extract_summary_table(summaries[[name]])
     if (is.null(table)) next
     if (!"Sum Sq" %in% names(table)) next
-    resid_idx <- which(rownames(table) == "Residuals")
+    row_names <- trimws(rownames(table))
+    resid_idx <- which(row_names == "Residuals")
     error_ss <- if (length(resid_idx) > 0) table$`Sum Sq`[resid_idx[1]] else NA_real_
     error_df <- if (length(resid_idx) > 0) table$Df[resid_idx[1]] else NA_real_
     ms_error <- if (!is.na(error_df) && error_df > 0) error_ss / error_df else NA_real_
     model_label <- label_stratum(name, subject_id, within_name)
 
     for (i in seq_len(nrow(table))) {
-      term <- rownames(table)[i]
+      term <- row_names[i]
       if (term == "Residuals" || term == "(Intercept)") next
       row <- table[i, ]
       ss <- row$`Sum Sq`

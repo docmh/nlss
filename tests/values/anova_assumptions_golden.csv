@@ -1,0 +1,3 @@
+"case_id","assumption","test","target","group","statistic","df1","df2","p"
+"assumption_between_levene_outcome_anova","Homogeneity","Levene (median)","outcome_anova","",0.350415860035888,2,237,0.704759427125603
+"assumption_within_mauchly_within","Sphericity","Mauchly","Within","",0.0520896978312427,NA,NA,0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000111879909970352

@@ -21,6 +21,15 @@ TESTS_CONFIG_PATH="${NLSS_TESTS_CONFIG:-${ROOT_DIR}/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_anova_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_ANOVA_PATH="${GOLDEN_VALUES_DIR}/anova_golden.csv"
+CHECK_GOLDEN_SCRIPT="${GOLDEN_VALUES_DIR}/check_anova_golden.py"
+GOLDEN_POSTHOC_PATH="${GOLDEN_VALUES_DIR}/anova_posthoc_golden.csv"
+CHECK_POSTHOC_SCRIPT="${GOLDEN_VALUES_DIR}/check_anova_posthoc_golden.py"
+GOLDEN_CONTRASTS_PATH="${GOLDEN_VALUES_DIR}/anova_contrasts_golden.csv"
+CHECK_CONTRASTS_SCRIPT="${GOLDEN_VALUES_DIR}/check_anova_contrasts_golden.py"
+GOLDEN_ASSUMPTIONS_PATH="${GOLDEN_VALUES_DIR}/anova_assumptions_golden.csv"
+CHECK_ASSUMPTIONS_SCRIPT="${GOLDEN_VALUES_DIR}/check_anova_assumptions_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -219,6 +228,38 @@ if [ ! -f "${DATA_MISSING}" ]; then
   echo "[FAIL] missing dataset: ${DATA_MISSING}" | tee -a "${LOG_FILE}"
   exit 1
 fi
+if [ ! -f "${GOLDEN_ANOVA_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_ANOVA_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_GOLDEN_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_GOLDEN_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_POSTHOC_PATH}" ]; then
+  echo "[FAIL] missing posthoc golden values: ${GOLDEN_POSTHOC_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_POSTHOC_SCRIPT}" ]; then
+  echo "[FAIL] missing posthoc golden check script: ${CHECK_POSTHOC_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_CONTRASTS_PATH}" ]; then
+  echo "[FAIL] missing contrasts golden values: ${GOLDEN_CONTRASTS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_CONTRASTS_SCRIPT}" ]; then
+  echo "[FAIL] missing contrasts golden check script: ${CHECK_CONTRASTS_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_ASSUMPTIONS_PATH}" ]; then
+  echo "[FAIL] missing assumptions golden values: ${GOLDEN_ASSUMPTIONS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_ASSUMPTIONS_SCRIPT}" ]; then
+  echo "[FAIL] missing assumptions golden check script: ${CHECK_ASSUMPTIONS_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
 
 mkdir -p "${WORKSPACE_DIR}" "${DATASET_GOLDEN_DIR}" "${DATASET_EDGE_DIR}" "${DATASET_MISSING_DIR}"
 mkdir -p "${TMP_BASE}"
@@ -255,6 +296,37 @@ check_anova_log_path() {
   local log_path="$1"; shift
   local start_count="$1"; shift
   "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${log_path}" "${start_count}" "$@"
+}
+
+check_anova_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local mode="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_GOLDEN_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_ANOVA_PATH}" "${mode}"
+}
+
+check_anova_posthoc_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  local mode="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_POSTHOC_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_POSTHOC_PATH}" "${case_id}" "${mode}"
+}
+
+check_anova_contrasts_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  local mode="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_CONTRASTS_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_CONTRASTS_PATH}" "${case_id}" "${mode}"
+}
+
+check_anova_assumptions_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  local mode="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_ASSUMPTIONS_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_ASSUMPTIONS_PATH}" "${case_id}" "${mode}"
 }
 
 run_ok() {
@@ -439,10 +511,27 @@ run_ok "init workspace (all missing dataset)" Rscript "${R_SCRIPT_DIR}/init_work
 start=$(log_count "${LOG_PATH}")
 run_ok "anova between default" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_anova --between group3
 check_anova_log "${start}" "between" "tukey" "gt0" "partial_eta_sq" "-" "-" type="${EXPECTED_TYPE_II}" p_adjust=holm conf_level=0.95 assumptions=Normality,Homogeneity assumption_tests="Shapiro-Wilk,Levene (median),Bartlett,Fligner-Killeen" posthoc_p_adj=present || exit 1
+run_ok "anova posthoc golden (between tukey B-A)" check_anova_posthoc_golden "${LOG_PATH}" "${start}" "posthoc_between_tukey_B-A" "between"
+run_ok "anova assumptions golden (between levene)" check_anova_assumptions_golden "${LOG_PATH}" "${start}" "assumption_between_levene_outcome_anova" "between"
+
+start=$(log_count "${LOG_PATH}")
+run_ok "anova between posthoc pairwise" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_anova --between group3 --posthoc pairwise --p-adjust holm
+check_anova_log "${start}" "between" "pairwise" "gt0" "partial_eta_sq" "-" "-" p_adjust=holm || exit 1
+run_ok "anova posthoc golden (between pairwise B-A)" check_anova_posthoc_golden "${LOG_PATH}" "${start}" "posthoc_between_pairwise_B-A" "between"
+
+start=$(log_count "${LOG_PATH}")
+run_ok "anova between golden values" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_anova --between group3 --type I --posthoc none --effect-size eta2
+run_ok "anova golden check (between)" check_anova_golden "${LOG_PATH}" "${start}" "between"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "anova between factorial covariate type 3" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_anova --between group3,gender --covariates age --type 3 --effect-size eta_sq --posthoc pairwise --p-adjust bonferroni --conf-level 0.9 --user-prompt "anova factorial test"
 check_anova_log "${start}" "between" "pairwise" "gt0" "eta_sq" "-" "-" type="${EXPECTED_TYPE_III}" p_adjust=bonferroni conf_level=0.9 user_prompt="anova factorial test" covariates=age posthoc_p_adj=present || exit 1
+
+start=$(log_count "${LOG_PATH}")
+run_ok "anova between factorial golden values" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_anova --between group3,gender --type I --posthoc none --effect-size eta2
+run_ok "anova golden check (between factorial group3)" check_anova_golden "${LOG_PATH}" "${start}" "between_factorial_group3"
+run_ok "anova golden check (between factorial gender)" check_anova_golden "${LOG_PATH}" "${start}" "between_factorial_gender"
+run_ok "anova golden check (between factorial interaction)" check_anova_golden "${LOG_PATH}" "${start}" "between_factorial_interaction"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "anova between omega" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_anova --between group3 --effect-size omega_sq --posthoc none
@@ -456,10 +545,12 @@ if [ "${HAS_EMMEANS}" -eq 1 ]; then
   start=$(log_count "${LOG_PATH}")
   run_ok "anova planned contrasts custom" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_anova --between group3 --emmeans group3 --contrasts custom --contrast-file "${CONTRAST_JSON_PATH}"
   check_anova_log "${start}" "between" "tukey" "gt0" "partial_eta_sq" "-" "-" contrasts=custom contrast_rows=gt0 || exit 1
+  run_ok "anova contrasts golden (custom A_vs_B)" check_anova_contrasts_golden "${LOG_PATH}" "${start}" "contrast_custom_A_vs_B" "between"
 
   start=$(log_count "${LOG_PATH}")
   run_ok "anova planned contrasts method" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_anova --between group3 --emmeans group3 --contrasts trt.vs.ctrl
   check_anova_log "${start}" "between" "tukey" "gt0" "partial_eta_sq" "-" "-" contrasts=trt.vs.ctrl contrast_rows=gt0 || exit 1
+  run_ok "anova contrasts golden (trt.vs.ctrl B-A)" check_anova_contrasts_golden "${LOG_PATH}" "${start}" "contrast_trt_vs_ctrl_B_minus_A" "between"
 else
   echo "[SKIP] planned contrasts (emmeans not installed)" | tee -a "${LOG_FILE}"
 fi
@@ -497,6 +588,12 @@ check_anova_log_path "${LOG_PATH_EDGE}" "${start}" "between" "tukey" "gt0" "part
 start=$(log_count "${LOG_PATH}")
 run_ok "anova within sphericity auto" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --within pre_score,mid_score,post_score --subject-id id --posthoc pairwise
 check_anova_log "${start}" "within" "pairwise" "gt0" "partial_eta_sq" "present" "-" assumptions=Normality,Sphericity || exit 1
+run_ok "anova posthoc golden (within paired pre-mid)" check_anova_posthoc_golden "${LOG_PATH}" "${start}" "posthoc_within_paired_pre_score_mid_score" "within"
+run_ok "anova assumptions golden (within mauchly)" check_anova_assumptions_golden "${LOG_PATH}" "${start}" "assumption_within_mauchly_within" "within"
+
+start=$(log_count "${LOG_PATH}")
+run_ok "anova within golden values" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --within pre_score,mid_score,post_score --subject-id id --posthoc none
+run_ok "anova golden check (within)" check_anova_golden "${LOG_PATH}" "${start}" "within"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "anova within sphericity no" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --within pre_score,mid_score,post_score --subject-id id --sphericity no --posthoc pairwise
@@ -519,12 +616,19 @@ run_ok "anova within posthoc tukey requested" Rscript "${R_SCRIPT_DIR}/anova.R" 
 check_anova_log "${start}" "within" "pairwise" "gt0" "partial_eta_sq" "-" "-" || exit 1
 
 start=$(log_count "${LOG_PATH}")
+run_ok "anova mixed golden values" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --within pre_score,mid_score,post_score --between group3 --subject-id id --posthoc none --effect-size eta2
+run_ok "anova golden check (mixed between group3)" check_anova_golden "${LOG_PATH}" "${start}" "mixed_between_group3"
+run_ok "anova golden check (mixed within)" check_anova_golden "${LOG_PATH}" "${start}" "mixed_within_within"
+run_ok "anova golden check (mixed interaction)" check_anova_golden "${LOG_PATH}" "${start}" "mixed_interaction_group3_within"
+
+start=$(log_count "${LOG_PATH}")
 run_ok "anova mixed with covariate" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --within pre_score,post_score --between group3 --subject-id id --covariates age --posthoc pairwise --p-adjust BH --sphericity none
 check_anova_log "${start}" "mixed" "pairwise" "gt0" "partial_eta_sq" "absent" "-" p_adjust=BH covariates=age posthoc_groups=grouped assumptions=Normality,Homogeneity || exit 1
 
 start=$(log_count "${LOG_PATH}")
 run_ok "anova mixed sphericity auto grouped posthoc" Rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_GOLDEN}" --within pre_score,mid_score,post_score --between group3 --subject-id id --posthoc pairwise
 check_anova_log "${start}" "mixed" "pairwise" "gt0" "partial_eta_sq" "present" "-" posthoc_groups=grouped assumptions=Normality,Homogeneity,Sphericity || exit 1
+run_ok "anova posthoc golden (mixed grouped pre-mid group3=A)" check_anova_posthoc_golden "${LOG_PATH}" "${start}" "posthoc_within_grouped_group3A_pre_score_mid_score" "mixed"
 
 start=$(log_count "${LOG_PATH_CSV_SEMI}")
 run_ok "anova interactive between" env NLSS_PROMPT_FILE="${INTERACTIVE_INPUT}" Rscript "${R_SCRIPT_DIR}/anova.R" --interactive

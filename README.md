@@ -880,6 +880,41 @@ Test scripts, plans, and fixtures live under `tests/smoke/`, and the harness rea
 
 Runs write to `outputs/test-runs/<timestamp>/` by default.
 
+#### Value tests (numerical goldens)
+
+NLSS statistical modules should include golden‑value tests that validate numerical correctness, not just schema/flag checks. Goldens are computed independently of NLSS and compared against `analysis_log.jsonl` outputs.
+
+Workflow (general pattern; ANOVA is just one example):
+
+1) **Generate goldens** with an independent script under `tests/values/`:
+
+```bash
+mkdir -p .tmp
+TMPDIR=./.tmp TMP=./.tmp TEMP=./.tmp \
+Rscript tests/values/<module>_compute_golden.R \
+  --data tests/data/golden_dataset.csv \
+  --out tests/values/<module>_golden.csv
+```
+
+Optionally add additional outputs for module‑specific features (post‑hoc, contrasts, diagnostics, assumptions):
+
+```bash
+Rscript tests/values/<module>_compute_golden.R \
+  --data tests/data/golden_dataset.csv \
+  --out tests/values/<module>_golden.csv \
+  --posthoc-out tests/values/<module>_posthoc_golden.csv \
+  --contrasts-out tests/values/<module>_contrasts_golden.csv \
+  --assumptions-out tests/values/<module>_assumptions_golden.csv
+```
+
+2) **Add checkers** (Python) that read `analysis_log.jsonl` and compare to goldens with tight tolerances. Keep them in `tests/values/` (e.g., `check_<module>_golden.py`).
+
+3) **Wire checks into smoke tests** with explicit log lines (e.g., `tests/smoke/run_<module>_tests.sh`), so the test log shows each golden check as a `RUN/PASS` entry.
+
+4) **Keep coverage exhaustive**: cover all numeric outputs (summary tables, effect sizes, post‑hoc, contrasts, assumptions/diagnostics, grouped cases, and option‑driven paths). For stochastic outputs, add a deterministic seed path or test invariants only.
+
+When datasets change, regenerate all goldens and commit the updated CSVs alongside the checker scripts.
+
 #### Prompt robustness harness (Codex CLI)
 
 For prompt‑robustness testing (running a batch of NLSS prompts through Codex CLI and capturing logs), use:
