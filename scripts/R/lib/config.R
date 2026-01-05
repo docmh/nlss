@@ -34,7 +34,7 @@ get_config_path <- function() {
 get_builtin_config <- function() {
   list(
     version = 1,
-    nlss_version = "1.0.1",
+    nlss_version = "1.0.2",
     defaults = list(
       output_dir = "./outputs/tmp",
       workspace_manifest = "nlss-workspace.yml",

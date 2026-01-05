@@ -1,5 +1,5 @@
 version: 1
-nlss_version: "1.0.1"
+nlss_version: "1.0.2"
 defaults:
   output_dir: "./nlss-workspace"
   workspace_manifest: "nlss-workspace.yml"

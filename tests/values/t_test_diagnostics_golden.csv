@@ -1,0 +1,5 @@
+"case_id","test_type","variable","group","n","shapiro_w","shapiro_p","var_test_f","var_test_p"
+"diag_one_sample_x1_bootstrap_greater","one_sample","x1","",240,0.995376294550535,0.688678230840098,NA,NA
+"diag_independent_outcome_anova_welch_treatment","independent","outcome_anova","treatment",105,0.994727234221706,0.960715187304355,NA,NA
+"diag_independent_outcome_anova_welch_control","independent","outcome_anova","control",127,0.990904584643156,0.575975738887584,0.947405742054821,0.778335570385294
+"diag_paired_pre_post","paired","pre_score - post_score","",234,0.996323067908191,0.858666681166416,NA,NA

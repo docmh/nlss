@@ -21,6 +21,11 @@ TESTS_CONFIG_PATH="${NLSS_TESTS_CONFIG:-${ROOT_DIR}/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_t_test_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_TTEST_PATH="${GOLDEN_VALUES_DIR}/t_test_golden.csv"
+GOLDEN_TTEST_DIAG_PATH="${GOLDEN_VALUES_DIR}/t_test_diagnostics_golden.csv"
+CHECK_TTEST_GOLDEN_SCRIPT="${GOLDEN_VALUES_DIR}/check_t_test_golden.py"
+CHECK_TTEST_DIAG_SCRIPT="${GOLDEN_VALUES_DIR}/check_t_test_diagnostics_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -116,6 +121,11 @@ fi
 DATA_DIR="$(to_abs_path "${DATA_DIR_CFG}")"
 DATA_MAIN="${DATA_DIR}/t_test_main.csv"
 DATA_SMALL="${DATA_DIR}/t_test_small.csv"
+DATA_GOLDEN_CFG="$(get_tests_value tests.golden_dataset)"
+if [ -z "${DATA_GOLDEN_CFG}" ]; then
+  DATA_GOLDEN_CFG="${DATA_DIR}/golden_dataset.csv"
+fi
+DATA_GOLDEN="$(to_abs_path "${DATA_GOLDEN_CFG}")"
 
 RUNS_BASE_CFG="$(get_tests_value tests.output_dir)"
 if [ -z "${RUNS_BASE_CFG}" ]; then
@@ -178,6 +188,26 @@ if [ ! -f "${DATA_SMALL}" ]; then
   echo "[FAIL] missing dataset: ${DATA_SMALL}" | tee -a "${LOG_FILE}"
   exit 1
 fi
+if [ ! -f "${DATA_GOLDEN}" ]; then
+  echo "[FAIL] missing dataset: ${DATA_GOLDEN}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_TTEST_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_TTEST_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_TTEST_DIAG_PATH}" ]; then
+  echo "[FAIL] missing diagnostics goldens: ${GOLDEN_TTEST_DIAG_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_TTEST_GOLDEN_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_TTEST_GOLDEN_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_TTEST_DIAG_SCRIPT}" ]; then
+  echo "[FAIL] missing diagnostics check script: ${CHECK_TTEST_DIAG_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
 
 mkdir -p "${WORKSPACE_DIR}" "${TMP_BASE}"
 : > "${WORKSPACE_MANIFEST_PATH}"
@@ -207,6 +237,20 @@ check_log() {
   local log_path="$1"; shift
   local start_count="$1"; shift
   "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${log_path}" "${start_count}" "$@"
+}
+
+check_t_test_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_TTEST_GOLDEN_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_TTEST_PATH}" "${case_id}"
+}
+
+check_t_test_diag_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_TTEST_DIAG_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_TTEST_DIAG_PATH}" "${case_id}"
 }
 
 run_ok() {
@@ -406,6 +450,10 @@ CSV_LOG_OFF_NLSS_PATH="$(dataset_nlss "${CSV_LOG_OFF_PATH}")"
 CSV_LOG_OFF_LOG_PATH="$(dataset_log "${CSV_LOG_OFF_PATH}")"
 CSV_USER_PROMPT_LOG_PATH="$(dataset_log "${CSV_USER_PROMPT_PATH}")"
 CSV_USER_PROMPT_NLSS_PATH="$(dataset_nlss "${CSV_USER_PROMPT_PATH}")"
+GOLDEN_LABEL="$(dataset_label "${DATA_GOLDEN}")"
+GOLDEN_DIR="$(dataset_dir "${DATA_GOLDEN}")"
+GOLDEN_LOG_PATH="${GOLDEN_DIR}/analysis_log.jsonl"
+GOLDEN_PARQUET_PATH="$(dataset_parquet "${DATA_GOLDEN}")"
 RDATA_LABEL="ttest_rdata"
 RDATA_DIR="${WORKSPACE_DIR}/${RDATA_LABEL}"
 RDATA_LOG_PATH="${RDATA_DIR}/analysis_log.jsonl"
@@ -415,6 +463,36 @@ SAV_LOG_PATH="$(dataset_log "${SAV_PATH}")"
 run_ok "help text" bash -c "Rscript \"${R_SCRIPT_DIR}/t_test.R\" --help > \"${HELP_PATH}\" 2>&1"
 assert_contains "${HELP_PATH}" "t-tests (base R)"
 assert_contains "${HELP_PATH}" "Options:"
+
+run_ok "init workspace (golden dataset)" Rscript "${R_SCRIPT_DIR}/init_workspace.R" --csv "${DATA_GOLDEN}"
+require_file "${GOLDEN_PARQUET_PATH}"
+
+start=$(log_count "${GOLDEN_LOG_PATH}")
+run_ok "t_test golden one-sample bootstrap" Rscript "${R_SCRIPT_DIR}/t_test.R" --parquet "${GOLDEN_PARQUET_PATH}" \
+  --vars x1 --mu 0.1 --alternative greater --conf-level 0.9 --bootstrap TRUE --bootstrap-samples 200 --seed 123
+check_log "${GOLDEN_LOG_PATH}" "${start}" "-" "one_sample" "alternative=greater" "conf_level=0.9" "bootstrap=true" "bootstrap_samples=200" "mu=0.1"
+run_ok "t_test golden summary (one-sample)" check_t_test_golden "${GOLDEN_LOG_PATH}" "${start}" "one_sample_x1_bootstrap_greater"
+run_ok "t_test golden diagnostics (one-sample)" check_t_test_diag_golden "${GOLDEN_LOG_PATH}" "${start}" "diag_one_sample_x1_bootstrap_greater"
+
+start=$(log_count "${GOLDEN_LOG_PATH}")
+run_ok "t_test golden independent welch" Rscript "${R_SCRIPT_DIR}/t_test.R" --parquet "${GOLDEN_PARQUET_PATH}" \
+  --vars outcome_anova --group group2
+check_log "${GOLDEN_LOG_PATH}" "${start}" "-" "independent" "var_equal=false"
+run_ok "t_test golden summary (independent welch)" check_t_test_golden "${GOLDEN_LOG_PATH}" "${start}" "independent_outcome_anova_welch"
+run_ok "t_test golden diagnostics (independent treatment)" check_t_test_diag_golden "${GOLDEN_LOG_PATH}" "${start}" "diag_independent_outcome_anova_welch_treatment"
+run_ok "t_test golden diagnostics (independent control)" check_t_test_diag_golden "${GOLDEN_LOG_PATH}" "${start}" "diag_independent_outcome_anova_welch_control"
+
+start=$(log_count "${GOLDEN_LOG_PATH}")
+run_ok "t_test golden independent equal var bootstrap" Rscript "${R_SCRIPT_DIR}/t_test.R" --parquet "${GOLDEN_PARQUET_PATH}" \
+  --vars x2 --group group2 --var-equal TRUE --bootstrap TRUE --bootstrap-samples 150 --seed 7
+check_log "${GOLDEN_LOG_PATH}" "${start}" "-" "independent" "var_equal=true" "bootstrap=true" "bootstrap_samples=150"
+run_ok "t_test golden summary (independent equal var bootstrap)" check_t_test_golden "${GOLDEN_LOG_PATH}" "${start}" "independent_x2_equal_var_bootstrap"
+
+start=$(log_count "${GOLDEN_LOG_PATH}")
+run_ok "t_test golden paired" Rscript "${R_SCRIPT_DIR}/t_test.R" --parquet "${GOLDEN_PARQUET_PATH}" --x pre_score --y post_score
+check_log "${GOLDEN_LOG_PATH}" "${start}" "-" "paired"
+run_ok "t_test golden summary (paired)" check_t_test_golden "${GOLDEN_LOG_PATH}" "${start}" "paired_pre_post"
+run_ok "t_test golden diagnostics (paired)" check_t_test_diag_golden "${GOLDEN_LOG_PATH}" "${start}" "diag_paired_pre_post"
 
 start=$(log_count "${INTERACTIVE_LOG_PATH}")
 run_ok "interactive one-sample" env NLSS_PROMPT_FILE="${INTERACTIVE_INPUT}" Rscript "${R_SCRIPT_DIR}/t_test.R" --interactive
