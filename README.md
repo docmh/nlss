@@ -918,6 +918,18 @@ Rscript tests/values/<module>_compute_golden.R \
   --assumptions-out tests/values/<module>_assumptions_golden.csv
 ```
 
+Correlations goldens (summary + diagnostics + comparisons):
+
+```bash
+mkdir -p .tmp
+TMPDIR=./.tmp TMP=./.tmp TEMP=./.tmp \
+Rscript tests/values/correlations_compute_golden.R \
+  --data tests/data/golden_dataset.csv \
+  --out tests/values/correlations_golden.csv \
+  --diagnostics-out tests/values/correlations_diagnostics_golden.csv \
+  --comparison-out tests/values/correlations_comparison_golden.csv
+```
+
 2) **Add checkers** (Python) that read `analysis_log.jsonl` and compare to goldens with tight tolerances. Keep them in `tests/values/` (e.g., `check_<module>_golden.py`).
 
 3) **Wire checks into smoke tests** with explicit log lines (e.g., `tests/smoke/run_<module>_tests.sh`), so the test log shows each golden check as a `RUN/PASS` entry.

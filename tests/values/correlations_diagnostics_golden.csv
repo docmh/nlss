@@ -1,0 +1,2 @@
+"case_id","variable","group","n","total_n","missing_n","missing_pct","skewness","kurtosis","shapiro_w","shapiro_p"
+"diagnostic_x1","x1","",240,240,0,0,-0.0355480175046676,-0.33111579767127,0.995376294550535,0.688678230840098

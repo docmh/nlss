@@ -1,0 +1,8 @@
+"case_id","var1","var2","group","method","alternative","controls","partial","missing_method","conf_level","p_adjust_method","r0","n","total_n","missing_n","missing_pct","r","p_value","ci_low","ci_high","boot_ci_low","boot_ci_high","p_adjusted","z_r0","p_r0"
+"pearson_pairwise_x1_x2","x1","x2","","pearson","two.sided","",FALSE,"pairwise",0.95,"none",NA,240,240,0,0,0.394246825994384,0.000000000238616933465525,0.281679314807291,0.496109256673692,NA,NA,NA,NA,NA
+"spearman_complete_x1_mediator","x1","mediator","","spearman","two.sided","",FALSE,"complete",0.95,"holm",NA,240,240,0,0,0.52334793578529,0.00000000000000000281061954308962,NA,NA,NA,NA,0.0000000000000000112424781723585,NA,NA
+"partial_spearman_x1_x2","x1","x2","","spearman","two.sided","age,income",TRUE,"pairwise",0.95,"none",NA,212,240,28,11.6666666666667,0.39075767436892,0.00000000381992944505195,0.270237848833988,0.49922059667452,NA,NA,NA,NA,NA
+"kendall_pairwise_x1_x2","x1","x2","","kendall","two.sided","",FALSE,"pairwise",0.95,"none",NA,240,240,0,0,0.261548925884836,0.00000000161870108059164,NA,NA,NA,NA,NA,NA,NA
+"r0_pearson_x1_x2","x1","x2","","pearson","two.sided","",FALSE,"pairwise",0.95,"none",0.2,240,240,0,0,0.394246825994384,0.000000000238616933465525,0.281679314807291,0.496109256673692,NA,NA,NA,3.29581154759626,0.000981378222759981
+"bootstrap_pearson_x1_x2","x1","x2","","pearson","two.sided","",FALSE,"pairwise",0.95,"none",NA,240,240,0,0,0.394246825994384,0.000000000238616933465525,0.281679314807291,0.496109256673692,0.300611616472025,0.497601219441631,NA,NA,NA
+"grouped_pearson_x1_x2_control","x1","x2","control","pearson","two.sided","",FALSE,"pairwise",0.95,"none",NA,127,135,8,5.92592592592593,0.367795298039671,0.0000210032435988046,0.206833588990741,0.509371774561167,NA,NA,NA,NA,NA

@@ -6,6 +6,7 @@
 - Exercise bootstrap confidence intervals, Fisher r-to-z tests vs. r0, and Fisher r-to-z group comparisons.
 - Check matrix-template output (r below diagonal, p above diagonal) and comparison-template output.
 - Cover partial correlations with controls, p-adjust options, missing handling, input variants, and logging toggles.
+- Numeric value tests: compare `analysis_log.jsonl` outputs against `tests/values/correlations_golden.csv`, `tests/values/correlations_diagnostics_golden.csv`, and `tests/values/correlations_comparison_golden.csv` (regenerate with `tests/values/correlations_compute_golden.R`).
 
 ## Data Sources
 
@@ -25,10 +26,11 @@
 Positive coverage:
 
 - Baseline CSV run with explicit vars (Pearson).
+- Kendall correlations (nonparametric) for numeric pairs.
 - Workspace run (no input flags) using active dataset.
 - Cross-correlations via `--x`/`--y`, plus `--method spearman`, `--missing complete`, and `--p-adjust`.
 - Grouped correlations for `group2` (two-level groups).
-- Partial correlations with controls.
+- Partial correlations with controls (Spearman).
 - Bootstrap confidence intervals with seed control.
 - Fisher r-to-z tests against r0.
 - Compare-groups output with `group2` (comparison table and narrative).

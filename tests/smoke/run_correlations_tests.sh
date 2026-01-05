@@ -21,6 +21,13 @@ TESTS_CONFIG_PATH="${NLSS_TESTS_CONFIG:-${ROOT_DIR}/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_correlations_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_CORR_PATH="${GOLDEN_VALUES_DIR}/correlations_golden.csv"
+GOLDEN_DIAG_PATH="${GOLDEN_VALUES_DIR}/correlations_diagnostics_golden.csv"
+GOLDEN_COMP_PATH="${GOLDEN_VALUES_DIR}/correlations_comparison_golden.csv"
+CHECK_CORR_GOLDEN_SCRIPT="${GOLDEN_VALUES_DIR}/check_correlations_golden.py"
+CHECK_CORR_DIAG_SCRIPT="${GOLDEN_VALUES_DIR}/check_correlations_diagnostics_golden.py"
+CHECK_CORR_COMP_SCRIPT="${GOLDEN_VALUES_DIR}/check_correlations_comparison_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -138,6 +145,19 @@ if [ ! -f "${DATA_GOLDEN}" ]; then
   exit 1
 fi
 
+if [ ! -f "${GOLDEN_CORR_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_CORR_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_DIAG_PATH}" ]; then
+  echo "[FAIL] missing diagnostics goldens: ${GOLDEN_DIAG_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_COMP_PATH}" ]; then
+  echo "[FAIL] missing comparison goldens: ${GOLDEN_COMP_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+
 mkdir -p "${WORKSPACE_DIR}" "${TMP_BASE}"
 : > "${WORKSPACE_MANIFEST_PATH}"
 export TMPDIR="${TMP_BASE}"
@@ -174,6 +194,27 @@ check_log() {
   local log_path="$1"; shift
   local start_count="$1"; shift
   "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${log_path}" "${start_count}" "$@"
+}
+
+check_corr_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_CORR_GOLDEN_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_CORR_PATH}" "${case_id}"
+}
+
+check_corr_diag_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_CORR_DIAG_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_DIAG_PATH}" "${case_id}"
+}
+
+check_corr_comp_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_CORR_COMP_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_COMP_PATH}" "${case_id}"
 }
 
 run_ok() {
@@ -269,6 +310,8 @@ VARS_BASE="x1,x2,x3"
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "baseline csv" Rscript "${R_SCRIPT_DIR}/correlations.R" --csv "${DATA_GOLDEN}" --vars "${VARS_BASE}"
 check_log "${LOG_PATH}" "${start_count}" vars="${VARS_BASE}" method=pearson missing=pairwise
+run_ok "correlations golden (pearson pairwise)" check_corr_golden "${LOG_PATH}" "${start_count}" "pearson_pairwise_x1_x2"
+run_ok "correlations diagnostics golden" check_corr_diag_golden "${LOG_PATH}" "${start_count}" "diagnostic_x1"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "workspace active dataset" bash -c "cd \"${DATASET_DIR}\" && Rscript \"${R_SCRIPT_DIR}/correlations.R\" --vars \"${VARS_BASE}\""
@@ -278,28 +321,39 @@ start_count="$(log_count "${LOG_PATH}")"
 run_ok "cross spearman adjust" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" \
   --x x1,x2 --y mediator,outcome_anova --method spearman --missing complete --p-adjust holm
 check_log "${LOG_PATH}" "${start_count}" method=spearman missing=complete p_adjust=holm x="x1,x2" y="mediator,outcome_anova"
+run_ok "correlations golden (spearman complete)" check_corr_golden "${LOG_PATH}" "${start_count}" "spearman_complete_x1_mediator"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "grouped correlations" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" --group group2
 check_log "${LOG_PATH}" "${start_count}" group=group2 min_groups=2
+run_ok "correlations golden (grouped)" check_corr_golden "${LOG_PATH}" "${start_count}" "grouped_pearson_x1_x2_control"
 
 start_count="$(log_count "${LOG_PATH}")"
-run_ok "partial correlations" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" --controls age,income
-check_log "${LOG_PATH}" "${start_count}" controls="age,income" expect_partial=true
+run_ok "partial correlations" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" --controls age,income --method spearman
+check_log "${LOG_PATH}" "${start_count}" controls="age,income" method=spearman expect_partial=true
+run_ok "correlations golden (partial spearman)" check_corr_golden "${LOG_PATH}" "${start_count}" "partial_spearman_x1_x2"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "bootstrap correlations" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" \
   --bootstrap TRUE --bootstrap-samples 200 --seed 42
 check_log "${LOG_PATH}" "${start_count}" bootstrap=true bootstrap_samples=200 expect_boot=true
+run_ok "correlations golden (bootstrap)" check_corr_golden "${LOG_PATH}" "${start_count}" "bootstrap_pearson_x1_x2"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "r0 correlations" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" --r0 0.2
 check_log "${LOG_PATH}" "${start_count}" r0=0.2 expect_r0=true
+run_ok "correlations golden (r0)" check_corr_golden "${LOG_PATH}" "${start_count}" "r0_pearson_x1_x2"
+
+start_count="$(log_count "${LOG_PATH}")"
+run_ok "kendall correlations" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" --method kendall
+check_log "${LOG_PATH}" "${start_count}" method=kendall
+run_ok "correlations golden (kendall)" check_corr_golden "${LOG_PATH}" "${start_count}" "kendall_pairwise_x1_x2"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "compare groups" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" --group group2 --compare-groups TRUE
 check_log "${LOG_PATH}" "${start_count}" compare_groups=true group=group2 expect_compare=true min_groups=2
 assert_contains "${NLSS_REPORT_PATH}" "Fisher r-to-z Comparisons Between Groups"
+run_ok "correlations golden (compare groups)" check_corr_comp_golden "${LOG_PATH}" "${start_count}" "compare_groups_x1_x2"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "matrix template" Rscript "${R_SCRIPT_DIR}/correlations.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" --template matrix
