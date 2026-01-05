@@ -907,7 +907,7 @@ Rscript tests/values/<module>_compute_golden.R \
   --out tests/values/<module>_golden.csv
 ```
 
-Optionally add additional outputs for module‑specific features (post‑hoc, contrasts, diagnostics, assumptions):
+Optionally add additional outputs for module‑specific features (e.g., post‑hoc, contrasts, diagnostics, assumptions):
 
 ```bash
 Rscript tests/values/<module>_compute_golden.R \
