@@ -1,0 +1,2 @@
+"case_id","formula","dv","fixed","random","group","term","variance","stddev","corr"
+"base_intercept","score ~ time + group3 + x1 + (1|id)","","","(1|id)","id","(Intercept)",35.9829037904411,5.99857514668617,NA

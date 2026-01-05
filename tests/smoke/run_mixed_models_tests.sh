@@ -22,6 +22,23 @@ R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_mixed_models_log.py"
 CHECK_PKG_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
 PREP_SCRIPT="${ROOT_DIR}/tests/smoke/mixed_models_prep.R"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_FIXED_PATH="${GOLDEN_VALUES_DIR}/mixed_models_fixed_golden.csv"
+CHECK_FIXED_SCRIPT="${GOLDEN_VALUES_DIR}/check_mixed_models_fixed_golden.py"
+GOLDEN_RANDOM_PATH="${GOLDEN_VALUES_DIR}/mixed_models_random_golden.csv"
+CHECK_RANDOM_SCRIPT="${GOLDEN_VALUES_DIR}/check_mixed_models_random_golden.py"
+GOLDEN_FIT_PATH="${GOLDEN_VALUES_DIR}/mixed_models_fit_golden.csv"
+CHECK_FIT_SCRIPT="${GOLDEN_VALUES_DIR}/check_mixed_models_fit_golden.py"
+GOLDEN_R2_ICC_PATH="${GOLDEN_VALUES_DIR}/mixed_models_r2_icc_golden.csv"
+CHECK_R2_ICC_SCRIPT="${GOLDEN_VALUES_DIR}/check_mixed_models_r2_icc_golden.py"
+GOLDEN_ANOVA_PATH="${GOLDEN_VALUES_DIR}/mixed_models_anova_golden.csv"
+CHECK_ANOVA_SCRIPT="${GOLDEN_VALUES_DIR}/check_mixed_models_anova_golden.py"
+GOLDEN_EMMEANS_PATH="${GOLDEN_VALUES_DIR}/mixed_models_emmeans_golden.csv"
+CHECK_EMMEANS_SCRIPT="${GOLDEN_VALUES_DIR}/check_mixed_models_emmeans_golden.py"
+GOLDEN_CONTRASTS_PATH="${GOLDEN_VALUES_DIR}/mixed_models_contrasts_golden.csv"
+CHECK_CONTRASTS_SCRIPT="${GOLDEN_VALUES_DIR}/check_mixed_models_contrasts_golden.py"
+GOLDEN_DIAGNOSTICS_PATH="${GOLDEN_VALUES_DIR}/mixed_models_diagnostics_golden.csv"
+CHECK_DIAGNOSTICS_SCRIPT="${GOLDEN_VALUES_DIR}/check_mixed_models_diagnostics_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -155,6 +172,71 @@ fi
 
 if [ ! -f "${DATA_GOLDEN}" ]; then
   echo "[FAIL] missing dataset: ${DATA_GOLDEN}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+
+if [ ! -f "${GOLDEN_FIXED_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_FIXED_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_FIXED_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_FIXED_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_RANDOM_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_RANDOM_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_RANDOM_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_RANDOM_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_FIT_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_FIT_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_FIT_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_FIT_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_R2_ICC_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_R2_ICC_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_R2_ICC_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_R2_ICC_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_ANOVA_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_ANOVA_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_ANOVA_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_ANOVA_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_EMMEANS_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_EMMEANS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_EMMEANS_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_EMMEANS_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_CONTRASTS_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_CONTRASTS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_CONTRASTS_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_CONTRASTS_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_DIAGNOSTICS_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_DIAGNOSTICS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_DIAGNOSTICS_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_DIAGNOSTICS_SCRIPT}" | tee -a "${LOG_FILE}"
   exit 1
 fi
 
@@ -414,6 +496,62 @@ expect_log_main() {
   expect_log "${LOG_PATH}" "${start_count}" "$@"
 }
 
+check_mixed_models_fixed_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_FIXED_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_FIXED_PATH}" "${case_id}"
+}
+
+check_mixed_models_random_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_RANDOM_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_RANDOM_PATH}" "${case_id}"
+}
+
+check_mixed_models_fit_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_FIT_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_FIT_PATH}" "${case_id}"
+}
+
+check_mixed_models_r2_icc_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_R2_ICC_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_R2_ICC_PATH}" "${case_id}"
+}
+
+check_mixed_models_anova_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_ANOVA_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_ANOVA_PATH}" "${case_id}"
+}
+
+check_mixed_models_emmeans_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_EMMEANS_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_EMMEANS_PATH}" "${case_id}"
+}
+
+check_mixed_models_contrasts_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_CONTRASTS_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_CONTRASTS_PATH}" "${case_id}"
+}
+
+check_mixed_models_diagnostics_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_DIAGNOSTICS_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_DIAGNOSTICS_PATH}" "${case_id}"
+}
+
 run_expect_invalid() {
   local label="$1"; shift
   local status="$1"; shift
@@ -597,6 +735,22 @@ expect_log_main "${start_count}" \
 
 echo "[PASS] mixed_models clean formula (log)" | tee -a "${LOG_FILE}"
 
+if [ "${HAS_LMERTEST}" -eq 1 ]; then
+  run_ok "mixed_models fixed golden (base timepost)" check_mixed_models_fixed_golden "${LOG_PATH}" "${start_count}" "base_timepost"
+  run_ok "mixed_models fixed golden (base timepre)" check_mixed_models_fixed_golden "${LOG_PATH}" "${start_count}" "base_timepre"
+  run_ok "mixed_models fixed golden (base x1)" check_mixed_models_fixed_golden "${LOG_PATH}" "${start_count}" "base_x1"
+  run_ok "mixed_models random golden (base intercept)" check_mixed_models_random_golden "${LOG_PATH}" "${start_count}" "base_intercept"
+  run_ok "mixed_models fit golden" check_mixed_models_fit_golden "${LOG_PATH}" "${start_count}" "base_fit"
+  run_ok "mixed_models r2/icc golden" check_mixed_models_r2_icc_golden "${LOG_PATH}" "${start_count}" "base_r2_icc"
+  run_ok "mixed_models anova golden (time)" check_mixed_models_anova_golden "${LOG_PATH}" "${start_count}" "anova_time"
+  run_ok "mixed_models anova golden (x1)" check_mixed_models_anova_golden "${LOG_PATH}" "${start_count}" "anova_x1"
+  run_ok "mixed_models diagnostics golden (singular)" check_mixed_models_diagnostics_golden "${LOG_PATH}" "${start_count}" "diag_singular"
+  run_ok "mixed_models diagnostics golden (convergence)" check_mixed_models_diagnostics_golden "${LOG_PATH}" "${start_count}" "diag_convergence"
+  run_ok "mixed_models diagnostics golden (shapiro)" check_mixed_models_diagnostics_golden "${LOG_PATH}" "${start_count}" "diag_shapiro"
+else
+  echo "[SKIP] mixed_models value tests (lmerTest not installed)" | tee -a "${LOG_FILE}"
+fi
+
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "mixed_models fixed/random standardize" \
   Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
@@ -628,6 +782,10 @@ expect_log_main "${start_count}" \
   --std-beta present
 
 echo "[PASS] mixed_models fixed/random standardize (log)" | tee -a "${LOG_FILE}"
+
+if [ "${HAS_LMERTEST}" -eq 1 ]; then
+  run_ok "mixed_models fixed golden (standardize x1)" check_mixed_models_fixed_golden "${LOG_PATH}" "${start_count}" "standardize_x1"
+fi
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "mixed_models random shorthand" \
@@ -698,6 +856,11 @@ expect_log_main "${start_count}" \
   --std-beta absent
 
 echo "[PASS] mixed_models emmeans contrasts (log)" | tee -a "${LOG_FILE}"
+
+if [ "${HAS_LMERTEST}" -eq 1 ] && [ "${HAS_EMMEANS}" -eq 1 ]; then
+  run_ok "mixed_models emmeans golden" check_mixed_models_emmeans_golden "${LOG_PATH}" "${start_count}" "emmeans_mid_A"
+  run_ok "mixed_models contrasts golden" check_mixed_models_contrasts_golden "${LOG_PATH}" "${start_count}" "contrast_midA_postA"
+fi
 
 if [ "${HAS_EMMEANS}" -eq 1 ]; then
   start_count="$(log_count "${LOG_PATH}")"

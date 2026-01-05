@@ -12,6 +12,7 @@ Goal: stress mixed models feature coverage with clean, edge, and negative cases 
 - R² (marginal/conditional) and ICC reporting via `performance` (required).
 - Optimizer/maxfun configuration (including invalid maxfun fallback).
 - emmeans + contrasts + p-adjust and conf-level handling (including custom JSON contrasts, built-in methods, emmeans-only, and contrasts-without-emmeans).
+- Value tests with numeric goldens for fixed effects, random effects, fit stats, R²/ICC, ANOVA, emmeans/contrasts, and diagnostics.
 - Input formats: parquet, CSV (custom sep/header), RDS, RData (df selection), SAV when available.
 - Template overrides for default and emmeans outputs (emmeans tests require the package).
 - Logging controls (`--log FALSE`, `--digits`, `--user-prompt`) in automated coverage; interactive mode is manual-only.
@@ -42,10 +43,11 @@ bash tests/smoke/run_mixed_models_tests.sh
 - `outputs/test-runs/<timestamp>/mixed_models_test.log`
 - `outputs/test-runs/<timestamp>/mixed_models_workspace/mixed_models_long/report_canonical.md`
 - `outputs/test-runs/<timestamp>/mixed_models_workspace/mixed_models_long/analysis_log.jsonl`
+- Golden value references under `tests/values/` (generated via `tests/values/mixed_models_compute_golden.R`).
 
 ## Notes
 
 - The suite requires `lme4` and `performance`. It will fail fast if either is missing.
-- `emmeans` and `lmerTest` are optional; checks adapt based on package availability.
+- `emmeans` and `lmerTest` are optional; value tests and checks adapt based on package availability.
 - Kenward-Roger coverage requires `pbkrtest` when `lmerTest` is installed; otherwise the suite expects a controlled failure for that case.
 - SAV input tests require `haven` to write the .sav file; otherwise they are skipped.

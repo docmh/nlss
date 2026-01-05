@@ -1,0 +1,2 @@
+"case_id","formula","r2_marginal","r2_conditional","icc"
+"base_r2_icc","score ~ time + group3 + x1 + (1|id)",0.443538882561517,0.845674149015256,0.722665526577777

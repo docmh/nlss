@@ -1,0 +1,2 @@
+"case_id","formula","emmeans","contrasts","term","level","contrast","emmean","estimate","se","df","t","p","p_adj","ci_low","ci_high","method"
+"contrast_midA_postA","score ~ time * group3 + x1 + (1|id)","time*group3","pairwise","time*group3","","mid A - post A",NA,-5.46934065934167,0.551722335351971,461.999999894836,-9.91321233325183,NA,0.000000000000000000129949368430083,-7.12864489674782,-3.81003642193552,"pairwise"

@@ -1,0 +1,4 @@
+"case_id","formula","metric","value","statistic","p","note"
+"diag_singular","score ~ time + group3 + x1 + (1|id)","singular_fit","FALSE",NA,NA,""
+"diag_convergence","score ~ time + group3 + x1 + (1|id)","convergence","ok",NA,NA,""
+"diag_shapiro","score ~ time + group3 + x1 + (1|id)","shapiro_wilk","",0.994993679499387,0.0216684145030172,""

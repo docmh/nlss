@@ -1,0 +1,2 @@
+"case_id","formula","n","aic","bic","logLik","deviance"
+"base_fit","score ~ time + group3 + x1 + (1|id)",702,4351.65428476698,4388.08575199918,-2167.82714238349,4335.65428476698
