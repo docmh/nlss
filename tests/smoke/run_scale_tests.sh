@@ -22,6 +22,11 @@ R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_scale_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
 TEMPLATE_PATH="${ROOT_DIR}/assets/scale/default-template.md"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_ITEM_PATH="${GOLDEN_VALUES_DIR}/scale_item_golden.csv"
+GOLDEN_REL_PATH="${GOLDEN_VALUES_DIR}/scale_reliability_golden.csv"
+CHECK_SCALE_ITEM_SCRIPT="${GOLDEN_VALUES_DIR}/check_scale_item_golden.py"
+CHECK_SCALE_REL_SCRIPT="${GOLDEN_VALUES_DIR}/check_scale_reliability_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -136,6 +141,15 @@ if [[ ! -f "${DATA_GOLDEN}" ]]; then
   exit 1
 fi
 
+if [ ! -f "${GOLDEN_ITEM_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_ITEM_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_REL_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_REL_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+
 if ! Rscript "${CHECK_R_PACKAGE_SCRIPT}" jsonlite >/dev/null 2>&1; then
   echo "[FAIL] jsonlite not installed." | tee -a "${LOG_FILE}"
   exit 1
@@ -191,6 +205,20 @@ check_scale_log() {
   local log_path="$1"; shift
   local start_count="$1"; shift
   "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${log_path}" "${start_count}" "$@"
+}
+
+check_scale_item_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_SCALE_ITEM_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_ITEM_PATH}" "${case_id}"
+}
+
+check_scale_rel_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_SCALE_REL_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_REL_PATH}" "${case_id}"
 }
 
 assert_contains() {
@@ -456,14 +484,39 @@ if [[ ! -f "${PARQUET_GOLDEN}" ]]; then
 fi
 
 VARS_BASE="f1_1,f1_2,f1_3_rev,f1_4"
+VARS_F2="f2_1,f2_2,f2_3,f2_4_rev"
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "baseline csv" Rscript "${R_SCRIPT_DIR}/scale.R" --csv "${DATA_GOLDEN}" --vars "${VARS_BASE}" --reverse f1_3_rev --reverse-min 1 --reverse-max 5 --score mean --omega TRUE
 check_scale_log "${LOG_PATH}" "${start_count}" vars="${VARS_BASE}" reverse="f1_3_rev" score=mean omega=true missing=pairwise
 assert_contains "${NLSS_REPORT_PATH}" "Reverse-scored items: f1_3_rev (min = 1, max = 5)."
+run_ok "scale item golden (f1 pairwise mean omega rev f1_1)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_mean_omega_rev|all|f1_1"
+run_ok "scale item golden (f1 pairwise mean omega rev f1_2)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_mean_omega_rev|all|f1_2"
+run_ok "scale item golden (f1 pairwise mean omega rev f1_3)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_mean_omega_rev|all|f1_3_rev"
+run_ok "scale item golden (f1 pairwise mean omega rev f1_4)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_mean_omega_rev|all|f1_4"
+run_ok "scale reliability golden (f1 pairwise mean omega rev)" check_scale_rel_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_mean_omega_rev|all|summary"
+
+start_count="$(log_count "${LOG_PATH}")"
+run_ok "missing complete f2" Rscript "${R_SCRIPT_DIR}/scale.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_F2}" --reverse f2_4_rev --reverse-min 1 --reverse-max 5 --missing complete --score mean --omega TRUE
+check_scale_log "${LOG_PATH}" "${start_count}" vars="${VARS_F2}" reverse="f2_4_rev" score=mean omega=true missing=complete
+run_ok "scale item golden (f2 complete mean omega rev f2_1)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f2_complete_mean_omega_rev|all|f2_1"
+run_ok "scale item golden (f2 complete mean omega rev f2_2)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f2_complete_mean_omega_rev|all|f2_2"
+run_ok "scale item golden (f2 complete mean omega rev f2_3)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f2_complete_mean_omega_rev|all|f2_3"
+run_ok "scale item golden (f2 complete mean omega rev f2_4)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f2_complete_mean_omega_rev|all|f2_4_rev"
+run_ok "scale reliability golden (f2 complete mean omega rev)" check_scale_rel_golden "${LOG_PATH}" "${start_count}" "f2_complete_mean_omega_rev|all|summary"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "grouped parquet" Rscript "${R_SCRIPT_DIR}/scale.R" --parquet "${PARQUET_GOLDEN}" --vars "${VARS_BASE}" --group group2 --omega FALSE
 check_scale_log "${LOG_PATH}" "${start_count}" group=group2 omega=false min_groups=2
+run_ok "scale item golden (group2 control f1_1)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_sum_noomega_group2|control|f1_1"
+run_ok "scale item golden (group2 control f1_2)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_sum_noomega_group2|control|f1_2"
+run_ok "scale item golden (group2 control f1_3)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_sum_noomega_group2|control|f1_3_rev"
+run_ok "scale item golden (group2 control f1_4)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_sum_noomega_group2|control|f1_4"
+run_ok "scale reliability golden (group2 control)" check_scale_rel_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_sum_noomega_group2|control|summary"
+run_ok "scale item golden (group2 treatment f1_1)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_sum_noomega_group2|treatment|f1_1"
+run_ok "scale item golden (group2 treatment f1_2)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_sum_noomega_group2|treatment|f1_2"
+run_ok "scale item golden (group2 treatment f1_3)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_sum_noomega_group2|treatment|f1_3_rev"
+run_ok "scale item golden (group2 treatment f1_4)" check_scale_item_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_sum_noomega_group2|treatment|f1_4"
+run_ok "scale reliability golden (group2 treatment)" check_scale_rel_golden "${LOG_PATH}" "${start_count}" "f1_pairwise_sum_noomega_group2|treatment|summary"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "direct workspace" bash -c "cd \"${DATASET_DIR}\" && Rscript \"${R_SCRIPT_DIR}/scale.R\" --vars \"${VARS_BASE}\" --omega FALSE"

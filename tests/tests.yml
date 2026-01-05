@@ -47,6 +47,7 @@ tests:
     plot: "tests/smoke/plan-plot.md"
     crosstabs: "tests/smoke/plan-crosstabs.md"
     correlations: "tests/smoke/plan-correlations.md"
+    scale: "tests/smoke/plan-scale.md"
     descriptive_stats: "tests/smoke/plan-descriptive-stats.md"
     efa: "tests/smoke/plan-efa.md"
     check_integrity: "tests/smoke/plan-check-integrity.md"
