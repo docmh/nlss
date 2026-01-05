@@ -6,6 +6,7 @@
 - Exercise extraction methods, rotations, factor retention rules, and correlation types.
 - Cover input formats, templates, logging, labels, and interactive prompts.
 - Verify sorted loadings and NLSS format outputs.
+- Validate numeric outputs against golden value files (summary/loadings/eigen).
 
 ## Data Sources
 
@@ -13,6 +14,7 @@
 - Generated CSV fixtures under the run root:
   - semicolon delimiter, no header, polychoric (ordinal), tetrachoric (binary), tetrachoric invalid, nonnumeric coerce, template, interactive.
 - Labeled RDS/RData/SAV created by `tests/smoke/prepare_labeled_dataset.R`.
+- Value-test goldens under `tests/values/` (summary/loadings/eigen).
 
 ## Workspace and Outputs
 

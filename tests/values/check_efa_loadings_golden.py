@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+import csv
+import json
+import math
+import sys
+from pathlib import Path
+
+
+def fail(message: str) -> None:
+    print(message)
+    sys.exit(1)
+
+
+def normalize_text(value):
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def normalize_group(value):
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def parse_float(value):
+    if value in (None, "", "-", "NA", "NaN", "None"):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def load_golden(path: Path):
+    if not path.exists():
+        fail(f"Missing golden file: {path}")
+    rows = {}
+    with path.open("r", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            case_id = normalize_text(row.get("case_id"))
+            if not case_id:
+                continue
+            rows.setdefault(case_id, []).append(row)
+    return rows
+
+
+def load_entries(path: Path, start_count: int):
+    entries = []
+    with path.open("r", encoding="utf-8") as handle:
+        for idx, line in enumerate(handle, start=1):
+            if idx <= start_count:
+                continue
+            if line.strip():
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    return entries
+
+
+def find_entry(entries):
+    for entry in reversed(entries):
+        if entry.get("module") == "efa":
+            return entry
+    return None
+
+
+def compare_numeric(actual, expected, label, rel_tol=1e-6, abs_tol=1e-6, allow_abs=False):
+    if expected is None:
+        return
+    if actual is None:
+        fail(f"Missing actual value for {label}")
+    try:
+        actual_val = float(actual)
+    except (TypeError, ValueError):
+        fail(f"Non-numeric actual value for {label}: {actual}")
+    if math.isclose(actual_val, expected, rel_tol=rel_tol, abs_tol=abs_tol):
+        return
+    if allow_abs and math.isclose(abs(actual_val), abs(expected), rel_tol=rel_tol, abs_tol=abs_tol):
+        return
+    fail(f"Mismatch for {label}: expected {expected}, got {actual_val}")
+
+
+def find_loadings_row(loadings_df, expected):
+    exp_item = normalize_text(expected.get("item"))
+    exp_group = normalize_group(expected.get("group"))
+    for row in loadings_df:
+        if normalize_text(row.get("item")) != exp_item:
+            continue
+        if normalize_group(row.get("group")) != exp_group:
+            continue
+        return row
+    return None
+
+
+def main():
+    if len(sys.argv) < 5:
+        fail("Usage: check_efa_loadings_golden.py <log_path> <start_count> <golden_csv> <case_id>")
+
+    log_path = Path(sys.argv[1])
+    start_count = int(sys.argv[2])
+    golden_path = Path(sys.argv[3])
+    case_id = sys.argv[4]
+
+    if not log_path.exists():
+        fail(f"Missing log: {log_path}")
+
+    golden_rows = load_golden(golden_path)
+    expected_rows = golden_rows.get(case_id)
+    if not expected_rows:
+        fail(f"Golden values missing for case_id: {case_id}")
+
+    entries = load_entries(log_path, start_count)
+    if not entries:
+        fail("No new log entries found.")
+
+    entry = find_entry(entries)
+    if entry is None:
+        fail("No efa log entry found.")
+
+    results = entry.get("results", {}) or {}
+    loadings_df = results.get("loadings_df") or []
+    if not loadings_df:
+        fail("loadings_df is empty")
+
+    for expected in expected_rows:
+        row = find_loadings_row(loadings_df, expected)
+        if row is None:
+            fail(f"Expected loadings row not found for item={expected.get('item')} group={expected.get('group')}")
+        expected_factor = normalize_text(expected.get("factor"))
+        if expected_factor:
+            if normalize_text(row.get("factor")) != expected_factor:
+                fail(f"Expected factor {expected_factor}, got {row.get('factor')}")
+        compare_numeric(row.get("loading"), parse_float(expected.get("loading")), "loading", allow_abs=True)
+        compare_numeric(row.get("h2"), parse_float(expected.get("h2")), "h2")
+        compare_numeric(row.get("u2"), parse_float(expected.get("u2")), "u2")
+        compare_numeric(row.get("complexity"), parse_float(expected.get("complexity")), "complexity")
+
+
+if __name__ == "__main__":
+    main()

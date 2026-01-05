@@ -22,6 +22,13 @@ R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_efa_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
 PREP_LABEL_SCRIPT="${ROOT_DIR}/tests/smoke/prepare_labeled_dataset.R"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_EFA_SUMMARY_PATH="${GOLDEN_VALUES_DIR}/efa_summary_golden.csv"
+GOLDEN_EFA_LOADINGS_PATH="${GOLDEN_VALUES_DIR}/efa_loadings_golden.csv"
+GOLDEN_EFA_EIGEN_PATH="${GOLDEN_VALUES_DIR}/efa_eigen_golden.csv"
+CHECK_EFA_SUMMARY_SCRIPT="${GOLDEN_VALUES_DIR}/check_efa_summary_golden.py"
+CHECK_EFA_LOADINGS_SCRIPT="${GOLDEN_VALUES_DIR}/check_efa_loadings_golden.py"
+CHECK_EFA_EIGEN_SCRIPT="${GOLDEN_VALUES_DIR}/check_efa_eigen_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -159,6 +166,30 @@ if [[ ! -f "${DATA_GOLDEN}" ]]; then
   echo "[FAIL] missing dataset: ${DATA_GOLDEN}" | tee -a "${LOG_FILE}"
   exit 1
 fi
+if [[ ! -f "${GOLDEN_EFA_SUMMARY_PATH}" ]]; then
+  echo "[FAIL] missing golden summary values: ${GOLDEN_EFA_SUMMARY_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [[ ! -f "${GOLDEN_EFA_LOADINGS_PATH}" ]]; then
+  echo "[FAIL] missing golden loadings values: ${GOLDEN_EFA_LOADINGS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [[ ! -f "${GOLDEN_EFA_EIGEN_PATH}" ]]; then
+  echo "[FAIL] missing golden eigen values: ${GOLDEN_EFA_EIGEN_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [[ ! -f "${CHECK_EFA_SUMMARY_SCRIPT}" ]]; then
+  echo "[FAIL] missing golden summary check script: ${CHECK_EFA_SUMMARY_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [[ ! -f "${CHECK_EFA_LOADINGS_SCRIPT}" ]]; then
+  echo "[FAIL] missing golden loadings check script: ${CHECK_EFA_LOADINGS_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [[ ! -f "${CHECK_EFA_EIGEN_SCRIPT}" ]]; then
+  echo "[FAIL] missing golden eigen check script: ${CHECK_EFA_EIGEN_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
 
 if ! Rscript "${CHECK_R_PACKAGE_SCRIPT}" jsonlite >/dev/null 2>&1; then
   echo "[FAIL] jsonlite not installed." | tee -a "${LOG_FILE}"
@@ -236,6 +267,27 @@ check_log() {
   local log_path="$1"; shift
   local start_count="$1"; shift
   "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${log_path}" "${start_count}" "$@"
+}
+
+check_efa_summary_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_EFA_SUMMARY_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_EFA_SUMMARY_PATH}" "${case_id}"
+}
+
+check_efa_loadings_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_EFA_LOADINGS_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_EFA_LOADINGS_PATH}" "${case_id}"
+}
+
+check_efa_eigen_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_EFA_EIGEN_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_EFA_EIGEN_PATH}" "${case_id}"
 }
 
 check_log_value() {
@@ -462,18 +514,27 @@ start_count="$(log_count "${LOG_PATH}")"
 run_ok "efa default" Rscript "${R_SCRIPT_DIR}/efa.R" --parquet "${PARQUET_GOLDEN}" --vars "${BASE_VARS}"
 check_log "${LOG_PATH}" "${start_count}" \
   vars="${BASE_VARS}" method=pca rotation=varimax n_factors_rule=eigen cor=pearson missing=complete loading_cutoff=0.3 sort_loadings=true min_load_rows=8 check_sorted=true
+run_ok "efa golden summary (default)" check_efa_summary_golden "${LOG_PATH}" "${start_count}" "efa_default_pca_eigen"
+run_ok "efa golden loadings (default)" check_efa_loadings_golden "${LOG_PATH}" "${start_count}" "efa_default_pca_eigen"
+run_ok "efa golden eigen (default)" check_efa_eigen_golden "${LOG_PATH}" "${start_count}" "efa_default_pca_eigen"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "efa eigen threshold" Rscript "${R_SCRIPT_DIR}/efa.R" --parquet "${PARQUET_GOLDEN}" --vars "${BASE_VARS}" --method pa --rotation none --n-factors eigen --eigen-threshold 1.2 --digits 3 --user-prompt "explicit eigen threshold"
 check_log "${LOG_PATH}" "${start_count}" \
   vars="${BASE_VARS}" method=pa rotation=none n_factors_rule=eigen cor=pearson missing=complete eigen_threshold=1.2 digits=3
 check_log_value "${LOG_PATH}" "${start_count}" "user_prompt" "explicit eigen threshold"
+run_ok "efa golden summary (pa eigen threshold)" check_efa_summary_golden "${LOG_PATH}" "${start_count}" "efa_pa_eigen_threshold"
+run_ok "efa golden loadings (pa eigen threshold)" check_efa_loadings_golden "${LOG_PATH}" "${start_count}" "efa_pa_eigen_threshold"
+run_ok "efa golden eigen (pa eigen threshold)" check_efa_eigen_golden "${LOG_PATH}" "${start_count}" "efa_pa_eigen_threshold"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "efa fixed minres" Rscript "${R_SCRIPT_DIR}/efa.R" --parquet "${PARQUET_GOLDEN}" --vars "${BASE_VARS}" --method minres --rotation varimax --n-factors 2 --missing pairwise --cor spearman --loading-cutoff 0.4 --sort-loadings FALSE --coerce TRUE
 check_log "${LOG_PATH}" "${start_count}" \
   vars="${BASE_VARS}" method=minres rotation=varimax n_factors_rule=fixed n_factors=2 cor=spearman missing=pairwise loading_cutoff=0.4 sort_loadings=false coerce=true
 assert_contains "${NLSS_REPORT_PATH}" "Loadings < 0.40"
+run_ok "efa golden summary (minres fixed)" check_efa_summary_golden "${LOG_PATH}" "${start_count}" "efa_minres_fixed_spearman_pairwise"
+run_ok "efa golden loadings (minres fixed)" check_efa_loadings_golden "${LOG_PATH}" "${start_count}" "efa_minres_fixed_spearman_pairwise"
+run_ok "efa golden eigen (minres fixed)" check_efa_eigen_golden "${LOG_PATH}" "${start_count}" "efa_minres_fixed_spearman_pairwise"
 
 start_count="$(log_count "${LOG_PATH}")"
 run_ok "efa oblimin uls" Rscript "${R_SCRIPT_DIR}/efa.R" --parquet "${PARQUET_GOLDEN}" --vars "${BASE_VARS}" --method uls --rotation oblimin --n-factors 2 --sort-loadings TRUE
@@ -508,6 +569,9 @@ POLY_LOG_PATH="${WORKSPACE_DIR}/${POLY_LABEL}/analysis_log.jsonl"
 start_count="$(log_count "${POLY_LOG_PATH}")"
 run_ok "efa polychoric" Rscript "${R_SCRIPT_DIR}/efa.R" --csv "${CSV_POLY_PATH}" --vars p1,p2,p3,p4 --cor polychoric --n-factors 2 --rotation varimax
 check_log "${POLY_LOG_PATH}" "${start_count}" vars=p1,p2,p3,p4 cor=polychoric n_factors_rule=fixed n_factors=2
+run_ok "efa golden summary (polychoric)" check_efa_summary_golden "${POLY_LOG_PATH}" "${start_count}" "efa_polychoric_fixed"
+run_ok "efa golden loadings (polychoric)" check_efa_loadings_golden "${POLY_LOG_PATH}" "${start_count}" "efa_polychoric_fixed"
+run_ok "efa golden eigen (polychoric)" check_efa_eigen_golden "${POLY_LOG_PATH}" "${start_count}" "efa_polychoric_fixed"
 
 TETRA_LABEL="$(basename "${CSV_TETRA_PATH}")"
 TETRA_LABEL="${TETRA_LABEL%.*}"
@@ -515,6 +579,9 @@ TETRA_LOG_PATH="${WORKSPACE_DIR}/${TETRA_LABEL}/analysis_log.jsonl"
 start_count="$(log_count "${TETRA_LOG_PATH}")"
 run_ok "efa tetrachoric" Rscript "${R_SCRIPT_DIR}/efa.R" --csv "${CSV_TETRA_PATH}" --vars b1,b2,b3 --cor tetrachoric --n-factors 1 --rotation none
 check_log "${TETRA_LOG_PATH}" "${start_count}" vars=b1,b2,b3 cor=tetrachoric n_factors_rule=fixed n_factors=1 rotation=none
+run_ok "efa golden summary (tetrachoric)" check_efa_summary_golden "${TETRA_LOG_PATH}" "${start_count}" "efa_tetrachoric_fixed"
+run_ok "efa golden loadings (tetrachoric)" check_efa_loadings_golden "${TETRA_LOG_PATH}" "${start_count}" "efa_tetrachoric_fixed"
+run_ok "efa golden eigen (tetrachoric)" check_efa_eigen_golden "${TETRA_LOG_PATH}" "${start_count}" "efa_tetrachoric_fixed"
 
 TETRA_BAD_LABEL="$(basename "${CSV_TETRA_BAD_PATH}")"
 TETRA_BAD_LABEL="${TETRA_BAD_LABEL%.*}"
@@ -605,6 +672,9 @@ RDS_REPORT_PATH="${WORKSPACE_DIR}/${RDS_LABEL}/report_canonical.md"
 start_count="$(log_count "${RDS_LOG_PATH}")"
 run_ok "efa labeled rds" Rscript "${R_SCRIPT_DIR}/efa.R" --rds "${RDS_PATH}" --vars f1_1,f1_2,f1_3_rev,f1_4 --group group3 --n-factors 2
 check_log "${RDS_LOG_PATH}" "${start_count}" group=group3 n_factors_rule=fixed n_factors=2
+run_ok "efa golden summary (grouped group3)" check_efa_summary_golden "${RDS_LOG_PATH}" "${start_count}" "efa_grouped_fixed_group3"
+run_ok "efa golden loadings (grouped group3)" check_efa_loadings_golden "${RDS_LOG_PATH}" "${start_count}" "efa_grouped_fixed_group3"
+run_ok "efa golden eigen (grouped group3)" check_efa_eigen_golden "${RDS_LOG_PATH}" "${start_count}" "efa_grouped_fixed_group3"
 assert_contains "${RDS_REPORT_PATH}" "LBL_F1_1"
 assert_contains "${RDS_REPORT_PATH}" "LBL_GroupA"
 
