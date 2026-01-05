@@ -1,0 +1,4 @@
+"case_id","analysis","chisq","df","pvalue","cfi","tli","rmsea","srmr"
+"path_basic_fit","path",0,0,NA,1,1,0,0.0000000000000000506745162040676
+"cfa_basic_fit","cfa",20.9805458825634,19,0.337876840249246,0.997823274594906,0.996792194139861,0.0232400468390883,0.0349099358829572
+"mediation_basic_fit","mediation",0,0,NA,1,1,0,0

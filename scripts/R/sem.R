@@ -667,6 +667,18 @@ build_r2_sentence <- function(r2_values, digits) {
   paste0("R²: ", paste(parts, collapse = "; "), ".")
 }
 
+build_r2_df <- function(r2_values) {
+  flat <- flatten_r2_values(r2_values)
+  if (length(flat) == 0) return(data.frame())
+  labels <- names(flat)
+  if (is.null(labels)) labels <- rep("", length(flat))
+  data.frame(
+    label = labels,
+    r2 = as.numeric(flat),
+    stringsAsFactors = FALSE
+  )
+}
+
 build_sem_table_body <- function(param_df, digits, table_meta) {
   default_specs <- list(
     list(key = "group", label = "Group", drop_if_empty = TRUE),
@@ -1254,6 +1266,7 @@ main <- function() {
   if (isTRUE(r2_flag)) {
     r2_values <- tryCatch(lavaan::inspect(fit, "r2"), error = function(e) NULL)
   }
+  r2_df <- build_r2_df(r2_values)
 
   n_obs <- tryCatch(lavaan::nobs(fit), error = function(e) NA_real_)
   n_obs_label <- if (length(n_obs) > 1) paste(n_obs, collapse = ", ") else n_obs
@@ -1389,14 +1402,16 @@ main <- function() {
       module = "sem",
       prompt = ctx$prompt,
       commands = ctx$commands,
-      results = list(
-        status = "ok",
-        analysis = analysis,
-        n = n_obs,
-        fit = fit_values,
-        params = list(rows = nrow(param_df)),
-        modindices = if (!is.null(modindices_df)) nrow(modindices_df) else 0
-      ),
+        results = list(
+          status = "ok",
+          analysis = analysis,
+          n = n_obs,
+          fit = fit_values,
+          params_df = param_df,
+          r2_df = r2_df,
+          params = list(rows = nrow(param_df)),
+          modindices = if (!is.null(modindices_df)) nrow(modindices_df) else 0
+        ),
       options = list(
         analysis = analysis,
         estimator = estimator,

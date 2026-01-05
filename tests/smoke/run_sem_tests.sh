@@ -21,6 +21,17 @@ TESTS_CONFIG_PATH="${NLSS_TESTS_CONFIG:-${ROOT_DIR}/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_sem_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_FIT_PATH="${GOLDEN_VALUES_DIR}/sem_fit_golden.csv"
+GOLDEN_PARAMS_PATH="${GOLDEN_VALUES_DIR}/sem_params_golden.csv"
+GOLDEN_R2_PATH="${GOLDEN_VALUES_DIR}/sem_r2_golden.csv"
+GOLDEN_INVARIANCE_PATH="${GOLDEN_VALUES_DIR}/sem_invariance_golden.csv"
+GOLDEN_MODINDICES_PATH="${GOLDEN_VALUES_DIR}/sem_modindices_golden.csv"
+CHECK_FIT_SCRIPT="${GOLDEN_VALUES_DIR}/check_sem_fit_golden.py"
+CHECK_PARAMS_SCRIPT="${GOLDEN_VALUES_DIR}/check_sem_params_golden.py"
+CHECK_R2_SCRIPT="${GOLDEN_VALUES_DIR}/check_sem_r2_golden.py"
+CHECK_INVARIANCE_SCRIPT="${GOLDEN_VALUES_DIR}/check_sem_invariance_golden.py"
+CHECK_MODINDICES_SCRIPT="${GOLDEN_VALUES_DIR}/check_sem_modindices_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -167,6 +178,47 @@ fi
 
 if [ ! -f "${DATA_GOLDEN}" ]; then
   echo "[FAIL] missing dataset: ${DATA_GOLDEN}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+
+if [ ! -f "${GOLDEN_FIT_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_FIT_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_PARAMS_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_PARAMS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_R2_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_R2_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_INVARIANCE_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_INVARIANCE_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_MODINDICES_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_MODINDICES_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_FIT_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_FIT_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_PARAMS_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_PARAMS_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_R2_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_R2_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_INVARIANCE_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_INVARIANCE_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_MODINDICES_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_MODINDICES_SCRIPT}" | tee -a "${LOG_FILE}"
   exit 1
 fi
 
@@ -412,6 +464,41 @@ if not isinstance(fit, list) or len(fit) < min_rows:
 PY
 }
 
+check_sem_fit_golden() {
+  local log_path="$1"
+  local start_count="$2"
+  local case_id="$3"
+  "${PYTHON_BIN}" "${CHECK_FIT_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_FIT_PATH}" "${case_id}"
+}
+
+check_sem_params_golden() {
+  local log_path="$1"
+  local start_count="$2"
+  local case_id="$3"
+  "${PYTHON_BIN}" "${CHECK_PARAMS_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_PARAMS_PATH}" "${case_id}"
+}
+
+check_sem_r2_golden() {
+  local log_path="$1"
+  local start_count="$2"
+  local case_id="$3"
+  "${PYTHON_BIN}" "${CHECK_R2_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_R2_PATH}" "${case_id}"
+}
+
+check_sem_invariance_golden() {
+  local log_path="$1"
+  local start_count="$2"
+  local case_id="$3"
+  "${PYTHON_BIN}" "${CHECK_INVARIANCE_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_INVARIANCE_PATH}" "${case_id}"
+}
+
+check_sem_modindices_golden() {
+  local log_path="$1"
+  local start_count="$2"
+  local case_id="$3"
+  "${PYTHON_BIN}" "${CHECK_MODINDICES_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_MODINDICES_PATH}" "${case_id}"
+}
+
 run_ok() {
   local label="$1"; shift
   echo "[RUN] ${label}" | tee -a "${LOG_FILE}"
@@ -482,11 +569,14 @@ resolve_template_source() {
 }
 
 FACTORS="F1=f1_1,f1_2,f1_3_rev,f1_4;F2=f2_1,f2_2,f2_3,f2_4_rev;F3=f3_1,f3_2,f3_3,f3_4"
+FACTORS_TWO="F1=f1_1,f1_2,f1_3_rev,f1_4;F2=f2_1,f2_2,f2_3,f2_4_rev"
 ORDERED_ITEMS="f1_1,f1_2,f1_3_rev,f1_4,f2_1,f2_2,f2_3,f2_4_rev,f3_1,f3_2,f3_3,f3_4"
 SIMPLE_FACTORS="F1=f1_1,f1_2,f1_3_rev,f1_4"
 ORDERED_SIMPLE="f1_1,f1_2,f1_3_rev,f1_4"
 TINY_FACTORS="F1=f1_1,f1_2,f1_3_rev"
 ORDERED_TINY="f1_1,f1_2,f1_3_rev"
+INVARIANCE_MODEL="F1 =~ f1_1 + f1_2 + f1_3_rev + f1_4"
+FIT_INDICES_GOLDEN="chisq,df,cfi,tli,rmsea,srmr"
 MODEL_FILE="${TMP_BASE}/custom_model.txt"
 RDS_PATH="${TMP_BASE}/golden_dataset.rds"
 RDATA_PATH="${TMP_BASE}/golden_dataset.RData"
@@ -544,6 +634,35 @@ if [ ! -f "${PARQUET_GOLDEN}" ]; then
   echo "[FAIL] missing parquet copy: ${PARQUET_GOLDEN}" | tee -a "${LOG_FILE}"
   exit 1
 fi
+
+start=$(log_count "${LOG_PATH}")
+run_ok "path golden (fit/params/r2)" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis path --dv outcome_reg --ivs x1,x2 --estimator ML --missing listwise --se standard --ci standard --conf-level 0.95 --std std.all --fit "${FIT_INDICES_GOLDEN}" --r2 TRUE
+run_ok "sem fit golden (path)" check_sem_fit_golden "${LOG_PATH}" "${start}" "path_basic_fit"
+run_ok "sem params golden (path x1)" check_sem_params_golden "${LOG_PATH}" "${start}" "path_basic_x1"
+run_ok "sem params golden (path x2)" check_sem_params_golden "${LOG_PATH}" "${start}" "path_basic_x2"
+run_ok "sem r2 golden (path outcome_reg)" check_sem_r2_golden "${LOG_PATH}" "${start}" "path_basic_r2_outcome_reg"
+
+start=$(log_count "${LOG_PATH}")
+run_ok "cfa golden (fit/params/modindices)" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis cfa --factors "${FACTORS_TWO}" --estimator ML --missing listwise --se standard --ci standard --conf-level 0.95 --std std.all --fit "${FIT_INDICES_GOLDEN}" --modindices 1
+run_ok "sem fit golden (cfa)" check_sem_fit_golden "${LOG_PATH}" "${start}" "cfa_basic_fit"
+run_ok "sem params golden (cfa loading)" check_sem_params_golden "${LOG_PATH}" "${start}" "cfa_basic_loading_f1_1"
+run_ok "sem params golden (cfa covariance)" check_sem_params_golden "${LOG_PATH}" "${start}" "cfa_basic_cov_f1_f2"
+run_ok "sem modindices golden (cfa top1)" check_sem_modindices_golden "${LOG_PATH}" "${start}" "cfa_modindices_top1"
+
+start=$(log_count "${LOG_PATH}")
+run_ok "cfa grouped golden (params)" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis cfa --factors "${FACTORS_TWO}" --group group2 --estimator ML --missing listwise --se standard --ci standard --conf-level 0.95 --std std.all --fit "${FIT_INDICES_GOLDEN}"
+run_ok "sem params golden (cfa grouped control)" check_sem_params_golden "${LOG_PATH}" "${start}" "cfa_group_control_loading_f1_1"
+
+start=$(log_count "${LOG_PATH}")
+run_ok "mediation golden (fit/params/r2)" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis mediation --x x1 --m mediator --y outcome_reg --estimator ML --missing listwise --se standard --ci standard --conf-level 0.95 --std std.all --fit "${FIT_INDICES_GOLDEN}" --r2 TRUE
+run_ok "sem fit golden (mediation)" check_sem_fit_golden "${LOG_PATH}" "${start}" "mediation_basic_fit"
+run_ok "sem params golden (mediation indirect)" check_sem_params_golden "${LOG_PATH}" "${start}" "mediation_indirect_mediator"
+run_ok "sem r2 golden (mediation mediator)" check_sem_r2_golden "${LOG_PATH}" "${start}" "mediation_r2_mediator"
+
+start=$(log_count "${LOG_PATH}")
+run_ok "invariance golden (configural/metric)" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis invariance --group group2 --model "${INVARIANCE_MODEL}" --invariance "configural,metric" --estimator ML --missing listwise --se standard --ci standard --conf-level 0.95 --std std.all --fit "${FIT_INDICES_GOLDEN}"
+run_ok "sem invariance golden (configural)" check_sem_invariance_golden "${LOG_PATH}" "${start}" "invariance_configural"
+run_ok "sem invariance golden (metric)" check_sem_invariance_golden "${LOG_PATH}" "${start}" "invariance_metric"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "path csv input" Rscript "${R_SCRIPT_DIR}/sem.R" --csv "${DATA_GOLDEN}" --analysis path --dv outcome_reg --ivs x1,x2

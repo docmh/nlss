@@ -8,6 +8,7 @@
 - Validate robust estimators, ordered indicators, grouping/group-equal, bootstrapping, modindices, residual logging, and fit/SE/CI/std options.
 - Confirm optional logging behaviors (`--log`, `--user-prompt`) and `--paths` alias handling.
 - Include clean, edge, and negative cases with expected errors logged.
+- Run value tests (fit indices, parameters, R², invariance deltas, modindices) using `tests/values` goldens.
 
 ## Prereqs
 
