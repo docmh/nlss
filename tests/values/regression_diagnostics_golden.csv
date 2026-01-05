@@ -1,0 +1,2 @@
+"case_id","dv","ivs","blocks","interactions","group","group_var","family","link","center","standardize","bootstrap","bootstrap_samples","model","test","statistic","p","n"
+"ols_basic_shapiro","outcome_reg","x1,x2,x3","x1,x2,x3","","","","gaussian","identity","none","none",FALSE,NA,"Model 1","Shapiro-Wilk",0.991266461453266,0.207999389127955,221

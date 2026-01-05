@@ -20,6 +20,17 @@ CONFIG_PATH="${ROOT_DIR}/scripts/config.yml"
 TESTS_CONFIG_PATH="${NLSS_TESTS_CONFIG:-${ROOT_DIR}/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_regression_log.py"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_COEF_PATH="${GOLDEN_VALUES_DIR}/regression_coefficients_golden.csv"
+GOLDEN_SUMMARY_PATH="${GOLDEN_VALUES_DIR}/regression_summary_golden.csv"
+GOLDEN_COMP_PATH="${GOLDEN_VALUES_DIR}/regression_comparisons_golden.csv"
+GOLDEN_DIAG_PATH="${GOLDEN_VALUES_DIR}/regression_diagnostics_golden.csv"
+GOLDEN_MODEL_TESTS_PATH="${GOLDEN_VALUES_DIR}/regression_model_tests_golden.csv"
+CHECK_COEF_SCRIPT="${GOLDEN_VALUES_DIR}/check_regression_coefficients_golden.py"
+CHECK_SUMMARY_SCRIPT="${GOLDEN_VALUES_DIR}/check_regression_summary_golden.py"
+CHECK_COMP_SCRIPT="${GOLDEN_VALUES_DIR}/check_regression_comparisons_golden.py"
+CHECK_DIAG_SCRIPT="${GOLDEN_VALUES_DIR}/check_regression_diagnostics_golden.py"
+CHECK_MODEL_TESTS_SCRIPT="${GOLDEN_VALUES_DIR}/check_regression_model_tests_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -212,6 +223,26 @@ if [ ! -f "${DATA_GROUP_EDGE}" ]; then
   echo "[FAIL] missing dataset: ${DATA_GROUP_EDGE}" | tee -a "${LOG_FILE}"
   exit 1
 fi
+if [ ! -f "${GOLDEN_COEF_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_COEF_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_SUMMARY_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_SUMMARY_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_COMP_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_COMP_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_DIAG_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_DIAG_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_MODEL_TESTS_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_MODEL_TESTS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
 
 mkdir -p "${WORKSPACE_DIR}" "${DATASET_DIR}" "${TMP_BASE}"
 : > "${WORKSPACE_MANIFEST_PATH}"
@@ -259,6 +290,41 @@ check_log_path() {
   local log_path="$1"; shift
   local start_count="$1"; shift
   "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${log_path}" "${start_count}" "$@"
+}
+
+check_regression_coef_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_COEF_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_COEF_PATH}" "${case_id}"
+}
+
+check_regression_summary_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_SUMMARY_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_SUMMARY_PATH}" "${case_id}"
+}
+
+check_regression_comparisons_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_COMP_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_COMP_PATH}" "${case_id}"
+}
+
+check_regression_diagnostics_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_DIAG_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_DIAG_PATH}" "${case_id}"
+}
+
+check_regression_model_tests_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_MODEL_TESTS_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_MODEL_TESTS_PATH}" "${case_id}"
 }
 
 run_ok() {
@@ -388,6 +454,10 @@ fi
 start=$(log_count "${LOG_PATH}")
 run_ok "ols basic (csv input)" Rscript "${R_SCRIPT_DIR}/regression.R" --csv "${DATA_GOLDEN}" --dv outcome_reg --ivs x1,x2,x3
 check_log "${start}" "-" "gaussian" "t" "1" "-" "-" "-" "-" "-" "-" "true" "f2=present"
+run_ok "regression coefficients golden (ols basic)" check_regression_coef_golden "${LOG_PATH}" "${start}" "ols_basic_x1"
+run_ok "regression summary golden (ols basic)" check_regression_summary_golden "${LOG_PATH}" "${start}" "ols_basic_model1"
+run_ok "regression diagnostics golden (ols basic)" check_regression_diagnostics_golden "${LOG_PATH}" "${start}" "ols_basic_shapiro"
+run_ok "regression model tests golden (ols basic)" check_regression_model_tests_golden "${LOG_PATH}" "${start}" "ols_basic_regression"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "ols workspace active dataset" Rscript "${R_SCRIPT_DIR}/regression.R" --dv outcome_reg --ivs x1,x2
@@ -396,22 +466,29 @@ check_log "${start}" "-" "gaussian" "t" "1" "-" "-" "-" "-" "-" "-" "true"
 start=$(log_count "${LOG_PATH}")
 run_ok "ols hierarchical blocks" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_reg --blocks "x1,x2;x3"
 check_log "${start}" "-" "gaussian" "t" "2" "-" "1" "-" "-" "-" "-" "true" "f2=present" "delta_f2=present"
+run_ok "regression summary golden (ols blocks)" check_regression_summary_golden "${LOG_PATH}" "${start}" "ols_blocks_model2"
+run_ok "regression comparisons golden (ols blocks)" check_regression_comparisons_golden "${LOG_PATH}" "${start}" "ols_blocks_model2"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "ols interaction with centering" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_reg --ivs x1 --interactions x1:mediator --center mean
 check_log "${start}" "-" "gaussian" "t" "2" "-" "1" "-" "-" "-" "true" "true" "center=mean"
+run_ok "regression coefficients golden (interaction)" check_regression_coef_golden "${LOG_PATH}" "${start}" "ols_interaction_x1_mediator"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "ols grouped by site" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_reg --ivs x1,x2 --group site
 check_log "${start}" "-" "gaussian" "t" "1" "2" "-" "-" "-" "-" "-" "true" "group=site"
+run_ok "regression coefficients golden (grouped)" check_regression_coef_golden "${LOG_PATH}" "${start}" "ols_grouped_s1_x1"
+run_ok "regression summary golden (grouped)" check_regression_summary_golden "${LOG_PATH}" "${start}" "ols_grouped_s1"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "ols standardized betas" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_reg --ivs x1,x2,x3 --standardize predictors
 check_log "${start}" "-" "gaussian" "t" "1" "-" "-" "true" "-" "-" "-" "true" "standardize=predictors"
+run_ok "regression coefficients golden (standardized)" check_regression_coef_golden "${LOG_PATH}" "${start}" "ols_standardized_x1"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "ols bootstrap CI" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_reg --ivs x1,x2 --bootstrap TRUE --bootstrap-samples 50 --seed 123
 check_log "${start}" "-" "gaussian" "t" "1" "-" "-" "-" "-" "true" "-" "true" "bootstrap_samples=50"
+run_ok "regression coefficients golden (bootstrap)" check_regression_coef_golden "${LOG_PATH}" "${start}" "ols_bootstrap_x1"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "ols bootstrap zero samples" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_reg --ivs x1,x2 --bootstrap TRUE --bootstrap-samples 0 --seed 123
@@ -444,6 +521,9 @@ check_log_path "${LOG_PATH_RDATA}" "${start}" "-" "gaussian" "t" "1" "-" "-" "-"
 start=$(log_count "${LOG_PATH}")
 run_ok "logistic regression (numeric DV)" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv binary_outcome --ivs x1,x2 --family binomial
 check_log "${start}" "-" "binomial" "z" "1" "-" "-" "-" "true" "-" "-" "false"
+run_ok "regression coefficients golden (logistic)" check_regression_coef_golden "${LOG_PATH}" "${start}" "logistic_x1"
+run_ok "regression summary golden (logistic)" check_regression_summary_golden "${LOG_PATH}" "${start}" "logistic_model1"
+run_ok "regression model tests golden (logistic)" check_regression_model_tests_golden "${LOG_PATH}" "${start}" "logistic_model"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "logistic regression (factor DV)" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv group2 --ivs x1,x2 --family binomial
@@ -452,6 +532,7 @@ check_log "${start}" "-" "binomial" "z" "1" "-" "-" "-" "true" "-" "-" "false"
 start=$(log_count "${LOG_PATH}")
 run_ok "logistic blocks + interactions" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv binary_outcome --ivs x1 --interactions x1:mediator --family binomial
 check_log "${start}" "-" "binomial" "z" "2" "-" "1" "-" "true" "-" "true" "false"
+run_ok "regression comparisons golden (logistic interaction)" check_regression_comparisons_golden "${LOG_PATH}" "${start}" "logistic_interaction_model2"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "logistic grouped by site" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv binary_outcome --ivs x1,x2 --family binomial --group site
@@ -464,6 +545,10 @@ check_log "${start}" "-" "binomial" "z" "1" "-" "-" "-" "true" "true" "-" "false
 start=$(log_count "${LOG_PATH}")
 run_ok "poisson regression (blocks)" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv count_outcome --blocks "x1;x2" --family poisson
 check_log "${start}" "-" "poisson" "z" "2" "-" "1" "-" "true" "-" "-" "false"
+run_ok "regression coefficients golden (poisson)" check_regression_coef_golden "${LOG_PATH}" "${start}" "poisson_x1"
+run_ok "regression summary golden (poisson)" check_regression_summary_golden "${LOG_PATH}" "${start}" "poisson_model2"
+run_ok "regression comparisons golden (poisson)" check_regression_comparisons_golden "${LOG_PATH}" "${start}" "poisson_blocks_model2"
+run_ok "regression model tests golden (poisson)" check_regression_model_tests_golden "${LOG_PATH}" "${start}" "poisson_model"
 
 TEMPLATE_DEFAULT_ORIG="$(get_config_value templates.regression.default)"
 if [ -z "${TEMPLATE_DEFAULT_ORIG}" ]; then

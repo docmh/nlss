@@ -1,0 +1,4 @@
+"case_id","dv","ivs","blocks","interactions","group","group_var","family","link","center","standardize","bootstrap","bootstrap_samples","model","delta_r2","delta_f2","delta_f","df1","df2","p","delta_deviance","delta_chisq"
+"ols_blocks_model2","outcome_reg","","x1,x2;x3","","","","gaussian","identity","none","none",FALSE,NA,"Model 2",0.0000328407590082791,0.0000484660531102159,0.0105171335249184,1,217,0.918412391387644,NA,NA
+"logistic_interaction_model2","binary_outcome","x1","x1,mediator;x1:mediator","x1:mediator","","","binomial","logit","none","none",FALSE,NA,"Model 2",0.000149980653781689,NA,NA,1,NA,0.823241447653518,0.0498976606010046,0.0498976606010046
+"poisson_blocks_model2","count_outcome","","x1;x2","","","","poisson","log","none","none",FALSE,NA,"Model 2",0.0218781828957582,NA,NA,1,NA,0.000000172255838096609,27.321828273148,27.321828273148

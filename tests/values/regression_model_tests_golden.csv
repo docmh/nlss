@@ -1,0 +1,4 @@
+"case_id","dv","ivs","blocks","interactions","group","group_var","family","link","center","standardize","bootstrap","bootstrap_samples","model","source","ss","df","ms","f","p","deviance","chisq"
+"ols_basic_regression","outcome_reg","x1,x2,x3","x1,x2,x3","","","","gaussian","identity","none","none",FALSE,NA,"Model 1","Regression",157.648004196943,3,52.5493347323144,34.4154532610478,0.00000000000000000309611259501973,NA,NA
+"logistic_model","binary_outcome","x1,x2","x1,x2","","","","binomial","logit","none","none",FALSE,NA,"Model 1","Model",NA,2,NA,NA,0.00000153597209841373,NA,26.772694176998
+"poisson_model","count_outcome","","x1;x2","","","","poisson","log","none","none",FALSE,NA,"Model 1","Model",NA,1,NA,NA,0.0136669541887785,NA,6.08066205667296

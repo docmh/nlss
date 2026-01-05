@@ -7,6 +7,7 @@
 - Cover input variants (workspace manifest, RDS, RData, CSV with custom separator/header) and option overrides (link, conf-level, digits, logging).
 - Verify logging behavior (`analysis_log.jsonl`) for both successful runs and invalid inputs.
 - Cover edge cases (bootstrap samples = 0, small-group failures) and negative cases (missing/unknown variables, invalid DV types, invalid link).
+- Numeric value tests: compare `analysis_log.jsonl` outputs against `tests/values/regression_*_golden.csv` (regenerate with `tests/values/regression_compute_golden.R`).
 
 ## Data Sources
 
