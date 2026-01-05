@@ -21,6 +21,9 @@ TESTS_CONFIG_PATH="${NLSS_TESTS_CONFIG:-${ROOT_DIR}/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_power_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_POWER_PATH="${GOLDEN_VALUES_DIR}/power_golden.csv"
+CHECK_POWER_GOLDEN_SCRIPT="${GOLDEN_VALUES_DIR}/check_power_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -148,6 +151,14 @@ if [ ! -f "${DATA_GOLDEN}" ]; then
   echo "[FAIL] missing dataset: ${DATA_GOLDEN}" | tee -a "${LOG_FILE}"
   exit 1
 fi
+if [ ! -f "${GOLDEN_POWER_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_POWER_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_POWER_GOLDEN_SCRIPT}" ]; then
+  echo "[FAIL] missing golden check script: ${CHECK_POWER_GOLDEN_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
 
 if ! Rscript "${CHECK_R_PACKAGE_SCRIPT}" pwr >/dev/null 2>&1; then
   echo "[FAIL] pwr not installed." | tee -a "${LOG_FILE}"
@@ -197,6 +208,13 @@ check_log() {
   local metric="$1"; shift
   local min_rows="$1"; shift
   "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${log_path}" "${start_count}" "${status}" "${analysis}" "${mode}" "${metric}" "${min_rows}" "$@"
+}
+
+check_power_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_POWER_GOLDEN_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_POWER_PATH}" "${case_id}"
 }
 
 run_cmd() {
@@ -402,10 +420,12 @@ check_log "${LOG_PATH}" "${start}" "-" "ttest" "apriori" "d" "1"
 start="$(log_count "${LOG_PATH}")"
 run_ok "ttest apriori" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis ttest --mode apriori --t-type two-sample --effect-size 0.5 --power 0.8 --alpha 0.05
 check_log "${LOG_PATH}" "${start}" "-" "ttest" "apriori" "d" "1" "effect_source=user"
+run_ok "power golden (ttest apriori two-sample)" check_power_golden "${LOG_PATH}" "${start}" "ttest_apriori_two_sample"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "ttest apriori estimate effect" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis ttest --mode apriori --estimate-effect TRUE --vars outcome_anova --group group2 --power 0.8 --alpha 0.05
 check_log "${LOG_PATH}" "${start}" "-" "ttest" "apriori" "d" "1" "effect_source=estimated"
+run_ok "power golden (ttest apriori estimated)" check_power_golden "${LOG_PATH}" "${start}" "ttest_apriori_estimated"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "ttest posthoc two-sample" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis ttest --mode posthoc --t-type two-sample --effect-size 0.4 --n1 40 --n2 60 --alternative greater
@@ -418,38 +438,47 @@ check_log "${LOG_PATH}" "${start}" "-" "ttest" "sensitivity" "d" "1" "power_min=
 start="$(log_count "${LOG_PATH}")"
 run_ok "anova posthoc" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis anova --mode posthoc --groups 3 --n-per-group 25 --effect-metric f --effect-size 0.25
 check_log "${LOG_PATH}" "${start}" "-" "anova" "posthoc" "f" "1"
+run_ok "power golden (anova posthoc)" check_power_golden "${LOG_PATH}" "${start}" "anova_posthoc"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "anova apriori eta2" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis anova --mode apriori --groups 3 --effect-metric eta2 --effect-size 0.06 --power 0.8
 check_log "${LOG_PATH}" "${start}" "-" "anova" "apriori" "eta2" "1"
+run_ok "power golden (anova apriori eta2)" check_power_golden "${LOG_PATH}" "${start}" "anova_apriori_eta2"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "correlation sensitivity" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis correlation --mode sensitivity --n 100 --power 0.8
 check_log "${LOG_PATH}" "${start}" "-" "correlation" "sensitivity" "r" "1"
+run_ok "power golden (correlation sensitivity)" check_power_golden "${LOG_PATH}" "${start}" "corr_sensitivity"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "correlation posthoc" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis correlation --mode posthoc --effect-size 0.25 --n 150 --alternative greater
 check_log "${LOG_PATH}" "${start}" "-" "correlation" "posthoc" "r" "1"
+run_ok "power golden (correlation posthoc greater)" check_power_golden "${LOG_PATH}" "${start}" "corr_posthoc_greater"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "regression posthoc r2" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis regression --mode posthoc --effect-metric r2 --effect-size 0.13 --n 120 --u 3
 check_log "${LOG_PATH}" "${start}" "-" "regression" "posthoc" "r2" "1"
+run_ok "power golden (regression posthoc r2)" check_power_golden "${LOG_PATH}" "${start}" "reg_posthoc_r2"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "regression sensitivity" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis regression --mode sensitivity --n 100 --u 3 --power 0.8
 check_log "${LOG_PATH}" "${start}" "-" "regression" "sensitivity" "f2" "1" "power_min=0.8"
+run_ok "power golden (regression sensitivity)" check_power_golden "${LOG_PATH}" "${start}" "reg_sensitivity"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "ttest posthoc n-total less" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis ttest --mode posthoc --t-type one-sample --effect-size 0.3 --n-total 60 --alternative less
 check_log "${LOG_PATH}" "${start}" "-" "ttest" "posthoc" "d" "1" "t_type=one-sample" "alternative=less" "n_total=60"
+run_ok "power golden (ttest posthoc one-sample less)" check_power_golden "${LOG_PATH}" "${start}" "ttest_posthoc_one_sample_less"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "ttest posthoc ratio" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis ttest --mode posthoc --t-type two-sample --effect-size 0.3 --n-per-group 30 --ratio 1.5
 check_log "${LOG_PATH}" "${start}" "-" "ttest" "posthoc" "d" "1" "t_type=two-sample" "ratio=1.5" "n1=30" "n2=45"
+run_ok "power golden (ttest posthoc ratio)" check_power_golden "${LOG_PATH}" "${start}" "ttest_posthoc_ratio"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "ttest sensitivity two-sample" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis ttest --mode sensitivity --t-type two-sample --n 90 --ratio 2 --power 0.8
 check_log "${LOG_PATH}" "${start}" "-" "ttest" "sensitivity" "d" "1" "t_type=two-sample" "ratio=2"
+run_ok "power golden (ttest sensitivity two-sample ratio)" check_power_golden "${LOG_PATH}" "${start}" "ttest_sensitivity_two_sample_ratio"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "ttest estimate effect paired" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis ttest --mode apriori --t-type paired --estimate-effect TRUE --x pre_score --y post_score --power 0.8
@@ -462,6 +491,7 @@ check_log "${LOG_PATH}" "${start}" "-" "ttest" "apriori" "d" "1" "t_type=one-sam
 start="$(log_count "${LOG_PATH}")"
 run_ok "anova sensitivity" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis anova --mode sensitivity --groups 4 --n-per-group 20 --power 0.8
 check_log "${LOG_PATH}" "${start}" "-" "anova" "sensitivity" "f" "1" "groups=4"
+run_ok "power golden (anova sensitivity)" check_power_golden "${LOG_PATH}" "${start}" "anova_sensitivity"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "anova posthoc n-total" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis anova --mode posthoc --groups 3 --n 90 --effect-metric f --effect-size 0.25
@@ -470,10 +500,12 @@ check_log "${LOG_PATH}" "${start}" "-" "anova" "posthoc" "f" "1" "n_per_group=30
 start="$(log_count "${LOG_PATH}")"
 run_ok "anova estimate effect" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis anova --mode apriori --estimate-effect TRUE --dv outcome_anova --group group3 --power 0.8
 check_log "${LOG_PATH}" "${start}" "-" "anova" "apriori" "eta2" "1" "effect_source=estimated"
+run_ok "power golden (anova estimated)" check_power_golden "${LOG_PATH}" "${start}" "anova_estimated"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "correlation estimate effect" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis correlation --mode apriori --estimate-effect TRUE --x x1 --y x2 --power 0.8
 check_log "${LOG_PATH}" "${start}" "-" "correlation" "apriori" "r" "1" "effect_source=estimated"
+run_ok "power golden (correlation estimated)" check_power_golden "${LOG_PATH}" "${start}" "corr_estimated"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "correlation posthoc less" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis correlation --mode posthoc --effect-size 0.2 --n 120 --alternative less
@@ -482,21 +514,26 @@ check_log "${LOG_PATH}" "${start}" "-" "correlation" "posthoc" "r" "1" "alternat
 start="$(log_count "${LOG_PATH}")"
 run_ok "regression apriori f2" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis regression --mode apriori --effect-metric f2 --effect-size 0.15 --u 3 --power 0.8
 check_log "${LOG_PATH}" "${start}" "-" "regression" "apriori" "f2" "1" "u=3"
+run_ok "power golden (regression apriori f2)" check_power_golden "${LOG_PATH}" "${start}" "reg_apriori_f2"
 
 start="$(log_count "${LOG_PATH}")"
 run_ok "regression estimate effect" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis regression --mode apriori --estimate-effect TRUE --dv outcome_reg --ivs x1,x2,x3 --u 3 --power 0.8
 check_log "${LOG_PATH}" "${start}" "-" "regression" "apriori" "r2" "1" "effect_source=estimated" "u=3"
+run_ok "power golden (regression estimated)" check_power_golden "${LOG_PATH}" "${start}" "reg_estimated"
 
 if [ "${HAS_SEMPOWER}" -eq 1 ]; then
   start="$(log_count "${LOG_PATH}")"
   run_ok "sem apriori" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis sem --mode apriori --df 120 --rmsea0 0.05 --rmsea1 0.08 --power 0.8
   check_log "${LOG_PATH}" "${start}" "-" "sem" "apriori" "rmsea" "1"
+  run_ok "power golden (sem apriori)" check_power_golden "${LOG_PATH}" "${start}" "sem_apriori"
   start="$(log_count "${LOG_PATH}")"
   run_ok "sem posthoc" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis sem --mode posthoc --df 120 --rmsea0 0.05 --rmsea1 0.08 --n 200
   check_log "${LOG_PATH}" "${start}" "-" "sem" "posthoc" "rmsea" "1" "n_total=200" "rmsea0=0.05" "rmsea1=0.08"
+  run_ok "power golden (sem posthoc)" check_power_golden "${LOG_PATH}" "${start}" "sem_posthoc"
   start="$(log_count "${LOG_PATH}")"
   run_ok "sem sensitivity" Rscript "${R_SCRIPT_DIR}/power.R" --parquet "${PARQUET_PATH}" --analysis sem --mode sensitivity --df 120 --rmsea0 0.05 --rmsea1 0.08 --n 120 --power 0.8
   check_log "${LOG_PATH}" "${start}" "-" "sem" "sensitivity" "rmsea" "1" "n_total=120" "rmsea0=0.05"
+  run_ok "power golden (sem sensitivity)" check_power_golden "${LOG_PATH}" "${start}" "sem_sensitivity"
 else
   echo "[WARN] semPower not installed; skipping SEM power test." | tee -a "${LOG_FILE}"
 fi

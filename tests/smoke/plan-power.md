@@ -6,6 +6,7 @@
 - Cover a priori, post hoc, and sensitivity modes.
 - Exercise effect-size inputs, effect estimation from data, and conversions (eta² -> f, r² -> f²).
 - Verify `analysis_log.jsonl` logging for both successful runs and invalid inputs.
+- Confirm numeric outputs against goldens in `tests/values/power_golden.csv` (see `tests/values/power_compute_golden.R` and `tests/values/check_power_golden.py`).
 
 ## Data Sources
 
@@ -47,6 +48,12 @@ Prereqs:
 
 - R package `pwr` installed.
 - R package `semPower` installed for SEM power coverage.
+
+## Value Tests (Goldens)
+
+- Golden values live at `tests/values/power_golden.csv`.
+- Regenerate with `TMPDIR=. Rscript tests/values/power_compute_golden.R --data tests/data/golden_dataset.csv --out tests/values/power_golden.csv`.
+- Checks are performed in `tests/smoke/run_power_tests.sh` via `tests/values/check_power_golden.py`.
 
 Negative coverage:
 
