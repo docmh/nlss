@@ -1,0 +1,4 @@
+"case_id","row_var","col_var","group","valid_n","n_cells","min_expected","n_expected_lt_1","n_expected_lt_5","pct_expected_lt_5"
+"gender_group3","gender","group3","",240,9,3,0,3,33.3333333333333
+"binary_group2_yates_fisher","binary_outcome","group2","",232,4,51.1422413793103,0,0,0
+"catvar_catvar2_group_control","cat_var","cat_var2","control",121,18,0.859504132231405,1,8,44.4444444444444

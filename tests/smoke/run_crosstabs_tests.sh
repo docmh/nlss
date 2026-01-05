@@ -20,6 +20,13 @@ CONFIG_PATH="${ROOT_DIR}/scripts/config.yml"
 TESTS_CONFIG_PATH="${NLSS_TESTS_CONFIG:-${ROOT_DIR}/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_crosstabs_log.py"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_CELLS_PATH="${GOLDEN_VALUES_DIR}/crosstabs_cells_golden.csv"
+GOLDEN_TESTS_PATH="${GOLDEN_VALUES_DIR}/crosstabs_tests_golden.csv"
+GOLDEN_DIAG_PATH="${GOLDEN_VALUES_DIR}/crosstabs_diagnostics_golden.csv"
+CHECK_CELLS_SCRIPT="${GOLDEN_VALUES_DIR}/check_crosstabs_cells_golden.py"
+CHECK_TESTS_SCRIPT="${GOLDEN_VALUES_DIR}/check_crosstabs_tests_golden.py"
+CHECK_DIAG_SCRIPT="${GOLDEN_VALUES_DIR}/check_crosstabs_diagnostics_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -122,6 +129,30 @@ if [ ! -f "${DATA_GOLDEN}" ]; then
   echo "[FAIL] missing dataset: ${DATA_GOLDEN}" | tee -a "${LOG_FILE}"
   exit 1
 fi
+if [ ! -f "${GOLDEN_CELLS_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_CELLS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_TESTS_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_TESTS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_DIAG_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_DIAG_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_CELLS_SCRIPT}" ]; then
+  echo "[FAIL] missing checker script: ${CHECK_CELLS_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_TESTS_SCRIPT}" ]; then
+  echo "[FAIL] missing checker script: ${CHECK_TESTS_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${CHECK_DIAG_SCRIPT}" ]; then
+  echo "[FAIL] missing checker script: ${CHECK_DIAG_SCRIPT}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
 
 DATASET_LABEL="$(basename "${DATA_GOLDEN}")"
 DATASET_LABEL="${DATASET_LABEL%.*}"
@@ -164,6 +195,24 @@ check_log() {
   "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${LOG_PATH}" "${start_count}" "$@"
 }
 
+check_crosstabs_cells() {
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_CELLS_SCRIPT}" "${LOG_PATH}" "${start_count}" "${GOLDEN_CELLS_PATH}" "${case_id}"
+}
+
+check_crosstabs_tests() {
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_TESTS_SCRIPT}" "${LOG_PATH}" "${start_count}" "${GOLDEN_TESTS_PATH}" "${case_id}"
+}
+
+check_crosstabs_diagnostics() {
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_DIAG_SCRIPT}" "${LOG_PATH}" "${start_count}" "${GOLDEN_DIAG_PATH}" "${case_id}"
+}
+
 assert_contains() {
   local file="$1"
   local expected="$2"
@@ -193,10 +242,23 @@ start=$(log_count "${LOG_PATH}")
 run_ok "crosstabs cramers_v (3x3)" Rscript "${R_SCRIPT_DIR}/crosstabs.R" --parquet "${PARQUET_GOLDEN}" --row gender --col group3 --chisq TRUE --expected TRUE --residuals TRUE
 check_log "${start}" "gender" "group3" "-" "absent" "present" "present"
 assert_contains "${NLSS_REPORT_PATH}" "Cramer's V"
+run_ok "crosstabs tests golden (gender_group3)" check_crosstabs_tests "${start}" "gender_group3"
+run_ok "crosstabs diagnostics golden (gender_group3)" check_crosstabs_diagnostics "${start}" "gender_group3"
+run_ok "crosstabs cells golden (gender_group3_F_A)" check_crosstabs_cells "${start}" "gender_group3_F_A"
 
 start=$(log_count "${LOG_PATH}")
-run_ok "crosstabs phi (2x2)" Rscript "${R_SCRIPT_DIR}/crosstabs.R" --parquet "${PARQUET_GOLDEN}" --row binary_outcome --col group2 --chisq TRUE
+run_ok "crosstabs phi + fisher (2x2)" Rscript "${R_SCRIPT_DIR}/crosstabs.R" --parquet "${PARQUET_GOLDEN}" --row binary_outcome --col group2 --chisq TRUE --yates TRUE --fisher TRUE
 check_log "${start}" "binary_outcome" "group2" "-" "present" "present" "present"
 assert_contains "${NLSS_REPORT_PATH}" "phi"
+run_ok "crosstabs tests golden (binary_group2_yates_fisher)" check_crosstabs_tests "${start}" "binary_group2_yates_fisher"
+run_ok "crosstabs diagnostics golden (binary_group2_yates_fisher)" check_crosstabs_diagnostics "${start}" "binary_group2_yates_fisher"
+run_ok "crosstabs cells golden (binary_group2_1_treatment)" check_crosstabs_cells "${start}" "binary_group2_1_treatment"
+
+start=$(log_count "${LOG_PATH}")
+run_ok "crosstabs grouped (cat_var x cat_var2 by group2)" Rscript "${R_SCRIPT_DIR}/crosstabs.R" --parquet "${PARQUET_GOLDEN}" --row cat_var --col cat_var2 --group group2 --chisq TRUE --expected TRUE --residuals TRUE
+check_log "${start}" "cat_var" "cat_var2" "control" "absent" "present" "present"
+run_ok "crosstabs tests golden (catvar_catvar2_group_control)" check_crosstabs_tests "${start}" "catvar_catvar2_group_control"
+run_ok "crosstabs diagnostics golden (catvar_catvar2_group_control)" check_crosstabs_diagnostics "${start}" "catvar_catvar2_group_control"
+run_ok "crosstabs cells golden (catvar_catvar2_control_cat1_high)" check_crosstabs_cells "${start}" "catvar_catvar2_control_cat1_high"
 
 echo "Crosstabs tests: OK" | tee -a "${LOG_FILE}"
