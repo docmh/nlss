@@ -1,0 +1,3 @@
+"case_id","test_type","variable","group","group_1","group_2","n_1","n_2","statistic","p","p_adj","effect_size_value","ci_low","ci_high"
+"kruskal_posthoc_A_B","kruskal_posthoc","outcome_anova","group3","A","B",93,72,-2077.5,0.000533878408846823,0.000533878408846823,-1.38779926204828,-5.33996664050947,-1.49006900194674
+"friedman_posthoc_pre_mid","friedman_posthoc","pre_score,mid_score,post_score","","pre_score","mid_score",234,NA,3367,0.0000000000000000000000133295737304065,0.0000000000000000000000133295737304065,-0.654617609338655,-4.46503762203081,-3.28495825856166

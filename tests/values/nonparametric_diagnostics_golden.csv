@@ -1,0 +1,7 @@
+"case_id","test_type","variable","group","n_total","n_nonzero","zero_diff_n","n","k","ties","exact_used","continuity_used","group_levels","group_sizes"
+"diag_wilcoxon_one_sample","wilcoxon_one_sample","skewed_var","",240,240,0,NA,NA,TRUE,FALSE,TRUE,NA,NA
+"diag_wilcoxon_paired","wilcoxon_paired","pre_score vs post_score","",234,234,0,NA,NA,TRUE,FALSE,FALSE,NA,NA
+"diag_mann_whitney_control","mann_whitney","outcome_anova","control",NA,NA,NA,127,NA,TRUE,FALSE,TRUE,NA,NA
+"diag_mann_whitney_treatment","mann_whitney","outcome_anova","treatment",NA,NA,NA,105,NA,TRUE,FALSE,TRUE,NA,NA
+"diag_kruskal_outcome_anova","kruskal","outcome_anova","group3",240,NA,NA,NA,NA,NA,NA,NA,"A,B,C","93,72,75"
+"diag_friedman_pre_mid_post","friedman","pre_score,mid_score,post_score","",234,NA,NA,NA,3,NA,NA,NA,NA,NA

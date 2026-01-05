@@ -21,6 +21,13 @@ TESTS_CONFIG_PATH="${NLSS_TESTS_CONFIG:-${ROOT_DIR}/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_nonparametric_log.py"
 CHECK_R_PACKAGE_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_SUMMARY_PATH="${GOLDEN_VALUES_DIR}/nonparametric_golden.csv"
+GOLDEN_POSTHOC_PATH="${GOLDEN_VALUES_DIR}/nonparametric_posthoc_golden.csv"
+GOLDEN_DIAGNOSTICS_PATH="${GOLDEN_VALUES_DIR}/nonparametric_diagnostics_golden.csv"
+CHECK_GOLDEN_SCRIPT="${GOLDEN_VALUES_DIR}/check_nonparametric_golden.py"
+CHECK_POSTHOC_SCRIPT="${GOLDEN_VALUES_DIR}/check_nonparametric_posthoc_golden.py"
+CHECK_DIAGNOSTICS_SCRIPT="${GOLDEN_VALUES_DIR}/check_nonparametric_diagnostics_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -177,6 +184,18 @@ if [ ! -f "${DATA_GOLDEN}" ]; then
   echo "[FAIL] missing dataset: ${DATA_GOLDEN}" | tee -a "${LOG_FILE}"
   exit 1
 fi
+if [ ! -f "${GOLDEN_SUMMARY_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_SUMMARY_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_POSTHOC_PATH}" ]; then
+  echo "[FAIL] missing posthoc goldens: ${GOLDEN_POSTHOC_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+if [ ! -f "${GOLDEN_DIAGNOSTICS_PATH}" ]; then
+  echo "[FAIL] missing diagnostics goldens: ${GOLDEN_DIAGNOSTICS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
 
 mkdir -p "${WORKSPACE_DIR}" "${TMP_BASE}"
 : > "${WORKSPACE_MANIFEST_PATH}"
@@ -206,6 +225,27 @@ check_log() {
   local log_path="$1"; shift
   local start_count="$1"; shift
   "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${log_path}" "${start_count}" "$@"
+}
+
+check_nonparametric_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_GOLDEN_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_SUMMARY_PATH}" "${case_id}"
+}
+
+check_nonparametric_posthoc_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_POSTHOC_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_POSTHOC_PATH}" "${case_id}"
+}
+
+check_nonparametric_diagnostics_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_DIAGNOSTICS_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_DIAGNOSTICS_PATH}" "${case_id}"
 }
 
 run_ok() {
@@ -369,6 +409,35 @@ EOF
 
 run_ok "init workspace (main dataset)" Rscript "${R_SCRIPT_DIR}/init_workspace.R" --csv "${DATA_MAIN}"
 run_ok "init workspace (golden dataset)" Rscript "${R_SCRIPT_DIR}/init_workspace.R" --csv "${DATA_GOLDEN}"
+
+# Golden value tests (golden dataset)
+start=$(log_count "${GOLDEN_LOG_PATH}")
+run_ok "golden wilcoxon one-sample (rb)" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_GOLDEN}" --vars skewed_var --mu 0 --test wilcoxon --alternative greater --exact FALSE --continuity TRUE --conf-level 0.9 --effect-size rb --digits 3
+run_ok "golden summary check (wilcoxon one-sample)" check_nonparametric_golden "${GOLDEN_LOG_PATH}" "${start}" "wilcoxon_one_sample_rb"
+run_ok "golden diagnostics check (wilcoxon one-sample)" check_nonparametric_diagnostics_golden "${GOLDEN_LOG_PATH}" "${start}" "diag_wilcoxon_one_sample"
+
+start=$(log_count "${GOLDEN_LOG_PATH}")
+run_ok "golden wilcoxon paired (r)" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_GOLDEN}" --x pre_score --y post_score --test wilcoxon --alternative two.sided --exact FALSE --continuity FALSE --conf-level 0.95 --effect-size r --digits 2
+run_ok "golden summary check (wilcoxon paired)" check_nonparametric_golden "${GOLDEN_LOG_PATH}" "${start}" "wilcoxon_paired_r"
+run_ok "golden diagnostics check (wilcoxon paired)" check_nonparametric_diagnostics_golden "${GOLDEN_LOG_PATH}" "${start}" "diag_wilcoxon_paired"
+
+start=$(log_count "${GOLDEN_LOG_PATH}")
+run_ok "golden mann-whitney (rb)" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_GOLDEN}" --vars outcome_anova --group group2 --test mann_whitney --alternative two.sided --exact FALSE --continuity TRUE --conf-level 0.95 --effect-size rb --digits 2
+run_ok "golden summary check (mann-whitney)" check_nonparametric_golden "${GOLDEN_LOG_PATH}" "${start}" "mann_whitney_rb"
+run_ok "golden diagnostics check (mann-whitney control)" check_nonparametric_diagnostics_golden "${GOLDEN_LOG_PATH}" "${start}" "diag_mann_whitney_control"
+run_ok "golden diagnostics check (mann-whitney treatment)" check_nonparametric_diagnostics_golden "${GOLDEN_LOG_PATH}" "${start}" "diag_mann_whitney_treatment"
+
+start=$(log_count "${GOLDEN_LOG_PATH}")
+run_ok "golden kruskal posthoc (holm)" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_GOLDEN}" --vars outcome_anova --group group3 --test kruskal --posthoc pairwise --p-adjust holm --effect-size epsilon_sq --digits 3
+run_ok "golden summary check (kruskal)" check_nonparametric_golden "${GOLDEN_LOG_PATH}" "${start}" "kruskal_outcome_anova"
+run_ok "golden diagnostics check (kruskal)" check_nonparametric_diagnostics_golden "${GOLDEN_LOG_PATH}" "${start}" "diag_kruskal_outcome_anova"
+run_ok "golden posthoc check (kruskal A-B)" check_nonparametric_posthoc_golden "${GOLDEN_LOG_PATH}" "${start}" "kruskal_posthoc_A_B"
+
+start=$(log_count "${GOLDEN_LOG_PATH}")
+run_ok "golden friedman posthoc (BH)" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_GOLDEN}" --within pre_score,mid_score,post_score --subject-id id --test friedman --posthoc pairwise --p-adjust BH --effect-size kendall_w --digits 3
+run_ok "golden summary check (friedman)" check_nonparametric_golden "${GOLDEN_LOG_PATH}" "${start}" "friedman_pre_mid_post"
+run_ok "golden diagnostics check (friedman)" check_nonparametric_diagnostics_golden "${GOLDEN_LOG_PATH}" "${start}" "diag_friedman_pre_mid_post"
+run_ok "golden posthoc check (friedman pre-mid)" check_nonparametric_posthoc_golden "${GOLDEN_LOG_PATH}" "${start}" "friedman_posthoc_pre_mid"
 
 # Positive tests
 start=$(log_count "${MAIN_LOG_PATH}")
