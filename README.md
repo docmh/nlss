@@ -907,16 +907,7 @@ Rscript tests/values/<module>_compute_golden.R \
   --out tests/values/<module>_golden.csv
 ```
 
-Optionally add additional outputs for module‑specific features (e.g., post‑hoc, contrasts, diagnostics, assumptions):
-
-```bash
-Rscript tests/values/<module>_compute_golden.R \
-  --data tests/data/golden_dataset.csv \
-  --out tests/values/<module>_golden.csv \
-  --posthoc-out tests/values/<module>_posthoc_golden.csv \
-  --contrasts-out tests/values/<module>_contrasts_golden.csv \
-  --assumptions-out tests/values/<module>_assumptions_golden.csv
-```
+Optionally add additional outputs for module‑specific features (e.g., post‑hoc, contrasts, diagnostics, assumptions).
 
 2) **Add checkers** (Python) that read `analysis_log.jsonl` and compare to goldens with tight tolerances. Keep them in `tests/values/` (e.g., `check_<module>_golden.py`).
 

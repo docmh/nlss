@@ -20,6 +20,9 @@ CONFIG_PATH="${ROOT_DIR}/scripts/config.yml"
 TESTS_CONFIG_PATH="${NLSS_TESTS_CONFIG:-${ROOT_DIR}/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_descriptive_stats_log.py"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_DESC_PATH="${GOLDEN_VALUES_DIR}/descriptive_stats_golden.csv"
+CHECK_DESC_GOLDEN_SCRIPT="${GOLDEN_VALUES_DIR}/check_descriptive_stats_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -196,6 +199,13 @@ print(count)
 PY
 }
 
+check_desc_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  "${PYTHON_BIN}" "${CHECK_DESC_GOLDEN_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_DESC_PATH}" "${case_id}"
+}
+
 assert_log_unchanged() {
   local before="$1"
   local after="$2"
@@ -239,12 +249,50 @@ if [ ! -f "${DATA_GOLDEN}" ]; then
   log "[FAIL] missing dataset: ${DATA_GOLDEN}"
   exit 1
 fi
+if [ ! -f "${GOLDEN_DESC_PATH}" ]; then
+  log "[FAIL] missing golden values: ${GOLDEN_DESC_PATH}"
+  exit 1
+fi
+if [ ! -f "${CHECK_DESC_GOLDEN_SCRIPT}" ]; then
+  log "[FAIL] missing golden check script: ${CHECK_DESC_GOLDEN_SCRIPT}"
+  exit 1
+fi
 
 rm -f "${NLSS_REPORT_PATH}" "${ANALYSIS_LOG_PATH}"
 
 cd "${WORKSPACE_DIR}"
 
 run_ok "init workspace" Rscript "${R_SCRIPT_DIR}/init_workspace.R" --csv "${DATA_GOLDEN}"
+
+start_count="$(log_count "${ANALYSIS_LOG_PATH}")"
+run_ok "descriptive stats golden defaults" Rscript "${R_SCRIPT_DIR}/descriptive_stats.R" \
+  --parquet "${PARQUET_PATH}" \
+  --vars outcome_anova,skewed_var,outlier_var,ordinal_var,high_missing_var,all_missing_var,zero_var \
+  --trim 0.1 \
+  --iqr-multiplier 1.5 \
+  --outlier-z 3 \
+  --user-prompt "descriptive stats golden defaults"
+
+run_ok "descriptive stats golden check (outcome_anova)" check_desc_golden "${ANALYSIS_LOG_PATH}" "${start_count}" "default_outcome_anova"
+run_ok "descriptive stats golden check (skewed_var)" check_desc_golden "${ANALYSIS_LOG_PATH}" "${start_count}" "default_skewed_var"
+run_ok "descriptive stats golden check (outlier_var)" check_desc_golden "${ANALYSIS_LOG_PATH}" "${start_count}" "default_outlier_var"
+run_ok "descriptive stats golden check (ordinal_var)" check_desc_golden "${ANALYSIS_LOG_PATH}" "${start_count}" "default_ordinal_var"
+run_ok "descriptive stats golden check (high_missing_var)" check_desc_golden "${ANALYSIS_LOG_PATH}" "${start_count}" "default_high_missing_var"
+run_ok "descriptive stats golden check (all_missing_var)" check_desc_golden "${ANALYSIS_LOG_PATH}" "${start_count}" "default_all_missing_var"
+run_ok "descriptive stats golden check (zero_var)" check_desc_golden "${ANALYSIS_LOG_PATH}" "${start_count}" "default_zero_var"
+
+start_count="$(log_count "${ANALYSIS_LOG_PATH}")"
+run_ok "descriptive stats golden grouped" Rscript "${R_SCRIPT_DIR}/descriptive_stats.R" \
+  --parquet "${PARQUET_PATH}" \
+  --vars outlier_var \
+  --group group2 \
+  --trim 0.2 \
+  --iqr-multiplier 2 \
+  --outlier-z 2.5 \
+  --user-prompt "descriptive stats golden grouped"
+
+run_ok "descriptive stats golden check (grouped outlier_var control)" \
+  check_desc_golden "${ANALYSIS_LOG_PATH}" "${start_count}" "grouped_outlier_var_control"
 
 start_count="$(log_count "${ANALYSIS_LOG_PATH}")"
 run_ok "descriptive stats robust" Rscript "${R_SCRIPT_DIR}/descriptive_stats.R" \

@@ -5,6 +5,7 @@
 - Validate descriptive stats outputs with expanded metrics (robust, percentiles, outliers).
 - Exercise new CLI flags (`--trim`, `--iqr-multiplier`, `--outlier-z`) and template selection.
 - Confirm JSONL logging contains the extended columns and options.
+- Numeric value tests against `tests/values/descriptive_stats_golden.csv` (regenerate with `tests/values/descriptive_stats_compute_golden.R`).
 - Cover negative inputs for trim/outlier thresholds.
 
 ## Data Sources

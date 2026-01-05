@@ -217,4 +217,4 @@ For scientific robustness, every statistical module must include exhaustive nume
 - **Artifacts:** Store goldens under `tests/values/` with clear, module‑specific filenames (e.g., `<module>_golden.csv`, `<module>_posthoc_golden.csv`). Use `case_id` (or similar) to key rows for explicit comparisons.
 - **Checkers:** Add Python check scripts that read `analysis_log.jsonl` and compare selected rows/columns with tight tolerances (default `1e-6` unless justified). Normalize term labels/spacing, factor ordering, and group keys.
 - **Smoke integration:** Wire the checks into the module smoke runner with explicit `run_ok` log lines for each golden check. Keep checks gated by the same dependency conditions as the module (e.g., optional packages).
-- **Regeneration:** Provide a single generator script (e.g., `tests/values/<module>_compute_golden.R`) that rewrites all relevant golden CSVs. Update goldens whenever test data changes and document the regeneration command in `README.md`.
+- **Regeneration:** Provide a single generator script (e.g., `tests/values/<module>_compute_golden.R`) that rewrites all relevant golden CSVs. Update goldens whenever test data changes.
