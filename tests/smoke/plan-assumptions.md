@@ -11,6 +11,7 @@ Goal: exercise assumptions coverage across t-tests, ANOVA, regression, mixed mod
 - Validate auto-analysis routing and logging behaviors (`--log`, `--user-prompt`).
 - Template override checks for all assumptions templates (ttest/anova/regression/mixed_models/sem).
 - Negative cases for invalid inputs (missing variables, invalid group levels, invalid model specs, missing random effects, invalid SEM inputs).
+- Numeric value tests: compare `analysis_log.jsonl` outputs against `tests/values/assumptions_golden.csv` (regenerate with `tests/values/assumptions_compute_golden.R` when datasets or methods change).
 
 ## Prereqs
 

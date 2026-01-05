@@ -24,6 +24,9 @@ INIT_SCRIPT="${R_SCRIPT_DIR}/init_workspace.R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_assumptions_log.py"
 CHECK_PKG_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
 PREP_SCRIPT="${ROOT_DIR}/tests/smoke/mixed_models_prep.R"
+GOLDEN_VALUES_DIR="${ROOT_DIR}/tests/values"
+GOLDEN_ASSUMPTIONS_PATH="${GOLDEN_VALUES_DIR}/assumptions_golden.csv"
+CHECK_GOLDEN_SCRIPT="${GOLDEN_VALUES_DIR}/check_assumptions_golden.py"
 
 get_config_value() {
   local path="${CONFIG_PATH}"
@@ -160,6 +163,11 @@ if [ ! -f "${DATA_GOLDEN}" ]; then
   exit 1
 fi
 
+if [ ! -f "${GOLDEN_ASSUMPTIONS_PATH}" ]; then
+  echo "[FAIL] missing golden values: ${GOLDEN_ASSUMPTIONS_PATH}" | tee -a "${LOG_FILE}"
+  exit 1
+fi
+
 CONFIG_BAK="$(mktemp)"
 cp "${CONFIG_PATH}" "${CONFIG_BAK}"
 
@@ -273,6 +281,27 @@ check_log_main() {
 check_log_mixed() {
   local start_count="$1"; shift
   check_log "${MIXED_LOG_PATH}" "${start_count}" "$@"
+}
+
+golden_has_case() {
+  local case_id="$1"
+  if [ ! -f "${GOLDEN_ASSUMPTIONS_PATH}" ]; then
+    return 1
+  fi
+  if command -v rg >/dev/null 2>&1; then
+    rg -q --fixed-strings "${case_id}" "${GOLDEN_ASSUMPTIONS_PATH}"
+  else
+    grep -qF "${case_id}" "${GOLDEN_ASSUMPTIONS_PATH}"
+  fi
+}
+
+check_assumptions_golden() {
+  local log_path="$1"; shift
+  local start_count="$1"; shift
+  local case_id="$1"; shift
+  local analysis="$1"; shift
+  local mode="${1:-}"
+  "${PYTHON_BIN}" "${CHECK_GOLDEN_SCRIPT}" "${log_path}" "${start_count}" "${GOLDEN_ASSUMPTIONS_PATH}" "${case_id}" "${analysis}" "${mode}"
 }
 
 if ! Rscript "${CHECK_PKG_SCRIPT}" lme4 >/dev/null 2>&1; then
@@ -390,6 +419,8 @@ run_ok "ttest csv input" \
   --analysis ttest \
   --vars x1
 check_log_main "${start}" ttest one_sample gt0 assumptions=Normality tests="Shapiro-Wilk" normality=shapiro
+run_ok "assumptions golden (ttest one-sample)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "ttest_one_sample_shapiro_x1" "ttest" "one_sample"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "ttest csv semicolon" \
@@ -440,6 +471,16 @@ check_log_main "${start}" ttest independent gt0 \
   assumptions=Normality,Homogeneity \
   tests="Shapiro-Wilk,Levene (median),Bartlett,Fligner-Killeen,F-test" \
   homogeneity=levene,bartlett,fligner,f
+run_ok "assumptions golden (ttest independent shapiro control)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "ttest_independent_shapiro_control_x1" "ttest" "independent"
+run_ok "assumptions golden (ttest independent levene)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "ttest_independent_levene_x1" "ttest" "independent"
+run_ok "assumptions golden (ttest independent bartlett)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "ttest_independent_bartlett_x1" "ttest" "independent"
+run_ok "assumptions golden (ttest independent fligner)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "ttest_independent_fligner_x1" "ttest" "independent"
+run_ok "assumptions golden (ttest independent F-test)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "ttest_independent_f_x1" "ttest" "independent"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "ttest independent normality none" \
@@ -468,6 +509,8 @@ check_log_main "${start}" ttest paired gt0 \
   assumptions=Normality \
   tests="Shapiro-Wilk" \
   models=Paired
+run_ok "assumptions golden (ttest paired)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "ttest_paired_shapiro_pre_post" "ttest" "paired"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "interactive ttest" \
@@ -486,6 +529,10 @@ check_log_main "${start}" anova between gt0 \
   assumptions=Normality,Homogeneity \
   tests="Shapiro-Wilk,Levene (median)" \
   models=Between
+run_ok "assumptions golden (anova between shapiro)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "anova_between_shapiro_A_outcome_anova" "anova" "between"
+run_ok "assumptions golden (anova between levene)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "anova_between_levene_outcome_anova" "anova" "between"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "anova within" \
@@ -498,6 +545,10 @@ check_log_main "${start}" anova within gt0 \
   assumptions=Normality,Sphericity \
   tests="Shapiro-Wilk,Mauchly" \
   models=Within
+run_ok "assumptions golden (anova within shapiro)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "anova_within_shapiro_pre_score" "anova" "within"
+run_ok "assumptions golden (anova within mauchly)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "anova_within_mauchly_within" "anova" "within"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "anova mixed" \
@@ -511,6 +562,12 @@ check_log_main "${start}" anova mixed gt0 \
   assumptions=Normality,Homogeneity,Sphericity \
   tests="Shapiro-Wilk,Levene (median),Mauchly" \
   models=Mixed
+run_ok "assumptions golden (anova mixed shapiro)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "anova_mixed_shapiro_A_pre_score" "anova" "mixed"
+run_ok "assumptions golden (anova mixed levene)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "anova_mixed_levene_pre_score" "anova" "mixed"
+run_ok "assumptions golden (anova mixed mauchly)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "anova_mixed_mauchly_within" "anova" "mixed"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "anova within (no sphericity)" \
@@ -534,6 +591,20 @@ run_ok "regression ivs" \
 check_log_main "${start}" regression - gt0 \
   assumptions=Normality,Linearity,Homoscedasticity,Independence,Outliers,Influence,Multicollinearity \
   tests="Shapiro-Wilk,Residual correlation,Breusch-Pagan,Durbin-Watson,Std. residuals,Cook's distance,VIF"
+run_ok "assumptions golden (regression shapiro)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "regression_shapiro_residuals_block1" "regression"
+run_ok "assumptions golden (regression linearity)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "regression_linearity_x1_block1" "regression"
+run_ok "assumptions golden (regression breusch-pagan)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "regression_breusch_pagan_block1" "regression"
+run_ok "assumptions golden (regression durbin-watson)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "regression_durbin_watson_block1" "regression"
+run_ok "assumptions golden (regression outliers)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "regression_outliers_block1" "regression"
+run_ok "assumptions golden (regression influence)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "regression_influence_block1" "regression"
+run_ok "assumptions golden (regression VIF)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "regression_vif_x1_block1" "regression"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "regression blocks" \
@@ -604,6 +675,22 @@ run_ok "mixed models formula" \
 check_log_mixed "${start}" mixed_models - gt0 \
   assumptions="Convergence,Singularity,Normality,Random-effects normality,Homoscedasticity,Outliers" \
   reml=true maxfun="${MAXFUN_DEFAULT}"
+run_ok "assumptions golden (mixed models shapiro)" \
+  check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_shapiro_residuals" "mixed_models"
+run_ok "assumptions golden (mixed models random effects)" \
+  check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_random_effects_shapiro_intercept" "mixed_models"
+run_ok "assumptions golden (mixed models homoscedasticity)" \
+  check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_homoscedasticity_abs_resid" "mixed_models"
+if [ "${HAS_PERFORMANCE}" -eq 1 ] && golden_has_case "mixed_models_performance_heteroscedasticity"; then
+  run_ok "assumptions golden (mixed models performance)" \
+    check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_performance_heteroscedasticity" "mixed_models"
+fi
+run_ok "assumptions golden (mixed models outliers)" \
+  check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_outliers" "mixed_models"
+if [ "${HAS_INFLUENCE}" -eq 1 ] && golden_has_case "mixed_models_influence_id"; then
+  run_ok "assumptions golden (mixed models influence)" \
+    check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_influence_id" "mixed_models"
+fi
 
 start=$(log_count "${MIXED_LOG_PATH}")
 run_ok "mixed models toggles off" \
@@ -645,6 +732,18 @@ run_ok "sem cfa factors" \
 check_log_main "${start}" sem - gt0 \
   assumptions=Normality,Multicollinearity,Convergence,Heywood,Outliers \
   sem_type=cfa estimator=WLSMV missing=listwise se=standard ci=standard std=std.all
+run_ok "assumptions golden (sem shapiro)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "sem_cfa_shapiro_f1_3_rev" "sem"
+run_ok "assumptions golden (sem mahalanobis)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "sem_cfa_mahalanobis" "sem"
+run_ok "assumptions golden (sem max |r|)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "sem_cfa_max_cor" "sem"
+run_ok "assumptions golden (sem kappa)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "sem_cfa_kappa" "sem"
+run_ok "assumptions golden (sem heywood negative)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "sem_cfa_heywood_negative_variances" "sem"
+run_ok "assumptions golden (sem heywood loading)" \
+  check_assumptions_golden "${LOG_PATH}" "${start}" "sem_cfa_heywood_std_loading_gt1" "sem"
 
 if [ "${HAS_MVN}" -eq 1 ]; then
   check_log_main "${start}" sem - gt0 assumptions="Multivariate normality"

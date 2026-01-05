@@ -1,0 +1,32 @@
+"case_id","analysis_type","model","assumption","test","target","group","statistic","df1","df2","p","value","n"
+"ttest_one_sample_shapiro_x1","ttest","One-sample","Normality","Shapiro-Wilk","x1","",0.995376294550535,NA,NA,0.688678230840098,NA,240
+"ttest_independent_shapiro_control_x1","ttest","Independent","Normality","Shapiro-Wilk","x1","control",0.991747995568322,NA,NA,0.659205239136108,NA,127
+"ttest_independent_levene_x1","ttest","Independent","Homogeneity","Levene (median)","x1","",1.74595285857889,1,230,0.187699255825674,NA,232
+"ttest_independent_bartlett_x1","ttest","Independent","Homogeneity","Bartlett","x1","",1.15825828202482,1,NA,0.281827050470403,NA,232
+"ttest_independent_fligner_x1","ttest","Independent","Homogeneity","Fligner-Killeen","x1","",1.62890868591184,1,NA,0.20185405908262,NA,232
+"ttest_independent_f_x1","ttest","Independent","Homogeneity","F-test","x1","",1.22496081834387,126,104,0.284501524864572,NA,232
+"ttest_paired_shapiro_pre_post","ttest","Paired","Normality","Shapiro-Wilk","pre_score - post_score","",0.996323067908191,NA,NA,0.858666681166416,NA,234
+"anova_between_shapiro_A_outcome_anova","anova","Between","Normality","Shapiro-Wilk","outcome_anova","A",0.984643226082555,NA,NA,0.347892820612751,NA,93
+"anova_between_levene_outcome_anova","anova","Between","Homogeneity","Levene (median)","outcome_anova","",0.350415860035888,2,237,0.704759427125603,NA,240
+"anova_within_shapiro_pre_score","anova","Within","Normality","Shapiro-Wilk","pre_score","",0.995385516986554,NA,NA,0.708033984787074,NA,234
+"anova_within_mauchly_within","anova","Within","Sphericity","Mauchly","Within","",0.0520896978312427,NA,NA,1.11879909970352e-145,NA,234
+"anova_mixed_shapiro_A_pre_score","anova","Mixed","Normality","Shapiro-Wilk","pre_score","A",0.989213412691614,NA,NA,0.665980671428464,NA,91
+"anova_mixed_levene_pre_score","anova","Mixed","Homogeneity","Levene (median)","pre_score","",2.59174912446403,2,231,0.0770655972868235,NA,234
+"anova_mixed_mauchly_within","anova","Mixed","Sphericity","Mauchly","Within","",0.0512749190291578,NA,NA,3.49839959658704e-145,NA,234
+"regression_shapiro_residuals_block1","regression","Block 1","Normality","Shapiro-Wilk","Residuals","",0.991266461453266,NA,NA,0.207999389127955,NA,221
+"regression_linearity_x1_block1","regression","Block 1","Linearity","Residual correlation","x1","",-4.64078304629453e-18,NA,NA,1,NA,221
+"regression_breusch_pagan_block1","regression","Block 1","Homoscedasticity","Breusch-Pagan","Residuals","",1.36475490451406,3,NA,0.71381676839705,NA,221
+"regression_durbin_watson_block1","regression","Block 1","Independence","Durbin-Watson","Residuals","",1.76093060635918,NA,NA,NA,NA,221
+"regression_outliers_block1","regression","Block 1","Outliers","Std. residuals","Residuals","",NA,NA,NA,NA,2.93288763477856,221
+"regression_influence_block1","regression","Block 1","Influence","Cook's distance","Residuals","",NA,NA,NA,NA,0.0336852223912468,221
+"regression_vif_x1_block1","regression","Block 1","Multicollinearity","VIF","x1","",NA,NA,NA,NA,1.18994073006274,221
+"mixed_models_shapiro_residuals","mixed_models","Mixed","Normality","Shapiro-Wilk","Residuals","",0.994993679517797,NA,NA,0.0216684149679496,NA,702
+"mixed_models_random_effects_shapiro_intercept","mixed_models","Mixed","Random-effects normality","Shapiro-Wilk","(Intercept)","id",0.991167628228774,NA,NA,0.169053779306872,NA,234
+"mixed_models_homoscedasticity_abs_resid","mixed_models","Mixed","Homoscedasticity","Abs resid vs fitted","Residuals","",0.0584295259902021,700,NA,0.121942960865761,NA,702
+"mixed_models_outliers","mixed_models","Mixed","Outliers","Std. residuals","Residuals","",NA,NA,NA,NA,4.01459459712774,702
+"sem_cfa_shapiro_f1_3_rev","sem","CFA","Normality","Shapiro-Wilk","f1_3_rev","",0.876107575289941,NA,NA,4.5692025653728e-13,NA,240
+"sem_cfa_mahalanobis","sem","CFA","Outliers","Mahalanobis distance","Indicators","",NA,NA,NA,NA,17.3732957507074,193
+"sem_cfa_max_cor","sem","CFA","Multicollinearity","Max |r|","Indicators","",NA,NA,NA,NA,0.783046927039033,193
+"sem_cfa_kappa","sem","CFA","Multicollinearity","Condition number","Indicators","",NA,NA,NA,NA,12.1315996185462,193
+"sem_cfa_heywood_negative_variances","sem","CFA","Heywood","Negative variances","Model","",NA,NA,NA,NA,0,NA
+"sem_cfa_heywood_std_loading_gt1","sem","CFA","Heywood","Std. loading > 1","Model","",NA,NA,NA,NA,0,NA

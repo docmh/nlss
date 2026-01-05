@@ -390,7 +390,28 @@ Try these in Codex / Claude Code:
 
 This section is a practical guide for day-to-day use after installation. It explains where NLSS puts files, how to watch progress, what the different module types mean, how logging works, and how to customize behavior.
 
-### 1) Workspaces and the files inside them
+### 1) Providing datasets to NLSS
+
+You can provide datasets to NLSS by just pointing to them by their path, e.g.: 
+
+- "Use `nlss` to analyze `data/my_study_data.sav`."
+- "Run descriptive stats on `datasets/experiment1.rds`."
+- "Load `survey_data.RData` and run missing data analysis."
+- "Please analyze `results.parquet` with regression."
+
+If you point to a dataset for the first time, regardless of input type, NLSS creates a workspace and a parquet copy of the data at `<workspace-root>/<dataset-name>/<dataset-name>.parquet`. All analyses read from that parquet copy thereafter.
+
+NLSS accepts the following dataset formats as inputs (via the standard CLI flags or agent prompts):
+
+- **CSV (`.csv`)**: use `--csv <path>` for comma-separated text data.
+- **SPSS (`.sav`)**: use `--sav <path>` for SPSS data files.
+- **RDS (`.rds`)**: use `--rds <path>` and ensure the file contains a data frame.
+- **RData (`.RData` / `.rdata`)**: use `--rdata <path>` plus `--df <data_frame_name>` to select the data frame when multiple objects exist.
+- **Parquet (`.parquet`)**: use `--parquet <path>`; this is the preferred workspace format and requires the `arrow` R package for I/O.
+
+If your data is in another format (e.g., Excel), export it to CSV or Parquet first.
+
+### 2) Workspaces and the files inside them
 
 NLSS is workspace-first: every dataset gets a dedicated folder under a workspace root. The workspace root is detected by `nlss-workspace.yml` (current directory, parent, or one-level child). If no manifest exists, NLSS uses `defaults.output_dir` from `scripts/config.yml` (default: `./nlss-workspace`).
 
@@ -419,17 +440,7 @@ What these files do:
 - `backup/`: timestamped parquet backups before destructive updates.
 - `report_YYYYMMDD_<metaskill>_<intent>.md`: full metaskill report (only when a metaskill produces one).
 
-### 2) Supported input file formats
-
-NLSS accepts the following dataset formats as inputs (via the standard CLI flags or agent prompts):
-
-- **CSV (`.csv`)**: use `--csv <path>` for comma-separated text data.
-- **SPSS (`.sav`)**: use `--sav <path>` for SPSS data files.
-- **RDS (`.rds`)**: use `--rds <path>` and ensure the file contains a data frame.
-- **RData (`.RData` / `.rdata`)**: use `--rdata <path>` plus `--df <data_frame_name>` to select the data frame when multiple objects exist.
-- **Parquet (`.parquet`)**: use `--parquet <path>`; this is the preferred workspace format and requires the `arrow` R package for I/O.
-
-Regardless of input type, NLSS creates (or reuses) a workspace copy at `<workspace-root>/<dataset-name>/<dataset-name>.parquet` and reads from that copy for all analyses. If your data is in another format (e.g., Excel), export it to CSV or Parquet first.
+Most coding agent IDEs manage projects by folder. In such systems, you can open your NLSS workspace root as the project folder to let NLSS access all data and files inside it in successive sessions. This is what makes NLSS projects stateful.
 
 ### 3) Keep `report_canonical.md` open while you run analyses
 
