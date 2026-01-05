@@ -89,7 +89,7 @@ That's it! For detailed instructions, continue reading below.
 │  NLSS OUTPUTS                                                       │
 │  • report_canonical.md    → Human-readable tables & narrative       │
 │  • analysis_log.jsonl     → Machine-readable audit log              │
-│  • plots/                 → Publication-ready figures               │
+│  • plots/                 → Well-formatted figures               │
 │  • Full reports           → Journal-style write-ups                 │
 └─────────────────────────────────────────────────────────────────────┘
 ```
