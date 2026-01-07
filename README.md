@@ -1016,6 +1016,12 @@ NLSS uses R packages from CRAN installed by the user. No third-party code is bun
 
 Mike Hammes (mike.hammes@mikehammes.name)
 
+## Cite
+
+If you use NLSS in published research, please cite:
+
+Hammes, M. (2026). docmh/nlss: NLSS [Software]. Zenodo. https://doi.org/10.5281/zenodo.18173833
+
 ---
 
 **Find detailed testing information at [github.com/docmh/nlss-demo](https://github.com/docmh/nlss-demo)**
