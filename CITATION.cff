@@ -5,6 +5,7 @@ type: software
 authors:
   - family-names: Hammes
     given-names: Mike
+    orcid: https://orcid.org/0000-0003-1177-4282
 doi: 10.5281/zenodo.18173833
 url: https://doi.org/10.5281/zenodo.18173833
 date-release: 2026-01-01
