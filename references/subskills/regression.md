@@ -8,7 +8,7 @@ license: Apache-2.0
 
 ## Overview
 
-Run linear regression (OLS) or generalized linear models (binomial/logistic, Poisson) with optional hierarchical blocks, interaction terms, grouping, and bootstrap confidence intervals. Outputs include NLSS format-ready tables and narratives plus JSONL logs.
+Run linear regression (OLS) or generalized linear models (binomial/logistic, Poisson) with optional hierarchical blocks, interaction terms, grouping, and bootstrap confidence intervals. Outputs include NLSS format-ready tables and narratives plus saved machine-readable results.
 
 ## Assistant Researcher Model
 
@@ -20,7 +20,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 2. Specify the dependent variable and predictors (either `--ivs` or hierarchical `--blocks`).
 3. Optionally add `--interactions`, `--center`, and bootstrap options.
 4. Run `scripts/R/regression.R` with the correct flags.
-5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) for NLSS format reporting.
+5. Use outputs (`report_canonical.md`, `result.json`) for NLSS format reporting.
 
 ## Script: `scripts/R/regression.R`
 
@@ -82,12 +82,12 @@ Defaults are loaded from `scripts/config.yml` (requires R package `yaml`); CLI f
 - `--center` uses `modules.regression.center` (`none`, `mean`).
 - `--standardize` uses `modules.regression.standardize` (`none`, `predictors`) to report standardized betas.
 - `--conf-level` uses `modules.regression.conf_level`.
-- `--bootstrap` and `--bootstrap-samples` use `modules.regression.bootstrap` and `modules.regression.bootstrap_samples`.
-- `--seed` sets the random seed for bootstrap resampling (optional).
+- `--bootstrap` and `--bootstrap-samples` use `modules.regression.bootstrap` and `modules.regression.bootstrap_samples`. The repetition count must be a positive integer; use `--bootstrap FALSE`, not zero repetitions, to disable resampling.
+- `--seed` sets the random seed for bootstrap resampling. When bootstrap is enabled without it, `modules.regression.seed` (default 1) is used and recorded for replay.
 - `--digits` uses `defaults.digits`.
 - `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
 - `--log` uses `defaults.log`.
-- `--user-prompt` stores the original AI prompt in the JSONL log (optional).
+- `--user-prompt` stores the original AI prompt in the saved request, subject to configured prompt-privacy settings.
 
 ## Inputs and Handling
 
@@ -101,11 +101,15 @@ Defaults are loaded from `scripts/config.yml` (requires R package `yaml`); CLI f
 
 ## Outputs
 
-Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
+This migrated module also publishes fixed `.nlss/runs/<run-id>/request.json`, `result.json`, and deterministic `output.md`; see the [run/replay contract](../run-contract.md). `--log FALSE` only disables optional standalone logging. It continues appending canonical output; authored semantic reports use freely chosen visible Markdown paths.
 
-- Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`; not user-overridable).
+Outputs in a current project follow the [shared run contract](../run-contract.md):
+`.nlss/runs/<run-id>/` holds request/result/output and artifacts; the automatic
+`report_canonical.md` stays at the project root. No additional project JSONL log
+is produced. `--log` affects optional standalone logging, not this evidence.
+
 - `report_canonical.md`: NLSS format report containing regression coefficients and narrative summaries.
-- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled). Logged results include `coefficients_df`, `summary_df`, `comparisons_df`, and `diagnostics_df` (Shapiro-Wilk residual checks for OLS).
+- `result.json`: Machine-readable results and options, always retained in the saved run. Logged results include `coefficients_df`, `summary_df`, `comparisons_df`, and `diagnostics_df` (Shapiro-Wilk residual checks for OLS).
 
 ## NLSS format Templates (YAML)
 

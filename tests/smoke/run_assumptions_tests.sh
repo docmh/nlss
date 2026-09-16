@@ -168,14 +168,12 @@ if [ ! -f "${GOLDEN_ASSUMPTIONS_PATH}" ]; then
   exit 1
 fi
 
-CONFIG_BAK="$(mktemp)"
-cp "${CONFIG_PATH}" "${CONFIG_BAK}"
-
+# Template overrides belong to this run, never to the repository configuration.
+CONFIG_PRIVATE="${TMP_BASE}/config.yml"
+cp "${CONFIG_PATH}" "${CONFIG_PRIVATE}"
+CONFIG_PATH="${CONFIG_PRIVATE}"
+export NLSS_CONFIG_PATH="${CONFIG_PRIVATE}"
 cleanup() {
-  if [ -f "${CONFIG_BAK}" ]; then
-    cp "${CONFIG_BAK}" "${CONFIG_PATH}"
-    rm -f "${CONFIG_BAK}"
-  fi
   rm -f "${WORKSPACE_MANIFEST_PATH}"
 }
 trap cleanup EXIT
@@ -218,10 +216,8 @@ run_expect_fail() {
   local label="$1"; shift
   local log_path="$1"; shift
   echo "[RUN-EXPECT-FAIL] ${label}" | tee -a "${LOG_FILE}"
-  local start_count=""
-  if [ -n "${log_path}" ] && [ "${log_path}" != "-" ]; then
-    start_count="$(log_count "${log_path}")"
-  fi
+  local before_state
+  before_state="$(dataset_state "${log_path}")"
   set +e
   "$@" >>"${LOG_FILE}" 2>&1
   local exit_status=$?
@@ -230,12 +226,72 @@ run_expect_fail() {
     echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
     exit 1
   fi
-  if [ -n "${log_path}" ] && [ "${log_path}" != "-" ]; then
-    local end_count
-    end_count="$(log_count "${log_path}")"
-    assert_log_unchanged "${start_count}" "${end_count}" "${label}"
-  fi
-  echo "[PASS] ${label} (failed as expected)" | tee -a "${LOG_FILE}"
+  assert_bundle "${log_path}" "${before_state}" failed
+  echo "[PASS] ${label} (failed bundle, protected report/log)" | tee -a "${LOG_FILE}"
+}
+
+dataset_state() {
+  "${PYTHON_BIN}" - "$1" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+root = Path(sys.argv[1]).parent
+print(json.dumps({"runs": [str(path) for path in (root / "runs").glob("*/request.json")],
+    "projections": {name: hashlib.sha256((root / name).read_bytes()).hexdigest() if (root / name).exists() else None
+                    for name in ("analysis_log.jsonl", "report_canonical.md")}}))
+PY
+}
+
+assert_bundle() {
+  "${PYTHON_BIN}" - "$1" "$2" "$3" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+root, before, expected = Path(sys.argv[1]).parent, json.loads(sys.argv[2]), sys.argv[3]
+current = list((root / "runs").glob("*/request.json"))
+assert set(before["runs"]).issubset(str(path) for path in current), "Earlier run was removed"
+added = [path for path in current if str(path) not in before["runs"]]
+assert len(added) == 1, "Expected exactly one new terminal run"
+request_path = added[0]
+request = json.loads(request_path.read_text())
+result = json.loads((request_path.parent / "result.json").read_text())
+assert not request_path.parent.name.startswith("."), "Run remained pending"
+assert request["module"] == result["module"] == "assumptions", "Wrong run module"
+assert request["run_id"] == result["run_id"] == request_path.parent.name, "Run identity differs"
+assert result["status"] == expected, "Wrong terminal run status"
+assert result["artifacts"]["request"]["path"] == "request.json", "Missing request artifact"
+assert result["artifacts"]["request"]["sha256"] == hashlib.sha256(request_path.read_bytes()).hexdigest(), "Request hash mismatch"
+assert not (root / ".analysis-lock").exists(), "Run retained analysis lock"
+if expected == "failed":
+    assert result.get("error"), "Failed run has no diagnostic error"
+    assert not (request_path.parent / "output.md").exists(), "Failure published normal Markdown"
+else:
+    assert result["artifacts"]["output"]["path"] == "output.md", "Missing mandatory Markdown artifact"
+    assert result["results"]["checks_df"], "Legacy log optout removed mandatory raw results"
+    for artifact in result["artifacts"].values():
+        path = request_path.parent / artifact["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == artifact["sha256"], "Artifact hash mismatch"
+for name, digest in before["projections"].items():
+    if expected == "completed" and name == "report_canonical.md":
+        continue  # --log FALSE does not opt out of the Markdown projection.
+    actual = hashlib.sha256((root / name).read_bytes()).hexdigest() if (root / name).exists() else None
+    assert actual == digest, "Run unexpectedly modified " + name
+PY
+}
+
+assert_check_status() {
+  "${PYTHON_BIN}" - "$1" "$2" "$3" "$4" <<'PY'
+import json, sys
+from pathlib import Path
+path, start, test, status = Path(sys.argv[1]), int(sys.argv[2]), sys.argv[3], sys.argv[4]
+entries = [json.loads(line) for line in path.read_text().splitlines()[start:] if line.strip()]
+entry = [item for item in entries if item.get("module") == "assumptions"][-1]
+rows = [row for row in entry["results"]["checks_df"] if row.get("test") == test]
+assert rows and all(row.get("status") == status for row in rows), "Diagnostic availability differs"
+if status != "available":
+    for row in rows:
+        assert all(row.get(key) is None for key in ("statistic", "p", "value")), "Unavailable check has numerical evidence"
+        assert not row.get("decision"), "Unavailable check is presented as a passed/failed assumption"
+        assert row.get("note"), "Unavailable check has no explanation"
+PY
 }
 
 assert_contains() {
@@ -281,18 +337,6 @@ check_log_main() {
 check_log_mixed() {
   local start_count="$1"; shift
   check_log "${MIXED_LOG_PATH}" "${start_count}" "$@"
-}
-
-golden_has_case() {
-  local case_id="$1"
-  if [ ! -f "${GOLDEN_ASSUMPTIONS_PATH}" ]; then
-    return 1
-  fi
-  if command -v rg >/dev/null 2>&1; then
-    rg -q --fixed-strings "${case_id}" "${GOLDEN_ASSUMPTIONS_PATH}"
-  else
-    grep -qF "${case_id}" "${GOLDEN_ASSUMPTIONS_PATH}"
-  fi
 }
 
 check_assumptions_golden() {
@@ -346,11 +390,17 @@ NLSS_REPORT_PATH="${DATASET_DIR}/report_canonical.md"
 LOG_PATH="${DATASET_DIR}/analysis_log.jsonl"
 PARQUET_PATH="${DATASET_DIR}/${DATASET_LABEL}.parquet"
 
-RDS_PATH="${TMP_BASE}/${DATASET_LABEL}.rds"
-RDATA_PATH="${TMP_BASE}/${DATASET_LABEL}.RData"
-RDATA_DF="golden_dataset"
-SAV_PATH="${TMP_BASE}/${DATASET_LABEL}.sav"
-CSV_SEMI_PATH="${TMP_BASE}/${DATASET_LABEL}.csv"
+# Different serialized sources must not compete for one registered dataset.
+RDS_PATH="${TMP_BASE}/${DATASET_LABEL}_rds.rds"
+RDATA_PATH="${TMP_BASE}/${DATASET_LABEL}_rdata.RData"
+# RData dataset identity follows the selected object, not only the file stem.
+RDATA_DF="${DATASET_LABEL}_rdata"
+SAV_PATH="${TMP_BASE}/${DATASET_LABEL}_sav.sav"
+CSV_SEMI_PATH="${TMP_BASE}/${DATASET_LABEL}_semicolon.csv"
+RDS_LOG_PATH="${WORKSPACE_DIR}/${DATASET_LABEL}_rds/analysis_log.jsonl"
+RDATA_LOG_PATH="${WORKSPACE_DIR}/${DATASET_LABEL}_rdata/analysis_log.jsonl"
+SAV_LOG_PATH="${WORKSPACE_DIR}/${DATASET_LABEL}_sav/analysis_log.jsonl"
+CSV_SEMI_LOG_PATH="${WORKSPACE_DIR}/${DATASET_LABEL}_semicolon/analysis_log.jsonl"
 INTERACTIVE_INPUT="${TMP_BASE}/interactive_assumptions.txt"
 HELP_PATH="${TMP_BASE}/assumptions_help.txt"
 
@@ -370,9 +420,9 @@ rm -f "${NLSS_REPORT_PATH}" "${LOG_PATH}" "${MIXED_NLSS_REPORT_PATH}" "${MIXED_L
 cd "${WORKSPACE_DIR}"
 
 run_ok "help text" bash -c "Rscript \"${ASSUMPTIONS_SCRIPT}\" --help > \"${HELP_PATH}\" 2>&1"
-assert_contains "${HELP_PATH}" "Assumptions checks"
+assert_contains "${HELP_PATH}" "R diagnostic checks"
 
-run_ok "prepare rds/rdata" Rscript -e "df <- read.csv(\"${DATA_GOLDEN}\", stringsAsFactors = FALSE); saveRDS(df, \"${RDS_PATH}\"); golden_dataset <- df; save(golden_dataset, file = \"${RDATA_PATH}\")"
+run_ok "prepare rds/rdata" Rscript -e "df <- read.csv(\"${DATA_GOLDEN}\", stringsAsFactors = FALSE); saveRDS(df, \"${RDS_PATH}\"); assign(\"${RDATA_DF}\", df); save(list = \"${RDATA_DF}\", file = \"${RDATA_PATH}\")"
 
 run_ok "prepare csv semicolon" Rscript -e "df <- read.csv(\"${DATA_GOLDEN}\", stringsAsFactors = FALSE); write.table(df, \"${CSV_SEMI_PATH}\", sep = ';', row.names = FALSE, col.names = TRUE)"
 
@@ -422,7 +472,7 @@ check_log_main "${start}" ttest one_sample gt0 assumptions=Normality tests="Shap
 run_ok "assumptions golden (ttest one-sample)" \
   check_assumptions_golden "${LOG_PATH}" "${start}" "ttest_one_sample_shapiro_x1" "ttest" "one_sample"
 
-start=$(log_count "${LOG_PATH}")
+start=$(log_count "${CSV_SEMI_LOG_PATH}")
 run_ok "ttest csv semicolon" \
   Rscript "${ASSUMPTIONS_SCRIPT}" \
   --csv "${CSV_SEMI_PATH}" \
@@ -430,33 +480,33 @@ run_ok "ttest csv semicolon" \
   --header TRUE \
   --analysis ttest \
   --vars x1
-check_log_main "${start}" ttest one_sample gt0 assumptions=Normality tests="Shapiro-Wilk"
+check_log "${CSV_SEMI_LOG_PATH}" "${start}" ttest one_sample gt0 assumptions=Normality tests="Shapiro-Wilk"
 
-start=$(log_count "${LOG_PATH}")
+start=$(log_count "${RDS_LOG_PATH}")
 run_ok "ttest rds input" \
   Rscript "${ASSUMPTIONS_SCRIPT}" \
   --rds "${RDS_PATH}" \
   --analysis ttest \
   --vars x1
-check_log_main "${start}" ttest one_sample gt0 assumptions=Normality tests="Shapiro-Wilk"
+check_log "${RDS_LOG_PATH}" "${start}" ttest one_sample gt0 assumptions=Normality tests="Shapiro-Wilk"
 
-start=$(log_count "${LOG_PATH}")
+start=$(log_count "${RDATA_LOG_PATH}")
 run_ok "ttest rdata input" \
   Rscript "${ASSUMPTIONS_SCRIPT}" \
   --rdata "${RDATA_PATH}" \
   --df "${RDATA_DF}" \
   --analysis ttest \
   --vars x1
-check_log_main "${start}" ttest one_sample gt0 assumptions=Normality tests="Shapiro-Wilk"
+check_log "${RDATA_LOG_PATH}" "${start}" ttest one_sample gt0 assumptions=Normality tests="Shapiro-Wilk"
 
 if [ "${HAS_HAVEN}" -eq 1 ]; then
-  start=$(log_count "${LOG_PATH}")
+  start=$(log_count "${SAV_LOG_PATH}")
   run_ok "ttest sav input" \
     Rscript "${ASSUMPTIONS_SCRIPT}" \
     --sav "${SAV_PATH}" \
     --analysis ttest \
     --vars x1
-  check_log_main "${start}" ttest one_sample gt0 assumptions=Normality tests="Shapiro-Wilk"
+  check_log "${SAV_LOG_PATH}" "${start}" ttest one_sample gt0 assumptions=Normality tests="Shapiro-Wilk"
 fi
 
 start=$(log_count "${LOG_PATH}")
@@ -570,16 +620,16 @@ run_ok "assumptions golden (anova mixed mauchly)" \
   check_assumptions_golden "${LOG_PATH}" "${start}" "anova_mixed_mauchly_within" "anova" "mixed"
 
 start=$(log_count "${LOG_PATH}")
-run_ok "anova within (no sphericity)" \
+run_ok "anova within (sphericity automatic)" \
   Rscript "${ASSUMPTIONS_SCRIPT}" \
   --parquet "${PARQUET_PATH}" \
   --analysis anova \
   --within pre_score,post_score
 check_log_main "${start}" anova within gt0 \
-  assumptions=Normality \
-  assumptions_absent=Sphericity \
-  tests="Shapiro-Wilk" \
-  tests_absent="Mauchly"
+  assumptions=Normality,Sphericity \
+  tests="Shapiro-Wilk,Mauchly"
+run_ok "two-level Mauchly is explicitly skipped" \
+  assert_check_status "${LOG_PATH}" "${start}" Mauchly skipped
 
 start=$(log_count "${LOG_PATH}")
 run_ok "regression ivs" \
@@ -590,7 +640,7 @@ run_ok "regression ivs" \
   --ivs x1,x2,x3
 check_log_main "${start}" regression - gt0 \
   assumptions=Normality,Linearity,Homoscedasticity,Independence,Outliers,Influence,Multicollinearity \
-  tests="Shapiro-Wilk,Residual correlation,Breusch-Pagan,Durbin-Watson,Std. residuals,Cook's distance,VIF"
+  tests="Shapiro-Wilk,Quadratic added-term F,Breusch-Pagan,Durbin-Watson,Std. residuals,Cook's distance,VIF"
 run_ok "assumptions golden (regression shapiro)" \
   check_assumptions_golden "${LOG_PATH}" "${start}" "regression_shapiro_residuals_block1" "regression"
 run_ok "assumptions golden (regression linearity)" \
@@ -633,7 +683,7 @@ check_log_main "${start}" regression - gt0 \
   assumptions=Normality \
   assumptions_absent=Linearity,Homoscedasticity,Independence,Outliers,Influence,Multicollinearity \
   tests="Shapiro-Wilk" \
-  tests_absent="Residual correlation,Breusch-Pagan,Durbin-Watson,Std. residuals,Cook's distance,VIF" \
+  tests_absent="Quadratic added-term F,Breusch-Pagan,Durbin-Watson,Std. residuals,Cook's distance,VIF" \
   linearity=false homoscedasticity=false vif=false durbin_watson=false outliers=false influence=false
 
 start=$(log_count "${LOG_PATH}")
@@ -655,6 +705,8 @@ check_log_main "${start}" regression - gt0 \
   alpha=0.01 digits=3 max_shapiro_n=10 \
   vif_warn=4 vif_high=8 outlier_z=2.5 cook_multiplier=5 \
   user_prompt="assumptions regression prompt"
+run_ok "requested Shapiro size limit is explicitly skipped" \
+  assert_check_status "${LOG_PATH}" "${start}" Shapiro-Wilk skipped
 
 start=$(log_count "${LOG_PATH}")
 run_ok "auto analysis (regression)" \
@@ -671,7 +723,7 @@ run_ok "mixed models formula" \
   --analysis mixed_models \
   --formula "score ~ time + group3 + x1 + (1|id)" \
   --reml TRUE \
-  --maxfun -10
+  --maxfun "${MAXFUN_DEFAULT}"
 check_log_mixed "${start}" mixed_models - gt0 \
   assumptions="Convergence,Singularity,Normality,Random-effects normality,Homoscedasticity,Outliers" \
   reml=true maxfun="${MAXFUN_DEFAULT}"
@@ -681,15 +733,23 @@ run_ok "assumptions golden (mixed models random effects)" \
   check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_random_effects_shapiro_intercept" "mixed_models"
 run_ok "assumptions golden (mixed models homoscedasticity)" \
   check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_homoscedasticity_abs_resid" "mixed_models"
-if [ "${HAS_PERFORMANCE}" -eq 1 ] && golden_has_case "mixed_models_performance_heteroscedasticity"; then
+if [ "${HAS_PERFORMANCE}" -eq 1 ]; then
   run_ok "assumptions golden (mixed models performance)" \
     check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_performance_heteroscedasticity" "mixed_models"
+else
+  run_ok "missing performance diagnostic is explicitly unavailable" \
+    assert_check_status "${MIXED_LOG_PATH}" "${start}" "performance::check_heteroscedasticity" unavailable
+  echo "[WARN] skipping performance numerical golden (package not installed)" | tee -a "${LOG_FILE}"
 fi
 run_ok "assumptions golden (mixed models outliers)" \
   check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_outliers" "mixed_models"
-if [ "${HAS_INFLUENCE}" -eq 1 ] && golden_has_case "mixed_models_influence_id"; then
+if [ "${HAS_INFLUENCE}" -eq 1 ]; then
   run_ok "assumptions golden (mixed models influence)" \
     check_assumptions_golden "${MIXED_LOG_PATH}" "${start}" "mixed_models_influence_id" "mixed_models"
+else
+  run_ok "missing influence diagnostic is explicitly unavailable" \
+    assert_check_status "${MIXED_LOG_PATH}" "${start}" "Cook's distance (cluster)" unavailable
+  echo "[WARN] skipping influence.ME numerical golden (package not installed)" | tee -a "${LOG_FILE}"
 fi
 
 start=$(log_count "${MIXED_LOG_PATH}")
@@ -748,7 +808,9 @@ run_ok "assumptions golden (sem heywood loading)" \
 if [ "${HAS_MVN}" -eq 1 ]; then
   check_log_main "${start}" sem - gt0 assumptions="Multivariate normality"
 else
-  check_log_main "${start}" sem - gt0 assumptions_absent="Multivariate normality"
+  check_log_main "${start}" sem - gt0 assumptions="Multivariate normality"
+  run_ok "missing Mardia diagnostic is explicitly unavailable" \
+    assert_check_status "${LOG_PATH}" "${start}" Mardia unavailable
 fi
 
 start=$(log_count "${LOG_PATH}")
@@ -785,7 +847,8 @@ run_ok "sem invariance model" \
   Rscript "${ASSUMPTIONS_SCRIPT}" \
   --parquet "${PARQUET_PATH}" \
   --analysis invariance \
-  --model "F1 =~ f1_1 + f1_2 + f1_3_rev + f1_4"
+  --model "F1 =~ f1_1 + f1_2 + f1_3_rev + f1_4" \
+  --group group2
 check_log_main "${start}" sem - gt0 \
   sem_type=invariance
 
@@ -821,6 +884,7 @@ check_log_main "${start}" sem - gt0 \
   collinearity=false mahalanobis=false mardia=false heywood=false convergence=false
 
 before_log=$(log_count "${LOG_PATH}")
+before_state="$(dataset_state "${LOG_PATH}")"
 run_ok "log disabled" \
   Rscript "${ASSUMPTIONS_SCRIPT}" \
   --parquet "${PARQUET_PATH}" \
@@ -829,6 +893,8 @@ run_ok "log disabled" \
   --log FALSE
 after_log=$(log_count "${LOG_PATH}")
 assert_log_unchanged "${before_log}" "${after_log}" "log disabled"
+run_ok "log disabled preserves mandatory completed bundle" \
+  assert_bundle "${LOG_PATH}" "${before_state}" completed
 
 TEMPLATE_TTEST_ORIG="$(get_config_value templates.assumptions.ttest)"
 TEMPLATE_ANOVA_ORIG="$(get_config_value templates.assumptions.anova)"
@@ -963,10 +1029,23 @@ run_expect_fail "mixed models invalid formula" "${MIXED_LOG_PATH}" \
   --analysis mixed_models \
   --formula "score ~ time + (1|id"
 
+run_expect_fail "mixed models negative maxfun" "${MIXED_LOG_PATH}" \
+  Rscript "${ASSUMPTIONS_SCRIPT}" \
+  --parquet "${MIXED_PARQUET_PATH}" \
+  --analysis mixed_models \
+  --formula "score ~ time + group3 + x1 + (1|id)" \
+  --maxfun -10
+
 run_expect_fail "sem missing model" "${LOG_PATH}" \
   Rscript "${ASSUMPTIONS_SCRIPT}" \
   --parquet "${PARQUET_PATH}" \
   --analysis sem
+
+run_expect_fail "sem invariance missing group" "${LOG_PATH}" \
+  Rscript "${ASSUMPTIONS_SCRIPT}" \
+  --parquet "${PARQUET_PATH}" \
+  --analysis invariance \
+  --model "F1 =~ f1_1 + f1_2 + f1_3_rev + f1_4"
 
 run_expect_fail "sem unknown ordered var" "${LOG_PATH}" \
   Rscript "${ASSUMPTIONS_SCRIPT}" \

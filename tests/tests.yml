@@ -6,18 +6,63 @@ tests:
   template_dir: "templates"
   template_marker: "TEMPLATE_SMOKE_TEST"
   keep_runs_default: 10
+  phase3:
+    study_document: "tests/data/project/research_note.md"
+  phase1:
+    fixtures: "tests/data/import/haven-fixtures.json"
+    contract_unit: "tests/phase1/import_contract_unit.R"
+    cli_config: "tests/phase1/cli_config.R"
+    imputation_contract: "tests/phase1/imputation_contract.R"
+  phase2:
+    bootstrap_config: "tests/phase2/bootstrap_config.R"
+    mi_pool: "tests/phase2/mi_pool.R"
+    publication_contract: "tests/phase2/publication_contract.R"
+    plot_publication_contract: "tests/phase2/plot_publication_contract.R"
+    data_change_contract: "tests/phase2/data_change_contract.R"
+    imputation_artifact_contract: "tests/phase2/imputation_artifact_contract.R"
+    utility_contract: "tests/phase2/utility_contract.R"
   scripts:
+    phase5_dependencies_r: "tests/phase5/run_dependency_tests.R"
+    phase5_packaging_python: "tests/phase5/run_packaging_tests.py"
     harness_unix: "cmdscripts/tests.sh"
     harness_windows: "cmdscripts/tests.ps1"
     smoke_unix: "tests/smoke/run_smoke_test.sh"
     deliberate_unix: "tests/smoke/run_deliberate_tests.sh"
+    phase1_r: "tests/phase1/run_phase1_tests.R"
+    phase2_r: "tests/phase2/run_phase2_tests.R"
+    phase3_r: "tests/phase3/run_project_tests.R"
+    phase3_persistence_r: "tests/phase3/run_persistence_tests.R"
+    phase3_report_r: "tests/phase3/run_report_tests.R"
+    phase2_categorical_r: "tests/phase2/run_categorical_tests.R"
+    phase2_psychometric_r: "tests/phase2/run_psychometric_tests.R"
+    phase2_inference_r: "tests/phase2/run_inference_tests.R"
+    phase2_design_r: "tests/phase2/run_design_tests.R"
+    phase2_mixed_model_r: "tests/phase2/run_mixed_model_tests.R"
+    phase2_mixed_diagnostic_r: "tests/phase2/run_mixed_diagnostic_tests.R"
+    phase2_efa_r: "tests/phase2/run_efa_tests.R"
+    phase2_sem_r: "tests/phase2/run_sem_tests.R"
+    phase2_sem_diagnostic_r: "tests/phase2/run_sem_diagnostic_tests.R"
+    phase2_power_r: "tests/phase2/run_power_tests.R"
+    phase2_planning_r: "tests/phase2/run_planning_tests.R"
+    phase2_assumptions_r: "tests/phase2/run_assumptions_tests.R"
+    phase2_plot_r: "tests/phase2/run_plot_tests.R"
+    phase2_transform_r: "tests/phase2/run_transform_tests.R"
+    phase2_missings_r: "tests/phase2/run_missings_tests.R"
+    phase2_impute_r: "tests/phase2/run_impute_tests.R"
+    phase2_calc_r: "tests/phase2/run_calc_tests.R"
+    phase2_history_r: "tests/phase2/run_history_tests.R"
+    phase2_lifecycle_r: "tests/phase2/run_lifecycle_tests.R"
+    phase2_research_r: "tests/phase2/run_research_tests.R"
     modules:
       calc: "tests/smoke/run_calc_tests.sh"
       research_academia: "tests/smoke/run_research_academia_tests.sh"
       descriptive_stats: "tests/smoke/run_descriptive_stats_tests.sh"
+      frequencies: "tests/smoke/run_frequencies_tests.sh"
       data_explorer: "tests/smoke/run_data_explorer_tests.sh"
       data_transform: "tests/smoke/run_data_transform_tests.sh"
+      missings: "tests/smoke/run_missings_tests.sh"
       impute: "tests/smoke/run_impute_tests.sh"
+      mi_regression: "tests/smoke/run_mi_regression_tests.sh"
       plot: "tests/smoke/run_plot_tests.sh"
       crosstabs: "tests/smoke/run_crosstabs_tests.sh"
       correlations: "tests/smoke/run_correlations_tests.sh"
@@ -36,9 +81,40 @@ tests:
       check_integrity: "tests/smoke/run_check_integrity_tests.sh"
       reconstruct_reports: "tests/smoke/run_reconstruct_reports_tests.sh"
   plans:
+    phase5_acceptance: "tests/phase5/acceptance.md"
+    phase4_reporting: "tests/phase4/reporting-cases.md"
+    phase3: "tests/phase3/README.md"
+    phase3_persistence: "tests/phase3/PERSISTENCE.md"
+    phase3_report: "tests/phase3/REPORTS.md"
+    phase1: "tests/phase1/README.md"
+    phase2: "tests/phase2/README.md"
+    phase2_categorical: "tests/phase2/categorical-README.md"
+    phase2_psychometric: "tests/phase2/psychometric-README.md"
+    phase2_inference: "tests/phase2/inference-README.md"
+    phase2_design: "tests/phase2/design-README.md"
+    phase2_mixed_model: "tests/phase2/mixed-model-README.md"
+    phase2_mixed_diagnostic: "tests/phase2/mixed-diagnostic-README.md"
+    phase2_efa: "tests/phase2/efa-README.md"
+    phase2_sem: "tests/phase2/sem-README.md"
+    phase2_sem_diagnostic: "tests/phase2/sem-diagnostic-README.md"
+    phase2_power: "tests/phase2/power-README.md"
+    phase2_planning: "tests/phase2/planning-README.md"
+    phase2_assumptions: "tests/phase2/assumptions-README.md"
+    phase2_plot: "tests/phase2/plot-README.md"
+    phase2_transform: "tests/phase2/transform-README.md"
+    phase2_missings: "tests/phase2/missings-README.md"
+    phase2_impute: "tests/phase2/impute-README.md"
+    phase2_calc: "tests/phase2/calc-README.md"
+    phase2_history: "tests/phase2/history-README.md"
+    phase2_lifecycle: "tests/phase2/lifecycle-README.md"
+    phase2_research: "tests/phase2/research-README.md"
+    missings: "tests/smoke/plan-missings.md"
+    frequencies: "tests/phase2/categorical-README.md"
+    mi_regression: "tests/phase2/README.md"
     smoke: "tests/smoke/plan-smoke.md"
     deliberate: "tests/smoke/plan-deliberate.md"
     anova: "tests/smoke/plan-anova.md"
+    nonparametric: "tests/smoke/plan-nonparametric.md"
     assumptions: "tests/smoke/plan-assumptions.md"
     mixed_models: "tests/smoke/plan-mixed-models.md"
     regression: "tests/smoke/plan-regression.md"
@@ -54,10 +130,51 @@ tests:
     reconstruct_reports: "tests/smoke/plan-reconstruct-reports.md"
     research_academia: "tests/smoke/plan-research-academia.md"
   suites:
+    phase3:
+      script: "tests/phase3/run_project_tests.R"
+      plan: "tests/phase3/README.md"
+      description: "Current project routing, read-only discovery, preservation and report evidence."
+      persistence_script: "tests/phase3/run_persistence_tests.R"
+      persistence_plan: "tests/phase3/PERSISTENCE.md"
+      report_script: "tests/phase3/run_report_tests.R"
+      report_plan: "tests/phase3/REPORTS.md"
+    phase2:
+      script: "tests/phase2/run_phase2_tests.R"
+      plan: "tests/phase2/README.md"
+      description: "Resolved requests, deterministic output, verified replay and independent multiple-imputation pooling checks."
+      categorical_script: "tests/phase2/run_categorical_tests.R"
+      psychometric_script: "tests/phase2/run_psychometric_tests.R"
+      inference_script: "tests/phase2/run_inference_tests.R"
+      design_script: "tests/phase2/run_design_tests.R"
+      mixed_model_script: "tests/phase2/run_mixed_model_tests.R"
+      mixed_diagnostic_script: "tests/phase2/run_mixed_diagnostic_tests.R"
+      efa_script: "tests/phase2/run_efa_tests.R"
+      sem_script: "tests/phase2/run_sem_tests.R"
+      sem_diagnostic_script: "tests/phase2/run_sem_diagnostic_tests.R"
+      power_script: "tests/phase2/run_power_tests.R"
+      planning_script: "tests/phase2/run_planning_tests.R"
+      assumptions_script: "tests/phase2/run_assumptions_tests.R"
+      plot_script: "tests/phase2/run_plot_tests.R"
+      transform_script: "tests/phase2/run_transform_tests.R"
+      missings_script: "tests/phase2/run_missings_tests.R"
+      impute_script: "tests/phase2/run_impute_tests.R"
+      calc_script: "tests/phase2/run_calc_tests.R"
+      history_script: "tests/phase2/run_history_tests.R"
+      lifecycle_script: "tests/phase2/run_lifecycle_tests.R"
+      research_script: "tests/phase2/run_research_tests.R"
+    phase1:
+      script: "tests/phase1/run_phase1_tests.R"
+      plan: "tests/phase1/README.md"
+      description: "Offline import contracts, data versions and independent numerical equivalence."
     smoke:
       script: "tests/smoke/run_smoke_test.sh"
       plan: "tests/smoke/plan-smoke.md"
       description: "Fast coverage across all modules plus template overrides."
+      plot_match: '^plot_.*_smoke$'
+      transform_match: '^transform_.*_smoke$'
+      missings_match: '^missings_.*_smoke$'
+      psychometric_match: '^(scale_all_values_pairwise_sum|scale_SPSS_variable_value_labels_and_user_missing|ICC_all_types_units_twoway-random|ICC_long_unbalanced_subject_ids_and_missing_identity_rows|kappa_numeric_order_unbalanced_quadratic|test_retest_pearson_wide|retest_SPSS_labels_user_missing_and_explicit_numeric_coercion|expected_invalid_exit_zero_still_records_nonreplayable_failed_bundle)$'
+      inference_match: '^(ttest_all_values_(one_sample|independent|paired)_two[.]sided|ttest_bootstrap_numeric_paired_two[.]sided|ttest_SPSS_labels_user_missing_group_order|correlation_all_values_(pearson|spearman|kendall)_two[.]sided|partial_rank_bootstrap_and_complete_case_selection|correlation_group_Fisher_pearson_two[.]sided|configured_controls_are_effective_and_frozen_in_replay|matrix_template_contains_rounded_r_and_adjusted_p|correlation_SPSS_labels_user_missing)$'
     deliberate:
       script: "tests/smoke/run_deliberate_tests.sh"
       plan: "tests/smoke/plan-deliberate.md"
@@ -65,9 +182,12 @@ tests:
         - calc
         - research_academia
         - descriptive_stats
+        - frequencies
         - data_explorer
         - data_transform
+        - missings
         - impute
+        - mi_regression
         - plot
         - crosstabs
         - correlations

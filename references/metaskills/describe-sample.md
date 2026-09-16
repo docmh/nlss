@@ -12,7 +12,10 @@ This metaskill guides the agent to describe a sample by inspecting the dataset, 
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
+Follow the shared [researcher interaction and reporting guidance](../../SKILL.md#semantic-answers-and-authored-reports).
+Match the requested scope; use the analysis workflow below when analysis is
+requested, and write a formal report only when requested. Preserve the scientific
+decisions and permissions described here.
 
 ## Intent/Triggers
 
@@ -32,24 +35,19 @@ Use this metaskill when the user asks for sample or demographic descriptions, fo
 ## Core Workflow
 
 1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).
-2. Ensure a dataset workspace exists (run `init-workspace` if missing).
-3. Log activation with `metaskill-runner`.
+2. Use the selected current project and working data; creation is explicit, never implicit.
+3. Follow the common project/report workflow in `SKILL.md`; no separate lifecycle activation.
 4. Inspect the dataset to infer numeric vs categorical variables and candidate grouping variables.
 5. Ask clarifying questions when needed (grouping variable, key demographics, Likert handling), and explicitly propose a demographic-first summary as the default.
 6. If the user requests literature context for the sample (norms, benchmarks, or population comparisons), run the `research-academia` utility with query variants and curate sources (see utility guidance).
 7. Write a plan to `scratchpad.md`, then execute subskills in order.
 8. Update `scratchpad.md` with decisions and completion notes.
-9. Generate `report_<YYYYMMDD>_describe-sample_<intent>.md` first, align it using `references/metaskills/format-document.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+9. When a report is requested, write it at a chosen visible Markdown path and preserve it with its actual evidence through `project-report`.
 
 ## Execution (Agent-Run)
 
-There is no dedicated script for this metaskill. The agent runs subskills and logs activation/finalization using `metaskill-runner`.
+There is no dedicated script for this metaskill. The agent runs the existing subskills through the common project route.
 
-### Logging Activation
-
-```bash
-Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta describe-sample --intent "describe the sample"
-```
 
 ## Inputs/Clarifications
 
@@ -73,10 +71,7 @@ If unclear, suggest a demographic-first summary (age, gender/sex, education, emp
 ## Procedure (Pseudocode)
 
 ```
-if workspace missing:
-  run init-workspace
-
-run metaskill-runner --meta describe-sample --intent <user intent>
+select the current project and working dataset using the common workflow
 
 inspect dataset:
   numeric_vars = numeric columns minus IDs
@@ -108,9 +103,11 @@ if user requests missingness handling:
   run missings --vars all --method <chosen>
 
 update scratchpad.md with decisions and completion
-write report_<YYYYMMDD>_describe-sample_<intent>.md
-align report_<YYYYMMDD>_describe-sample_<intent>.md using references/metaskills/format-document.md
-run metaskill-runner --phase finalization --synopsis "<synopsis text>" (runner fails if the report is missing; synopsis is appended to report_canonical.md)
+explain the results in the conversation
+if a report is requested:
+  write <chosen-visible-report>.md
+  align <chosen-visible-report>.md using references/metaskills/format-document.md
+  preserve the delivered report and selected evidence with project-report
 ```
 
 ## Default Rules and Decision Logic
@@ -122,32 +119,30 @@ run metaskill-runner --phase finalization --synopsis "<synopsis text>" (runner f
 - If demographics are not specified, infer them by name patterns and value ranges, then confirm with the user; prioritize age, gender/sex, education, employment, income, marital status, ethnicity/race, country, and language.
 - If ordinal demographics (education/income) are ambiguous, default to categorical reporting.
 - When the request is ambiguous, default to a demographic-first summary and state this as the proposed focus.
-- Do not run `missings` unless the user requests missingness handling; it updates the workspace parquet copy in place and creates a backup.
+- Do not run `missings` unless the user requests missingness handling; it updates visible working data through the shared before/after version boundary.
 
 ## Outputs
 
-- `report_canonical.md`: NLSS format-ready outputs from the subskills (descriptive stats, frequencies, and optional crosstabs) plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
-- `analysis_log.jsonl`: Metaskill activation and finalization entries from `metaskill-runner`, plus the underlying subskill logs.
+- `report_canonical.md`: NLSS format-ready outputs from the subskills (descriptive stats, frequencies, and optional crosstabs).
+- `.nlss/runs/`: saved requests/results/output from the underlying procedures; no additional lifecycle/JSONL journal.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
-- `report_<YYYYMMDD>_describe-sample_<intent>.md`: NLSS format-ready, journal-alike narrative report with ad hoc tables/plots as needed.
+- `<chosen-visible-report>.md`: Only when requested; a freely authored report with useful tables/figures.
 
 ### Final Report Requirements
 
-- Do not copy `report_canonical.md`; write a new narrative report.
-- Use `assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
-- Use standard journal subsections when they fit (Methods: Participants/Measures/Procedure/Analytic Strategy; Results: Preliminary/Primary/Secondary; Discussion: Summary/Limitations/Implications/Future Directions), but rename or replace them when the metaskill warrants it.
-- Synthesize results across subskills with interpretation; integrate tables/figures with captions and in-text references.
-- Craft tables and figures specifically for the report rather than copying them from `report_canonical.md`.
-- Keep the report NLSS format-ready and suitable for journal submission.
+For a requested report, follow the shared [semantic synthesis and presentation
+guidance](../../SKILL.md#semantic-answers-and-authored-reports). The manuscript
+scaffold is optional; use the structure and depth appropriate to the question.
 
-Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`).
-All artifacts (reports, tables, figures) must be created inside the dataset workspace folder; do not write outside the workspace root.
+Use the common project destinations in `SKILL.md`: automatic root protocol,
+run-local evidence, visible working data and freely chosen authored-report paths.
 
-## Finalization
+## Report delivery
 
-- Write `report_<YYYYMMDD>_describe-sample_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report using `references/metaskills/format-document.md` (must be the last step before finalization).
-- Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
+Use [project-report](../utilities/project-report.md) as part of requested delivery.
+The agent selects the actual evidence; the researcher does not manage internal
+IDs or perform separate finalization. No required filename, synopsis append or
+additional utility event. Preserve semantic interpretation beyond output templates.
 
 ## NLSS format Templates
 
@@ -157,7 +152,6 @@ This metaskill does not define its own NLSS format template. It relies on the te
 - `frequencies` uses `assets/frequencies/default-template.md` (or grouped template when `--group` is used).
 - `crosstabs` uses `assets/crosstabs/default-template.md` (or grouped template when `--group` is used).
 - `data-explorer` uses `assets/data-explorer/default-template.md` when requested.
-- `metaskill-runner` uses `assets/metaskill-runner/default-template.md` for activation and `assets/metaskill-runner/finalization-template.md` for finalization logging.
 
 ## NLSS format Reporting Guidance
 

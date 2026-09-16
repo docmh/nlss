@@ -587,10 +587,7 @@ check_scale_log "${REVERSE_LOG_PATH}" "${start_count}" reverse=item2 omega=false
 REVERSE_REPORT="${WORKSPACE_DIR}/${REVERSE_LABEL}/report_canonical.md"
 assert_contains "${REVERSE_REPORT}" "Reverse-scored items: item2 (using observed min/max)."
 
-start_count="$(log_count "${REVERSE_LOG_PATH}")"
-run_ok "reverse invalid min" Rscript "${R_SCRIPT_DIR}/scale.R" --csv "${DATA_REVERSE}" --vars item1,item2,item3 --reverse item2 --reverse-min bad --reverse-max 5 --omega FALSE
-check_scale_log "${REVERSE_LOG_PATH}" "${start_count}" reverse=item2 omega=false
-assert_contains "${REVERSE_REPORT}" "Reverse-scored items: item2 (using observed min/max)."
+run_expect_fail "reverse invalid min" "${REVERSE_LOG_PATH}" "Reverse minimum must be a finite number." Rscript "${R_SCRIPT_DIR}/scale.R" --csv "${DATA_REVERSE}" --vars item1,item2,item3 --reverse item2 --reverse-min bad --reverse-max 5 --omega FALSE
 
 NON_NUM_LABEL="$(basename "${DATA_NON_NUMERIC}")"
 NON_NUM_LABEL="${NON_NUM_LABEL%.*}"
@@ -643,8 +640,8 @@ FACT_LABEL="$(basename "${DATA_OMEGA_FACTANAL}")"
 FACT_LABEL="${FACT_LABEL%.*}"
 FACT_LOG_PATH="${WORKSPACE_DIR}/${FACT_LABEL}/analysis_log.jsonl"
 start_count="$(log_count "${FACT_LOG_PATH}")"
-run_ok "omega factanal failed" Rscript "${R_SCRIPT_DIR}/scale.R" --csv "${DATA_OMEGA_FACTANAL}" --vars item1,item2,item3 --omega TRUE
-check_scale_log "${FACT_LOG_PATH}" "${start_count}" omega=true omega_status=factanal_failed
+run_ok "omega singular correlation" Rscript "${R_SCRIPT_DIR}/scale.R" --csv "${DATA_OMEGA_FACTANAL}" --vars item1,item2,item3 --omega TRUE
+check_scale_log "${FACT_LOG_PATH}" "${start_count}" omega=true omega_status=correlation_not_positive_definite
 
 DROP_LABEL="$(basename "${DATA_DROP_EMPTY}")"
 DROP_LABEL="${DROP_LABEL%.*}"
@@ -767,6 +764,6 @@ start_count="$(log_count "${INTERACTIVE_LOG_PATH}")"
 run_ok "interactive" env NLSS_PROMPT_FILE="${INTERACTIVE_INPUT}" Rscript "${R_SCRIPT_DIR}/scale.R" --interactive
 check_scale_log "${INTERACTIVE_LOG_PATH}" "${start_count}" user_prompt="interactive prompt test" omega=false
 
-run_expect_fail "rdata missing df" "${RDATA_LOG_PATH}" "--df is required" Rscript "${R_SCRIPT_DIR}/scale.R" --rdata "${RDATA_PATH}" --vars "${VARS_BASE}"
+run_expect_fail "rdata missing df" "${RDATA_LOG_PATH}" "--df must name a non-empty RData object." Rscript "${R_SCRIPT_DIR}/scale.R" --rdata "${RDATA_PATH}" --vars "${VARS_BASE}"
 
 echo "scale tests: OK" | tee -a "${LOG_FILE}"

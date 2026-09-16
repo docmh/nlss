@@ -1,6 +1,6 @@
 ---
 name: calc
-description: CLI calculator for safe evaluation of numeric expressions (with named constants) to derive analysis parameters; supports plain/json/csv output and optional logging, no dataset required.
+description: Evaluate numeric expressions without a dataset, print plain/json/csv results, and preserve calculation reports and utility audit records; distinguish restricted calculations from explicitly unrestricted R evaluation.
 license: Apache-2.0
 ---
 
@@ -8,102 +8,151 @@ license: Apache-2.0
 
 ## Overview
 
-Evaluate simple numeric expressions from the CLI to derive parameters for subskill flags (for example, alpha adjustments or effect size conversions) without loading a dataset or writing workspace outputs.
-
-## Assistant Researcher Model
-
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
+Use Calc for parameter derivations and quick numerical checks, not as a substitute
+for a statistical analysis. It does not load or activate a dataset. It prints the
+requested result format **and** appends the current project's root Markdown
+protocol, with utility evidence in `.nlss/utility-runs/` and no extra JSONL log.
 
 ## Intent/Triggers
 
-Use this utility when the request is a quick numeric computation rather than a statistical analysis.
+Examples include adjusting alpha, deriving f² from R², converting an effect-size
+parameter, or checking a distribution quantile. The mathematical result does not
+validate the assumptions or substantive interpretation of a chosen formula.
 
-Example prompts:
+## Inputs and Script
 
-- "Compute f² from R² = 0.12."
-- "Adjust alpha for 3 tests."
-- "Convert r = 0.30 to d."
-
-## Inputs
-
-- One or more numeric expressions to evaluate.
-- Optional named constants to reuse across expressions.
-
-## Script: `scripts/R/calc.R`
-
-Run with `Rscript` and base R only. This utility is standalone and does not read datasets or write NLSS format reports.
-
-### Rscript
+Pass expressions and optional named constants to `scripts/R/calc.R`:
 
 ```bash
-Rscript <path to scripts/R/calc.R> --expr "0.05/3"
+Rscript scripts/R/calc.R --expr "0.05/3"
+Rscript scripts/R/calc.R --set "r=0.3|k=3" \
+  --expr "d=2*r/sqrt(1-r^2)|r2=r^2|alpha=0.05/k" --digits 6
+Rscript scripts/R/calc.R --expr "qnorm(0.025)|qnorm(0.975)" --format json
 ```
+
+`|` separates expressions or assignments; it is not an escaped string delimiter.
+Each item must parse as one R statement and return a nonempty, non-complex numeric
+value. `--set` requires `name=expression` items. In `--expr`, assignments are
+optional; unnamed items receive `expr_1`, `expr_2`, etc. Names start with an ASCII
+letter and contain letters, digits, periods or underscores.
+
+Assignments execute in order and become available to later expressions. Reusing
+a name retains the last value in named stdout/JSON results; the audit also keeps
+every expression row in execution order. Constants `pi` and `e` are available
+in restricted mode.
 
 ## Options
 
-- `--expr <text>`: Required. One or more expressions separated by `|` (for example `--expr "0.05/3|sqrt(0.2)"`).
-- `--set <text>`: Optional named constants, `name=value` pairs separated by `|` (for example `--set "r=0.3|k=3"`).
-- `--digits <n>`: Rounding for printed results (default: `defaults.digits` from `scripts/config.yml`).
-- `--format <plain|json|csv>`: Output format (default: `plain`).
-- `--template <ref|path>`: Template path or key for `report_canonical.md` (optional).
-- `--user-prompt <text>`: Original AI user prompt for logging (optional).
-- `--log TRUE/FALSE`: Write `analysis_log.jsonl` (default: `defaults.log`).
-- `--unsafe TRUE/FALSE`: Allow full R evaluation in the global environment (default: `FALSE`).
-- `--interactive`: Prompt for inputs instead of flags.
+Defaults come from `scripts/config.yml`; validated partial overrides use
+`NLSS_CONFIG_PATH`, and CLI flags win.
 
-## Behavior
+- `--expr <text>`: required expressions, separated by `|`.
+- `--set <text>`: optional named constants, separated by `|`.
+- `--digits <n>`: finite integer from 0 through 15; default `defaults.digits`.
+  Rounding affects presentation, not stored numeric values.
+- `--format plain|json|csv`: default `modules.calc.format` (`plain`).
+- `--unsafe TRUE|FALSE`: default `modules.calc.unsafe` (`FALSE`).
+- `--template <ref|path>`: select a template key or file; an explicit missing,
+  directory or malformed template is rejected before evaluating expressions.
+- `--user-prompt <text>`: researcher intent retained in the log/audit context.
+- `--log TRUE|FALSE`: default `defaults.log`; controls optional standalone logging, not current-project evidence or the root protocol.
+- `--interactive`: prompt for these inputs.
+- `--help`: print usage without calculation or publication.
 
-- Evaluates expressions in a restricted environment by default (no file/system access).
-- Supports basic numeric operators and a curated set of math/stat functions, such as `abs`, `sqrt`, `log`, `exp`, `round`, `min`, `max`, `sum`, `mean`, `sd`, `var`, `pnorm`, `qnorm`, `pt`, `qt`, `pf`, `qf`, and constants `pi`, `e`.
-- `--set` variables are available to all expressions; `name=expr` inside `--expr` is also supported.
-- If any expression fails to parse or evaluate, exit with non-zero status and write the error to stderr.
+Unknown or duplicate CLI flags, malformed Booleans, invalid numeric settings and
+failed expressions return a nonzero exit status. A failed computation is not
+published as a successful calculation. Numeric stdout is emitted after successful
+publication; unrestricted expressions can themselves write arbitrary stdout.
 
-## Outputs
+## Restricted and Unrestricted Evaluation
 
-- Prints results to stdout and appends `report_canonical.md` plus `analysis_log.jsonl` in the resolved output directory (workspace root if a manifest is present; otherwise `defaults.output_dir`).
-- `plain` format prints one `name = value` per line; unnamed expressions are labeled `expr_1`, `expr_2`, etc.
-- `json` format prints a JSON object of name/value pairs.
-- `csv` format prints `name,value` rows with a header.
+Restricted mode exposes parentheses; `+ - * / ^ %% %/%`; and
+`abs sqrt log exp round min max sum mean sd var pnorm qnorm pt qt pf qf`.
+Other functions, namespace access, file/system access and general assignment
+operators are not exposed. Explicit `name=expression` items supply numeric
+bindings without exposing general R assignment.
 
-## Examples
+The restriction is a small calculator vocabulary, **not an operating-system
+sandbox for hostile code**. For example, general vector construction with
+`c(...)` remains outside restricted mode.
+
+Use `--unsafe TRUE` only when the researcher explicitly authorizes the particular
+unrestricted expression. It retains full R evaluation in the process global
+environment, including vector calculations, arbitrary functions, packages,
+randomness and side effects:
 
 ```bash
-# Adjust alpha for 3 tests
-Rscript <path to scripts/R/calc.R> --expr "0.05/3"
-
-# Convert r to d and compute r²
-Rscript <path to scripts/R/calc.R> --set "r=0.3" --expr "d=2*r/sqrt(1-r^2)|r2=r^2"
-
-# Plain output without assignments
-Rscript <path to scripts/R/calc.R> --expr "sqrt(0.2)|log(10)"
+Rscript scripts/R/calc.R --expr "pnorm(c(-1,0,1))" --unsafe TRUE --format json
 ```
 
-## Template (YAML)
+Unrestricted evaluation is always marked as not deterministically reproduced
+from the recorded inputs. A manually seeded expression does not authorize
+automatic re-execution of its other effects. Utility publication protects its
+own report/log files, not files, network requests or process state changed by
+unrestricted R. The normal output location is resolved and checked for symlink
+ancestors before expression evaluation; changing the working directory inside
+an expression does not redirect the canonical calculation output.
 
-The default template lives at `assets/calc/default-template.md` and can be overridden via `templates.calc.default` in `scripts/config.yml` or the `--template` flag.
+## Outputs and Audit
 
-### Table Column Keys
+Select `--project` or use the nearest current ancestor marker; there is no
+child/sibling search. Unmarked standalone output uses `defaults.output_dir`. Calc does
+not create a dataset, Parquet copy, active-dataset selection or planning folder.
 
-Available column keys for `table.columns` include:
+- Stdout: `plain` prints `name = value`; `json` prints one JSON object;
+  `csv` prints `name,value` rows. Numeric vectors retain the existing plain/CSV
+  `c(...)` presentation and JSON array representation.
+- `report_canonical.md`: append-only calculation table and narrative.
+- `.nlss/utility-runs/<id>/request.json`: resolved expression/settings evidence,
+  utility identity, code hash and R/environment metadata.
+- `.nlss/utility-runs/<id>/result.json`: successful result values, ordered expression
+  rows, warnings, value shapes and explicit nonfinite statuses.
+- `.nlss/utility-runs/<id>/values.rds`: exact numeric results/constants, preserving
+  vector attributes and the distinctions between NA, NaN and signed infinity.
+- `.nlss/utility-runs/<id>/output.md` and `stdout.txt`: preserved deterministic
+  presentation of this invocation's returned numbers.
+- `.nlss/utility-runs/<id>/template.md`: exact template bytes when a template is used.
 
-`name`, `expression`, `value`.
+Nonfinite values preserve the legacy display (`NA` in plain/CSV, `null` in JSON).
+They are not silently converted into finite estimates; the audit distinguishes
+`NA`, `NaN`, `positive_infinity` and `negative_infinity`. JSON always uses the
+required decimal point, including when unrestricted code changes R's `OutDec`.
 
-### Narrative Row Tokens
+The project publication lock protects canonical/log/manifest projections and
+immutable bundle publication against ordinary failures. Only final published
+directories are successful records. A `.pending-*` directory is diagnostic
+evidence, not success; power-loss recovery and unrestricted external side effects
+are not covered.
 
-Available row tokens include:
+These records are explicitly `kind: utility`, without a fabricated dataset.
+**Neither safe nor unsafe Calc records are accepted by automatic statistical
+replay.** Safe calculations are deterministic given their recorded expressions,
+bindings and execution environment; unsafe calculations make no equivalent
+claim. Preserved arithmetic is evidence for semantic research reporting, not a
+template-constrained final interpretation.
 
-`name`, `expression`, `value`, `full_sentence`.
+Authored expressions are retained exactly in the private audit. Quoted external
+paths and path-bearing comments are masked in canonical Markdown and legacy
+JSONL; apply appropriate access controls to private audit artifacts.
 
-### Additional Tokens
+## Templates
 
-`expression_count` provides the number of evaluated expressions.
+The default is `templates.calc.default`, normally
+`assets/calc/default-template.md`. CLI file/key overrides remain available.
+The selected template is validated and frozen before expression evaluation,
+then archived with its hash. An invalid explicit selection does not silently
+fall back to the default.
 
-## Non-Goals
+`table.columns` supports `name`, `expression` and `value`.
+`narrative.row_template` receives these keys plus `full_sentence`.
+`expression_count` supplies the number of evaluated expression rows. Standard
+note/narrative token controls remain available. A separate calculation-scope
+notice cannot be suppressed by a custom presentation template.
 
-- No dataset loading or workspace parquet handling.
-- Not a subskill or metaskill; use only as a convenience utility.
+## Non-Goals and Dependencies
 
-## Implementation Notes
-
-- Source `scripts/R/lib/config.R` to pull `defaults.digits` and logging defaults.
-- Generate `report_canonical.md` using `assets/calc/default-template.md` unless overridden.
+Calc is a utility, not a subskill, metaskill, dataset loader or model estimator.
+Its numerical functions are base R/`stats`; the shared configuration, formatting
+and audit layer requires `yaml`, `jsonlite` and `digest`.
+It does not provide automatic replay, a general sandbox, or validation of a
+researcher's chosen effect-size conversion or inferential design.

@@ -133,6 +133,14 @@ EDGE_LABEL="${EDGE_LABEL%.*}"
 EDGE_DIR="${WORKSPACE_DIR}/${EDGE_LABEL}"
 EDGE_LOG_PATH="${EDGE_DIR}/analysis_log.jsonl"
 EDGE_REPORT_PATH="${EDGE_DIR}/report_canonical.md"
+# Each format must be imported independently; sharing the CSV dataset name
+# previously let these tests exercise a cached CSV copy instead of the reader.
+EDGE_RDS_LABEL="${EDGE_LABEL}_rds"
+EDGE_RDATA_LABEL="${EDGE_LABEL}_rdata"
+EDGE_SAV_LABEL="${EDGE_LABEL}_sav"
+EDGE_RDS_LOG_PATH="${WORKSPACE_DIR}/${EDGE_RDS_LABEL}/analysis_log.jsonl"
+EDGE_RDATA_LOG_PATH="${WORKSPACE_DIR}/${EDGE_RDATA_LABEL}/analysis_log.jsonl"
+EDGE_SAV_LOG_PATH="${WORKSPACE_DIR}/${EDGE_SAV_LABEL}/analysis_log.jsonl"
 
 EDGE_SEMI_LABEL="$(basename "${EDGE_SEMI_CSV}")"
 EDGE_SEMI_LABEL="${EDGE_SEMI_LABEL%.*}"
@@ -467,33 +475,36 @@ run_ok "descriptive stats edge no header" Rscript "${R_SCRIPT_DIR}/descriptive_s
   "vars=V1,V2" \
   "group=-"
 
-start_count="$(log_count "${EDGE_LOG_PATH}")"
+start_count="$(log_count "${EDGE_RDS_LOG_PATH}")"
 run_ok "descriptive stats edge rds" Rscript "${R_SCRIPT_DIR}/descriptive_stats.R" \
   --rds "${EDGE_RDS_PATH}" \
+  --dataset-name "${EDGE_RDS_LABEL}" \
   --vars val_const,zero_mean
 
-"${PYTHON_BIN}" "${CHECK_SCRIPT}" "${EDGE_LOG_PATH}" "${start_count}" \
+"${PYTHON_BIN}" "${CHECK_SCRIPT}" "${EDGE_RDS_LOG_PATH}" "${start_count}" \
   "vars=val_const,zero_mean" \
   "group=-"
 
-start_count="$(log_count "${EDGE_LOG_PATH}")"
+start_count="$(log_count "${EDGE_RDATA_LOG_PATH}")"
 run_ok "descriptive stats edge rdata" Rscript "${R_SCRIPT_DIR}/descriptive_stats.R" \
   --rdata "${EDGE_RDATA_PATH}" \
   --df "${EDGE_RDATA_DF}" \
+  --dataset-name "${EDGE_RDATA_LABEL}" \
   --vars val_const,zero_mean
 
-"${PYTHON_BIN}" "${CHECK_SCRIPT}" "${EDGE_LOG_PATH}" "${start_count}" \
+"${PYTHON_BIN}" "${CHECK_SCRIPT}" "${EDGE_RDATA_LOG_PATH}" "${start_count}" \
   "vars=val_const,zero_mean" \
   "group=-"
 
 if Rscript -e "quit(status = if (requireNamespace('haven', quietly=TRUE)) 0 else 1)" >/dev/null 2>&1; then
   run_ok "prepare edge sav" Rscript -e "library(haven); df <- read.csv(\"${EDGE_CSV}\", stringsAsFactors = FALSE); write_sav(df, \"${EDGE_SAV_PATH}\")"
-  start_count="$(log_count "${EDGE_LOG_PATH}")"
+  start_count="$(log_count "${EDGE_SAV_LOG_PATH}")"
   run_ok "descriptive stats edge sav" Rscript "${R_SCRIPT_DIR}/descriptive_stats.R" \
     --sav "${EDGE_SAV_PATH}" \
+    --dataset-name "${EDGE_SAV_LABEL}" \
     --vars val_const,zero_mean
 
-  "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${EDGE_LOG_PATH}" "${start_count}" \
+  "${PYTHON_BIN}" "${CHECK_SCRIPT}" "${EDGE_SAV_LOG_PATH}" "${start_count}" \
     "vars=val_const,zero_mean" \
     "group=-"
 else

@@ -47,248 +47,32 @@ compute_missing_summary <- function(values) {
   list(missing_n = missing_n, missing_pct = missing_pct, total_n = total_n, complete_n = complete_n)
 }
 
-compute_f_bounds <- function(f_stat, df1, df2, conf_level) {
-  if (is.na(f_stat) || f_stat <= 0 || is.na(df1) || is.na(df2)) {
-    return(list(lower = NA_real_, upper = NA_real_))
-  }
-  alpha <- 1 - conf_level
-  lower <- f_stat / stats::qf(1 - alpha / 2, df1, df2)
-  upper <- f_stat / stats::qf(alpha / 2, df1, df2)
-  list(lower = lower, upper = upper)
-}
-
+# Test-only authoritative oracles. Do not source NLSS calculation code.
+if (!requireNamespace("psych", quietly = TRUE)) stop("Golden regeneration requires test-only package psych.")
 compute_icc <- function(values, model, type, unit, conf_level) {
-  values <- as.matrix(values)
-  n <- nrow(values)
-  k <- ncol(values)
-  if (n < 2 || k < 2) {
-    return(list(
-      estimate = NA_real_,
-      ci_low = NA_real_,
-      ci_high = NA_real_,
-      f_stat = NA_real_,
-      df1 = NA_real_,
-      df2 = NA_real_,
-      p_value = NA_real_,
-      n_subjects = n,
-      n_raters = k
-    ))
-  }
-
-  grand_mean <- mean(values)
-  row_means <- rowMeans(values)
-  col_means <- colMeans(values)
-
-  if (model == "oneway") {
-    ss_between <- k * sum((row_means - grand_mean)^2)
-    ss_within <- sum((values - row_means)^2)
-    df_between <- n - 1
-    df_within <- n * (k - 1)
-    ms_between <- ss_between / df_between
-    ms_within <- ss_within / df_within
-    if (is.na(ms_within) || ms_within <= 0) {
-      return(list(
-        estimate = NA_real_,
-        ci_low = NA_real_,
-        ci_high = NA_real_,
-        f_stat = NA_real_,
-        df1 = df_between,
-        df2 = df_within,
-        p_value = NA_real_,
-        n_subjects = n,
-        n_raters = k
-      ))
-    }
-    f_stat <- ms_between / ms_within
-    df1 <- df_between
-    df2 <- df_within
-
-    if (unit == "average") {
-      estimate <- (ms_between - ms_within) / ms_between
-      denom_adjust <- 0
-    } else {
-      estimate <- (ms_between - ms_within) / (ms_between + (k - 1) * ms_within)
-      denom_adjust <- (k - 1)
-    }
-
-    bounds <- compute_f_bounds(f_stat, df1, df2, conf_level)
-    if (!is.na(bounds$lower) && !is.na(bounds$upper)) {
-      ci_low <- (bounds$lower - 1) / (bounds$lower + denom_adjust)
-      ci_high <- (bounds$upper - 1) / (bounds$upper + denom_adjust)
-    } else {
-      ci_low <- NA_real_
-      ci_high <- NA_real_
-    }
-
-    p_value <- stats::pf(f_stat, df1, df2, lower.tail = FALSE)
-
-    return(list(
-      estimate = estimate,
-      ci_low = ci_low,
-      ci_high = ci_high,
-      f_stat = f_stat,
-      df1 = df1,
-      df2 = df2,
-      p_value = p_value,
-      n_subjects = n,
-      n_raters = k
-    ))
-  }
-
-  ss_total <- sum((values - grand_mean)^2)
-  ss_rows <- k * sum((row_means - grand_mean)^2)
-  ss_cols <- n * sum((col_means - grand_mean)^2)
-  ss_error <- ss_total - ss_rows - ss_cols
-  if (ss_error < 0) ss_error <- 0
-
-  df_rows <- n - 1
-  df_cols <- k - 1
-  df_error <- df_rows * df_cols
-
-  ms_rows <- ss_rows / df_rows
-  ms_cols <- ss_cols / df_cols
-  ms_error <- ss_error / df_error
-  if (is.na(ms_error) || ms_error <= 0) {
-    return(list(
-      estimate = NA_real_,
-      ci_low = NA_real_,
-      ci_high = NA_real_,
-      f_stat = NA_real_,
-      df1 = df_rows,
-      df2 = df_error,
-      p_value = NA_real_,
-      n_subjects = n,
-      n_raters = k
-    ))
-  }
-
-  f_stat <- ms_rows / ms_error
-  df1 <- df_rows
-  df2 <- df_error
-
-  denom_adjust <- 0
-  if (type == "agreement") {
-    if (unit == "average") {
-      denom_adjust <- (ms_cols - ms_error) / (n * ms_error)
-      estimate <- (ms_rows - ms_error) / (ms_rows + (ms_cols - ms_error) / n)
-    } else {
-      denom_adjust <- (k - 1) + k * (ms_cols - ms_error) / (n * ms_error)
-      estimate <- (ms_rows - ms_error) / (ms_rows + (k - 1) * ms_error + k * (ms_cols - ms_error) / n)
-    }
-  } else {
-    if (unit == "average") {
-      estimate <- (ms_rows - ms_error) / ms_rows
-      denom_adjust <- 0
-    } else {
-      estimate <- (ms_rows - ms_error) / (ms_rows + (k - 1) * ms_error)
-      denom_adjust <- (k - 1)
-    }
-  }
-
-  bounds <- compute_f_bounds(f_stat, df1, df2, conf_level)
-  if (!is.na(bounds$lower) && !is.na(bounds$upper)) {
-    ci_low <- (bounds$lower - 1) / (bounds$lower + denom_adjust)
-    ci_high <- (bounds$upper - 1) / (bounds$upper + denom_adjust)
-  } else {
-    ci_low <- NA_real_
-    ci_high <- NA_real_
-  }
-
-  p_value <- stats::pf(f_stat, df1, df2, lower.tail = FALSE)
-
-  list(
-    estimate = estimate,
-    ci_low = ci_low,
-    ci_high = ci_high,
-    f_stat = f_stat,
-    df1 = df1,
-    df2 = df2,
-    p_value = p_value,
-    n_subjects = n,
-    n_raters = k
-  )
+  result <- suppressWarnings(psych::ICC(as.data.frame(values), lmer = FALSE, alpha = 1 - conf_level))$results
+  selected <- paste0(if (model == "oneway") "ICC1" else if (type == "agreement") "ICC2" else "ICC3", if (unit == "average") "k" else "")
+  row <- result[result$type == selected, , drop = FALSE]
+  list(estimate = row$ICC, ci_low = row[["lower bound"]], ci_high = row[["upper bound"]],
+    f_stat = row$F, df1 = row$df1, df2 = row$df2, p_value = row$p,
+    n_subjects = nrow(values), n_raters = ncol(values))
 }
 
 compute_kappa <- function(x, y, weight = "none") {
-  idx <- complete.cases(x, y)
-  x <- x[idx]
-  y <- y[idx]
-  n <- length(x)
-  if (n == 0) {
-    return(list(estimate = NA_real_, n = 0, n_categories = 0))
-  }
-
-  levels <- sort(unique(c(as.character(x), as.character(y))))
-  fx <- factor(as.character(x), levels = levels)
-  fy <- factor(as.character(y), levels = levels)
-  tab <- table(fx, fy)
-  k <- length(levels)
-  if (k < 2) {
-    return(list(estimate = NA_real_, n = n, n_categories = k))
-  }
-
-  weights <- matrix(0, nrow = k, ncol = k)
-  for (i in seq_len(k)) {
-    for (j in seq_len(k)) {
-      if (weight == "none") {
-        weights[i, j] <- ifelse(i == j, 1, 0)
-      } else if (weight == "linear") {
-        weights[i, j] <- 1 - abs(i - j) / (k - 1)
-      } else {
-        weights[i, j] <- 1 - ((i - j) / (k - 1))^2
-      }
-    }
-  }
-
-  observed <- tab / n
-  expected <- outer(rowSums(observed), colSums(observed))
-  po <- sum(weights * observed)
-  pe <- sum(weights * expected)
-
-  estimate <- ifelse(1 - pe == 0, NA_real_, (po - pe) / (1 - pe))
-
-  list(
-    estimate = estimate,
-    n = n,
-    n_categories = k
-  )
+  valid <- complete.cases(x, y)
+  levels <- if (is.numeric(x) && is.numeric(y)) sort(unique(c(x[valid], y[valid]))) else sort(unique(c(as.character(x[valid]), as.character(y[valid]))))
+  tab <- table(factor(x[valid], levels = levels), factor(y[valid], levels = levels))
+  result <- suppressWarnings(psych::cohen.kappa(tab, n.obs = sum(valid), w.exp = if (weight == "linear") 1 else 2))
+  list(estimate = if (weight == "none") result$kappa else result$weighted.kappa, n = sum(valid), n_categories = length(levels))
 }
 
 compute_test_retest <- function(x, y, method = "pearson", conf_level = 0.95) {
-  idx <- complete.cases(x, y)
-  x <- x[idx]
-  y <- y[idx]
-  n <- length(x)
-  if (n < 3) {
-    return(list(
-      estimate = NA_real_,
-      ci_low = NA_real_,
-      ci_high = NA_real_,
-      p_value = NA_real_,
-      n = n
-    ))
-  }
-
-  test_args <- list(x = x, y = y, method = method)
-  if (method == "spearman") test_args$exact <- FALSE
-  test <- suppressWarnings(do.call(stats::cor.test, test_args))
-  estimate <- as.numeric(test$estimate)
-  p_value <- test$p.value
-
-  estimate <- max(min(estimate, 0.999999), -0.999999)
-  z <- atanh(estimate)
-  se <- 1 / sqrt(n - 3)
-  z_crit <- stats::qnorm(1 - (1 - conf_level) / 2)
-  ci_low <- tanh(z - z_crit * se)
-  ci_high <- tanh(z + z_crit * se)
-
-  list(
-    estimate = estimate,
-    ci_low = ci_low,
-    ci_high = ci_high,
-    p_value = p_value,
-    n = n
-  )
+  valid <- complete.cases(x, y)
+  result <- suppressWarnings(stats::cor.test(x[valid], y[valid], method = method, exact = FALSE, conf.level = conf_level))
+  estimate <- unname(result$estimate)
+  # Spearman retains the documented Fisher-z approximation, not an exact CI.
+  bounds <- if (method == "pearson") result$conf.int[1:2] else tanh(atanh(estimate) + c(-1, 1) * stats::qnorm((1 + conf_level) / 2) / sqrt(sum(valid) - 3))
+  list(estimate = estimate, ci_low = bounds[1], ci_high = bounds[2], p_value = result$p.value, n = sum(valid))
 }
 
 long_to_wide <- function(df_long, id_var, rater_var, score_var) {
@@ -322,7 +106,7 @@ build_icc_row <- function(case_id, wide_data, model, type, unit, conf_level, gro
     format = format,
     group = group_label,
     model = model,
-    type = type,
+    type = if (model == "oneway") "agreement" else type,
     unit = unit,
     weight = "",
     method = "",
@@ -487,10 +271,10 @@ rows[[length(rows) + 1]] <- build_icc_row(
   conf_level = 0.95
 )
 rows[[length(rows) + 1]] <- build_icc_row(
-  "icc_twoway_mixed_consistency_average",
+  "icc_twoway_mixed_agreement_average",
   wide_icc,
   model = "twoway-mixed",
-  type = "consistency",
+  type = "agreement",
   unit = "average",
   conf_level = 0.95
 )
@@ -547,7 +331,7 @@ rows[[length(rows) + 1]] <- build_kappa_row(
   weight = "none"
 )
 
-kappa_group <- df[df$group3 == "A", c("cat_var", "cat_var2")]
+kappa_group <- df[!is.na(df$group3) & df$group3 == "A", c("cat_var", "cat_var2")]
 rows[[length(rows) + 1]] <- build_kappa_row(
   "kappa_none_cat_var_group_A",
   kappa_group,

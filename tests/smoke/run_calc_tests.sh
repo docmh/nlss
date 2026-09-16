@@ -153,6 +153,9 @@ alpha_adj=0.05/3
 
 4
 plain
+
+
+FALSE
 FALSE
 EOF
 
@@ -196,5 +199,14 @@ run_fail "calc invalid set" Rscript "${R_SCRIPT_DIR}/calc.R" --set "1a=3" --expr
 run_fail "calc restricted function" Rscript "${R_SCRIPT_DIR}/calc.R" --expr "c(1,2)"
 run_fail "calc bad format" Rscript "${R_SCRIPT_DIR}/calc.R" --expr "1" --format xml
 run_fail "calc bad digits" Rscript "${R_SCRIPT_DIR}/calc.R" --expr "1" --digits -1
+
+PHASE2_CALC_RUNNER="$(get_tests_value tests.scripts.phase2_calc_r)"
+if [ -z "${PHASE2_CALC_RUNNER}" ]; then
+  echo "Missing tests.scripts.phase2_calc_r registration." >&2
+  exit 1
+fi
+run_ok "calc independent numerical values" Rscript "$(to_abs_path "${PHASE2_CALC_RUNNER}")" \
+  --root "${RUN_ROOT}" --keep "${NLSS_KEEP_RUNS:-0}" \
+  --match '^calc_(operators_parentheses_and_constants_independent|math_functions_independent|distribution_functions_independent|unsafe_vector_statistics_independent)$'
 
 echo "[DONE] calc tests finished" | tee -a "${LOG_FILE}"

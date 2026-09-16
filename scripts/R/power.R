@@ -4,1316 +4,571 @@
 bootstrap_dir <- {
   cmd_args <- commandArgs(trailingOnly = FALSE)
   file_arg <- sub("^--file=", "", cmd_args[grep("^--file=", cmd_args)])
-  if (length(file_arg) > 0 && nzchar(file_arg[1])) {
-    dirname(normalizePath(file_arg[1], winslash = "/", mustWork = FALSE))
-  } else {
-    getwd()
-  }
+  if (length(file_arg) && nzchar(file_arg[1])) dirname(normalizePath(file_arg[1], winslash = "/", mustWork = FALSE)) else getwd()
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-render_output_path <- get("render_output_path", mode = "function")
-source_lib <- get("source_lib", mode = "function")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
 
 print_usage <- function() {
-  cat("Power analysis (pwr + semPower)\n")
-  cat("\n")
-  cat("Usage:\n")
-  cat("  Rscript power.R --csv data.csv --analysis ttest --mode apriori --t-type two-sample --effect-size 0.5 --power 0.8\n")
-  cat("  Rscript power.R --parquet data.parquet --analysis anova --mode sensitivity --groups 3 --n-per-group 30 --power 0.8\n")
-  cat("  Rscript power.R --parquet data.parquet --analysis correlation --mode posthoc --effect-size 0.3 --n 120\n")
-  cat("  Rscript power.R --parquet data.parquet --analysis regression --mode apriori --effect-size 0.15 --effect-metric f2 --u 3\n")
-  cat("  Rscript power.R --parquet data.parquet --analysis sem --mode apriori --df 120 --rmsea0 0.05 --rmsea1 0.08 --power 0.8\n")
-  cat("  Rscript power.R --interactive\n")
-  cat("\n")
-  cat("Options:\n")
-  cat("  --csv PATH             CSV input file\n")
-  cat("  --sav PATH             SPSS .sav input file\n")
-  cat("  --sep VALUE            CSV separator (default: ,)\n")
-  cat("  --header TRUE/FALSE    CSV header (default: TRUE)\n")
-  cat("  --rds PATH             RDS input file (data frame)\n")
-  cat("  --rdata PATH           RData input file\n")
-  cat("  --parquet PATH         Parquet input file\n")
-  cat("  --df NAME              Data frame object name in RData\n")
-  cat("  --analysis TYPE         ttest/anova/correlation/regression/sem (default from config)\n")
-  cat("  --mode TYPE            apriori/posthoc/sensitivity (default from config)\n")
-  cat("  --effect-size VALUE    Effect size (optional if --estimate-effect TRUE)\n")
-  cat("  --effect-metric TYPE   d/f/f2/r/eta2/r2/rmsea (default from config)\n")
-  cat("  --alpha VALUE          Alpha level (default from config)\n")
-  cat("  --power VALUE          Target power (default from config)\n")
-  cat("  --alternative TYPE     two.sided/greater/less (default from config)\n")
-  cat("  --t-type TYPE          one-sample/two-sample/paired (ttest only)\n")
-  cat("  --ratio VALUE          Group size ratio n2/n1 (ttest two-sample; default from config)\n")
-  cat("  --mu VALUE             One-sample mean under H0 (default from config)\n")
-  cat("  --n VALUE              Total sample size (posthoc/sensitivity)\n")
-  cat("  --n-total VALUE        Alias for --n\n")
-  cat("  --n-per-group VALUE    Per-group sample size (anova/ttest)\n")
-  cat("  --n1 VALUE             Sample size for group 1 (ttest two-sample)\n")
-  cat("  --n2 VALUE             Sample size for group 2 (ttest two-sample)\n")
-  cat("  --groups VALUE         Number of groups (anova)\n")
-  cat("  --u VALUE              Number of predictors (regression)\n")
-  cat("  --rmsea0 VALUE          RMSEA under H0 (sem)\n")
-  cat("  --rmsea1 VALUE          RMSEA under H1 (sem)\n")
-  cat("  --estimate-effect TRUE/FALSE  Estimate effect from data (default from config)\n")
-  cat("  --vars LIST            Variables for ttest effect estimation\n")
-  cat("  --group NAME           Grouping variable (ttest/anova estimation)\n")
-  cat("  --between NAME         Alias for --group (anova estimation)\n")
-  cat("  --x NAME               X variable (paired/correlation estimation)\n")
-  cat("  --y NAME               Y variable (paired/correlation estimation)\n")
-  cat("  --dv NAME              Dependent variable (regression/anova estimation)\n")
-  cat("  --ivs LIST             Predictors (regression estimation)\n")
-  cat("  --digits N             Rounding digits (default: 2)\n")
-  cat("  --template REF         Template path or template key (optional)\n")
-  cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
-  cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
-  cat("  --interactive          Prompt for inputs\n")
-  cat("  --help                 Show this help\n")
+  cat(paste(c(
+    "Power analysis and auditable study planning (pwr + semPower)", "",
+    "Rscript power.R --analysis ttest --effect-size 0.5 --power 0.8",
+    "Rscript power.R --analysis anova --mode sensitivity --groups 3 --n-per-group 30",
+    "Rscript power.R --analysis sem --sem-df 120 --rmsea0 0.05 --rmsea1 0.08",
+    "Rscript power.R --sav survey.sav --analysis correlation --estimate-effect TRUE --x x --y y", "",
+    "--analysis ttest/anova/correlation/regression/sem; --mode apriori/posthoc/sensitivity",
+    "--planning TRUE/FALSE: force parameter-only planning / dataset-backed execution.",
+    "Without a source or --dataset-name, parameter-only calculations use project/planning.",
+    "--csv/--sav/--rds/--rdata/--parquet PATH; --df NAME selects an RData object.",
+    "--sem-df NUMBER: SEM degrees of freedom; numeric --df remains an alias without --rdata.",
+    "--effect-size NUMBER; --effect-metric auto/d/f/f2/r/eta2/r2/rmsea; --effect-basis TEXT",
+    "--alpha NUMBER; --power NUMBER; --alternative two.sided/greater/less",
+    "--t-type one-sample/two-sample/paired; --ratio n2/n1; --mu NUMBER",
+    "--n/--n-total NUMBER; --n-per-group NUMBER; --n1 NUMBER; --n2 NUMBER",
+    "--groups NUMBER (ANOVA); --u NUMBER (regression numerator df)",
+    "--rmsea0 NUMBER; --rmsea1 NUMBER (SEM null/alternative RMSEA)",
+    "--estimate-effect TRUE/FALSE; --vars LIST; --group/--between NAME; --x NAME; --y NAME; --dv NAME; --ivs LIST",
+    "--sep VALUE; --header TRUE/FALSE; --csv-decimal/--csv-encoding/--csv-col-types/--csv-na-values VALUE",
+    "--dataset-name NAME; --import-action verify/new-version; --digits NUMBER; --template REF",
+    "--log TRUE/FALSE (legacy JSONL only); --user-prompt TEXT; --interactive; --help",
+    "Defaults: scripts/config.yml; validated overrides: NLSS_CONFIG_PATH."
+  ), collapse = "\n"), "\n")
 }
 
 interactive_options <- function() {
-  cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
-  input_type <- tolower(input_type)
+  input <- tolower(prompt("Input type (planning/csv/sav/rds/rdata/parquet)", "planning"))
   opts <- list()
-
-  if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
-  } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
-  } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
-  } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
-  } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
-  } else {
-    stop("Unsupported input type.")
-  }
-
-  analysis_default <- resolve_config_value("modules.power.analysis", "ttest")
-  mode_default <- resolve_config_value("modules.power.mode", "apriori")
-  effect_metric_default <- resolve_config_value("modules.power.effect_metric", "auto")
-  alpha_default <- resolve_config_value("modules.power.alpha", 0.05)
-  power_default <- resolve_config_value("modules.power.power", 0.8)
-  alt_default <- resolve_config_value("modules.power.alternative", "two.sided")
-  t_type_default <- resolve_config_value("modules.power.t_type", "two-sample")
-  ratio_default <- resolve_config_value("modules.power.ratio", 1)
-  mu_default <- resolve_config_value("modules.power.mu", 0)
-  groups_default <- resolve_config_value("modules.power.groups", 2)
-  u_default <- resolve_config_value("modules.power.u", 1)
-  rmsea0_default <- resolve_config_value("modules.power.rmsea0", 0.05)
-  rmsea1_default <- resolve_config_value("modules.power.rmsea1", 0.08)
-  estimate_default <- resolve_config_value("modules.power.estimate_effect", FALSE)
-  digits_default <- resolve_config_value("defaults.digits", 2)
-
-  opts$analysis <- resolve_prompt("Analysis (ttest/anova/correlation/regression/sem)", analysis_default)
-  opts$mode <- resolve_prompt("Mode (apriori/posthoc/sensitivity)", mode_default)
-  opts$`effect-metric` <- resolve_prompt("Effect metric (d/f/f2/r/eta2/r2/rmsea)", effect_metric_default)
-  opts$`effect-size` <- resolve_prompt("Effect size (optional)", "")
-  opts$alpha <- resolve_prompt("Alpha", as.character(alpha_default))
-  opts$power <- resolve_prompt("Power", as.character(power_default))
-  opts$alternative <- resolve_prompt("Alternative (two.sided/greater/less)", alt_default)
-  opts$`t-type` <- resolve_prompt("t-test type (one-sample/two-sample/paired)", t_type_default)
-  opts$ratio <- resolve_prompt("Group size ratio n2/n1", as.character(ratio_default))
-  opts$mu <- resolve_prompt("One-sample mu", as.character(mu_default))
-  opts$n <- resolve_prompt("Total sample size (optional)", "")
-  opts$`n-per-group` <- resolve_prompt("Sample size per group (optional)", "")
-  opts$n1 <- resolve_prompt("n1 (optional)", "")
-  opts$n2 <- resolve_prompt("n2 (optional)", "")
-  opts$groups <- resolve_prompt("Groups (k; optional)", as.character(groups_default))
-  opts$u <- resolve_prompt("Predictors (u; optional)", as.character(u_default))
-  opts$df <- resolve_prompt("SEM df (optional)", "")
-  opts$rmsea0 <- resolve_prompt("RMSEA0 (optional)", as.character(rmsea0_default))
-  opts$rmsea1 <- resolve_prompt("RMSEA1 (optional)", as.character(rmsea1_default))
-  opts$`estimate-effect` <- resolve_prompt("Estimate effect TRUE/FALSE", ifelse(isTRUE(estimate_default), "TRUE", "FALSE"))
-  opts$vars <- resolve_prompt("Variables for t-test estimation (comma-separated)", "")
-  opts$group <- resolve_prompt("Grouping variable (optional)", "")
-  opts$between <- resolve_prompt("Between-group variable (optional)", "")
-  opts$x <- resolve_prompt("X variable (optional)", "")
-  opts$y <- resolve_prompt("Y variable (optional)", "")
-  opts$dv <- resolve_prompt("Dependent variable (optional)", "")
-  opts$ivs <- resolve_prompt("Predictors (comma-separated; optional)", "")
-  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
-  opts
-}
-
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
+  if (input == "planning") opts$planning <- TRUE else {
+    if (!input %in% c("csv", "sav", "rds", "rdata", "parquet")) stop("Unsupported input type.")
+    opts[[input]] <- prompt("Input path")
+    if (input == "rdata") opts$df <- prompt("Data frame object name")
+    if (input == "csv") {
+      opts$sep <- prompt("Separator", get_config_value("defaults.csv.sep"))
+      opts$header <- prompt("Header TRUE/FALSE", get_config_value("defaults.csv.header"))
     }
-    i <- i + 1
   }
-  opts
+  ask_default <- function(key) prompt(key, get_config_value(paste0("modules.power.", gsub("-", "_", key))))
+  for (key in c("analysis", "mode", "effect-metric", "alpha")) opts[[key]] <- ask_default(key)
+  analysis <- tolower(opts$analysis)
+  if (!analysis %in% c("ttest", "anova", "correlation", "regression", "sem")) stop("Interactive analysis must be ttest/anova/correlation/regression/sem.")
+  mode <- tolower(opts$mode)
+  if (!mode %in% c("apriori", "posthoc", "sensitivity")) stop("Interactive mode must be apriori/posthoc/sensitivity.")
+  if (mode != "posthoc") opts$power <- ask_default("power")
+  if (analysis %in% c("ttest", "correlation")) opts$alternative <- ask_default("alternative")
+  if (analysis == "ttest") {
+    opts[["t-type"]] <- ask_default("t-type")
+    if (!opts[["t-type"]] %in% c("one-sample", "two-sample", "paired")) stop("Interactive t-type must be one-sample/two-sample/paired.")
+    if (opts[["t-type"]] == "two-sample") opts$ratio <- ask_default("ratio")
+    if (opts[["t-type"]] == "one-sample") opts$mu <- ask_default("mu")
+  }
+  opts[["estimate-effect"]] <- if (input != "planning" && analysis != "sem") ask_default("estimate-effect") else FALSE
+  estimate <- parse_bool(opts[["estimate-effect"]])
+  if (analysis == "anova" && !estimate) opts$groups <- ask_default("groups")
+  if (analysis == "regression" && !estimate) opts$u <- ask_default("u")
+  if (analysis == "sem") {
+    opts[["sem-df"]] <- prompt("sem-df")
+    opts$rmsea0 <- ask_default("rmsea0")
+    if (mode != "sensitivity") opts$rmsea1 <- ask_default("rmsea1")
+  }
+  if (!estimate && analysis != "sem" && mode != "sensitivity") opts[["effect-size"]] <- prompt("effect-size")
+  opts[["effect-basis"]] <- prompt("effect-basis (optional)", "")
+  if (mode != "apriori") {
+    sizes <- c("n", if (analysis %in% c("ttest", "anova")) "n-per-group",
+      if (analysis == "ttest" && opts[["t-type"]] == "two-sample") c("n1", "n2"))
+    for (key in sizes) opts[[key]] <- prompt(paste0(key, " (optional)"), "")
+  }
+  if (estimate) {
+    roles <- switch(analysis, ttest = switch(opts[["t-type"]], `one-sample` = "vars", `two-sample` = c("vars", "group"), paired = c("x", "y")),
+      anova = c("dv", "group"), correlation = c("x", "y"), regression = c("dv", "ivs"))
+    for (key in roles) opts[[key]] <- prompt(key)
+  }
+  for (key in c("template", "user-prompt")) opts[[key]] <- prompt(paste0(key, " (optional)"), "")
+  opts$digits <- prompt("digits", get_config_value("defaults.digits"))
+  opts$log <- prompt("log TRUE/FALSE", get_config_value("defaults.log"))
+  opts[vapply(opts, function(x) length(x) == 1L && nzchar(as.character(x)), logical(1))]
 }
 
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
+power_number <- function(value, name, default = NA_real_, integer = FALSE, minimum = -Inf, maximum = Inf) {
   if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
+  number <- suppressWarnings(as.numeric(value))
+  if (is.logical(value) || length(number) != 1L || !is.finite(number) ||
+      number < minimum || number > maximum || (integer && number != floor(number))) {
+    stop("--", name, " must be a finite ", if (integer) "integer" else "number", " in [", minimum, ", ", maximum, "].")
+  }
+  number
 }
 
-resolve_parse_list <- function(value, sep = ",") {
-  if (exists("parse_list", mode = "function")) {
-    return(get("parse_list", mode = "function")(value, sep = sep))
-  }
-  if (is.null(value) || is.logical(value)) return(character(0))
-  value <- as.character(value)
-  if (value == "") return(character(0))
-  trimws(strsplit(value, sep, fixed = TRUE)[[1]])
+power_choice <- function(value, name, aliases) {
+  value <- tolower(as.character(value))
+  match <- names(aliases)[vapply(aliases, function(x) length(value) == 1L && value %in% x, logical(1))]
+  if (!length(match)) stop("Unsupported --", name, ": ", paste(value, collapse = ", "))
+  match[1]
 }
 
-is_scalar_number <- function(value) {
-  is.numeric(value) && length(value) == 1 && !is.na(value) && is.finite(value)
+power_effect_metric <- function(value, analysis) {
+  if (tolower(value) == "auto") return(c(ttest = "d", anova = "f", correlation = "r", regression = "f2", sem = "rmsea")[[analysis]])
+  power_choice(value, "effect-metric", list(d = c("d", "cohen_d", "cohen-d"), f = c("f", "cohen_f"),
+    f2 = c("f2", "f^2", "cohen_f2", "cohen-f2"), r = c("r", "rho"), eta2 = c("eta2", "eta^2", "eta", "etasq"),
+    r2 = c("r2", "r^2"), rmsea = "rmsea"))
 }
 
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
+power_effect_estimate <- function(df, analysis, t_type, vars, group, x, y, dv, ivs, mu) {
+  selected <- switch(analysis, ttest = if (t_type == "paired") c(x, y) else c(vars, if (t_type == "two-sample") group),
+    correlation = c(x, y), anova = c(dv, group), regression = c(dv, ivs))
+  expected <- switch(analysis, ttest = if (t_type == "one-sample") 1L else 2L, correlation = 2L, anova = 2L, regression = length(ivs) + 1L)
+  if (length(selected) != expected || any(!nzchar(selected)) || anyDuplicated(selected) ||
+      (analysis == "regression" && !length(ivs))) stop("Provide distinct, complete variable roles for effect estimation.")
+  absent <- setdiff(selected, names(df))
+  if (length(absent)) stop("Effect-estimation variables not found: ", paste(absent, collapse = ", "))
+  numeric_vars <- switch(analysis, ttest = if (t_type == "paired") c(x, y) else vars, correlation = c(x, y), anova = dv, regression = dv)
+  for (v in numeric_vars) if (!is.numeric(df[[v]])) stop("Effect estimation requires a numeric variable: ", v, ". Labels do not define its statistical role.")
+  data <- df[, selected, drop = FALSE]
+  for (v in selected) {
+    if (is.numeric(data[[v]]) && any(!is.finite(data[[v]]) & !is.na(data[[v]]))) stop("Non-finite values in effect-estimation variable: ", v)
   }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-resolve_get_workspace_out_dir <- function(df = NULL, label = NULL) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df, label = label))
-  }
-  "./outputs/tmp"
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  list(prompt = "", commands = character(0))
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  if (is.null(default_relative) || !nzchar(default_relative)) return(NULL)
-  if (exists("get_assets_dir", mode = "function")) {
-    return(file.path(get("get_assets_dir", mode = "function")(), default_relative))
-  }
-  file.path(getwd(), "nlss", "assets", default_relative)
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
+  keep <- complete.cases(data)
+  data <- droplevels(data[keep, , drop = FALSE])
+  if (nrow(data) < 2L) stop("Not enough complete cases for effect estimation.")
+  audit <- list(included_rows = which(keep), excluded_rows = which(!keep), source_n = nrow(df), n = nrow(data),
+    variables = selected, variable_types = lapply(df[selected], class), labels = resolve_label_metadata(df),
+    missing = "joint complete cases over all selected roles; non-finite nonmissing values rejected")
+  if (analysis == "ttest") {
+    if (t_type == "two-sample") {
+      g <- droplevels(as.factor(data[[group]]))
+      if (nlevels(g) != 2L) stop("Grouping variable must have exactly two observed levels.")
+      values <- split(data[[vars]], g)
+      sizes <- lengths(values)
+      if (any(sizes < 2L)) stop("At least two complete cases are required per group.")
+      means <- vapply(values, mean, numeric(1)); sds <- vapply(values, sd, numeric(1))
+      denominator <- sqrt(sum((sizes - 1) * sds^2) / (sum(sizes) - 2))
+      effect <- (means[1] - means[2]) / denominator
+      audit <- c(audit, list(n1 = unname(sizes[1]), n2 = unname(sizes[2]), groups = levels(g),
+        group_rows = lapply(levels(g), function(level) which(keep)[g == level]), means = means, sds = sds,
+        denominator = denominator, definition = "(mean(group1) - mean(group2)) / pooled within-group SD"))
+    } else {
+      values <- if (t_type == "paired") data[[x]] - data[[y]] else data[[vars]] - mu
+      denominator <- sd(values)
+      effect <- mean(values) / denominator
+      audit <- c(audit, list(mean_difference = mean(values), denominator = denominator,
+        definition = if (t_type == "paired") "d_z = mean(x - y) / SD(x - y); n counts pairs" else "d = (mean(x) - mu) / SD(x)"))
     }
-    NULL
+    if (!is.finite(effect)) stop("Effect size unavailable: the relevant standard deviation is zero or non-finite.")
+    return(c(audit, list(metric = "d", value = unname(effect), d = unname(effect))))
   }
-})
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
+  if (analysis == "correlation") {
+    if (nrow(data) < 4L) stop("At least four complete pairs are required for pwr correlation power.")
+    effect <- cor(data[[x]], data[[y]], method = "pearson")
+    if (!is.finite(effect) || abs(effect) >= 1) stop("Correlation effect must be finite and strictly between -1 and 1.")
+    return(c(audit, list(metric = "r", value = effect, r = effect, definition = "Pearson product-moment correlation")))
   }
-  default_specs
+  # Safe temporary names avoid interpreting user variable names as formula syntax.
+  model_data <- data.frame(response = data[[dv]])
+  if (analysis == "anova") {
+    model_data$group <- droplevels(as.factor(data[[group]]))
+    if (nlevels(model_data$group) < 2L) stop("ANOVA effect estimation requires at least two observed groups.")
+    model <- lm(response ~ group, data = model_data)
+    audit$groups <- nlevels(model_data$group)
+    audit$group_levels <- levels(model_data$group)
+    audit$group_counts <- as.list(table(model_data$group))
+    audit$group_rows <- lapply(levels(model_data$group), function(level) which(keep)[model_data$group == level])
+  } else {
+    for (i in seq_along(ivs)) model_data[[paste0("predictor", i)]] <- data[[ivs[i]]]
+    model <- lm(response ~ ., data = model_data)
+    audit$predictor_mapping <- setNames(ivs, paste0("predictor", seq_along(ivs)))
+    audit$factor_levels <- model$xlevels
+    audit$contrasts <- model$contrasts
+  }
+  if (df.residual(model) <= 0 || model$rank < 2L) stop("Effect-estimation model needs nonzero model and residual degrees of freedom.")
+  r2 <- summary(model)$r.squared
+  if (!is.finite(r2) || r2 < 0 || r2 >= 1) stop("Effect-estimation R-squared must be in [0, 1).")
+  audit$model_rank <- model$rank
+  audit$u <- model$rank - 1L
+  audit$residual_df <- df.residual(model)
+  audit$aliased_coefficients <- names(coef(model))[is.na(coef(model))]
+  audit$model_matrix <- model.matrix(model)
+  audit$coefficients <- coef(model)
+  if (analysis == "anova") return(c(audit, list(metric = "eta2", value = r2, eta2 = r2, f = sqrt(r2 / (1 - r2)),
+    definition = "one-way eta-squared = between-group SS / total SS; converted to Cohen f for balanced-design planning")))
+  c(audit, list(metric = "r2", value = r2, r2 = r2, f2 = r2 / (1 - r2),
+    definition = "omnibus intercept-only versus full-model R-squared; f-squared = R-squared / (1 - R-squared), u = fitted rank minus one"))
 }
 
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
+power_n_root <- function(fun, target, lower = 2, upper_limit = 1e9) {
+  low_power <- fun(lower)
+  if (!is.finite(low_power)) stop("Power is non-finite at the minimum admissible sample size.")
+  if (low_power >= target) return(lower)
+  upper <- max(4, 2 * lower)
+  repeat {
+    upper_power <- fun(upper)
+    if (!is.finite(upper_power)) stop("Power is non-finite while bracketing sample size.")
+    if (upper_power >= target) break
+    if (upper >= upper_limit) stop("Target power cannot be attained within the numerical sample-size bound (1e9). Check effect direction and assumptions.")
+    upper <- min(upper_limit, 2 * upper)
   }
-  list(columns = columns, rows = rows)
+  uniroot(function(n) fun(n) - target, c(lower, upper), tol = 1e-8)$root
 }
 
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
+power_sem_result <- function(n, df, alpha, rmsea0, rmsea1, lower_tail = rmsea1 < rmsea0) {
+  # semPower's public RMSEA interface tests exact fit. Retain that package result,
+  # but use the requested noncentral null to calculate a close/not-close-fit test.
+  # MacCallum et al. (1996); CRAN semTools::findRMSEApower documents both tails.
+  reference <- if (rmsea1 > 0) semPower::semPower.postHoc(effect = rmsea1, effect.measure = "RMSEA", alpha = alpha, N = n, df = df) else NULL
+  ncp1 <- if (is.null(reference)) 0 else reference$ncp
+  ncp0 <- (n - 1) * df * rmsea0^2
+  critical <- qchisq(alpha, df = df, ncp = ncp0, lower.tail = lower_tail)
+  list(power = pchisq(critical, df = df, ncp = ncp1, lower.tail = lower_tail), N = n, df = df,
+    rmsea0 = rmsea0, rmsea1 = rmsea1, null_ncp = ncp0, alternative_ncp = ncp1, critical_value = critical,
+    tail = if (lower_tail) "lower" else "upper", exact_fit_reference = if (is.null(reference)) NULL else unclass(reference),
+    exact_fit_reference_status = if (is.null(reference)) "RMSEA=0 boundary; noncentrality is exactly zero" else "semPower exact-fit reference; not the requested noncentral-null power")
 }
 
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
-  as.character(value)
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-parse_numeric <- function(value, default = NA_real_) {
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(default)
-  if (!nzchar(as.character(value))) return(default)
-  num <- suppressWarnings(as.numeric(value))
-  if (is.na(num)) return(default)
-  num
-}
-
-format_num <- function(value, digits) {
-  if (is.na(value)) return("")
+format_power_number <- function(value, digits) {
+  if (length(value) != 1L || is.na(value)) return("")
   format(round(value, digits), nsmall = digits, trim = TRUE)
 }
 
-format_stat <- function(value, digits) {
-  if (is.na(value)) return("")
-  txt <- format(round(value, digits), nsmall = digits, trim = TRUE)
-  sub("^(-?)0", "\\1", txt)
-}
-
-format_int <- function(value) {
-  if (is.na(value)) return("")
-  as.character(as.integer(round(value)))
-}
-
-normalize_analysis <- function(value, default = "ttest") {
-  val <- if (!is.null(value) && nzchar(value)) value else default
-  val <- tolower(val)
-  if (val %in% c("t", "ttest", "t-test", "t_test")) return("ttest")
-  if (val %in% c("anova", "aov")) return("anova")
-  if (val %in% c("correlation", "cor", "corr")) return("correlation")
-  if (val %in% c("regression", "regress", "lm")) return("regression")
-  if (val %in% c("sem", "cfa")) return("sem")
-  default
-}
-
-normalize_mode <- function(value, default = "apriori") {
-  val <- if (!is.null(value) && nzchar(value)) value else default
-  val <- tolower(val)
-  if (val %in% c("apriori", "a-priori", "a_priori", "a priori")) return("apriori")
-  if (val %in% c("posthoc", "post-hoc", "post_hoc", "achieved")) return("posthoc")
-  if (val %in% c("sensitivity", "detectable")) return("sensitivity")
-  default
-}
-
-normalize_alternative <- function(value, default = "two.sided") {
-  val <- if (!is.null(value) && nzchar(value)) value else default
-  val <- tolower(val)
-  if (val %in% c("two.sided", "two-sided", "two")) return("two.sided")
-  if (val %in% c("greater", "less")) return(val)
-  default
-}
-
-normalize_t_type <- function(value, default = "two-sample") {
-  val <- if (!is.null(value) && nzchar(value)) value else default
-  val <- tolower(val)
-  if (val %in% c("one-sample", "one_sample", "onesample")) return("one-sample")
-  if (val %in% c("paired", "pair")) return("paired")
-  if (val %in% c("two-sample", "two_sample", "independent", "between")) return("two-sample")
-  default
-}
-
-normalize_effect_metric <- function(value, analysis, default = "auto") {
-  val <- if (!is.null(value) && nzchar(value)) value else default
-  val <- tolower(val)
-  if (val %in% c("auto", "")) {
-    if (analysis == "ttest") return("d")
-    if (analysis == "anova") return("f")
-    if (analysis == "correlation") return("r")
-    if (analysis == "regression") return("f2")
-    if (analysis == "sem") return("rmsea")
-  }
-  if (val %in% c("d", "cohen_d", "cohen-d")) return("d")
-  if (val %in% c("f", "cohen_f")) return("f")
-  if (val %in% c("f2", "f^2", "cohen_f2", "cohen-f2")) return("f2")
-  if (val %in% c("r", "rho")) return("r")
-  if (val %in% c("eta2", "eta^2", "eta", "etasq")) return("eta2")
-  if (val %in% c("r2", "r^2")) return("r2")
-  if (val %in% c("rmsea")) return("rmsea")
-  val
-}
-
-format_effect_metric_label <- function(value) {
-  if (is.null(value) || !nzchar(as.character(value))) return("")
-  val <- tolower(as.character(value))
-  if (val == "f2") return("f²")
-  if (val == "r2") return("r²")
-  if (val == "eta2") return("eta²")
-  if (val == "rmsea") return("RMSEA")
-  if (val == "d") return("d")
-  if (val == "f") return("f")
-  if (val == "r") return("r")
-  as.character(value)
-}
-
-emit_input_issue <- function(out_dir, opts, message, details = list(), status = "invalid_input") {
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
-      out_dir,
-      module = "power",
-      prompt = ctx$prompt,
-      commands = ctx$commands,
-      results = list(
-        status = status,
-        message = message,
-        details = details
-      ),
-      options = details,
-      user_prompt = resolve_get_user_prompt(opts)
-    )
-  }
-  stop(message)
-}
-
-estimate_ttest_effect <- function(df, t_type, var, group_var, x_var, y_var, mu) {
-  if (t_type == "one-sample") {
-    if (!nzchar(var) || !var %in% names(df)) stop("Variable not found for one-sample t-test.")
-    vals <- df[[var]]
-    vals <- vals[is.finite(vals)]
-    if (length(vals) < 2) stop("Not enough data for one-sample effect size.")
-    m <- mean(vals)
-    s <- sd(vals)
-    if (is.na(s) || s == 0) stop("Standard deviation is zero; cannot estimate effect size.")
-    d <- (m - mu) / s
-    list(d = d, n = length(vals), mean = m, sd = s)
-  } else if (t_type == "paired") {
-    if (!nzchar(x_var) || !nzchar(y_var)) stop("Paired t-test requires --x and --y.")
-    if (!x_var %in% names(df) || !y_var %in% names(df)) stop("Paired variables not found.")
-    x <- df[[x_var]]
-    y <- df[[y_var]]
-    idx <- is.finite(x) & is.finite(y)
-    if (sum(idx) < 2) stop("Not enough paired data for effect size.")
-    diffs <- x[idx] - y[idx]
-    m <- mean(diffs)
-    s <- sd(diffs)
-    if (is.na(s) || s == 0) stop("Standard deviation is zero; cannot estimate effect size.")
-    d <- m / s
-    list(d = d, n = sum(idx), mean = m, sd = s)
-  } else {
-    if (!nzchar(var) || !var %in% names(df)) stop("Variable not found for independent t-test.")
-    if (!nzchar(group_var) || !group_var %in% names(df)) stop("Grouping variable not found for independent t-test.")
-    vals <- df[[var]]
-    groups <- df[[group_var]]
-    idx <- is.finite(vals) & !is.na(groups)
-    vals <- vals[idx]
-    groups <- as.factor(groups[idx])
-    levels <- levels(groups)
-    if (length(levels) != 2) stop("Grouping variable must have exactly two levels.")
-    g1 <- levels[1]
-    g2 <- levels[2]
-    v1 <- vals[groups == g1]
-    v2 <- vals[groups == g2]
-    if (length(v1) < 2 || length(v2) < 2) stop("Not enough data per group for effect size.")
-    m1 <- mean(v1)
-    m2 <- mean(v2)
-    sd1 <- sd(v1)
-    sd2 <- sd(v2)
-    n1 <- length(v1)
-    n2 <- length(v2)
-    pooled <- sqrt(((n1 - 1) * sd1^2 + (n2 - 1) * sd2^2) / (n1 + n2 - 2))
-    if (is.na(pooled) || pooled == 0) stop("Pooled SD is zero; cannot estimate effect size.")
-    d <- (m1 - m2) / pooled
-    list(d = d, n1 = n1, n2 = n2, mean1 = m1, mean2 = m2, sd1 = sd1, sd2 = sd2)
-  }
-}
-
-estimate_correlation_effect <- function(df, x_var, y_var) {
-  if (!nzchar(x_var) || !nzchar(y_var)) stop("Correlation estimation requires --x and --y.")
-  if (!x_var %in% names(df) || !y_var %in% names(df)) stop("Correlation variables not found.")
-  x <- df[[x_var]]
-  y <- df[[y_var]]
-  idx <- is.finite(x) & is.finite(y)
-  if (sum(idx) < 3) stop("Not enough data for correlation effect size.")
-  r <- suppressWarnings(cor(x[idx], y[idx]))
-  list(r = r, n = sum(idx))
-}
-
-estimate_regression_effect <- function(df, dv, ivs) {
-  if (!nzchar(dv) || !dv %in% names(df)) stop("Dependent variable not found for regression.")
-  if (length(ivs) == 0) stop("Predictors required for regression effect estimation.")
-  missing <- setdiff(ivs, names(df))
-  if (length(missing) > 0) stop(paste("Predictors not found:", paste(missing, collapse = ", ")))
-  cols <- c(dv, ivs)
-  data <- df[, cols, drop = FALSE]
-  data <- data[complete.cases(data), , drop = FALSE]
-  if (nrow(data) < length(ivs) + 2) stop("Not enough data for regression effect size.")
-  formula <- as.formula(paste(dv, "~", paste(ivs, collapse = " + ")))
-  model <- lm(formula, data = data)
-  r2 <- summary(model)$r.squared
-  if (is.na(r2) || r2 < 0) stop("Could not compute R².")
-  f2 <- if (r2 >= 1) NA_real_ else r2 / (1 - r2)
-  list(r2 = r2, f2 = f2, n = nrow(data))
-}
-
-estimate_anova_effect <- function(df, dv, group_var) {
-  if (!nzchar(dv) || !dv %in% names(df)) stop("Dependent variable not found for ANOVA.")
-  if (!nzchar(group_var) || !group_var %in% names(df)) stop("Grouping variable not found for ANOVA.")
-  data <- df[, c(dv, group_var), drop = FALSE]
-  data <- data[complete.cases(data), , drop = FALSE]
-  if (nrow(data) < 3) stop("Not enough data for ANOVA effect size.")
-  data[[group_var]] <- as.factor(data[[group_var]])
-  if (length(levels(data[[group_var]])) < 2) stop("Grouping variable needs at least two levels.")
-  model <- aov(stats::as.formula(paste(dv, "~", group_var)), data = data)
-  table <- summary(model)[[1]]
-  if (nrow(table) < 2) stop("ANOVA table incomplete.")
-  ss_between <- table[1, "Sum Sq"]
-  ss_within <- table[2, "Sum Sq"]
-  eta2 <- ss_between / (ss_between + ss_within)
-  if (is.na(eta2) || eta2 < 0 || eta2 >= 1) stop("Could not compute eta2.")
-  f <- sqrt(eta2 / (1 - eta2))
-  list(eta2 = eta2, f = f, n = nrow(data), groups = length(levels(data[[group_var]])))
-}
-
-coerce_effect_size <- function(metric, value) {
-  if (metric == "eta2") {
-    if (value <= 0 || value >= 1) return(list(metric = "f", value = NA_real_, note = "eta2 must be between 0 and 1."))
-    f <- sqrt(value / (1 - value))
-    return(list(metric = "f", value = f, note = "Effect size converted from eta² to f."))
-  }
-  if (metric == "r2") {
-    if (value < 0 || value >= 1) return(list(metric = "f2", value = NA_real_, note = "r² must be between 0 and 1."))
-    f2 <- if (value >= 1) NA_real_ else value / (1 - value)
-    return(list(metric = "f2", value = f2, note = "Effect size converted from r² to f²."))
-  }
-  list(metric = metric, value = value, note = "")
-}
-
-solve_t2n_apriori <- function(target_power, d, alpha, alternative, ratio) {
-  if (ratio <= 0) stop("Ratio must be positive.")
-  power_at <- function(n1) {
-    n2 <- ratio * n1
-    res <- pwr::pwr.t2n.test(n1 = n1, n2 = n2, d = d, sig.level = alpha, alternative = alternative)
-    res$power
-  }
-  n1 <- 2
-  p1 <- power_at(n1)
-  if (!is.finite(p1)) stop("Unable to compute power for initial sample size.")
-  if (p1 >= target_power) return(n1)
-  while (p1 < target_power && n1 < 1e7) {
-    n1 <- n1 * 2
-    p1 <- power_at(n1)
-  }
-  if (p1 < target_power) stop("Required sample size too large to bracket.")
-  uniroot(function(x) power_at(x) - target_power, interval = c(n1 / 2, n1))$root
-}
-
 build_power_table_body <- function(summary_df, digits, table_spec = NULL) {
-  default_columns <- list(
-    list(key = "analysis", label = "Analysis"),
-    list(key = "mode", label = "Mode"),
-    list(key = "effect_metric", label = "Effect"),
-    list(key = "effect_size", label = "Effect size"),
-    list(key = "alpha", label = "alpha"),
-    list(key = "power", label = "Power"),
-    list(key = "n_total", label = "N", drop_if_empty = TRUE),
-    list(key = "n_per_group", label = "n/group", drop_if_empty = TRUE),
-    list(key = "n1", label = "n1", drop_if_empty = TRUE),
-    list(key = "n2", label = "n2", drop_if_empty = TRUE),
-    list(key = "groups", label = "k", drop_if_empty = TRUE),
-    list(key = "ratio", label = "Ratio", drop_if_empty = TRUE),
-    list(key = "u", label = "u", drop_if_empty = TRUE),
-    list(key = "df", label = "df", drop_if_empty = TRUE),
-    list(key = "r2", label = "R²", drop_if_empty = TRUE),
-    list(key = "rmsea0", label = "RMSEA0", drop_if_empty = TRUE),
-    list(key = "rmsea1", label = "RMSEA1", drop_if_empty = TRUE),
-    list(key = "t_type", label = "t type", drop_if_empty = TRUE),
-    list(key = "alternative", label = "Alternative", drop_if_empty = TRUE),
-    list(key = "effect_source", label = "Effect source", drop_if_empty = TRUE)
-  )
-  columns <- resolve_normalize_table_columns(
-    if (!is.null(table_spec$columns)) table_spec$columns else NULL,
-    default_columns
-  )
-
-  rows <- list()
-  for (i in seq_len(nrow(summary_df))) {
-    row <- summary_df[i, , drop = FALSE]
-    row_vals <- character(0)
-    for (col in columns) {
-      key <- col$key
-      val <- ""
-      if (key == "analysis") {
-        label <- tolower(as.character(row[[key]]))
-        if (label == "ttest") label <- "t-test"
-        if (label == "anova") label <- "ANOVA"
-        if (label == "correlation") label <- "Correlation"
-        if (label == "regression") label <- "Regression"
-        if (label == "sem") label <- "SEM"
-        val <- resolve_as_cell_text(label)
-      } else if (key == "mode") {
-        label <- tolower(as.character(row[[key]]))
-        if (label == "apriori") label <- "a priori"
-        if (label == "posthoc") label <- "post hoc"
-        if (label == "sensitivity") label <- "sensitivity"
-        val <- resolve_as_cell_text(label)
-      } else if (key %in% c("effect_metric", "t_type", "alternative", "effect_source")) {
-        if (key == "effect_metric") {
-          val <- resolve_as_cell_text(format_effect_metric_label(row[[key]]))
-        } else {
-          val <- resolve_as_cell_text(row[[key]])
-        }
-      } else if (key %in% c("n_total", "n_per_group", "n1", "n2", "groups", "u", "df")) {
-        val <- ifelse(is.na(row[[key]]), "", format_int(row[[key]]))
-      } else if (key %in% c("alpha", "power", "effect_size", "ratio", "r2", "rmsea0", "rmsea1")) {
-        val <- ifelse(is.na(row[[key]]), "", format_num(row[[key]], digits))
-      } else if (key %in% names(row)) {
-        cell <- row[[key]][1]
-        if (is.numeric(cell)) {
-          val <- format_num(cell, digits)
-        } else {
-          val <- resolve_as_cell_text(cell)
-        }
-      }
-      row_vals <- c(row_vals, val)
-    }
-    rows[[length(rows) + 1]] <- row_vals
-  }
-
-  filtered <- resolve_drop_empty_columns(columns, rows)
-  columns <- filtered$columns
-  rows <- filtered$rows
-  headers <- vapply(columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, rows)
-  list(body = body, columns = columns)
-}
-
-build_power_note_tokens <- function(mode, effect_metric, conversion_note, effect_source, n_source_note) {
-  notes <- character(0)
-  if (nzchar(conversion_note)) notes <- c(notes, conversion_note)
-  if (effect_source == "estimated") notes <- c(notes, "Effect size estimated from data.")
-  if (nzchar(n_source_note)) notes <- c(notes, n_source_note)
-  if (mode == "posthoc") notes <- c(notes, "Post hoc power is descriptive and should not be used for hypothesis decisions.")
-  note_default <- paste(notes, collapse = " ")
-  if (!nzchar(note_default)) note_default <- "None."
-  list(note_default = note_default)
+  keys <- c("analysis", "mode", "effect_metric", "effect_size", "alpha", "power", "attained_power", "n_total", "n_per_group", "n1", "n2", "groups", "ratio", "u", "df", "r2", "rmsea0", "rmsea1", "t_type", "alternative", "effect_source")
+  labels <- c("Analysis", "Mode", "Effect", "Effect size", "alpha", "Power", "Attained power", "N", "n/group", "n1", "n2", "k", "Ratio", "u", "df", "R²", "RMSEA0", "RMSEA1", "t type", "Alternative", "Effect source")
+  defaults <- lapply(seq_along(keys), function(i) list(key = keys[i], label = labels[i], drop_if_empty = i > 6L))
+  columns <- normalize_table_columns(table_spec$columns, defaults)
+  rows <- lapply(seq_len(nrow(summary_df)), function(i) vapply(columns, function(col) {
+    value <- summary_df[[col$key]][i]
+    if (!length(value) || is.na(value)) return("")
+    if (col$key %in% c("n_total", "n_per_group", "n1", "n2", "groups", "u", "df")) return(format(value, scientific = FALSE, trim = TRUE))
+    if (is.numeric(value)) return(format_power_number(value, digits))
+    as_cell_text(value)
+  }, character(1)))
+  filtered <- drop_empty_columns(columns, rows)
+  render_markdown_table(vapply(filtered$columns, function(x) x$label, character(1)), filtered$rows)
 }
 
 build_power_narrative <- function(row, digits) {
-  analysis <- as.character(row$analysis)
-  mode <- as.character(row$mode)
-  effect_metric <- as.character(row$effect_metric)
-  effect_size <- row$effect_size
-  alpha <- row$alpha
-  power <- row$power
-  n_total <- row$n_total
-  n1 <- row$n1
-  n2 <- row$n2
-  n_per_group <- row$n_per_group
-  groups <- row$groups
-  u <- row$u
-  df <- row$df
-  rmsea0 <- row$rmsea0
-  rmsea1 <- row$rmsea1
-  t_type <- row$t_type
-
-  analysis_label <- analysis
-  if (analysis == "ttest") {
-    if (t_type == "paired") analysis_label <- "paired t-test"
-    if (t_type == "one-sample") analysis_label <- "one-sample t-test"
-    if (t_type == "two-sample") analysis_label <- "two-sample t-test"
-  } else if (analysis == "anova") {
-    analysis_label <- "one-way ANOVA"
-  } else if (analysis == "correlation") {
-    analysis_label <- "correlation"
-  } else if (analysis == "regression") {
-    analysis_label <- "multiple regression"
-  } else if (analysis == "sem") {
-    analysis_label <- "SEM (RMSEA)"
-  }
-
-  effect_text <- paste0(format_effect_metric_label(effect_metric), " = ", format_stat(effect_size, digits))
-  alpha_text <- format_stat(alpha, digits)
-  power_text <- format_stat(power, digits)
-
-  sample_text <- ""
-  if (!is.na(n1) && !is.na(n2)) {
-    sample_text <- paste0("N = ", format_int(n1 + n2), " (n1 = ", format_int(n1), ", n2 = ", format_int(n2), ")")
-  } else if (!is.na(n_per_group) && !is.na(groups)) {
-    sample_text <- paste0("n/group = ", format_int(n_per_group), ", k = ", format_int(groups))
-  } else if (!is.na(n_total)) {
-    sample_text <- paste0("N = ", format_int(n_total))
-  }
-
-  extra_parts <- character(0)
-  if (!is.na(u)) extra_parts <- c(extra_parts, paste0("u = ", format_int(u)))
-  if (!is.na(df)) extra_parts <- c(extra_parts, paste0("df = ", format_int(df)))
-  if (!is.na(rmsea0) && !is.na(rmsea1)) {
-    extra_parts <- c(extra_parts, paste0("RMSEA0 = ", format_stat(rmsea0, digits), ", RMSEA1 = ", format_stat(rmsea1, digits)))
-  }
-  extra_text <- ""
-  if (length(extra_parts) > 0) extra_text <- paste0(" (", paste(extra_parts, collapse = "; "), ")")
-
-  if (mode == "apriori") {
-    return(paste0(
-      "A priori power analysis for ", analysis_label, " (", effect_text,
-      ", alpha = ", alpha_text, ", power = ", power_text,
-      ") indicated a required ", sample_text, extra_text, "."
-    ))
-  }
-  if (mode == "posthoc") {
-    return(paste0(
-      "Post hoc power analysis for ", analysis_label, " with ", sample_text,
-      " (", effect_text, ", alpha = ", alpha_text, ") yielded achieved power = ", power_text, extra_text, "."
-    ))
-  }
-  paste0(
-    "Sensitivity analysis for ", analysis_label, " with ", sample_text,
-    " (alpha = ", alpha_text, ", power = ", power_text,
-    ") indicated a minimum detectable effect of ", effect_text, extra_text, "."
-  )
-}
-
-resolve_n_inputs <- function(opts) {
-  n_total <- parse_numeric(opts$n, NA_real_)
-  n_total_alt <- parse_numeric(opts$`n-total`, NA_real_)
-  if (is.na(n_total)) n_total <- n_total_alt
-  n_per_group <- parse_numeric(opts$`n-per-group`, NA_real_)
-  n1 <- parse_numeric(opts$n1, NA_real_)
-  n2 <- parse_numeric(opts$n2, NA_real_)
-  list(n_total = n_total, n_per_group = n_per_group, n1 = n1, n2 = n2)
+  number <- function(x) format_power_number(x, digits)
+  sample <- if (is.finite(row$n1)) paste0("N = ", row$n_total, " (n1 = ", row$n1, ", n2 = ", row$n2, ")") else
+    if (is.finite(row$n_per_group)) paste0("N = ", row$n_total, " (", row$n_per_group, " per group; k = ", row$groups, ")") else
+      paste0(if (row$t_type == "paired") "complete pairs = " else "N = ", row$n_total)
+  effect <- paste0(row$effect_metric, " = ", number(row$effect_size))
+  analysis <- switch(row$analysis, ttest = paste(row$t_type, "t-test"), anova = "balanced one-way ANOVA", correlation = "Pearson correlation", regression = "omnibus multiple regression", sem = "SEM RMSEA test")
+  if (row$mode == "apriori") return(paste0("A priori power analysis for ", analysis, " (", effect, ", alpha = ", number(row$alpha),
+    ", target power = ", number(row$power_target), ") yielded ", sample, "; attained power after rounding = ", number(row$attained_power), "."))
+  if (row$mode == "posthoc") return(paste0("Post hoc power analysis for ", analysis, " with ", sample, " (", effect, ", alpha = ", number(row$alpha), ") yielded power = ", number(row$power), "."))
+  paste0("Sensitivity analysis for ", analysis, " with ", sample, " (alpha = ", number(row$alpha), ", target power = ", number(row$power_target), ") yielded a detectable effect of ", effect, ".")
 }
 
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  if (length(args) == 0) {
-    print_usage()
-    quit(status = 1)
+  if (!length(args) && is.null(nlss_run_context$replay)) { print_usage(); stop("Supply power-analysis options or --interactive.") }
+  if ("--help" %in% args) { print_usage(); return(invisible(NULL)) }
+  opts <- nlss_run_options(args, "power")
+  if (isTRUE(opts[["interactive"]])) opts <- interactive_options()
+  value <- function(key, config = gsub("-", "_", key)) {
+    if (!is.null(opts[[key]])) opts[[key]] else get_config_value(paste0("modules.power.", config))
   }
-  if ("--help" %in% args) {
-    print_usage()
-    quit(status = 0)
+  number <- function(key, config = TRUE, ...) power_number(if (config) value(key) else opts[[key]], key, ...)
+  analysis <- power_choice(value("analysis"), "analysis", list(ttest = c("t", "ttest", "t-test", "t_test"), anova = c("anova", "aov"), correlation = c("correlation", "cor", "corr"), regression = c("regression", "regress", "lm"), sem = c("sem", "cfa")))
+  mode <- power_choice(value("mode"), "mode", list(apriori = c("apriori", "a-priori", "a_priori", "a priori"), posthoc = c("posthoc", "post-hoc", "post_hoc", "achieved"), sensitivity = c("sensitivity", "detectable")))
+  alternative <- power_choice(value("alternative"), "alternative", list(two.sided = c("two.sided", "two-sided", "two"), greater = "greater", less = "less"))
+  t_type <- power_choice(value("t-type"), "t-type", list(`one-sample` = c("one-sample", "one_sample", "onesample"), `two-sample` = c("two-sample", "two_sample", "independent", "between"), paired = c("paired", "pair")))
+  applicability <- list(groups = analysis == "anova", u = analysis == "regression", `sem-df` = analysis == "sem",
+    rmsea0 = analysis == "sem", rmsea1 = analysis == "sem", alternative = analysis %in% c("ttest", "correlation"),
+    `t-type` = analysis == "ttest", ratio = analysis == "ttest" && t_type == "two-sample", mu = analysis == "ttest" && t_type == "one-sample")
+  inactive <- names(applicability)[!unlist(applicability)]
+  supplied_inactive <- intersect(names(opts), inactive)
+  if (length(supplied_inactive)) stop("Options not applicable to this analysis/design: ", paste0("--", supplied_inactive, collapse = ", "))
+  effect_metric <- power_effect_metric(value("effect-metric"), analysis)
+  allowed <- list(ttest = "d", anova = c("f", "eta2"), correlation = "r", regression = c("f2", "r2"), sem = "rmsea")
+  if (!effect_metric %in% allowed[[analysis]]) stop("Unsupported effect metric for ", analysis, ": ", effect_metric)
+  alpha <- number("alpha", minimum = 0, maximum = 1)
+  target <- number("power", minimum = 0, maximum = 1)
+  if (alpha <= 0 || alpha >= 1 || target <= 0 || target >= 1) stop("Alpha and target power must lie strictly between 0 and 1.")
+  if (mode != "posthoc" && target <= alpha) stop("Planning/sensitivity target power must exceed alpha.")
+  ratio <- number("ratio", minimum = .Machine$double.eps)
+  mu <- number("mu")
+  groups <- number("groups", integer = TRUE, minimum = 2)
+  u <- number("u", integer = TRUE, minimum = 1)
+  rmsea0 <- number("rmsea0", minimum = 0)
+  rmsea1 <- number("rmsea1", minimum = 0)
+  estimate <- parse_bool(value("estimate-effect"))
+  digits <- power_number(if (is.null(opts[["digits"]])) get_config_value("defaults.digits") else opts[["digits"]], "digits", integer = TRUE, minimum = 0, maximum = 15)
+  effect_input <- number("effect-size", FALSE)
+  notes <- character(0)
+
+  if (analysis == "sem" && !is.null(opts[["df"]]) && is.null(opts[["rdata"]])) {
+    legacy_df <- power_number(opts[["df"]], "df", integer = TRUE, minimum = 1)
+    if (!is.null(opts[["sem-df"]]) && legacy_df != power_number(opts[["sem-df"]], "sem-df")) stop("Conflicting --df and --sem-df.")
+    opts[["sem-df"]] <- legacy_df
+    opts[["df"]] <- NULL
   }
-
-  opts <- resolve_parse_args(args)
-  if (isTRUE(opts$interactive)) {
-    opts <- interactive_options()
-  }
-
-  analysis_default <- resolve_config_value("modules.power.analysis", "ttest")
-  mode_default <- resolve_config_value("modules.power.mode", "apriori")
-  effect_metric_default <- resolve_config_value("modules.power.effect_metric", "auto")
-  alpha_default <- resolve_config_value("modules.power.alpha", 0.05)
-  power_default <- resolve_config_value("modules.power.power", 0.8)
-  t_type_default <- resolve_config_value("modules.power.t_type", "two-sample")
-  ratio_default <- resolve_config_value("modules.power.ratio", 1)
-  mu_default <- resolve_config_value("modules.power.mu", 0)
-  groups_default <- resolve_config_value("modules.power.groups", 2)
-  u_default <- resolve_config_value("modules.power.u", 1)
-  rmsea0_default <- resolve_config_value("modules.power.rmsea0", 0.05)
-  rmsea1_default <- resolve_config_value("modules.power.rmsea1", 0.08)
-  estimate_default <- resolve_config_value("modules.power.estimate_effect", FALSE)
-  alt_default <- resolve_config_value("modules.power.alternative", "two.sided")
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  log_default <- resolve_config_value("defaults.log", TRUE)
-
-  analysis <- normalize_analysis(opts$analysis, analysis_default)
-  mode <- normalize_mode(opts$mode, mode_default)
-  effect_metric_input <- normalize_effect_metric(opts$`effect-metric`, analysis, effect_metric_default)
-  alpha <- parse_numeric(opts$alpha, alpha_default)
-  power_target <- parse_numeric(opts$power, power_default)
-  t_type <- normalize_t_type(opts$`t-type`, t_type_default)
-  ratio <- parse_numeric(opts$ratio, ratio_default)
-  mu <- parse_numeric(opts$mu, mu_default)
-  groups <- parse_numeric(opts$groups, groups_default)
-  u <- parse_numeric(opts$u, u_default)
-  df_sem <- parse_numeric(opts$df, NA_real_)
-  rmsea0 <- parse_numeric(opts$rmsea0, rmsea0_default)
-  rmsea1 <- parse_numeric(opts$rmsea1, rmsea1_default)
-  alternative <- normalize_alternative(opts$alternative, alt_default)
-  digits <- parse_numeric(opts$digits, digits_default)
-  estimate_effect <- resolve_parse_bool(opts$`estimate-effect`, default = estimate_default)
-
-  df <- resolve_load_dataframe(opts)
-  out_dir <- resolve_get_workspace_out_dir(df)
-
-  if (analysis != "sem") {
-    if (!requireNamespace("pwr", quietly = TRUE)) {
-      emit_input_issue(out_dir, opts, "Power analysis requires the 'pwr' package.", details = list(package = "pwr"), status = "missing_dependency")
-    }
-  } else {
-    if (!requireNamespace("semPower", quietly = TRUE)) {
-      emit_input_issue(out_dir, opts, "SEM power analysis requires the 'semPower' package.", details = list(package = "semPower"), status = "missing_dependency")
-    }
-  }
-
-  if (analysis == "sem" && estimate_effect) {
-    emit_input_issue(out_dir, opts, "SEM power analysis does not support --estimate-effect.")
-  }
-
-  allowed_metrics <- list(
-    ttest = c("d"),
-    anova = c("f", "eta2"),
-    correlation = c("r"),
-    regression = c("f2", "r2"),
-    sem = c("rmsea")
-  )
-  allowed_metric <- allowed_metrics[[analysis]]
-  if (is.null(allowed_metric) || !effect_metric_input %in% allowed_metric) {
-    emit_input_issue(out_dir, opts, paste0("Unsupported effect metric for ", analysis, ": ", effect_metric_input))
-  }
-
-  effect_size_input <- parse_numeric(opts$`effect-size`, NA_real_)
-  effect_size_calc <- effect_size_input
-  conversion_note <- ""
-  effect_source <- if (estimate_effect) "estimated" else "user"
-  n_source_note <- ""
-
+  if (!is.null(opts[["df"]]) && is.null(opts[["rdata"]])) stop("--df selects an object only with --rdata; use --sem-df for SEM degrees of freedom.")
+  sem_df <- power_number(opts[["sem-df"]], "sem-df", integer = TRUE, minimum = 1)
   if (analysis == "sem") {
-    effect_metric_input <- "rmsea"
-    if (is.na(effect_size_input)) effect_size_input <- rmsea1
-    effect_size_calc <- effect_size_input
+    if (estimate) stop("SEM RMSEA power does not support --estimate-effect.")
+    if (is.na(sem_df)) stop("SEM power requires --sem-df (legacy numeric --df without --rdata is accepted).")
+    if (!is.na(effect_input)) {
+      if (!is.null(opts[["rmsea1"]]) && effect_input != rmsea1) stop("Conflicting --effect-size and --rmsea1.")
+      rmsea1 <- effect_input
+    }
+    if (rmsea1 < 0 || (mode != "sensitivity" && rmsea1 == rmsea0)) stop("SEM RMSEA alternatives must be nonnegative and differ from the null.")
   }
-  if (analysis != "anova") groups <- NA_real_
-  if (analysis != "regression") u <- NA_real_
-  if (analysis != "ttest") ratio <- NA_real_
 
-  n_inputs <- resolve_n_inputs(opts)
-  n_total <- n_inputs$n_total
-  n_per_group <- n_inputs$n_per_group
-  n1 <- n_inputs$n1
-  n2 <- n_inputs$n2
-  r2_value <- NA_real_
-
-  between_var <- ""
-  if (!is.null(opts$between) && nzchar(opts$between)) {
-    between_var <- as.character(opts$between)
+  has_source <- any(vapply(c("csv", "sav", "rds", "rdata", "parquet"), function(key) !is.null(opts[[key]]), logical(1)))
+  if (!has_source && !is.null(opts[["dataset-name"]])) stop("--dataset-name names an explicit source import; it does not select an existing dataset. Supply a source or run from the intended dataset folder with --planning FALSE.")
+  csv_options <- intersect(names(opts), c("sep", "header", "csv-decimal", "csv-encoding", "csv-col-types", "csv-na-values"))
+  if (length(csv_options) && is.null(opts[["csv"]])) stop("CSV reader options require an explicit --csv input: ", paste0("--", csv_options, collapse = ", "))
+  if (!has_source && !is.null(opts[["import-action"]])) stop("--import-action requires an explicit source input.")
+  role_options <- intersect(names(opts), c("vars", "group", "between", "x", "y", "dv", "ivs"))
+  if (estimate) {
+    allowed_roles <- switch(analysis, ttest = switch(t_type, `one-sample` = "vars", `two-sample` = c("vars", "group", "between"), paired = c("x", "y")),
+      anova = c("dv", "group", "between"), correlation = c("x", "y"), regression = c("dv", "ivs"))
+    surplus_roles <- setdiff(role_options, allowed_roles)
+    if (length(surplus_roles)) stop("Effect-estimation roles not applicable to this analysis/design: ", paste0("--", surplus_roles, collapse = ", "))
+  } else if (length(role_options)) notes <- c(notes, paste0("Variable roles supplied as context (", paste0("--", role_options, collapse = ", "),
+    ") are not used: --estimate-effect is FALSE; the supplied effect or solved sensitivity threshold drives this calculation."))
+  planning <- if (!is.null(opts[["planning"]])) parse_bool(opts[["planning"]]) else !has_source && !estimate
+  replay <- nlss_run_context$replay
+  if (!is.null(replay) && is.null(replay$request$input)) planning <- FALSE
+  if (planning && (has_source || estimate)) stop("--planning TRUE cannot be combined with a dataset source/name or --estimate-effect TRUE.")
+  # Persist the effective boundary: replay must never auto-select another active dataset.
+  opts[["planning"]] <- planning
+  if (planning) {
+    nlss_begin_planning_run("power", opts)
+    df <- NULL
+  } else {
+    df <- nlss_load_input(opts)
+    nlss_begin_run("power", df, opts)
   }
-  group_var <- ""
-  if (!is.null(opts$group) && nzchar(opts$group)) {
-    group_var <- as.character(opts$group)
-  }
-  if (!nzchar(group_var) && nzchar(between_var)) group_var <- between_var
+  out_dir <- nlss_run_context$out_dir
+  effect_basis <- nlss_mask_prose_paths(if (is.null(opts[["effect-basis"]])) "" else as.character(opts[["effect-basis"]]), nlss_run_context$root)
+  package <- if (analysis == "sem") "semPower" else "pwr"
+  if (!requireNamespace(package, quietly = TRUE)) stop("Power analysis requires the '", package, "' package.")
 
-  if (estimate_effect) {
-    if (analysis == "ttest") {
-      var_list <- resolve_parse_list(opts$vars)
-      var_name <- if (length(var_list) > 0) var_list[1] else ""
-      x_var <- if (!is.null(opts$x)) as.character(opts$x) else ""
-      y_var <- if (!is.null(opts$y)) as.character(opts$y) else ""
-      est <- tryCatch(estimate_ttest_effect(df, t_type, var_name, group_var, x_var, y_var, mu), error = function(e) e)
-      if (inherits(est, "error")) {
-        emit_input_issue(out_dir, opts, est$message)
-      }
-      effect_metric_input <- "d"
-      effect_size_input <- est$d
-      effect_size_calc <- abs(est$d)
-      if (is_scalar_number(est$n)) {
-        n_total <- if (is.na(n_total)) est$n else n_total
-        n_source_note <- if (is.na(n_inputs$n_total)) "Sample size derived from data." else ""
-      }
-      if (is_scalar_number(est$n1) && is_scalar_number(est$n2)) {
-        n1 <- if (is.na(n1)) est$n1 else n1
-        n2 <- if (is.na(n2)) est$n2 else n2
-        if (is.na(n_inputs$n1) && is.na(n_inputs$n2)) n_source_note <- "Sample sizes derived from data."
-      }
-    } else if (analysis == "correlation") {
-      x_var <- if (!is.null(opts$x)) as.character(opts$x) else ""
-      y_var <- if (!is.null(opts$y)) as.character(opts$y) else ""
-      est <- tryCatch(estimate_correlation_effect(df, x_var, y_var), error = function(e) e)
-      if (inherits(est, "error")) {
-        emit_input_issue(out_dir, opts, est$message)
-      }
-      effect_metric_input <- "r"
-      effect_size_input <- est$r
-      effect_size_calc <- abs(est$r)
-      if (is.na(n_total) && is_scalar_number(est$n)) {
-        n_total <- est$n
-        n_source_note <- "Sample size derived from data."
-      }
-    } else if (analysis == "regression") {
-      dv <- if (!is.null(opts$dv)) as.character(opts$dv) else ""
-      ivs <- resolve_parse_list(opts$ivs)
-      est <- tryCatch(estimate_regression_effect(df, dv, ivs), error = function(e) e)
-      if (inherits(est, "error")) {
-        emit_input_issue(out_dir, opts, est$message)
-      }
-      effect_metric_input <- "r2"
-      effect_size_input <- est$r2
-      r2_value <- est$r2
-      converted <- coerce_effect_size("r2", est$r2)
-      effect_size_calc <- converted$value
-      conversion_note <- converted$note
-      if (is.na(n_total) && is_scalar_number(est$n)) {
-        n_total <- est$n
-        n_source_note <- "Sample size derived from data."
-      }
+  n_inputs <- list(n_total = number("n", FALSE, integer = TRUE, minimum = 2),
+    n_per_group = number("n-per-group", FALSE, integer = TRUE, minimum = 2),
+    n1 = number("n1", FALSE, integer = TRUE, minimum = 2), n2 = number("n2", FALSE, integer = TRUE, minimum = 2))
+  n_alias <- number("n-total", FALSE, integer = TRUE, minimum = 2)
+  if (!is.na(n_inputs$n_total) && !is.na(n_alias) && n_inputs$n_total != n_alias) stop("Conflicting --n and --n-total.")
+  if (is.na(n_inputs$n_total)) n_inputs$n_total <- n_alias
+  n_total <- n_inputs$n_total; n_per_group <- n_inputs$n_per_group; n1 <- n_inputs$n1; n2 <- n_inputs$n2
+  if ((analysis != "ttest" || t_type != "two-sample") && (!is.na(n1) || !is.na(n2))) stop("--n1 and --n2 apply only to two-sample t-tests.")
+  if (!analysis %in% c("ttest", "anova") && !is.na(n_per_group)) stop("--n-per-group applies only to t-tests and ANOVA.")
+  vars <- parse_list(opts[["vars"]]); ivs <- parse_list(opts[["ivs"]])
+  text <- function(key) if (is.null(opts[[key]])) "" else as.character(opts[[key]])
+  group <- text("group")
+  if (nzchar(text("between"))) {
+    if (nzchar(group) && group != text("between")) stop("Conflicting --group and --between.")
+    group <- text("between")
+  }
+  estimation <- NULL
+  effect_source <- if (estimate) "estimated" else "user"
+  if (estimate) {
+    if (!is.na(effect_input)) stop("Supply an effect size OR --estimate-effect TRUE, not both.")
+    estimation <- power_effect_estimate(df, analysis, t_type, vars, group, text("x"), text("y"), text("dv"), ivs, mu)
+    effect_input <- estimation$value
+    effect_metric <- estimation$metric
+    if (analysis == "anova") {
+      if (!is.null(opts[["groups"]]) && groups != estimation$groups) stop("--groups conflicts with the observed ANOVA effect-estimation groups.")
+      groups <- estimation$groups
+      if (length(unique(unlist(estimation$group_counts))) > 1L) notes <- c(notes, "Observed groups are unequal; ANOVA power uses a balanced-design approximation, not an exact unequal-group power analysis.")
+    }
+    if (analysis == "regression") {
+      if (!is.null(opts[["u"]]) && u != estimation$u) stop("--u conflicts with the omnibus effect-estimation model rank minus one.")
+      u <- estimation$u
+      if (length(estimation$aliased_coefficients)) notes <- c(notes, "Rank-deficient predictors: the estimable model rank determines numerator degrees of freedom; aliases are recorded.")
+    }
+    if (mode != "apriori" && all(is.na(unlist(n_inputs)))) {
+      if (analysis == "ttest" && t_type == "two-sample") { n1 <- estimation$n1; n2 <- estimation$n2 } else n_total <- estimation$n
+      notes <- c(notes, "Sample size derived from complete effect-estimation cases.")
+    }
+    notes <- c(notes, "Effect size is sample-estimated, not an independently justified population effect; sampling uncertainty is not incorporated in the power calculation.")
+    notes <- c(notes, paste0("Effect-estimation sample: ", estimation$n, " complete cases from ", estimation$source_n,
+      " source rows; ", length(estimation$excluded_rows), " excluded. Source-row identities, variable/value labels and the effect definition are retained in JSON."))
+    if (analysis == "ttest" && t_type == "two-sample") notes <- c(notes,
+      paste0("Signed d compares group 1 (", estimation$groups[1], ") minus group 2 (", estimation$groups[2], ")."))
+  }
+  if (analysis == "sem") effect_input <- rmsea1
+  if (mode != "sensitivity" && is.na(effect_input)) stop("Effect size is required unless --estimate-effect TRUE.")
+  if (mode == "sensitivity") {
+    if (!is.na(effect_input) && analysis != "sem") notes <- c(notes, "Sensitivity solves the effect; any supplied/estimated effect is retained as context, not used as the detectable effect.")
+    effect_source <- "solved"
+  }
+  effect_calc <- effect_input
+  if (!is.na(effect_input)) {
+    if (effect_metric %in% c("eta2", "r2")) {
+      if (effect_input < 0 || effect_input >= 1) stop("eta-squared/R-squared must lie in [0, 1).")
+      effect_calc <- effect_input / (1 - effect_input)
+      if (effect_metric == "eta2") effect_calc <- sqrt(effect_calc)
+      notes <- c(notes, paste0("Effect converted from ", effect_metric, " to ", if (effect_metric == "eta2") "f" else "f2", "."))
+    }
+    if (analysis == "correlation" && abs(effect_input) >= 1) stop("Correlation effect must lie strictly between -1 and 1.")
+    if (analysis %in% c("anova", "regression") && effect_calc < 0) stop("ANOVA/regression effect size must be nonnegative.")
+    if (analysis %in% c("ttest", "correlation") && alternative == "two.sided") effect_calc <- abs(effect_input)
+    if (mode == "apriori" && analysis != "sem") {
+      if (effect_calc == 0 || (analysis %in% c("ttest", "correlation") && ((alternative == "less" && effect_calc > 0) || (alternative == "greater" && effect_calc < 0)))) stop("A priori target above alpha is unattainable for a zero or opposite-direction effect.")
+    }
+  }
+
+  if (mode == "apriori" && any(!is.na(unlist(n_inputs)))) notes <- c(notes, "A priori mode solves sample size; supplied sample sizes are recorded but do not constrain the solution.")
+  if (mode != "apriori") {
+    if (analysis == "ttest" && t_type == "two-sample") {
+      if (xor(is.na(n1), is.na(n2))) stop("Supply both --n1 and --n2, or a total/per-group sample size.")
+      if (!is.na(n1)) {
+        if (!is.na(n_total) && n_total != n1 + n2) stop("Total sample size conflicts with n1 + n2.")
+        if (!is.na(n_per_group) && n_per_group != n1) stop("--n-per-group conflicts with --n1.")
+        if (!is.na(n_per_group) && n2 != ceiling(n_per_group * ratio)) stop("--n-per-group and --ratio conflict with --n2.")
+        if (!is.null(opts[["ratio"]]) && abs(n2 / n1 - ratio) > 1e-8) stop("--ratio conflicts with n2 / n1.")
+      } else if (!is.na(n_per_group)) {
+        n1 <- n_per_group; n2 <- ceiling(n1 * ratio)
+        if (!is.na(n_total) && n_total != n1 + n2) stop("Total sample size conflicts with per-group allocation.")
+      } else if (!is.na(n_total)) {
+        n1 <- ceiling(n_total / (1 + ratio)); n2 <- n_total - n1
+      } else stop("Two-sample t-test requires --n1/--n2, --n-per-group or --n.")
+      if (min(n1, n2) < 2) stop("Each t-test group requires at least two cases.")
+      n_total <- n1 + n2
+      if (abs(n2 / n1 - ratio) > 1e-8) notes <- c(notes, "The actual integer allocation differs from the requested/default ratio; requested and effective ratios are retained.")
     } else if (analysis == "anova") {
-      dv <- if (!is.null(opts$dv)) as.character(opts$dv) else ""
-      if (!nzchar(group_var)) group_var <- if (!is.null(opts$between)) as.character(opts$between) else ""
-      est <- tryCatch(estimate_anova_effect(df, dv, group_var), error = function(e) e)
-      if (inherits(est, "error")) {
-        emit_input_issue(out_dir, opts, est$message)
-      }
-      effect_metric_input <- "eta2"
-      effect_size_input <- est$eta2
-      converted <- coerce_effect_size("eta2", est$eta2)
-      effect_size_calc <- converted$value
-      conversion_note <- converted$note
-      if (is.na(n_total) && is_scalar_number(est$n)) {
-        n_total <- est$n
-        n_source_note <- "Sample size derived from data (approximate)."
-      }
-      if (is.na(groups) && is_scalar_number(est$groups)) groups <- est$groups
-    }
-  } else {
-    if (is.na(effect_size_input) && analysis != "sem" && mode != "sensitivity") {
-      emit_input_issue(out_dir, opts, "Effect size is required unless --estimate-effect is TRUE.")
-    }
-    if (analysis %in% c("anova", "regression")) {
-      converted <- coerce_effect_size(effect_metric_input, effect_size_input)
-      effect_size_calc <- converted$value
-      if (nzchar(converted$note)) conversion_note <- converted$note
-      if (analysis == "regression" && effect_metric_input == "r2") r2_value <- effect_size_input
-    }
-  }
-
-  if (analysis %in% c("ttest", "correlation") && !is.na(effect_size_input)) {
-    effect_size_input <- abs(effect_size_input)
-    effect_size_calc <- abs(effect_size_calc)
-  }
-
-  if (analysis == "sem") {
-    if (is.na(df_sem)) {
-      emit_input_issue(out_dir, opts, "SEM power analysis requires --df.")
-    }
-    if (is.na(rmsea0) || is.na(rmsea1)) {
-      emit_input_issue(out_dir, opts, "SEM power analysis requires --rmsea0 and --rmsea1.")
-    }
-  }
-
-  if (analysis != "sem" && mode != "sensitivity" && (is.na(effect_size_calc) || effect_size_calc <= 0)) {
-    emit_input_issue(out_dir, opts, "Effect size must be positive.")
-  }
-
-  if (is.na(alpha) || alpha <= 0 || alpha >= 1) alpha <- alpha_default
-  if (is.na(power_target) || power_target <= 0 || power_target >= 1) power_target <- power_default
-
-  if (analysis == "ttest") {
-    if (t_type == "two-sample") {
+      if (is.na(n_per_group)) {
+        if (is.na(n_total)) stop("ANOVA requires --n-per-group or --n.")
+        n_per_group <- floor(n_total / groups)
+        if (n_per_group * groups != n_total) notes <- c(notes, "ANOVA balanced-design approximation rounds total N down to a multiple of the number of groups; requested and effective N are retained.")
+      } else if (!is.na(n_total) && n_total != n_per_group * groups) stop("Total N conflicts with groups times n-per-group.")
+      if (n_per_group < 2) stop("ANOVA requires at least two observations per group.")
+      n_total <- n_per_group * groups
+    } else {
+      if (!is.na(n1) || !is.na(n2)) stop("--n1 and --n2 apply only to two-sample t-tests.")
       if (!is.na(n_per_group)) {
-        if (is.na(n1)) n1 <- n_per_group
-        if (is.na(n2)) n2 <- n_per_group * ratio
-      } else if (!is.na(n_total) && (is.na(n1) || is.na(n2))) {
-        if (ratio <= 0) ratio <- 1
-        n1 <- ceiling(n_total / (1 + ratio))
-        n2 <- n_total - n1
+        if (analysis != "ttest") stop("--n-per-group applies only to t-tests and ANOVA.")
+        if (!is.na(n_total) && n_total != n_per_group) stop("Conflicting --n and --n-per-group.")
+        n_total <- n_per_group
       }
-    } else {
-      if (!is.na(n_per_group) && is.na(n_total)) n_total <- n_per_group
+      if (is.na(n_total)) stop("This calculation requires --n/--n-total or sample-based effect estimation.")
+      if (analysis == "correlation" && n_total < 4) stop("Correlation power requires N >= 4.")
+      if (analysis == "regression" && n_total <= u + 1) stop("Regression requires positive denominator degrees of freedom N - u - 1.")
     }
   }
 
-  if (analysis == "anova") {
-    if (!is.na(n_total) && is.na(n_per_group)) {
-      if (is.na(groups) || groups < 2) groups <- groups_default
-      n_per_group <- floor(n_total / groups)
-      if (n_per_group > 0) n_total <- n_per_group * groups
-    }
-  }
+  options <- list(analysis = analysis, mode = mode, planning = planning, effect_metric = effect_metric, effect_size = effect_input,
+    effect_size_calc = effect_calc, effect_basis = effect_basis, alpha = alpha, power = target, t_type = if (analysis == "ttest") t_type else NULL,
+    alternative = if (analysis %in% c("ttest", "correlation")) alternative else NULL, ratio = if (analysis == "ttest" && t_type == "two-sample") ratio else NULL,
+    mu = if (analysis == "ttest" && t_type == "one-sample") mu else NULL, n_total = n_total, n_per_group = n_per_group, n1 = n1, n2 = n2,
+    requested_sample_sizes = n_inputs, groups = if (analysis == "anova") groups else NULL, u = if (analysis == "regression") u else NULL,
+    df = if (analysis == "sem") sem_df else NULL, rmsea0 = if (analysis == "sem") rmsea0 else NULL, rmsea1 = if (analysis == "sem") rmsea1 else NULL,
+    estimate_effect = estimate, effect_source = effect_source, vars = vars, group = group, x = text("x"), y = text("y"), dv = text("dv"), ivs = ivs, digits = digits)
+  design <- list(input_kind = if (planning) "parameters" else "dataset", effect_estimation = estimation,
+    sample_unit = if (analysis == "ttest" && t_type == "paired") "complete pairs" else "observations",
+    hypothesis = if (analysis == "sem") list(null_rmsea = rmsea0, alternative_rmsea = if (mode == "sensitivity") NULL else rmsea1,
+      tail = if (mode != "sensitivity" && rmsea1 < rmsea0) "lower" else "upper") else NULL,
+    notes = notes, scientific_scope = switch(analysis, ttest = "pooled-variance standardized t-test; paired uses difference-score SD", anova = "balanced one-way fixed-effects ANOVA", correlation = "Pearson correlation; pwr Fisher-transform approximation", regression = "omnibus fixed-model F-test, intercept plus u estimable predictors", sem = "single-sample asymptotic RMSEA close/not-close-fit test, noncentrality (N - 1) df RMSEA^2"))
+  nlss_resolve_request(options, design)
 
-  summary_row <- list(
-    analysis = analysis,
-    mode = mode,
-    effect_metric = effect_metric_input,
-    effect_size = effect_size_input,
-    alpha = alpha,
-    power = NA_real_,
-    n_total = NA_real_,
-    n_per_group = NA_real_,
-    n1 = NA_real_,
-    n2 = NA_real_,
-    groups = NA_real_,
-    ratio = if (analysis == "ttest" && t_type == "two-sample") ratio else NA_real_,
-    u = NA_real_,
-    df = NA_real_,
-    r2 = r2_value,
-    rmsea0 = if (analysis == "sem") rmsea0 else NA_real_,
-    rmsea1 = if (analysis == "sem") rmsea1 else NA_real_,
-    t_type = if (analysis == "ttest") t_type else "",
-    alternative = if (analysis == "ttest" || analysis == "correlation") alternative else "",
-    effect_source = effect_source
-  )
-
+  row <- list(analysis = analysis, mode = mode, effect_metric = effect_metric, effect_size = effect_input, alpha = alpha,
+    power = NA_real_, power_target = if (mode == "posthoc") NA_real_ else target, attained_power = NA_real_,
+    n_total = NA_real_, n_per_group = NA_real_, n1 = NA_real_, n2 = NA_real_, groups = NA_real_, ratio = NA_real_,
+    u = NA_real_, df = NA_real_, r2 = if (effect_metric == "r2") effect_input else NA_real_,
+    rmsea0 = if (analysis == "sem") rmsea0 else NA_real_, rmsea1 = if (analysis == "sem") rmsea1 else NA_real_,
+    t_type = if (analysis == "ttest") t_type else "", alternative = if (analysis %in% c("ttest", "correlation")) alternative else "", effect_source = effect_source)
+  continuous <- list(); raw <- NULL; attained <- NULL
   if (analysis == "ttest") {
-    if (mode == "apriori") {
-      if (t_type == "two-sample") {
-        if (abs(ratio - 1) < 1e-6) {
-          res <- pwr::pwr.t.test(d = effect_size_calc, sig.level = alpha, power = power_target, type = "two.sample", alternative = alternative)
-          n1 <- ceiling(res$n)
-          n2 <- n1
-        } else {
-          n1 <- ceiling(solve_t2n_apriori(power_target, effect_size_calc, alpha, alternative, ratio))
-          n2 <- ceiling(n1 * ratio)
-        }
-        summary_row$n1 <- n1
-        summary_row$n2 <- n2
-        summary_row$n_total <- n1 + n2
-        summary_row$power <- power_target
-      } else {
-        res <- pwr::pwr.t.test(d = effect_size_calc, sig.level = alpha, power = power_target, type = ifelse(t_type == "paired", "paired", "one.sample"), alternative = alternative)
-        summary_row$n_total <- ceiling(res$n)
-        summary_row$power <- power_target
-      }
-    } else if (mode == "posthoc") {
-      if (t_type == "two-sample") {
-        if (is.na(n1) || is.na(n2)) {
-          emit_input_issue(out_dir, opts, "Post hoc two-sample t-test requires sample sizes (n1/n2 or n-total).")
-        }
-        res <- pwr::pwr.t2n.test(n1 = n1, n2 = n2, d = effect_size_calc, sig.level = alpha, alternative = alternative)
-        summary_row$n1 <- n1
-        summary_row$n2 <- n2
-        summary_row$n_total <- n1 + n2
-        summary_row$power <- res$power
-      } else {
-        if (is.na(n_total)) emit_input_issue(out_dir, opts, "Post hoc t-test requires --n or --n-per-group.")
-        res <- pwr::pwr.t.test(n = n_total, d = effect_size_calc, sig.level = alpha, type = ifelse(t_type == "paired", "paired", "one.sample"), alternative = alternative)
-        summary_row$n_total <- n_total
-        summary_row$power <- res$power
-      }
-    } else {
-      if (t_type == "two-sample") {
-        if (is.na(n1) || is.na(n2)) {
-          emit_input_issue(out_dir, opts, "Sensitivity two-sample t-test requires sample sizes (n1/n2 or n-total).")
-        }
-        res <- pwr::pwr.t2n.test(n1 = n1, n2 = n2, sig.level = alpha, power = power_target, alternative = alternative)
-        summary_row$n1 <- n1
-        summary_row$n2 <- n2
-        summary_row$n_total <- n1 + n2
-        summary_row$power <- power_target
-        summary_row$effect_metric <- "d"
-        summary_row$effect_size <- res$d
-      } else {
-        if (is.na(n_total)) emit_input_issue(out_dir, opts, "Sensitivity t-test requires --n or --n-per-group.")
-        res <- pwr::pwr.t.test(n = n_total, sig.level = alpha, power = power_target, type = ifelse(t_type == "paired", "paired", "one.sample"), alternative = alternative)
-        summary_row$n_total <- n_total
-        summary_row$power <- power_target
-        summary_row$effect_metric <- "d"
-        summary_row$effect_size <- res$d
-      }
+    two <- t_type == "two-sample"
+    engine <- if (two) "pwr::pwr.t2n.test" else "pwr::pwr.t.test"
+    call <- function(n, effect = effect_calc, desired = NULL, second = NULL) {
+      if (two) pwr::pwr.t2n.test(n1 = n, n2 = second, d = effect, sig.level = alpha, power = desired, alternative = alternative) else
+        pwr::pwr.t.test(n = n, d = effect, sig.level = alpha, power = desired, type = if (t_type == "paired") "paired" else "one.sample", alternative = alternative)
     }
+    if (mode == "apriori") {
+      solved <- power_n_root(function(n) call(n, second = if (two) ratio * n else NULL)$power, target, lower = if (two) max(2, 2 / ratio) else 2)
+      continuous <- if (two) list(n1 = solved, n2 = solved * ratio, n_total = solved * (1 + ratio)) else list(n_total = solved)
+      if (two) { n1 <- ceiling(solved); n2 <- ceiling(n1 * ratio); n_total <- n1 + n2 } else n_total <- ceiling(solved)
+      raw <- call(solved, second = if (two) ratio * solved else NULL)
+    } else raw <- call(if (two) n1 else n_total, effect = if (mode == "sensitivity") NULL else effect_calc, desired = if (mode == "sensitivity") target else NULL, second = if (two) n2 else NULL)
+    if (mode == "sensitivity") { row$effect_metric <- "d"; row$effect_size <- raw$d }
+    attained <- call(if (two) n1 else n_total, effect = if (mode == "sensitivity") raw$d else effect_calc, second = if (two) n2 else NULL)
+    if (two) { row$n1 <- n1; row$n2 <- n2; row$ratio <- n2 / n1 }
+    row$n_total <- n_total
   } else if (analysis == "anova") {
-    if (is.na(groups) || groups < 2) emit_input_issue(out_dir, opts, "ANOVA requires --groups >= 2.")
-    summary_row$groups <- groups
+    engine <- "pwr::pwr.anova.test"
     if (mode == "apriori") {
-      res <- pwr::pwr.anova.test(k = groups, f = effect_size_calc, sig.level = alpha, power = power_target)
-      summary_row$n_per_group <- ceiling(res$n)
-      summary_row$n_total <- summary_row$n_per_group * groups
-      summary_row$power <- power_target
-    } else if (mode == "posthoc") {
-      if (is.na(n_per_group)) emit_input_issue(out_dir, opts, "Post hoc ANOVA requires --n-per-group or --n.")
-      res <- pwr::pwr.anova.test(k = groups, n = n_per_group, f = effect_size_calc, sig.level = alpha)
-      summary_row$n_per_group <- n_per_group
-      summary_row$n_total <- n_per_group * groups
-      summary_row$power <- res$power
-    } else {
-      if (is.na(n_per_group)) emit_input_issue(out_dir, opts, "Sensitivity ANOVA requires --n-per-group or --n.")
-      res <- pwr::pwr.anova.test(k = groups, n = n_per_group, sig.level = alpha, power = power_target)
-      summary_row$n_per_group <- n_per_group
-      summary_row$n_total <- n_per_group * groups
-      summary_row$power <- power_target
-      summary_row$effect_metric <- "f"
-      summary_row$effect_size <- res$f
-    }
+      solved <- power_n_root(function(n) pwr::pwr.anova.test(k = groups, n = n, f = effect_calc, sig.level = alpha)$power, target)
+      continuous <- list(n_per_group = solved, n_total = solved * groups)
+      n_per_group <- ceiling(solved)
+      raw <- pwr::pwr.anova.test(k = groups, n = solved, f = effect_calc, sig.level = alpha)
+    } else raw <- pwr::pwr.anova.test(k = groups, n = n_per_group, f = if (mode == "sensitivity") NULL else effect_calc, sig.level = alpha, power = if (mode == "sensitivity") target else NULL)
+    if (mode == "sensitivity") { row$effect_metric <- "f"; row$effect_size <- raw$f }
+    attained <- pwr::pwr.anova.test(k = groups, n = n_per_group, f = if (mode == "sensitivity") raw$f else effect_calc, sig.level = alpha)
+    row$groups <- groups; row$n_per_group <- n_per_group; row$n_total <- groups * n_per_group
   } else if (analysis == "correlation") {
+    engine <- "pwr::pwr.r.test"
     if (mode == "apriori") {
-      res <- pwr::pwr.r.test(r = effect_size_calc, sig.level = alpha, power = power_target, alternative = alternative)
-      summary_row$n_total <- ceiling(res$n)
-      summary_row$power <- power_target
-    } else if (mode == "posthoc") {
-      if (is.na(n_total)) emit_input_issue(out_dir, opts, "Post hoc correlation requires --n.")
-      res <- pwr::pwr.r.test(n = n_total, r = effect_size_calc, sig.level = alpha, alternative = alternative)
-      summary_row$n_total <- n_total
-      summary_row$power <- res$power
-    } else {
-      if (is.na(n_total)) emit_input_issue(out_dir, opts, "Sensitivity correlation requires --n.")
-      res <- pwr::pwr.r.test(n = n_total, sig.level = alpha, power = power_target, alternative = alternative)
-      summary_row$n_total <- n_total
-      summary_row$power <- power_target
-      summary_row$effect_metric <- "r"
-      summary_row$effect_size <- res$r
-    }
+      solved <- power_n_root(function(n) pwr::pwr.r.test(n = n, r = effect_calc, sig.level = alpha, alternative = alternative)$power, target, lower = 4)
+      continuous <- list(n_total = solved); n_total <- ceiling(solved)
+      raw <- pwr::pwr.r.test(n = solved, r = effect_calc, sig.level = alpha, alternative = alternative)
+    } else raw <- pwr::pwr.r.test(n = n_total, r = if (mode == "sensitivity") NULL else effect_calc, sig.level = alpha, power = if (mode == "sensitivity") target else NULL, alternative = alternative)
+    if (mode == "sensitivity") { row$effect_metric <- "r"; row$effect_size <- raw$r }
+    attained <- pwr::pwr.r.test(n = n_total, r = if (mode == "sensitivity") raw$r else effect_calc, sig.level = alpha, alternative = alternative)
+    row$n_total <- n_total
   } else if (analysis == "regression") {
-    if (is.na(u) || u < 1) emit_input_issue(out_dir, opts, "Regression requires --u (predictor count).")
-    summary_row$u <- u
+    engine <- "pwr::pwr.f2.test"
     if (mode == "apriori") {
-      res <- pwr::pwr.f2.test(u = u, f2 = effect_size_calc, sig.level = alpha, power = power_target)
-      summary_row$n_total <- ceiling(res$v + u + 1)
-      summary_row$power <- power_target
-    } else if (mode == "posthoc") {
-      if (is.na(n_total)) emit_input_issue(out_dir, opts, "Post hoc regression requires --n.")
-      v <- n_total - u - 1
-      if (v <= 0) emit_input_issue(out_dir, opts, "Sample size too small for regression.")
-      res <- pwr::pwr.f2.test(u = u, v = v, f2 = effect_size_calc, sig.level = alpha)
-      summary_row$n_total <- n_total
-      summary_row$power <- res$power
-    } else {
-      if (is.na(n_total)) emit_input_issue(out_dir, opts, "Sensitivity regression requires --n.")
-      v <- n_total - u - 1
-      if (v <= 0) emit_input_issue(out_dir, opts, "Sample size too small for regression.")
-      res <- pwr::pwr.f2.test(u = u, v = v, sig.level = alpha, power = power_target)
-      summary_row$n_total <- n_total
-      summary_row$power <- power_target
-      summary_row$effect_metric <- "f2"
-      summary_row$effect_size <- res$f2
-    }
-  } else if (analysis == "sem") {
-    summary_row$df <- df_sem
-    sem_args_base <- list(
-      effect.measure = "RMSEA",
-      df = df_sem,
-      alpha = alpha
-    )
-
-    call_sem <- function(fn_name, args) {
-      fn <- get(fn_name, envir = asNamespace("semPower"))
-      formals <- names(formals(fn))
-      args_filtered <- args[names(args) %in% formals]
-      do.call(fn, args_filtered)
-    }
-
-    extract_value <- function(obj, keys) {
-      if (is.null(obj)) return(NA_real_)
-      if (is.list(obj)) {
-        for (key in keys) {
-          if (!is.null(obj[[key]])) {
-            val <- obj[[key]]
-            if (is.numeric(val)) return(as.numeric(val[1]))
-          }
-        }
-      }
-      NA_real_
-    }
-
-    if (mode == "apriori") {
-      res <- tryCatch(call_sem("semPower.aPriori", c(sem_args_base, list(effect = rmsea1, power = power_target))), error = function(e) e)
-      if (inherits(res, "error")) emit_input_issue(out_dir, opts, res$message)
-      n_total <- extract_value(res, c("N", "n", "sample.size", "sample_size", "requiredN"))
-      if (is.na(n_total)) emit_input_issue(out_dir, opts, "SEM power result missing sample size.")
-      summary_row$n_total <- ceiling(n_total)
-      summary_row$power <- power_target
-    } else if (mode == "posthoc") {
-      if (is.na(n_total)) emit_input_issue(out_dir, opts, "Post hoc SEM requires --n.")
-      res <- tryCatch(call_sem("semPower.postHoc", c(sem_args_base, list(effect = rmsea1, N = n_total, n = n_total))), error = function(e) e)
-      if (inherits(res, "error")) emit_input_issue(out_dir, opts, res$message)
-      power_val <- extract_value(res, c("power", "Power"))
-      if (is.na(power_val)) emit_input_issue(out_dir, opts, "SEM power result missing power.")
-      summary_row$n_total <- n_total
-      summary_row$power <- power_val
-    } else {
-      if (is.na(n_total)) emit_input_issue(out_dir, opts, "Sensitivity SEM requires --n.")
-      power_at <- function(rmsea_candidate) {
-        res <- call_sem("semPower.postHoc", c(sem_args_base, list(effect = rmsea_candidate, N = n_total, n = n_total)))
-        extract_value(res, c("power", "Power"))
-      }
-      lower <- max(rmsea0 + 1e-4, 1e-4)
-      upper <- 0.3
-      p_low <- power_at(lower)
-      p_high <- power_at(upper)
-      if (!is.finite(p_low) || !is.finite(p_high)) emit_input_issue(out_dir, opts, "SEM sensitivity could not bracket RMSEA1.")
-      if ((p_low - power_target) * (p_high - power_target) > 0) {
-        emit_input_issue(out_dir, opts, "SEM sensitivity could not bracket RMSEA1.")
-      }
-      rmsea_solution <- uniroot(function(x) power_at(x) - power_target, interval = c(lower, upper))$root
-      summary_row$n_total <- n_total
-      summary_row$power <- power_target
-      summary_row$effect_metric <- "rmsea"
-      summary_row$effect_size <- rmsea_solution
-      summary_row$rmsea1 <- rmsea_solution
-    }
-  }
-
-  summary_df <- as.data.frame(summary_row, stringsAsFactors = FALSE)
-
-  narrative <- build_power_narrative(summary_row, digits)
-  note_tokens <- build_power_note_tokens(mode, effect_metric_input, conversion_note, effect_source, n_source_note)
-
-  analysis_flags <- list(
-    analysis = analysis,
-    mode = mode,
-    "effect-metric" = summary_row$effect_metric,
-    "effect-size" = summary_row$effect_size,
-    alpha = alpha,
-    power = summary_row$power,
-    "t-type" = if (analysis == "ttest") t_type else NULL,
-    alternative = if (analysis %in% c("ttest", "correlation")) alternative else NULL,
-    ratio = if (analysis == "ttest" && t_type == "two-sample") summary_row$ratio else NULL,
-    "n" = if (!is.na(summary_row$n_total)) summary_row$n_total else NULL,
-    "n-per-group" = if (!is.na(summary_row$n_per_group)) summary_row$n_per_group else NULL,
-    n1 = if (!is.na(summary_row$n1)) summary_row$n1 else NULL,
-    n2 = if (!is.na(summary_row$n2)) summary_row$n2 else NULL,
-    groups = if (!is.na(summary_row$groups)) summary_row$groups else NULL,
-    u = if (!is.na(summary_row$u)) summary_row$u else NULL,
-    df = if (!is.na(summary_row$df)) summary_row$df else NULL,
-    rmsea0 = if (analysis == "sem") summary_row$rmsea0 else NULL,
-    rmsea1 = if (analysis == "sem") summary_row$rmsea1 else NULL,
-    "estimate-effect" = if (estimate_effect) TRUE else NULL,
-    digits = digits
-  )
-
-  template_override <- resolve_template_override(opts$template, module = "power")
-  template_path <- if (!is.null(template_override)) {
-    template_override
+      solved <- power_n_root(function(n) pwr::pwr.f2.test(u = u, v = n - u - 1, f2 = effect_calc, sig.level = alpha)$power, target, lower = u + 2)
+      continuous <- list(n_total = solved, denominator_df = solved - u - 1); n_total <- ceiling(solved)
+      raw <- pwr::pwr.f2.test(u = u, v = solved - u - 1, f2 = effect_calc, sig.level = alpha)
+    } else raw <- pwr::pwr.f2.test(u = u, v = n_total - u - 1, f2 = if (mode == "sensitivity") NULL else effect_calc, sig.level = alpha, power = if (mode == "sensitivity") target else NULL)
+    if (mode == "sensitivity") { row$effect_metric <- "f2"; row$effect_size <- raw$f2; row$r2 <- NA_real_ }
+    attained <- pwr::pwr.f2.test(u = u, v = n_total - u - 1, f2 = if (mode == "sensitivity") raw$f2 else effect_calc, sig.level = alpha)
+    row$u <- u; row$n_total <- n_total
   } else {
-    resolve_get_template_path("power.default", "power/default-template.md")
+    engine <- "semPower::semPower.postHoc + stats noncentral-null chi-square"
+    if (mode == "apriori") {
+      solved <- power_n_root(function(n) power_sem_result(n, sem_df, alpha, rmsea0, rmsea1)$power, target)
+      continuous <- list(n_total = solved); n_total <- ceiling(solved)
+      raw <- power_sem_result(solved, sem_df, alpha, rmsea0, rmsea1)
+    } else if (mode == "sensitivity") {
+      upper <- max(.1, rmsea0 * 2)
+      while (power_sem_result(n_total, sem_df, alpha, rmsea0, upper, FALSE)$power < target && upper < 1e4) upper <- upper * 2
+      if (upper >= 1e4) stop("SEM sensitivity could not bracket the alternative RMSEA.")
+      rmsea1 <- uniroot(function(effect) power_sem_result(n_total, sem_df, alpha, rmsea0, effect, FALSE)$power - target, c(rmsea0, upper), tol = 1e-10)$root
+      row$effect_size <- rmsea1; row$rmsea1 <- rmsea1
+    }
+    attained <- power_sem_result(n_total, sem_df, alpha, rmsea0, rmsea1, if (mode == "sensitivity") FALSE else rmsea1 < rmsea0)
+    if (is.null(raw)) raw <- attained
+    row$n_total <- n_total; row$df <- sem_df
+    notes <- c(notes, paste0("RMSEA test uses the ", attained$tail, " tail and the specified noncentral null; semPower's saved exact-fit reference is not the close-fit result."))
+    if (mode == "sensitivity") notes <- c(notes, "SEM sensitivity solves RMSEA1 above RMSEA0 (upper-tail close-fit test).")
   }
-
-  template_meta <- resolve_get_template_meta(template_path)
-  table_result <- build_power_table_body(summary_df, digits, template_meta$table)
-  nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
-
-  template_context <- list(
-    tokens = c(
-      list(
-        table_body = table_result$body,
-        narrative_default = narrative
-      ),
-      note_tokens
-    ),
-    narrative_rows = list(list(full_sentence = narrative))
-  )
-
-  nlss_report_path <- file.path(out_dir, "report_canonical.md")
-  resolve_append_nlss_report(
-    nlss_report_path,
-    "Power analysis",
-    nlss_table,
-    narrative,
-    analysis_flags = analysis_flags,
-    template_path = template_path,
-    template_context = template_context
-  )
-
-  cat("Wrote:\n")
-  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
-
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
-      out_dir,
-      module = "power",
-      prompt = ctx$prompt,
-      commands = ctx$commands,
-      results = list(
-        summary_df = summary_df
-      ),
-      options = list(
-        analysis = analysis,
-        mode = mode,
-        effect_metric = effect_metric_input,
-        effect_size = effect_size_input,
-        effect_size_calc = effect_size_calc,
-        alpha = alpha,
-        power = power_target,
-        t_type = if (analysis == "ttest") t_type else NULL,
-        alternative = if (analysis %in% c("ttest", "correlation")) alternative else NULL,
-        ratio = ratio,
-        n_total = n_total,
-        n_per_group = n_per_group,
-        n1 = n1,
-        n2 = n2,
-        groups = groups,
-        u = u,
-        df = df_sem,
-        rmsea0 = rmsea0,
-        rmsea1 = rmsea1,
-        estimate_effect = estimate_effect,
-        effect_source = effect_source
-      ),
-      user_prompt = resolve_get_user_prompt(opts)
-    )
+  row$attained_power <- attained$power
+  row$power <- if (mode == "posthoc") attained$power else target
+  if (!is.finite(row$attained_power) || row$attained_power < 0 || row$attained_power > 1) stop("The requested calculation did not produce finite power in [0, 1].")
+  if (mode == "apriori" && row$attained_power + 1e-7 < target) stop("Integer sample allocation did not attain the requested target power.")
+  if (mode == "apriori") notes <- c(notes, "Power denotes the requested target; attained power is recomputed at the reported integer sample sizes. Continuous solutions are preserved in JSON.")
+  if (mode == "posthoc") notes <- c(notes, "Post hoc power is descriptive and does not establish study adequacy or change a hypothesis-test conclusion.")
+  if (nzchar(effect_basis)) notes <- c(notes, paste0("Effect basis (user supplied, not independently verified): ", effect_basis))
+  notes <- c(notes, "These deterministic outputs support, but do not replace, a context-sensitive research report and design justification.")
+  summary_df <- as.data.frame(row, stringsAsFactors = FALSE)
+  calculation <- list(engine = engine, raw = unclass(raw), attained = unclass(attained), continuous_sample_size = continuous,
+    requested_sample_sizes = n_inputs, requested_ratio = if (analysis == "ttest" && t_type == "two-sample") ratio else NULL,
+    attained_power = row$attained_power, rounding = if (mode == "apriori") "ceil continuous sample size; two-sample n2 = ceil(ceil(n1) * ratio)" else "sample-size allocation documented in design notes")
+  results <- list(summary_df = summary_df, calculation = calculation, effect_estimation = estimation, notes = notes)
+  nlss_set_result(results)
+  template <- resolve_template_override(opts[["template"]], module = "power")
+  if (is.null(template)) template <- resolve_template_path("power.default", "power/default-template.md")
+  template <- nlss_freeze_template(template, "power.main")
+  table <- build_power_table_body(summary_df, digits, get_template_meta(template)$table)
+  narrative <- build_power_narrative(row, digits)
+  note <- paste(notes, collapse = " ")
+  flags <- list(analysis = analysis, mode = mode, planning = planning, "effect-metric" = row$effect_metric, "effect-size" = row$effect_size,
+    alpha = alpha, power = row$power, "attained-power" = row$attained_power, n = row$n_total,
+    "t-type" = if (analysis == "ttest") t_type else NULL, alternative = options$alternative, groups = options$groups, u = options$u,
+    "sem-df" = options$df, rmsea0 = options$rmsea0, rmsea1 = if (analysis == "sem") row$rmsea1 else NULL, "estimate-effect" = estimate,
+    vars = if (estimate && length(vars)) vars else NULL, group = if (estimate && nzchar(group)) group else NULL,
+    x = if (estimate && nzchar(text("x"))) text("x") else NULL, y = if (estimate && nzchar(text("y"))) text("y") else NULL,
+    dv = if (estimate && nzchar(text("dv"))) text("dv") else NULL, ivs = if (estimate && length(ivs)) ivs else NULL,
+    mu = options$mu, digits = digits)
+  nlss_stage_report(file.path(out_dir, "report_canonical.md"), "Power analysis", paste0("Table 1\n\n", table, "\n", note), narrative,
+    analysis_flags = flags, template_path = template, template_context = list(tokens = list(table_body = table, narrative_default = narrative, note_default = note), narrative_rows = list(list(full_sentence = narrative))))
+  if (parse_bool(opts[["log"]], default = get_config_value("defaults.log"))) {
+    ctx <- get_run_context()
+    nlss_stage_log(out_dir, module = "power", prompt = ctx$prompt, commands = ctx$commands, results = results, options = options, user_prompt = get_user_prompt(opts))
   }
 }
 
-main()
+nlss_run_main("power", main)

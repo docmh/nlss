@@ -8,7 +8,7 @@ license: Apache-2.0
 
 ## Overview
 
-Generate cross-tabulations for two categorical variables, optional stratification by a grouping variable, and common association statistics (chi², Fisher's exact test, Cramer's V, phi, contingency coefficient). Outputs include an NLSS format-ready report and JSONL logging.
+Generate cross-tabulations for categorical row/column pairs, optional stratification by a grouping variable, and common association statistics (chi², Fisher's exact test, Cramer's V, phi, contingency coefficient). Calculations use established base-R statistical methods. Each run preserves a resolved request, full-precision results and deterministic Markdown, alongside the automatic root canonical output.
 
 ## Assistant Researcher Model
 
@@ -16,14 +16,14 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
+1. Identify the input type (CSV, SAV, RDS, RData data frame, Parquet, or interactive). Follow the [import contract](../import-contract.md) for variable/value labels and user-defined missing values.
 2. Choose row and column variables, with optional grouping variable.
 3. Run `scripts/R/crosstabs.R` with the correct flags.
-4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`).
+4. Use outputs (`report_canonical.md`, `result.json`).
 
 ## Script: `scripts/R/crosstabs.R`
 
-Run with `Rscript` and base R only.
+Run with `Rscript`. Statistical tests use `stats`; the common workspace, JSON and configuration dependencies still apply, including `arrow` for the verified Parquet input.
 
 ### CSV Input
 
@@ -62,30 +62,39 @@ Rscript <path to scripts/R/crosstabs.R> --interactive
 - `--row` or `--rows`: Row variable(s). `--rows` accepts a comma-separated list.
 - `--col` or `--cols`: Column variable(s). `--cols` accepts a comma-separated list.
 - `--group`: Optional grouping variable (stratified cross-tabs).
-- `--percent`: Which percentages to include in the raw results (row, col, total, all). Default: `modules.crosstabs.percent`.
+- `--percent`: Which percentages to include in `cells_df` (row, col, total, all, or a comma-separated combination). Default: `modules.crosstabs.percent`. Omitted percentage values are null, not zero.
 - `--nlss-percent`: Percentage column(s) for the NLSS format table section (row, col, total, all, none). Default: `modules.crosstabs.nlss_percent`.
 - `--chisq`: Run chi² test (default: `modules.crosstabs.chisq`).
 - `--yates`: Apply Yates continuity correction for 2x2 tables (default: `modules.crosstabs.yates`).
 - `--fisher`: Run Fisher's exact test (default: `modules.crosstabs.fisher`).
-- `--fisher-simulate`: Use Monte Carlo simulation for Fisher's exact test (default: `modules.crosstabs.fisher_simulate`).
-- `--fisher-b`: Number of Monte Carlo replications for Fisher's exact test (default: `modules.crosstabs.fisher_b`).
-- `--fisher-conf-level`: Confidence level for Fisher's exact test odds ratio (default: `modules.crosstabs.fisher_conf_level`).
+- `--fisher-simulate`: Request Monte Carlo simulation for Fisher's test (default: `modules.crosstabs.fisher_simulate`). As in `stats::fisher.test`, a 2x2 table still uses the exact calculation; `fisher_simulated` records the actual method used.
+- `--fisher-b`: Positive integer Monte Carlo replications for Fisher's exact test (default: `modules.crosstabs.fisher_b`).
+- `--seed`: Non-negative R integer seed. Simulated Fisher uses `modules.crosstabs.seed` (default 1) when omitted. The seed and RNG state are saved before iterating through groups and row/column pairs; the complete run is reproducible without resetting the seed for each table.
+- `--fisher-conf-level`: Confidence level strictly between 0 and 1 for the 2x2 Fisher odds ratio (default: `modules.crosstabs.fisher_conf_level`). The reported confidence level matches this option.
 - `--expected`: Include expected counts (default: `modules.crosstabs.expected`).
 - `--residuals`: Include standardized/adjusted residuals (default: `modules.crosstabs.residuals`).
-- `--digits`: Rounding digits for outputs (default: `defaults.digits`).
+- `--digits`: Integer from 0 to 15 for display rounding (default: `defaults.digits`); machine-readable results remain unrounded, and p-values use their full precision before formatting.
 - `--interactive`: Prompt for inputs.
 - `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
-- `--log`: Toggle JSONL logging (default: `defaults.log`).
-- `--user-prompt`: Store the original AI prompt in the JSONL log (optional).
+- `--log`: Control optional standalone logging; project evidence remains enabled (default: `defaults.log`).
+- `--user-prompt`: Store the original AI prompt in the saved request, subject to configured prompt-privacy settings.
 
 ## Outputs
 
-Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
+This migrated module also publishes `.nlss/runs/<run-id>/request.json`, `result.json`, frozen templates and deterministic `output.md`; see the [run/replay contract](../run-contract.md). `--log FALSE` disables only optional standalone logging, not the run bundle. `output.md` is statistical output, not a prescribed semantic final research report. Authored reports use freely chosen visible Markdown paths.
 
-- Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`; not user-overridable).
+Outputs in a current project follow the [shared run contract](../run-contract.md):
+`.nlss/runs/<run-id>/` holds request/result/output and artifacts; the automatic
+`report_canonical.md` stays at the project root. No additional project JSONL log
+is produced. `--log` affects optional standalone logging, not this evidence.
 
 - `report_canonical.md`: NLSS format report containing analysis type, table, and narrative text.
-- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
+- `result.json`: Machine-readable results and options, always retained in the saved run.
+- `result.json`: Contains `cells_df`, `tests_df`, `diagnostics_df`, and `report_cells_df`. The latter preserves the independently selected `--nlss-percent` values used by Markdown; a raw `--percent row` does not disable a requested column-percentage report. Expected-count and residual inclusion flags apply to both cell projections, while assumption diagnostics remain available.
+- Each Fisher odds-ratio/CI field in `tests_df` has a matching `_status` field (`finite`, `positive_infinity`, `negative_infinity`, `not_available`). A valid unbounded odds ratio or confidence limit is distinguishable from an unavailable estimate even though JSON represents both numeric non-finite values as null; Markdown may show `Inf`.
+- `request.json`: Records all resolved options, classes, factor levels, original-row indices for each group and complete-case indices for each table. Missing groups have `group_missing: true` in result tables; a distinct display label prevents conflating actual missing values with a real level named `NA`.
+
+Requested inference that cannot be estimated (no complete observations, fewer than two observed row or column levels, or an R test error) fails explicitly and does not publish a completed analysis. To request descriptive counts for such a table, use `--chisq FALSE --fisher FALSE`. Zero-frequency factor levels are retained in descriptive cells but removed from the inferential contingency table, as documented in the saved design. Approximation warnings from chi-square tests are retained in the run result rather than suppressed.
 
 ## NLSS format Templates
 
@@ -128,3 +137,5 @@ When multiple `--rows`/`--cols` combinations are requested, all results are rend
 - Report chi² (or Fisher's exact test) with df, N, p-value, and effect size (Cramer's V or phi for 2x2).
 - Note expected count diagnostics when assumptions are questionable (e.g., > 20% cells < 5).
 - Missing values are excluded from valid counts and reported in the test outputs.
+- Group-missing rows form their own stratum; they are never added as artificial missing rows to the other groups. All row/column combinations use pairwise-complete observations within the selected stratum.
+- `std_resid` is the Pearson residual; `adj_resid` uses row and column marginal adjustments and agrees with `stats::chisq.test(..., correct = FALSE)$stdres`. Phi, Cramer's V and the contingency coefficient use the selected chi-square statistic (including Yates correction when enabled).

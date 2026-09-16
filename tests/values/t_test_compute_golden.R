@@ -55,18 +55,20 @@ calc_d_independent <- function(mean_diff, sd1, sd2, n1, n2) {
   mean_diff / pooled
 }
 
-bootstrap_ci <- function(values, stat_fn, n_boot, conf_level) {
+bootstrap_ci <- function(values, stat_fn, n_boot, conf_level, alternative) {
   stats <- numeric(0)
   n <- length(values)
   for (i in seq_len(n_boot)) {
     sample_idx <- sample.int(n, size = n, replace = TRUE)
     stats[i] <- stat_fn(values[sample_idx])
   }
-  alpha <- (1 - conf_level) / 2
-  quantile(stats, probs = c(alpha, 1 - alpha), na.rm = TRUE)
+  probs <- switch(alternative, two.sided = c((1 - conf_level) / 2, (1 + conf_level) / 2),
+    greater = 1 - conf_level, less = conf_level)
+  quantiles <- quantile(stats[is.finite(stats)], probs = probs, names = FALSE, type = 7)
+  switch(alternative, two.sided = quantiles, greater = c(quantiles, Inf), less = c(-Inf, quantiles))
 }
 
-bootstrap_ci_independent <- function(x1, x2, stat_fn, n_boot, conf_level) {
+bootstrap_ci_independent <- function(x1, x2, stat_fn, n_boot, conf_level, alternative) {
   n1 <- length(x1)
   n2 <- length(x2)
   stats <- numeric(0)
@@ -75,8 +77,10 @@ bootstrap_ci_independent <- function(x1, x2, stat_fn, n_boot, conf_level) {
     s2 <- sample(x2, size = n2, replace = TRUE)
     stats[i] <- stat_fn(s1, s2)
   }
-  alpha <- (1 - conf_level) / 2
-  quantile(stats, probs = c(alpha, 1 - alpha), na.rm = TRUE)
+  probs <- switch(alternative, two.sided = c((1 - conf_level) / 2, (1 + conf_level) / 2),
+    greater = 1 - conf_level, less = conf_level)
+  quantiles <- quantile(stats[is.finite(stats)], probs = probs, names = FALSE, type = 7)
+  switch(alternative, two.sided = quantiles, greater = c(quantiles, Inf), less = c(-Inf, quantiles))
 }
 
 build_summary_row <- function(
@@ -188,7 +192,8 @@ compute_one_sample <- function(df, case_id, var, mu, alternative, conf_level, bo
       clean,
       function(x) mean(x) - mu,
       n_boot = bootstrap_samples,
-      conf_level = conf_level
+      conf_level = conf_level,
+      alternative = alternative
     )
     boot_ci_low <- boot_ci[1]
     boot_ci_high <- boot_ci[2]
@@ -196,7 +201,8 @@ compute_one_sample <- function(df, case_id, var, mu, alternative, conf_level, bo
       clean,
       function(x) calc_d_one_sample(mean(x) - mu, sd(x)),
       n_boot = bootstrap_samples,
-      conf_level = conf_level
+      conf_level = conf_level,
+      alternative = alternative
     )
     boot_d_low <- boot_d[1]
     boot_d_high <- boot_d[2]
@@ -305,7 +311,8 @@ compute_independent <- function(df, case_id, var, group_var, alternative, var_eq
       x2,
       function(a, b) mean(a) - mean(b),
       n_boot = bootstrap_samples,
-      conf_level = conf_level
+      conf_level = conf_level,
+      alternative = alternative
     )
     boot_ci_low <- boot_ci[1]
     boot_ci_high <- boot_ci[2]
@@ -317,7 +324,8 @@ compute_independent <- function(df, case_id, var, group_var, alternative, var_eq
         calc_d_independent(mean_diff_boot, sd(a), sd(b), length(a), length(b))
       },
       n_boot = bootstrap_samples,
-      conf_level = conf_level
+      conf_level = conf_level,
+      alternative = alternative
     )
     boot_d_low <- boot_d[1]
     boot_d_high <- boot_d[2]
@@ -438,7 +446,8 @@ compute_paired <- function(df, case_id, x_var, y_var, alternative, conf_level, b
       diff_vals,
       function(x) mean(x),
       n_boot = bootstrap_samples,
-      conf_level = conf_level
+      conf_level = conf_level,
+      alternative = alternative
     )
     boot_ci_low <- boot_ci[1]
     boot_ci_high <- boot_ci[2]
@@ -446,7 +455,8 @@ compute_paired <- function(df, case_id, x_var, y_var, alternative, conf_level, b
       diff_vals,
       function(x) calc_d_paired(mean(x), sd(x)),
       n_boot = bootstrap_samples,
-      conf_level = conf_level
+      conf_level = conf_level,
+      alternative = alternative
     )
     boot_d_low <- boot_d[1]
     boot_d_high <- boot_d[2]
@@ -580,6 +590,10 @@ sanitize_inf <- function(df) {
   df
 }
 
+for (key in c("ci_low", "ci_high", "boot_ci_low", "boot_ci_high", "boot_d_ci_low", "boot_d_ci_high")) {
+  summary_df[[paste0(key, "_status")]] <- ifelse(is.na(summary_df[[key]]), "unavailable",
+    ifelse(is.infinite(summary_df[[key]]), ifelse(summary_df[[key]] > 0, "positive_infinity", "negative_infinity"), "finite"))
+}
 summary_df <- sanitize_inf(summary_df)
 diagnostics_df <- sanitize_inf(diagnostics_df)
 

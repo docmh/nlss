@@ -8,13 +8,16 @@ license: Apache-2.0
 
 ## Overview
 
-This metaskill is a last resort and is used only when the requested analysis is out of scope for existing NLSS subskills. The agent must first confirm no NLSS subskill can satisfy the request, then ask for explicit permission before generating any script. Generated R scripts are documented in the dataset workspace at `<workspace-root>/<dataset-name>/scripts/`.
+This metaskill is a last resort and is used only when the requested analysis is out of scope for existing NLSS subskills. The agent must first confirm no NLSS subskill can satisfy the request, then ask for explicit permission before generating any script. Save generated R scripts at an agreed visible project path (for example `scripts/`) and document that path in the scratchpad.
 
 The agent should use state-of-the-art methods in psychological and social science research (appropriate models, effect sizes, diagnostics, and NLSS format-aligned reporting conventions) when generating scripts.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
+Follow the shared [researcher interaction and reporting guidance](../../SKILL.md#semantic-answers-and-authored-reports).
+Match the requested scope; use the analysis workflow below when analysis is
+requested, and write a formal report only when requested. Preserve the scientific
+decisions and permissions described here.
 
 ## Intent/Triggers
 
@@ -54,8 +57,7 @@ ask permission to generate and save an R script
 if permission not granted:
   stop and request direction
 
-ensure workspace exists (init-workspace if missing)
-log activation with metaskill-runner --meta generate-r-script --intent <user intent>
+select the current project; do not implicitly initialize or adopt a folder
 
 inspect dataset and confirm variable roles
 write plan + decisions to scratchpad.md
@@ -68,11 +70,13 @@ generate R script using state-of-the-art methods:
   include diagnostics, effect sizes, and NLSS format-aligned outputs
   avoid destructive writes unless explicitly requested
 
-save script to <workspace-root>/<dataset-name>/scripts/custom_<YYYYMMDD>_<intent>.R
+save script at the chosen visible project path
 update scratchpad.md with script path and rationale
-write report_<YYYYMMDD>_generate-r-script_<intent>.md
-align report_<YYYYMMDD>_generate-r-script_<intent>.md using references/metaskills/format-document.md
-run metaskill-runner --phase finalization --synopsis "<synopsis text>" (the runner fails if the report is missing; synopsis is appended to report_canonical.md)
+explain the generated script and any actual results in the conversation
+if a report is requested:
+  write <chosen-visible-report>.md
+  align <chosen-visible-report>.md using references/metaskills/format-document.md
+  preserve the requested report with its actual supported evidence through project-report
 ```
 
 ## Default Rules and Decision Logic
@@ -98,29 +102,25 @@ Include the following where applicable:
 
 ## Outputs
 
-- `analysis_log.jsonl`: Metaskill activation and finalization entries via `metaskill-runner`.
 - `scratchpad.md`: Plan, clarifications, and the saved script path.
-- `report_canonical.md`: Includes a final `# Synopsis` describing the generated script and rationale (via `metaskill-runner --synopsis`).
-- `scripts/custom_<YYYYMMDD>_<intent>.R`: The generated script in the dataset workspace folder.
-- `report_<YYYYMMDD>_generate-r-script_<intent>.md`: NLSS format-ready, journal-alike narrative report with ad hoc tables/plots as needed.
+- Root `report_canonical.md`: automatic output from existing NLSS procedures used; custom scripts do not acquire a saved-run contract merely by being generated.
+- `scripts/custom_<YYYYMMDD>_<intent>.R`: The generated script at the chosen visible project path.
+- `<chosen-visible-report>.md`: Only when requested; a freely authored report with useful tables/figures.
 
 ### Final Report Requirements
 
-- Do not copy `report_canonical.md`; write a new narrative report.
-- Use `assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
-- Use standard journal subsections when they fit (Methods: Participants/Measures/Procedure/Analytic Strategy; Results: Preliminary/Primary/Secondary; Discussion: Summary/Limitations/Implications/Future Directions), but rename or replace them when the metaskill warrants it.
-- Synthesize results across subskills with interpretation; integrate tables/figures with captions and in-text references.
-- Craft tables and figures specifically for the report rather than copying them from `report_canonical.md`.
-- Keep the report NLSS format-ready and suitable for journal submission.
+For a requested report, follow the shared [semantic synthesis and presentation
+guidance](../../SKILL.md#semantic-answers-and-authored-reports). The manuscript
+scaffold is optional; use the structure and depth appropriate to the question.
 
-Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`).
-All artifacts (reports, tables, figures, scripts) must be created inside the dataset workspace folder; do not write outside the workspace root.
+Use the common project locations from `SKILL.md`; keep generated scripts and
+requested authored documents at chosen visible project paths.
 
-## Finalization
+## Report delivery
 
-- Write `report_<YYYYMMDD>_generate-r-script_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report using `references/metaskills/format-document.md` (must be the last step before finalization).
-- Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
+Follow [project-report](../utilities/project-report.md) for requested delivery
+with actual supported evidence. No mandatory report filename, synopsis append or
+lifecycle event. Do not invent replay/audit guarantees for a custom script.
 
 ## NLSS format Templates
 

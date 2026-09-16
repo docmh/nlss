@@ -31,6 +31,7 @@ bash tests/smoke/run_deliberate_tests.sh
 - descriptive_stats: `tests/smoke/run_descriptive_stats_tests.sh`
 - data_explorer: `tests/smoke/run_data_explorer_tests.sh`
 - data_transform: `tests/smoke/run_data_transform_tests.sh`
+- missings: `tests/smoke/run_missings_tests.sh` (independent values, labels and non-activating replay)
 - impute: `tests/smoke/run_impute_tests.sh`
 - plot: `tests/smoke/run_plot_tests.sh`
 - crosstabs: `tests/smoke/run_crosstabs_tests.sh`

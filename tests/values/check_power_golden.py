@@ -70,6 +70,8 @@ def compare_numeric(actual, expected, label, rel_tol=1e-6, abs_tol=1e-6):
         actual_val = float(actual)
     except (TypeError, ValueError):
         fail(f"Non-numeric actual value for {label}: {actual}")
+    if label == "power":
+        abs_tol = 1e-300
     if not math.isclose(actual_val, expected, rel_tol=rel_tol, abs_tol=abs_tol):
         fail(f"Mismatch for {label}: expected {expected}, got {actual_val}")
 

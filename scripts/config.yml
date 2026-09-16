@@ -1,11 +1,15 @@
 version: 1
-nlss_version: "1.0.2"
+nlss_version: "2.0.0"
 defaults:
   output_dir: "./nlss-workspace"
   workspace_manifest: "nlss-workspace.yml"
   csv:
     sep: ","
     header: true
+    decimal: "."
+    encoding: "UTF-8"
+    col_types: ""
+    na_values: "NA"
   digits: 2
   interactive: false
 logging:
@@ -19,6 +23,12 @@ logging:
   include_inputs: true
   include_outputs: true
 modules:
+  project_inspect:
+    format: "markdown"
+    verify: false
+  project_report:
+    max_report_bytes: 8388608
+    max_evidence_bytes: 33554432
   descriptive_stats:
     vars_default: "numeric"
     trim: 0.1
@@ -64,6 +74,7 @@ modules:
     conf_level: 0.95
     bootstrap: false
     bootstrap_samples: 1000
+    seed: 1
     compare_groups: false
     coerce: false
   scale:
@@ -75,6 +86,7 @@ modules:
     reverse_min: null
     reverse_max: null
   efa:
+    seed: 1
     vars_default: "numeric"
     method: "pca"
     rotation: "varimax"
@@ -104,6 +116,7 @@ modules:
     fisher: false
     fisher_simulate: false
     fisher_b: 2000
+    seed: 1
     fisher_conf_level: 0.95
     expected: true
     residuals: true
@@ -124,6 +137,7 @@ modules:
     conf_level: 0.95
     bootstrap: false
     bootstrap_samples: 1000
+    seed: 1
   nonparametric:
     vars_default: "numeric"
     test: "auto"
@@ -146,6 +160,7 @@ modules:
     sphericity: "auto"
     bootstrap: false
     bootstrap_samples: 1000
+    seed: 1
   regression:
     ivs_default: "numeric"
     family: "gaussian"
@@ -155,6 +170,12 @@ modules:
     standardize: "none"
     bootstrap: false
     bootstrap_samples: 1000
+    seed: 1
+  mi_regression:
+    family: "gaussian"
+    link: ""
+    conf_level: 0.95
+    maxit: 25
   power:
     analysis: "ttest"
     mode: "apriori"
@@ -172,6 +193,7 @@ modules:
     estimate_effect: false
   mixed_models:
     reml: true
+    seed: 1
     type: "III"
     df_method: "satterthwaite"
     standardize: "none"
@@ -184,6 +206,8 @@ modules:
     diagnostics: true
     max_shapiro_n: 5000
   sem:
+    seed: 1
+    serial: false
     analysis: "sem"
     estimator: "MLR"
     missing: "fiml"
@@ -216,6 +240,7 @@ modules:
     cook_multiplier: 4
     max_shapiro_n: 5000
     mixed_models:
+      seed: 123
       random_effects: true
       singular: true
       convergence: true
@@ -246,6 +271,17 @@ modules:
     engine: "auto"
     numeric_method: "median"
     categorical_method: "mode"
+    skew_threshold: 1
+    suffix: "_imp"
+    indicator: false
+    indicator_suffix: "_miss"
+    m: 5
+    maxit: 5
+    k: 5
+    seed: 1
+  calc:
+    format: "plain"
+    unsafe: false
   research_academia:
     sources: "openalex,crossref"
     max_per_source: 50
@@ -254,14 +290,6 @@ modules:
     timeout: 30
     abstract_limit: 200
     keywords_limit: 80
-    skew_threshold: 1
-    suffix: "_imp"
-    indicator: false
-    indicator_suffix: "_miss"
-    m: 5
-    maxit: 5
-    k: 5
-    seed: null
   init_workspace:
     agent: "Codex"
   metaskill_runner:
@@ -308,6 +336,8 @@ templates:
   regression:
     default: "regression/default-template.md"
     model_tests: "regression/model-tests-template.md"
+  mi_regression:
+    default: "mi-regression/default-template.md"
   power:
     default: "power/default-template.md"
   mixed_models:

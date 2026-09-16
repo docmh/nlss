@@ -115,6 +115,8 @@ def find_row(fixed_df, expected):
 
 def compare_numeric(actual, expected, label, rel_tol=1e-6, abs_tol=1e-6):
     if expected is None:
+        if actual not in (None, "", "NA", "NaN"):
+            fail(f"Expected unavailable value for {label}, got {actual}")
         return
     if actual is None:
         fail(f"Missing actual value for {label}")
@@ -122,6 +124,8 @@ def compare_numeric(actual, expected, label, rel_tol=1e-6, abs_tol=1e-6):
         actual_val = float(actual)
     except (TypeError, ValueError):
         fail(f"Non-numeric actual value for {label}: {actual}")
+    if label in ("p", "p_adj", "Pr(>F)", "Pr(>Chisq)"):
+        abs_tol = 0.0
     if not math.isclose(actual_val, expected, rel_tol=rel_tol, abs_tol=abs_tol):
         fail(f"Mismatch for {label}: expected {expected}, got {actual_val}")
 

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 Param(
-  [ValidateSet("smoke","deliberate","all")]
+  [ValidateSet("smoke","deliberate","phase1","phase2","phase3","all")]
   [string]$Suite = "smoke",
   [Alias("Subskill")]
   [string]$Module = "",

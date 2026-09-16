@@ -18,6 +18,8 @@ table:
       label: "alpha"
     - key: "power"
       label: "Power"
+    - key: "attained_power"
+      label: "Attained power"
     - key: "n_total"
       label: "N"
       drop_if_empty: true

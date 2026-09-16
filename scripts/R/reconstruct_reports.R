@@ -1,319 +1,155 @@
 # SPDX-License-Identifier: Apache-2.0
 #!/usr/bin/env Rscript
-
 bootstrap_dir <- {
-  cmd_args <- commandArgs(trailingOnly = FALSE)
-  file_arg <- sub("^--file=", "", cmd_args[grep("^--file=", cmd_args)])
-  if (length(file_arg) > 0 && nzchar(file_arg[1])) {
-    dirname(normalizePath(file_arg[1], winslash = "/", mustWork = FALSE))
-  } else {
-    getwd()
+  file_arg <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
+  if (length(file_arg)) dirname(normalizePath(file_arg[[1]], winslash = "/")) else getwd()
+}
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
+source_lib("log_utilities.R")
+
+print_usage <- function() cat("Usage: reconstruct_reports.R <analysis_log.jsonl> [--out-dir PATH] [--overwrite TRUE|FALSE]\n")
+scalar <- function(x, default = "") if (is.character(x) && length(x) == 1L && !is.na(x)) x else default
+field <- function(entry, name, fallback = "") {
+  value <- if (is.list(entry$results)) entry$results[[name]] else NULL
+  if (is.null(value) && is.list(entry$options)) value <- entry$options[[name]]
+  scalar(value, fallback)
+}
+warn_line <- function(message) cat(message, "\n", file = stderr())
+decode_report_block <- function(data, encoding, line, label) {
+  if (!nzchar(scalar(data))) return("")
+  fail <- function(reason) {
+    warn_line(sprintf("Skipping line %d (%s): %s.", line, label, reason))
+    ""
   }
-}
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("config.R")
-source_lib("io.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-render_output_path <- get("render_output_path", mode = "function")
-normalize_input_path <- get("normalize_input_path", mode = "function")
-ensure_out_dir <- get("ensure_out_dir", mode = "function")
-sanitize_file_component <- get("sanitize_file_component", mode = "function")
-source_lib <- get("source_lib", mode = "function")
-
-print_usage <- function() {
-  cat("Usage: reconstruct_reports.R <analysis_log.jsonl> [--out-dir PATH]\n", file = stderr())
+  if (!identical(tolower(trimws(scalar(encoding))), "gzip+base64")) return(fail("missing or unsupported encoding"))
+  bytes <- tryCatch(jsonlite::base64_dec(data), error = function(e) NULL)
+  if (is.null(bytes) || !length(bytes)) return(fail("base64 decode failed"))
+  decoded <- tryCatch(withCallingHandlers(memDecompress(bytes, type = "gzip"),
+    warning = function(w) stop(conditionMessage(w))), error = function(e) NULL)
+  if (is.null(decoded) || !length(decoded)) return(fail("gzip decompress failed"))
+  text <- tryCatch(rawToChar(decoded), error = function(e) "")
+  if (!nzchar(text) || is.na(iconv(text, "UTF-8", "UTF-8", sub = NA))) return(fail("invalid UTF-8 report"))
+  Encoding(text) <- "UTF-8"
+  text
 }
 
-ensure_jsonlite <- function() {
-  if (!requireNamespace("jsonlite", quietly = TRUE)) {
-    cat("Missing dependency: jsonlite. Install it: install.packages('jsonlite').\n", file = stderr())
-    quit(status = 2)
-  }
-}
-
-warn_line <- function(message) {
-  cat(message, "\n", file = stderr())
-}
-
-parse_phase <- function(entry) {
-  phase <- ""
-  if (!is.null(entry$results) && !is.null(entry$results$phase)) {
-    phase <- as.character(entry$results$phase)
-  } else if (!is.null(entry$options) && !is.null(entry$options$phase)) {
-    phase <- as.character(entry$options$phase)
-  }
-  trimws(phase)
-}
-
-get_report_block_source <- function(entry) {
-  source <- ""
-  if (!is.null(entry$results) && !is.null(entry$results$report_block_source)) {
-    source <- as.character(entry$results$report_block_source)
-  } else if (!is.null(entry$options) && !is.null(entry$options$report_block_source)) {
-    source <- as.character(entry$options$report_block_source)
-  }
-  trimws(source)
-}
-
-is_finalization_phase <- function(phase) {
-  if (is.null(phase) || !nzchar(phase)) return(FALSE)
-  phase_lower <- tolower(trimws(as.character(phase)))
-  phase_lower %in% c("finalization", "finalise", "finalize", "completion", "complete", "completed", "finish", "finished")
-}
-
-slugify_component <- function(value, fallback) {
-  if (is.null(value) || !nzchar(value)) return(fallback)
-  clean <- sanitize_file_component(value)
-  clean <- gsub("_+", "_", clean)
-  if (!nzchar(clean)) clean <- fallback
-  clean
-}
-
-extract_date_stamp <- function(entry) {
-  stamp <- ""
-  if (!is.null(entry$timestamp_utc)) {
-    stamp <- as.character(entry$timestamp_utc)
-  } else if (!is.null(entry$results) && !is.null(entry$results$timestamp)) {
-    stamp <- as.character(entry$results$timestamp)
-  }
-  if (!nzchar(stamp)) return(format(Sys.Date(), "%Y%m%d"))
-  if (grepl("^\\d{4}-\\d{2}-\\d{2}", stamp)) {
-    return(gsub("-", "", substr(stamp, 1, 10)))
-  }
-  format(Sys.Date(), "%Y%m%d")
-}
-
-decode_report_block <- function(data, encoding, line_index, label) {
-  if (is.null(data) || !nzchar(data)) return("")
-  if (is.null(encoding) || !nzchar(encoding)) {
-    warn_line(sprintf("Skipping line %d (%s): missing encoding.", line_index, label))
-    return("")
-  }
-  enc <- tolower(trimws(as.character(encoding)))
-  if (enc != "gzip+base64") {
-    warn_line(sprintf("Skipping line %d (%s): unsupported encoding '%s'.", line_index, label, enc))
-    return("")
-  }
-  decoded <- tryCatch(jsonlite::base64_dec(data), error = function(e) NULL)
-  if (is.null(decoded) || length(decoded) == 0) {
-    warn_line(sprintf("Skipping line %d (%s): base64 decode failed.", line_index, label))
-    return("")
-  }
-  raw_text <- tryCatch(memDecompress(decoded, type = "gzip"), error = function(e) raw(0))
-  if (length(raw_text) == 0) {
-    warn_line(sprintf("Skipping line %d (%s): gzip decompress failed.", line_index, label))
-    return("")
-  }
-  text <- tryCatch(rawToChar(raw_text), error = function(e) "")
-  enc2utf8(text)
-}
-
-args <- commandArgs(trailingOnly = TRUE)
-out_dir <- ""
-positional <- character(0)
-i <- 1L
-while (i <= length(args)) {
-  arg <- args[i]
-  if (arg %in% c("-h", "--help")) {
-    print_usage()
-    quit(status = 0)
-  }
-  if (grepl("^--out-dir=", arg)) {
-    out_dir <- sub("^--out-dir=", "", arg)
-    i <- i + 1L
-    next
-  }
-  if (arg == "--out-dir") {
-    out_dir <- if (i + 1L <= length(args)) args[i + 1L] else ""
-    i <- i + 2L
-    next
-  }
-  positional <- c(positional, arg)
-  i <- i + 1L
-}
-
-ensure_jsonlite()
-
-env_log <- Sys.getenv("NLSS_RECONSTRUCT_LOG", unset = "")
-if (length(positional) < 1 && !nzchar(env_log)) {
-  print_usage()
-  quit(status = 2)
-}
-
-arg_log <- ""
-if (length(positional) >= 1 && nzchar(positional[1])) {
-  arg_log <- normalize_input_path(positional[1])
-}
-if ((is.null(arg_log) || !nzchar(arg_log) || !file.exists(arg_log)) && length(positional) >= 2) {
-  first <- positional[1]
-  second <- positional[2]
-  reconstructed <- ""
-  if (grepl("^[A-Za-z]$", first) && grepl("^[\\\\/]", second)) {
-    rest <- paste(positional[2:length(positional)], collapse = " ")
-    reconstructed <- paste0(first, ":", rest)
-  } else if (grepl("^[A-Za-z]:$", first) && grepl("^[\\\\/]", second)) {
-    rest <- paste(positional[2:length(positional)], collapse = " ")
-    reconstructed <- paste0(first, rest)
-  }
-  if (nzchar(reconstructed)) {
-    reconstructed <- normalize_input_path(reconstructed)
-    if (file.exists(reconstructed)) {
-      arg_log <- reconstructed
-    }
-  }
-}
-env_log_norm <- ""
-if (nzchar(env_log)) {
-  env_log_norm <- normalize_input_path(env_log)
-}
-
-log_path <- ""
-if (nzchar(arg_log) && file.exists(arg_log)) {
-  log_path <- arg_log
-} else if (nzchar(env_log_norm) && file.exists(env_log_norm)) {
-  log_path <- env_log_norm
-}
-
-if (!nzchar(log_path)) {
-  fallback <- if (nzchar(arg_log)) arg_log else env_log_norm
-  cat("Missing log: ", fallback, "\n", sep = "", file = stderr())
-  quit(status = 2)
-}
-
-out_dir <- if (nzchar(out_dir)) normalize_input_path(out_dir) else dirname(log_path)
-if (!nzchar(out_dir)) out_dir <- "."
-ensure_out_dir(out_dir)
-
-out_report <- file.path(out_dir, "report_canonical_reconstructed.md")
-report_con <- file(out_report, open = "w", encoding = "UTF-8")
-on.exit({
-  if (isOpen(report_con)) close(report_con)
-}, add = TRUE)
-
-lines <- readLines(log_path, warn = FALSE)
-if (length(lines) == 0) {
-  warn_line("Empty log file.")
-}
-
-block_count <- 0L
-skipped_entries <- 0L
-metaskill_reports <- 0L
-for (idx in seq_along(lines)) {
-  line <- lines[[idx]]
-  if (!nzchar(trimws(line))) next
-  entry <- tryCatch(jsonlite::fromJSON(line, simplifyVector = FALSE), error = function(e) NULL)
-  if (is.null(entry)) {
-    warn_line(sprintf("Skipping line %d: invalid JSON.", idx))
-    skipped_entries <- skipped_entries + 1L
-    next
-  }
-
-  phase <- parse_phase(entry)
-  is_meta <- !is.null(entry$module) && entry$module == "metaskill_runner"
-  is_final <- is_meta && is_finalization_phase(phase)
-  block_source <- if (is_meta) get_report_block_source(entry) else ""
-
-  if (is_final && identical(block_source, "metaskill_report")) {
-    canonical_block <- decode_report_block(entry$report_block_full_b64, entry$report_block_full_encoding, idx, "report_block_full")
-    if (nzchar(canonical_block)) {
-      cat(canonical_block, file = report_con, sep = "")
-      block_count <- block_count + 1L
-    } else {
-      warn_line(sprintf("Skipping canonical block on line %d: missing report_block_full.", idx))
-    }
-
-    metaskill_block <- decode_report_block(entry$report_block_b64, entry$report_block_encoding, idx, "report_block")
-    if (!nzchar(metaskill_block)) {
-      warn_line(sprintf("Skipping metaskill report on line %d: missing report_block.", idx))
+main <- function() {
+  opts <- nlss_log_arguments(commandArgs(TRUE), "reconstruct_reports", "NLSS_RECONSTRUCT_LOG")
+  if (isTRUE(opts$help)) { print_usage(); return(invisible(NULL)) }
+  if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Missing dependency: jsonlite.")
+  log_path <- opts$path
+  source_hash <- import_hash(log_path, file = TRUE)
+  lines <- readLines(log_path, warn = FALSE)
+  canonical <- character()
+  outputs <- list()
+  skipped <- 0L
+  reports <- 0L
+  decode <- function(entry, stem, index) decode_report_block(entry[[paste0(stem, "_b64")]],
+    entry[[paste0(stem, "_encoding")]], index, stem)
+  for (index in seq_along(lines)) {
+    if (!nzchar(trimws(lines[[index]]))) next
+    entry <- tryCatch(jsonlite::fromJSON(lines[[index]], simplifyVector = FALSE), error = function(e) NULL)
+    if (!is.list(entry) || is.null(names(entry))) {
+      warn_line(sprintf("Skipping line %d: invalid JSON.", index))
+      skipped <- skipped + 1L
       next
     }
-    meta_name <- ""
-    intent <- ""
-    if (!is.null(entry$results) && !is.null(entry$results$metaskill)) {
-      meta_name <- as.character(entry$results$metaskill)
-    } else if (!is.null(entry$options) && !is.null(entry$options$meta)) {
-      meta_name <- as.character(entry$options$meta)
-    }
-    if (!is.null(entry$results) && !is.null(entry$results$intent)) {
-      intent <- as.character(entry$results$intent)
-    } else if (!is.null(entry$options) && !is.null(entry$options$intent)) {
-      intent <- as.character(entry$options$intent)
-    }
-    date_stamp <- extract_date_stamp(entry)
-    meta_slug <- slugify_component(meta_name, "metaskill")
-    intent_slug <- slugify_component(intent, "no-intent")
-    report_name <- paste0("report_", date_stamp, "_", meta_slug, "_", intent_slug, "_reconstructed.md")
-    report_path <- file.path(out_dir, report_name)
-    con <- file(report_path, open = "w", encoding = "UTF-8")
-    cat(metaskill_block, file = con, sep = "")
-    close(con)
-    if (exists("ensure_output_front_matter", mode = "function")) {
-      get("ensure_output_front_matter", mode = "function")(report_path)
-    }
-    metaskill_reports <- metaskill_reports + 1L
-    next
-  }
-
-  block <- decode_report_block(entry$report_block_b64, entry$report_block_encoding, idx, "report_block")
-  if (nzchar(block)) {
-    cat(block, file = report_con, sep = "")
-    block_count <- block_count + 1L
-  }
-
-  if (is_final) {
-    metaskill_block <- decode_report_block(entry$metaskill_report_block_b64, entry$metaskill_report_block_encoding, idx, "metaskill_report_block")
-    if (!nzchar(metaskill_block)) {
-      metaskill_block <- decode_report_block(entry$report_block_full_b64, entry$report_block_full_encoding, idx, "report_block_full")
-    }
-    if (!nzchar(metaskill_block)) {
-      warn_line(sprintf("Skipping metaskill report on line %d: missing metaskill report block.", idx))
+    final <- identical(entry$module, "metaskill_runner") && tolower(trimws(field(entry, "phase"))) %in%
+      c("finalization", "finalise", "finalize", "completion", "complete", "completed", "finish", "finished")
+    legacy_meta <- final && identical(trimws(field(entry, "report_block_source")), "metaskill_report")
+    block <- decode(entry, if (legacy_meta) "report_block_full" else "report_block", index)
+    if (nzchar(block)) canonical <- c(canonical, block)
+    if (!final) next
+    meta_block <- decode(entry, if (legacy_meta) "report_block" else "metaskill_report_block", index)
+    if (!nzchar(meta_block) && !legacy_meta) meta_block <- decode(entry, "report_block_full", index)
+    if (!nzchar(meta_block)) {
+      warn_line(sprintf("Skipping metaskill report on line %d: missing report block.", index))
       next
     }
-    meta_name <- ""
-    intent <- ""
-    if (!is.null(entry$results) && !is.null(entry$results$metaskill)) {
-      meta_name <- as.character(entry$results$metaskill)
-    } else if (!is.null(entry$options) && !is.null(entry$options$meta)) {
-      meta_name <- as.character(entry$options$meta)
+    stamp <- scalar(entry$timestamp_utc, field(entry, "timestamp"))
+    date <- if (grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}", stamp)) gsub("-", "", substr(stamp, 1L, 10L)) else "undated"
+    slug <- function(value, fallback) {
+      value <- gsub("_+", "_", sanitize_file_component(value))
+      if (nzchar(value)) value else fallback
     }
-    if (!is.null(entry$results) && !is.null(entry$results$intent)) {
-      intent <- as.character(entry$results$intent)
-    } else if (!is.null(entry$options) && !is.null(entry$options$intent)) {
-      intent <- as.character(entry$options$intent)
+    meta <- field(entry, "metaskill", field(entry, "meta"))
+    stem <- paste0("report_", date, "_", slug(meta, "metaskill"), "_", slug(field(entry, "intent"), "no-intent"))
+    name <- paste0(stem, "_reconstructed.md")
+    suffix <- 0L
+    while (name %in% names(outputs)) {
+      suffix <- suffix + 1L
+      name <- paste0(stem, "_line", index, if (suffix > 1L) paste0("_", suffix) else "", "_reconstructed.md")
     }
-    date_stamp <- extract_date_stamp(entry)
-    meta_slug <- slugify_component(meta_name, "metaskill")
-    intent_slug <- slugify_component(intent, "no-intent")
-    report_name <- paste0("report_", date_stamp, "_", meta_slug, "_", intent_slug, "_reconstructed.md")
-    report_path <- file.path(out_dir, report_name)
-    con <- file(report_path, open = "w", encoding = "UTF-8")
-    cat(metaskill_block, file = con, sep = "")
-    close(con)
-    if (exists("ensure_output_front_matter", mode = "function")) {
-      get("ensure_output_front_matter", mode = "function")(report_path)
-    }
-    metaskill_reports <- metaskill_reports + 1L
+    outputs[[name]] <- meta_block
+    reports <- reports + 1L
   }
+  if (!length(canonical)) stop("No report_block entries found; older logs are not supported.")
+  outputs <- c(list(report_canonical_reconstructed.md = paste(canonical, collapse = "")), outputs)
+  out_dir <- if (is.null(opts[["out-dir"]])) dirname(log_path) else normalize_input_path(opts[["out-dir"]])
+  out_dir <- normalizePath(ensure_out_dir(out_dir), winslash = "/", mustWork = TRUE)
+  paths <- file.path(out_dir, names(outputs))
+  safe <- function(path) {
+    link <- Sys.readlink(path)
+    if ((!is.na(link) && nzchar(link)) || dir.exists(path) ||
+        !identical(normalizePath(path, winslash = "/", mustWork = FALSE), path) ||
+        identical(path, log_path)) stop("Unsafe reconstruction target: ", basename(path))
+  }
+  for (path in paths) safe(path)
+  lock <- file.path(out_dir, ".reconstruction-lock")
+  if (!dir.create(lock, showWarnings = FALSE)) stop("Another reconstruction is active; inspect stale locks before recovery.")
+  on.exit(unlink(lock, recursive = TRUE), add = TRUE)
+  same <- vapply(seq_along(paths), function(i) file.exists(paths[[i]]) &&
+    identical(readBin(paths[[i]], "raw", file.info(paths[[i]])$size), charToRaw(outputs[[i]])), logical(1))
+  if (any(file.exists(paths) & !same) && !isTRUE(opts$overwrite)) {
+    stop("Reconstructed output already exists with different content. Choose another --out-dir or explicitly use --overwrite TRUE.")
+  }
+  stage <- tempfile(".reconstruction-", tmpdir = out_dir)
+  if (!dir.create(stage)) stop("Could not stage reconstructed reports.")
+  remove_stage <- TRUE
+  on.exit(if (remove_stage) unlink(stage, recursive = TRUE), add = TRUE)
+  existed <- file.exists(paths)
+  old_hashes <- vapply(seq_along(paths), function(i) if (existed[[i]]) import_hash(paths[[i]], file = TRUE) else "", character(1))
+  for (i in seq_along(paths)) {
+    if (existed[[i]] && !file.copy(paths[[i]], file.path(stage, paste0("backup-", i)))) stop("Could not protect previous reconstruction.")
+    writeBin(charToRaw(outputs[[i]]), file.path(stage, names(outputs)[[i]]))
+  }
+  changed <- integer()
+  done <- FALSE
+  on.exit({
+    if (!done) for (i in changed) {
+      if (existed[[i]]) {
+        restored <- !dir.exists(paths[[i]]) && isTRUE(tryCatch({
+          safe(paths[[i]])
+          file.copy(file.path(stage, paste0("backup-", i)), paths[[i]], overwrite = TRUE) &&
+            identical(import_hash(paths[[i]], file = TRUE), old_hashes[[i]])
+        }, error = function(e) FALSE))
+        if (!restored) remove_stage <- FALSE
+      } else if (file.exists(paths[[i]])) {
+        if (dir.exists(paths[[i]]) || unlink(paths[[i]]) != 0L) remove_stage <- FALSE
+      }
+    }
+    if (!remove_stage) {
+      write_import_json(lapply(changed, function(i) list(target = basename(paths[[i]]),
+        existed = existed[[i]], backup_file = if (existed[[i]]) paste0("backup-", i) else NULL)), file.path(stage, "recovery.json"))
+      warning("Could not restore all reconstruction outputs; recovery bytes retained in ", basename(stage), ".")
+    }
+  }, add = TRUE, after = FALSE)
+  if (!identical(source_hash, import_hash(log_path, file = TRUE))) stop("Source log changed during reconstruction.")
+  for (i in seq_along(paths)) {
+    safe(paths[[i]])
+    current <- if (file.exists(paths[[i]])) import_hash(paths[[i]], file = TRUE) else ""
+    if (!identical(current, old_hashes[[i]])) stop("Reconstruction target changed during publication.")
+    if (same[[i]]) next
+    changed <- c(changed, i)
+    source <- file.path(stage, names(outputs)[[i]])
+    if (!file.copy(source, paths[[i]], overwrite = isTRUE(opts$overwrite)) ||
+        !identical(import_hash(source, file = TRUE), import_hash(paths[[i]], file = TRUE))) stop("Could not publish reconstructed report.")
+  }
+  done <- TRUE
+  cat("Wrote:\n", paste0("- ", basename(paths), collapse = "\n"), "\n", sep = "")
+  if (reports) cat("Metaskill reports: ", reports, "\n", sep = "")
+  if (skipped) cat("Skipped entries: ", skipped, "\n", sep = "")
+  invisible(paths)
 }
-
-if (block_count == 0L) {
-  unlink(out_report)
-  cat("No report_block entries found; older logs are not supported.\n", file = stderr())
-  quit(status = 2)
-}
-
-if (isOpen(report_con)) close(report_con)
-if (exists("ensure_output_front_matter", mode = "function")) {
-  get("ensure_output_front_matter", mode = "function")(out_report)
-}
-
-cat("Wrote:\n")
-cat("- ", render_output_path(out_report, out_dir), "\n", sep = "")
-if (metaskill_reports > 0L) {
-  cat("Metaskill reports: ", metaskill_reports, "\n", sep = "")
-}
-if (skipped_entries > 0L) {
-  cat("Skipped entries: ", skipped_entries, "\n", sep = "")
-}
+main()

@@ -351,7 +351,20 @@ check_log_status() {
   local log_path="$1"; shift
   local start_count="$1"; shift
   local status="$1"; shift
-  check_log_value "${log_path}" "${start_count}" "results.status" "${status}"
+  "${PYTHON_BIN}" - "${log_path}" "${status}" <<'PY'
+import json
+import sys
+from pathlib import Path
+runs = Path(sys.argv[1]).parent / "runs"
+directories = sorted(path for path in runs.iterdir() if path.is_dir() and not path.name.startswith("."))
+latest = directories[-1]
+request = json.loads((latest / "request.json").read_text())
+result = json.loads((latest / "result.json").read_text())
+assert result["status"] == "failed", result
+assert request.get("validation_issue", {}).get("status") == sys.argv[2], request.get("validation_issue")
+assert not (latest / "output.md").exists(), "Failed run published normal output"
+PY
+  assert_log_unchanged "${start_count}" "$(log_count "${log_path}")" "failed EFA preserves legacy log"
 }
 
 run_ok() {
@@ -540,6 +553,9 @@ start_count="$(log_count "${LOG_PATH}")"
 run_ok "efa oblimin uls" Rscript "${R_SCRIPT_DIR}/efa.R" --parquet "${PARQUET_GOLDEN}" --vars "${BASE_VARS}" --method uls --rotation oblimin --n-factors 2 --sort-loadings TRUE
 check_log "${LOG_PATH}" "${start_count}" \
   vars="${BASE_VARS}" method=uls rotation=oblimin n_factors_rule=fixed n_factors=2 sort_loadings=true check_sorted=true
+run_ok "efa golden summary (uls oblimin)" check_efa_summary_golden "${LOG_PATH}" "${start_count}" "efa_uls_oblimin"
+run_ok "efa golden loadings (uls oblimin)" check_efa_loadings_golden "${LOG_PATH}" "${start_count}" "efa_uls_oblimin"
+run_ok "efa golden eigen (uls oblimin)" check_efa_eigen_golden "${LOG_PATH}" "${start_count}" "efa_uls_oblimin"
 
 for method in ml gls wls alpha; do
   start_count="$(log_count "${LOG_PATH}")"

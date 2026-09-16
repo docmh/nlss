@@ -1,437 +1,74 @@
 # SPDX-License-Identifier: Apache-2.0
 config_env <- new.env(parent = emptyenv())
 
+# Anchor defaults to this library, never to the caller's working directory or
+# its override file. This also works when a module is sourced by a test runner.
+config_env$canonical_path <- local({
+  frame_files <- vapply(sys.frames(), function(frame) {
+    value <- frame$ofile
+    if (is.null(value) || length(value) != 1L) "" else as.character(value)
+  }, character(1))
+  candidates <- frame_files[nzchar(frame_files) & basename(frame_files) == "config.R"]
+  if (!length(candidates)) {
+    stop("Cannot locate config.R; source the NLSS library from its installed path.", call. = FALSE)
+  }
+  normalizePath(file.path(dirname(tail(candidates, 1L)), "..", "..", "config.yml"),
+                winslash = "/", mustWork = FALSE)
+})
+
+get_canonical_config_path <- function() {
+  path <- config_env$canonical_path
+  if (!file.exists(path)) {
+    stop("Missing canonical NLSS configuration: scripts/config.yml. Restore the installation; no fallback defaults are used.",
+         call. = FALSE)
+  }
+  normalizePath(path, winslash = "/", mustWork = TRUE)
+}
+
+# Kept for io.R asset lookup; the installation path is independent of caller CWD.
 resolve_script_dir <- function() {
-  if (exists("get_script_dir", mode = "function")) {
-    return(get("get_script_dir", mode = "function")())
-  }
-  cmd_args <- commandArgs(trailingOnly = FALSE)
-  file_arg <- sub("^--file=", "", cmd_args[grep("^--file=", cmd_args)])
-  if (length(file_arg) > 0 && nzchar(file_arg[1])) {
-    return(dirname(normalizePath(file_arg[1], winslash = "/", mustWork = FALSE)))
-  }
-  frame_file <- tryCatch(sys.frames()[[1]]$ofile, error = function(e) NULL)
-  if (!is.null(frame_file) && nzchar(frame_file)) {
-    return(dirname(normalizePath(frame_file, winslash = "/", mustWork = FALSE)))
-  }
-  getwd()
+  file.path(dirname(get_canonical_config_path()), "R")
 }
 
 get_config_path <- function() {
-  script_dir <- resolve_script_dir()
-  candidates <- c(
-    file.path(script_dir, "..", "config.yml"),
-    file.path(script_dir, "config.yml")
-  )
-  for (path in candidates) {
-    if (file.exists(path)) {
-      return(normalizePath(path, winslash = "/", mustWork = FALSE))
+  explicit_path <- Sys.getenv("NLSS_CONFIG_PATH", "")
+  if (nzchar(explicit_path)) {
+    if (!file.exists(explicit_path)) {
+      stop("NLSS_CONFIG_PATH does not point to an existing configuration file.", call. = FALSE)
     }
+    return(normalizePath(explicit_path, winslash = "/", mustWork = TRUE))
   }
-  normalizePath(candidates[1], winslash = "/", mustWork = FALSE)
+  get_canonical_config_path()
 }
 
+read_config_yaml <- function(path) {
+  if (!file.exists(path)) stop("Missing NLSS configuration file: ", path, call. = FALSE)
+  if (!requireNamespace("yaml", quietly = TRUE)) {
+    stop("Missing dependency: yaml. Install it with install.packages('yaml') to read NLSS configuration.", call. = FALSE)
+  }
+  config <- tryCatch(yaml::yaml.load_file(path, eval.expr = FALSE), error = function(e) {
+    stop("Invalid NLSS YAML configuration: ", conditionMessage(e), call. = FALSE)
+  })
+  if (is.null(config)) stop("NLSS configuration is empty; expected a YAML mapping.", call. = FALSE)
+  config
+}
+
+# Compatibility name retained for existing entrypoints and tests. The canonical
+# YAML file is now the only source of default values and the override type shape.
 get_builtin_config <- function() {
-  list(
-    version = 1,
-    nlss_version = "1.0.2",
-    defaults = list(
-      output_dir = "./outputs/tmp",
-      workspace_manifest = "nlss-workspace.yml",
-      csv = list(
-        sep = ",",
-        header = TRUE
-      ),
-      digits = 2,
-      interactive = FALSE
-    ),
-    logging = list(
-      enabled = TRUE,
-      include_checksum = TRUE,
-      include_timestamps = TRUE,
-      include_versions = TRUE,
-      include_environment = FALSE,
-      include_user_prompt = TRUE,
-      include_cli_args = TRUE,
-      include_inputs = TRUE,
-      include_outputs = TRUE
-    ),
-    modules = list(
-      descriptive_stats = list(
-        vars_default = "numeric",
-        trim = 0.1,
-        iqr_multiplier = 1.5,
-        outlier_z = 3
-      ),
-      frequencies = list(
-        vars_default = "non-numeric",
-        include_numeric = FALSE
-      ),
-      data_explorer = list(
-        vars_default = "all",
-        max_levels = 20,
-        top_n = 10
-      ),
-      plot = list(
-        type = "auto",
-        vars_default = "numeric",
-        stat = "count",
-        percent_base = "total",
-        bins = 30,
-        binwidth = NULL,
-        bw = NULL,
-        smooth = "none",
-        se = TRUE,
-        span = 0.75,
-        summary = "none",
-        theme = "minimal",
-        palette = "default",
-        alpha = 0.7,
-        position = "dodge",
-        format = "png",
-        width = 7,
-        height = 5,
-        dpi = 300,
-        na_action = "omit",
-        figure_digits = 3,
-        file_prefix = "figure"
-      ),
-      correlations = list(
-        vars_default = "numeric",
-        method = "pearson",
-        missing = "pairwise",
-        alternative = "two.sided",
-        controls = NULL,
-        p_adjust = "none",
-        conf_level = 0.95,
-        bootstrap = FALSE,
-        bootstrap_samples = 1000,
-        compare_groups = FALSE,
-        coerce = FALSE
-      ),
-      scale = list(
-        vars_default = "numeric",
-        missing = "pairwise",
-        score = "sum",
-        omega = TRUE,
-        coerce = FALSE,
-        reverse_min = NULL,
-        reverse_max = NULL
-      ),
-      efa = list(
-        vars_default = "numeric",
-        method = "pca",
-        rotation = "varimax",
-        n_factors = "eigen",
-        eigen_threshold = 1,
-        cor = "pearson",
-        missing = "complete",
-        loading_cutoff = 0.3,
-        sort_loadings = TRUE,
-        coerce = FALSE
-      ),
-      reliability = list(
-        analysis = "icc",
-        format = "wide",
-        missing = "complete",
-        conf_level = 0.95,
-        icc_model = "twoway-random",
-        icc_type = "agreement",
-        icc_unit = "single",
-        kappa_weight = "none",
-        method = "pearson",
-        coerce = FALSE
-      ),
-      crosstabs = list(
-        percent = "all",
-        nlss_percent = "row",
-        chisq = TRUE,
-        yates = FALSE,
-        fisher = FALSE,
-        fisher_simulate = FALSE,
-        fisher_b = 2000,
-        fisher_conf_level = 0.95,
-        expected = TRUE,
-        residuals = TRUE
-      ),
-      data_transform = list(
-        standardize_suffix = "_z",
-        percentile_suffix = "_pct",
-        bins_suffix = "_bin",
-        recode_suffix = "_rec",
-        coerce = FALSE,
-        overwrite_vars = FALSE,
-        confirm_overwrite = FALSE,
-        confirm_drop = FALSE
-      ),
-      t_test = list(
-        vars_default = "numeric",
-        mu = 0.0,
-        alternative = "two.sided",
-        var_equal = FALSE,
-        conf_level = 0.95,
-        bootstrap = FALSE,
-        bootstrap_samples = 1000
-      ),
-      nonparametric = list(
-        vars_default = "numeric",
-        test = "auto",
-        mu = 0.0,
-        alternative = "two.sided",
-        conf_level = 0.95,
-        exact = "auto",
-        continuity = TRUE,
-        posthoc = "none",
-        p_adjust = "holm",
-        effect_size = "r"
-      ),
-      anova = list(
-        type = "II",
-        effect_size = "partial_eta",
-        conf_level = 0.95,
-        posthoc = "tukey",
-        emmeans = "none",
-        contrasts = "none",
-        p_adjust = "holm",
-        sphericity = "auto",
-        bootstrap = FALSE,
-        bootstrap_samples = 1000
-      ),
-      regression = list(
-        ivs_default = "numeric",
-        family = "gaussian",
-        link = "",
-        conf_level = 0.95,
-        center = "none",
-        standardize = "none",
-        bootstrap = FALSE,
-        bootstrap_samples = 1000
-      ),
-      power = list(
-        analysis = "ttest",
-        mode = "apriori",
-        effect_metric = "auto",
-        alpha = 0.05,
-        power = 0.8,
-        alternative = "two.sided",
-        t_type = "two-sample",
-        ratio = 1,
-        mu = 0.0,
-        groups = 2,
-        u = 1,
-        rmsea0 = 0.05,
-        rmsea1 = 0.08,
-        estimate_effect = FALSE
-      ),
-      mixed_models = list(
-        reml = TRUE,
-        type = "III",
-        df_method = "satterthwaite",
-        standardize = "none",
-        emmeans = "none",
-        contrasts = "none",
-        p_adjust = "holm",
-        conf_level = 0.95,
-        optimizer = "bobyqa",
-        maxfun = 100000,
-        diagnostics = TRUE,
-        max_shapiro_n = 5000
-      ),
-      sem = list(
-        analysis = "sem",
-        estimator = "MLR",
-        missing = "fiml",
-        se = "robust",
-        ci = "standard",
-        conf_level = 0.95,
-        bootstrap = FALSE,
-        bootstrap_samples = 5000,
-        std = "std.all",
-        fit = "chisq,df,cfi,tli,rmsea,srmr",
-        r2 = TRUE,
-        modindices = 0,
-        residuals = FALSE,
-        invariance = "configural,metric,scalar,strict"
-      ),
-      assumptions = list(
-        analysis = "auto",
-        vars_default = "numeric",
-        normality = "shapiro",
-        homogeneity = "levene",
-        linearity = TRUE,
-        homoscedasticity = TRUE,
-        vif = TRUE,
-        durbin_watson = TRUE,
-        outliers = TRUE,
-        influence = TRUE,
-        alpha = 0.05,
-        vif_warn = 5,
-        vif_high = 10,
-        outlier_z = 3,
-        cook_multiplier = 4,
-        max_shapiro_n = 5000,
-        mixed_models = list(
-          random_effects = TRUE,
-          singular = TRUE,
-          convergence = TRUE,
-          dharma = FALSE,
-          performance = TRUE
-        ),
-        sem = list(
-          mardia = TRUE,
-          mahalanobis = TRUE,
-          mahalanobis_alpha = 0.001,
-          collinearity = TRUE,
-          max_cor = 0.9,
-          max_kappa = 30,
-          heywood = TRUE,
-          convergence = TRUE
-        )
-      ),
-      impute = list(
-        vars_default = "all",
-        engine = "auto",
-        numeric_method = "median",
-        categorical_method = "mode",
-        skew_threshold = 1,
-        suffix = "_imp",
-        indicator = FALSE,
-        indicator_suffix = "_miss",
-        m = 5,
-        maxit = 5,
-        k = 5,
-        seed = NULL
-      ),
-      missings = list(
-        vars_default = "all",
-        method = "auto",
-        low_threshold = 0.05,
-        moderate_threshold = 0.2,
-        high_threshold = 0.4,
-        drop_threshold = 0.6,
-        indicator_threshold = 0.3,
-        indicator_suffix = "_miss",
-        skew_threshold = 1,
-        max_patterns = 10
-      ),
-      research_academia = list(
-        sources = "openalex,crossref",
-        max_per_source = 50,
-        max_total = 200,
-        top_n = 10,
-        timeout = 30,
-        abstract_limit = 200,
-        keywords_limit = 80
-      ),
-      init_workspace = list(
-        agent = "Codex"
-      ),
-      metaskill_runner = list(
-        meta_default = "",
-        analysis_label = "Metaskill activation",
-        note_default = "This entry logs metaskill activation/finalization only; analyses are logged separately."
-      )
-    ),
-    templates = list(
-      descriptive_stats = list(
-        default = "descriptive-stats/default-template.md",
-        robust = "descriptive-stats/robust-template.md",
-        distribution = "descriptive-stats/distribution-template.md"
-      ),
-      frequencies = list(
-        default = "frequencies/default-template.md",
-        grouped = "frequencies/grouped-template.md"
-      ),
-      data_explorer = list(
-        default = "data-explorer/default-template.md"
-      ),
-      plot = list(
-        default = "plot/default-template.md"
-      ),
-      data_transform = list(
-        default = "data-transform/default-template.md"
-      ),
-      correlations = list(
-        default = "correlations/default-template.md",
-        cross = "correlations/cross-correlation-template.md",
-        matrix = "correlations/matrix-template.md",
-        comparison = "correlations/comparison-template.md"
-      ),
-      crosstabs = list(
-        default = "crosstabs/default-template.md",
-        grouped = "crosstabs/grouped-template.md"
-      ),
-      scale = list(
-        default = "scale/default-template.md"
-      ),
-      efa = list(
-        default = "efa/default-template.md"
-      ),
-      reliability = list(
-        default = "reliability/default-template.md"
-      ),
-      t_test = list(
-        default = "t-test/default-template.md"
-      ),
-      nonparametric = list(
-        default = "nonparametric/default-template.md",
-        posthoc = "nonparametric/posthoc-template.md"
-      ),
-      anova = list(
-        default = "anova/default-template.md",
-        posthoc = "anova/posthoc-template.md",
-        contrasts = "anova/contrasts-template.md"
-      ),
-      regression = list(
-        default = "regression/default-template.md",
-        model_tests = "regression/model-tests-template.md"
-      ),
-      power = list(
-        default = "power/default-template.md"
-      ),
-      mixed_models = list(
-        default = "mixed-models/default-template.md",
-        tests = "mixed-models/tests-of-fixed-effects-template.md",
-        emmeans = "mixed-models/emmeans-template.md"
-      ),
-      sem = list(
-        default = "sem/default-template.md",
-        cfa = "sem/cfa-template.md",
-        mediation = "sem/mediation-template.md",
-        invariance = "sem/invariance-template.md"
-      ),
-      assumptions = list(
-        ttest = "assumptions/ttest-template.md",
-        anova = "assumptions/anova-template.md",
-        regression = "assumptions/regression-template.md",
-        mixed_models = "assumptions/mixed-models-template.md",
-        sem = "assumptions/sem-template.md"
-      ),
-      impute = list(
-        default = "impute/default-template.md"
-      ),
-      missings = list(
-        default = "missings/default-template.md"
-      ),
-      init_workspace = list(
-        default = "init-workspace/default-template.md",
-        scratchpad = "scratchpad/default-template.md"
-      ),
-      metaskill_report = list(
-        default = "metaskills/report-template.md"
-      ),
-      metaskill_runner = list(
-        default = "metaskill-runner/default-template.md",
-        finalization = "metaskill-runner/finalization-template.md"
-      ),
-      calc = list(
-        default = "calc/default-template.md"
-      ),
-      research_academia = list(
-        default = "research-academia/default-template.md"
-      )
-    )
-  )
+  config <- read_config_yaml(get_canonical_config_path())
+  sections <- c("version", "nlss_version", "defaults", "logging", "modules", "templates")
+  if (!is.list(config) || is.null(names(config)) ||
+      length(setdiff(sections, names(config))) || length(setdiff(names(config), sections))) {
+    stop("Invalid canonical NLSS configuration: expected version, nlss_version, defaults, logging, modules and templates.",
+         call. = FALSE)
+  }
+  for (section in c("defaults", "logging", "modules", "templates")) {
+    if (!is.list(config[[section]]) || !length(config[[section]])) {
+      stop("Invalid canonical NLSS configuration: ", section, " must be a non-empty mapping.", call. = FALSE)
+    }
+  }
+  validate_config(config, schema = config)
 }
 
 merge_lists <- function(base, override) {
@@ -440,25 +77,83 @@ merge_lists <- function(base, override) {
   out <- base
   for (name in names(override)) {
     if (name %in% names(base)) {
-      out[[name]] <- merge_lists(base[[name]], override[[name]])
+      out[name] <- list(merge_lists(base[[name]], override[[name]]))
     } else {
-      out[[name]] <- override[[name]]
+      out[name] <- list(override[[name]])
     }
   }
   out
 }
 
-load_config_file <- function(path) {
-  if (!file.exists(path)) return(NULL)
-  if (!requireNamespace("yaml", quietly = TRUE)) return(NULL)
-  yaml::yaml.load_file(path)
+validate_config <- function(config, schema = get_builtin_config(), path = "") {
+  location <- if (nzchar(path)) path else "configuration"
+  invalid <- function(expected) {
+    stop("Invalid configuration at ", location, ": expected ", expected, ".", call. = FALSE)
+  }
+  if (is.list(schema)) {
+    if (!is.list(config) || (length(config) &&
+        (is.null(names(config)) || any(!nzchar(names(config))) || anyDuplicated(names(config))))) {
+      invalid("a mapping with unique named keys")
+    }
+    # Templates may add named variants, but module names and every variant's
+    # path remain validated. Template front matter is handled by formatting.R.
+    custom_variants <- grepl("^templates[.][^.]+$", path)
+    unknown <- setdiff(names(config), names(schema))
+    if (length(unknown) && !custom_variants) {
+      stop("Unknown configuration key: ",
+           if (nzchar(path)) paste0(path, ".") else "", unknown[[1]], ".", call. = FALSE)
+    }
+    for (key in names(config)) {
+      child_path <- if (nzchar(path)) paste(path, key, sep = ".") else key
+      child_schema <- if (custom_variants) "" else schema[[key]]
+      # Single-bracket assignment deliberately retains an explicit NULL.
+      config[key] <- list(validate_config(config[[key]], child_schema, child_path))
+    }
+    return(config)
+  }
+  if (is.null(config)) {
+    if (is.null(schema)) return(NULL)
+    invalid("a non-null scalar value")
+  }
+  if (length(config) != 1L || is.list(config) || is.na(config)) invalid("a scalar value")
+  if (is.null(schema)) {
+    if (!is.atomic(config)) invalid("a scalar value or null")
+    return(config)
+  }
+  if (is.logical(schema)) {
+    token <- tolower(trimws(as.character(config)))
+    if (token %in% c("true", "t", "1", "yes", "y")) return(TRUE)
+    if (token %in% c("false", "f", "0", "no", "n")) return(FALSE)
+    invalid("TRUE/FALSE (or yes/no, 1/0)")
+  }
+  if (is.numeric(schema)) {
+    if (is.logical(config)) invalid("a finite number")
+    number <- suppressWarnings(as.numeric(config))
+    if (length(number) != 1L || !is.finite(number)) invalid("a finite number")
+    return(number)
+  }
+  # EFA explicitly accepts either the 'eigen' policy or a numeric factor count.
+  if (identical(path, "modules.efa.n_factors") && is.numeric(config) && is.finite(config)) {
+    return(config)
+  }
+  if (is.character(schema) && !is.character(config)) invalid("text")
+  config
+}
+
+load_config_file <- function(path, schema = get_builtin_config()) {
+  # Keep the dependency check here as well for callers that wrap this public
+  # helper in an isolated dependency environment.
+  if (!requireNamespace("yaml", quietly = TRUE)) {
+    stop("Missing dependency: yaml. Install it with install.packages('yaml') to read NLSS configuration.", call. = FALSE)
+  }
+  validate_config(read_config_yaml(path), schema = schema)
 }
 
 load_config <- function() {
   base <- get_builtin_config()
   path <- get_config_path()
-  user_config <- load_config_file(path)
-  merge_lists(base, user_config)
+  if (identical(path, get_canonical_config_path())) return(base)
+  merge_lists(base, load_config_file(path, schema = base))
 }
 
 get_config <- function() {

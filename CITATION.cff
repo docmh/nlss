@@ -1,16 +1,18 @@
 cff-version: 1.2.0
-message: "If you use NLSS in published research, please cite:"
+message: "Please cite NLSS with the version actually used and its release URL. Use the corresponding version DOI when available in the linked Zenodo archive."
 title: "docmh/nlss: NLSS"
-abstract: "Reliable, transparent, auditable statistics and reporting through natural language and R via agentskills.io framework."
+abstract: "Researcher-led statistical analysis and reporting through natural language, a local agent, and established R procedures."
 authors:
   - family-names: Hammes
     given-names: Mike
     orcid: https://orcid.org/0000-0003-1177-4282
 type: software
-date-released: 2026-01-01
-identifiers: 
+version: "2.0.0"
+date-released: 2026-09-16
+identifiers:
   - type: doi
     value: 10.5281/zenodo.18173833
-url: https://doi.org/10.5281/zenodo.18173833
+    description: "Concept DOI for the software across archived versions, not a version-specific DOI for 2.0.0."
+url: https://github.com/docmh/nlss/releases/tag/v2.0.0
 license: Apache-2.0
 repository-code: https://github.com/docmh/nlss

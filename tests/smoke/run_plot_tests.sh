@@ -56,7 +56,8 @@ PY
 get_tests_value() {
   local path="${TESTS_CONFIG_PATH}"
   if [ ! -f "${path}" ]; then
-    path="${CONFIG_PATH}"
+    echo "Missing tests.yml: ${path}" >&2
+    return 1
   fi
   get_config_value "${path}" "$1"
 }
@@ -225,16 +226,6 @@ INTERACTIVE_INPUT="${TMP_BASE}/interactive_input.txt"
 
 HELP_PATH="${TMP_BASE}/plot_help.txt"
 
-CONFIG_BAK="$(mktemp)"
-cp "${CONFIG_PATH}" "${CONFIG_BAK}"
-
-cleanup() {
-  cp "${CONFIG_BAK}" "${CONFIG_PATH}"
-  rm -f "${CONFIG_BAK}"
-  rm -f "${WORKSPACE_MANIFEST_PATH}"
-}
-trap cleanup EXIT
-
 : > "${LOG_FILE}"
 
 if ! command -v Rscript >/dev/null 2>&1; then
@@ -249,6 +240,12 @@ fi
 
 mkdir -p "${WORKSPACE_DIR}" "${DATASET_DIR}" "${TMP_BASE}"
 : > "${WORKSPACE_MANIFEST_PATH}"
+# Template-key tests mutate only this private override. Keep the workspace
+# manifest and terminal bundles available for independent replay/visual review.
+CONFIG_PRIVATE="${TMP_BASE}/config.yml"
+cp "${CONFIG_PATH}" "${CONFIG_PRIVATE}"
+CONFIG_PATH="${CONFIG_PRIVATE}"
+export NLSS_CONFIG_PATH="${CONFIG_PRIVATE}"
 export TMPDIR="${TMP_BASE}"
 export TMP="${TMP_BASE}"
 export TEMP="${TMP_BASE}"
@@ -346,10 +343,8 @@ run_expect_fail() {
   local label="$1"; shift
   local log_path="$1"; shift
   echo "[RUN-EXPECT-FAIL] ${label}" | tee -a "${LOG_FILE}"
-  local start_count=""
-  if [ -n "${log_path}" ]; then
-    start_count="$(log_count "${log_path}")"
-  fi
+  local before_state
+  before_state="$(dataset_state "${log_path}")"
   set +e
   "$@" >>"${LOG_FILE}" 2>&1
   local exit_status=$?
@@ -358,12 +353,68 @@ run_expect_fail() {
     echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
     exit 1
   fi
-  if [ -n "${log_path}" ]; then
-    local end_count
-    end_count="$(log_count "${log_path}")"
-    assert_log_unchanged "${start_count}" "${end_count}" "${label} log unchanged"
-  fi
-  echo "[PASS] ${label}" | tee -a "${LOG_FILE}"
+  assert_bundle "${log_path}" "${before_state}" failed
+  echo "[PASS] ${label} (failed bundle, protected report/log/figures)" | tee -a "${LOG_FILE}"
+}
+
+dataset_state() {
+  "${PYTHON_BIN}" - "$1" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+root = Path(sys.argv[1]).parent
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+projections = {name: digest(root / name) for name in ("analysis_log.jsonl", "report_canonical.md")}
+projections.update({str(path.relative_to(root)): digest(path) for path in (root / "plots").rglob("*") if path.is_file()})
+print(json.dumps({"runs": [str(path) for path in (root / "runs").glob("*/request.json")],
+    "run_files": {str(path): digest(path) for path in (root / "runs").rglob("*") if path.is_file()},
+    "projections": projections}))
+PY
+}
+
+assert_bundle() {
+  "${PYTHON_BIN}" - "$1" "$2" "$3" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+root, before, expected = Path(sys.argv[1]).parent, json.loads(sys.argv[2]), sys.argv[3]
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+current = list((root / "runs").glob("*/request.json"))
+assert set(before["runs"]).issubset(str(path) for path in current), "Earlier run was removed"
+for name, value in before["run_files"].items():
+    assert digest(Path(name)) == value, "Earlier run artifact changed: " + name
+added = [path for path in current if str(path) not in before["runs"]]
+assert len(added) == 1, "Expected exactly one new terminal run"
+request_path = added[0]
+request = json.loads(request_path.read_text())
+result = json.loads((request_path.parent / "result.json").read_text())
+assert not request_path.parent.name.startswith("."), "Run remained pending"
+assert request["module"] == result["module"] == "plot", "Wrong run module"
+assert request["run_id"] == result["run_id"] == request_path.parent.name, "Run identity differs"
+assert result["status"] == expected, "Wrong terminal run status"
+assert result["artifacts"]["request"]["path"] == "request.json", "Missing request artifact"
+assert result["artifacts"]["request"]["sha256"] == digest(request_path), "Request hash mismatch"
+assert not (root / ".analysis-lock").exists(), "Run retained analysis lock"
+assert not any(path.name.startswith(".") for path in (root / "runs").iterdir()), "Pending staging artifact remains"
+if expected == "failed":
+    assert result.get("error"), "Failed run has no diagnostic error"
+    assert not (request_path.parent / "output.md").exists(), "Failure published normal Markdown"
+else:
+    assert result["artifacts"]["output"]["path"] == "output.md", "Missing mandatory Markdown artifact"
+    assert result["results"]["figures"], "Legacy log optout removed mandatory figure results"
+    assert any(item["path"].startswith("plots/") for item in result["artifacts"].values()), "Run contains no preserved figure artifact"
+for artifact in result["artifacts"].values():
+    path = request_path.parent / artifact["path"]
+    assert digest(path) == artifact["sha256"], "Artifact hash mismatch"
+for name, value in before["projections"].items():
+    if expected == "completed" and name == "report_canonical.md":
+        continue  # --log FALSE still appends the Markdown projection.
+    assert digest(root / name) == value, "Run unexpectedly modified " + name
+if expected == "failed":
+    actual_plots = {str(path.relative_to(root)) for path in (root / "plots").rglob("*") if path.is_file()}
+    expected_plots = {name for name in before["projections"] if name.startswith("plots/")}
+    assert actual_plots == expected_plots, "Failed run published an orphaned compatibility figure"
+PY
 }
 
 check_log_value() {
@@ -384,10 +435,7 @@ def load_entries(path, start_count):
             if idx <= start_count:
                 continue
             if line.strip():
-                try:
-                    entries.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
+                entries.append(json.loads(line))
     return entries
 
 
@@ -467,10 +515,7 @@ def load_entries(path, start_count):
             if idx <= start_count:
                 continue
             if line.strip():
-                try:
-                    entries.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
+                entries.append(json.loads(line))
     return entries
 
 
@@ -538,10 +583,7 @@ def load_entries(path, start_count):
             if idx <= start_count:
                 continue
             if line.strip():
-                try:
-                    entries.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
+                entries.append(json.loads(line))
     return entries
 
 
@@ -594,10 +636,7 @@ def load_entries(path, start_count):
             if idx <= start_count:
                 continue
             if line.strip():
-                try:
-                    entries.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
+                entries.append(json.loads(line))
     return entries
 
 
@@ -761,7 +800,7 @@ check_log_value "${LOG_PATH}" "${start}" "user_prompt" "plot test prompt"
 check_figure_value "${LOG_PATH}" "${start}" "0" "plot_type" "bar"
 
 HAS_SVG=0
-if Rscript -e "quit(status = if (requireNamespace('ggplot2', quietly=TRUE) && requireNamespace('svglite', quietly=TRUE)) 0 else 1)" >/dev/null 2>&1; then
+if Rscript -e "quit(status = if (isTRUE(capabilities('cairo'))) 0 else 1)" >/dev/null 2>&1; then
   HAS_SVG=1
 fi
 
@@ -771,7 +810,7 @@ if [ "${HAS_SVG}" -eq 1 ]; then
   SCATTER_FORMAT="svg"
   SCATTER_EXT="svg"
 else
-  echo "[SKIP] svg format (svglite not available for ggplot2)" | tee -a "${LOG_FILE}"
+  echo "[SKIP] svg format (Cairo unavailable for grDevices::svg)" | tee -a "${LOG_FILE}"
 fi
 
 start=$(log_count "${LOG_PATH}")
@@ -846,10 +885,12 @@ else
 fi
 
 start=$(log_count "${LOG_PATH}")
+before_state="$(dataset_state "${LOG_PATH}")"
 run_ok "qq log disabled" Rscript "${R_SCRIPT_DIR}/plot.R" --parquet "${PARQUET_GOLDEN}" --type qq --vars skewed_var --figure-number 50 --log FALSE
 assert_glob "${PLOTS_DIR}/figure-050-qq-skewed_var*.png"
 end=$(log_count "${LOG_PATH}")
 assert_log_unchanged "${start}" "${end}" "qq log disabled"
+run_ok "log disabled preserves mandatory completed plot bundle" assert_bundle "${LOG_PATH}" "${before_state}" completed
 
 start=$(log_count "${LOG_PATH}")
 run_ok "corr-heatmap parquet" Rscript "${R_SCRIPT_DIR}/plot.R" --parquet "${PARQUET_GOLDEN}" --type corr-heatmap --vars x1,x2,x3 --digits 3 --figure-number 60
@@ -974,9 +1015,13 @@ rm -rf "${MISSING_PLOTS_DIR}"
 
 start=$(log_count "${MISSING_LOG_PATH}")
 run_ok "missing na_action keep" Rscript "${R_SCRIPT_DIR}/plot.R" --parquet "${MISSING_PARQUET}" --type bar --vars segment --na-action keep --figure-number 1
-assert_contains "${MISSING_NLSS_REPORT_PATH}" "Missing values shown as 'Missing'"
+assert_contains "${MISSING_NLSS_REPORT_PATH}" "Missing categories retained (n = 2)"
+assert_contains "${MISSING_NLSS_REPORT_PATH}" "distinct from literal values"
 check_log_value "${MISSING_LOG_PATH}" "${start}" "options.na_action" "keep"
 check_figure_value "${MISSING_LOG_PATH}" "${start}" "0" "plot_type" "bar"
+check_figure_value "${MISSING_LOG_PATH}" "${start}" "0" "n" "4"
+check_figure_value "${MISSING_LOG_PATH}" "${start}" "0" "missing_n" "0"
+check_figure_value "${MISSING_LOG_PATH}" "${start}" "0" "missing_pct" "0"
 
 run_ok "init workspace (interactive)" Rscript "${R_SCRIPT_DIR}/init_workspace.R" --csv "${INTERACTIVE_CSV}"
 rm -f "${INTERACTIVE_NLSS_REPORT_PATH}" "${INTERACTIVE_LOG_PATH}"
@@ -1029,5 +1074,55 @@ run_expect_fail "invalid plot type" "${LOG_PATH}" \
   Rscript "${R_SCRIPT_DIR}/plot.R" --parquet "${PARQUET_GOLDEN}" --type not_a_plot --vars age
 run_expect_fail "corr-heatmap nonnumeric" "${LOG_PATH}" \
   Rscript "${R_SCRIPT_DIR}/plot.R" --parquet "${PARQUET_GOLDEN}" --type corr-heatmap --vars x1,gender
+
+run_ok "all plot bundles retain verified figures and numerical artifacts" "${PYTHON_BIN}" - "${WORKSPACE_DIR}" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+completed = failed = figures = 0
+for request_path in root.glob("*/runs/*/request.json"):
+    request = json.loads(request_path.read_text())
+    if request.get("module") != "plot":
+        continue
+    run_dir = request_path.parent
+    result = json.loads((run_dir / "result.json").read_text())
+    assert request["run_id"] == result["run_id"] == run_dir.name, "Run identity mismatch"
+    assert result["module"] == "plot", "Run module mismatch"
+    assert not run_dir.name.startswith("."), "Pending plot run survived"
+    assert not (run_dir.parent.parent / ".analysis-lock").exists(), "Plot retained its lock"
+    for artifact in result["artifacts"].values():
+        path = run_dir / artifact["path"]
+        assert path.resolve().is_relative_to(run_dir.resolve()), "Artifact escaped its run"
+        assert path.is_file(), "Missing preserved artifact: " + str(path)
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == artifact["sha256"], "Changed preserved artifact: " + str(path)
+    if result["status"] == "failed":
+        failed += 1
+        assert result.get("error"), "Failed plot has no diagnostic"
+        assert not (run_dir / "output.md").exists(), "Failed plot has normal output"
+        continue
+    assert result["status"] == "completed", "Plot has no terminal result"
+    completed += 1
+    assert result["artifacts"]["output"]["path"] == "output.md", "Plot lost Markdown"
+    assert result["artifacts"]["plot-data.rds"]["path"] == "plot-data.rds", "Plot lost its numerical artifact"
+    rows = result["results"]["figures"]
+    assert rows, "Completed plot has no figure rows"
+    assert [row["figure_number"] for row in rows] == list(range(1, len(rows) + 1)), "Run-local numbering is not stable"
+    for row in rows:
+        path = run_dir / row["figure_path"]
+        assert any(item["path"] == row["figure_path"] for item in result["artifacts"].values()), "Figure has no integrity record"
+        assert path.stat().st_size > 0, "Empty figure"
+        content = path.read_bytes()
+        if path.suffix == ".png":
+            assert content.startswith(b"\x89PNG\r\n\x1a\n"), "Invalid PNG signature"
+        elif path.suffix == ".pdf":
+            assert content.startswith(b"%PDF-"), "Invalid PDF signature"
+        elif path.suffix == ".svg":
+            assert b"<svg" in content, "Invalid SVG content"
+        else:
+            raise AssertionError("Unexpected figure format")
+        figures += 1
+assert completed > 0 and failed == 2, "Expected successful coverage and both original negative cases"
+print(f"Verified {completed} completed runs, {failed} failed runs and {figures} preserved figures.")
+PY
 
 echo "plot tests: OK" | tee -a "${LOG_FILE}"

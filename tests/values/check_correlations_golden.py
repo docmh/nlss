@@ -181,7 +181,11 @@ def main():
     ]
     for key in numeric_keys:
         expected_val = parse_float(expected.get(key))
-        compare_numeric(row.get(key), expected_val, key)
+        # A 1e-6 absolute tolerance would accept zero for small, meaningful
+        # p-values and miss the former partial-df error. Preserve relative
+        # sensitivity across the whole p-value range.
+        compare_numeric(row.get(key), expected_val, key,
+                        abs_tol=0.0 if key in ("p_value", "p_adjusted", "p_r0") else 1e-6)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Normal validation is deterministic and offline. The original live API matrix
+# remains an explicitly opted-in external-service diagnostic, not CI evidence.
+if [ "${NLSS_RESEARCH_LIVE_TESTS:-0}" != "1" ]; then
+  RESEARCH_TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  RESEARCH_TEST_REPO="$(cd "${RESEARCH_TEST_DIR}/../.." && pwd)"
+  RESEARCH_RUNNER="$(Rscript -e 'x <- yaml::read_yaml(commandArgs(TRUE)[1])$tests$scripts$phase2_research_r; if (is.null(x)) stop("Missing research test registration"); cat(x)' "${NLSS_TESTS_CONFIG:-${RESEARCH_TEST_REPO}/tests/tests.yml}")"
+  exec Rscript "${RESEARCH_TEST_REPO}/${RESEARCH_RUNNER}" "$@"
+fi
+
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [ -z "${PYTHON_BIN}" ]; then
   if command -v python3 >/dev/null 2>&1; then

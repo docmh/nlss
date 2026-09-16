@@ -2,6 +2,57 @@
 
 ## Scope
 
+Wave 12 adds `^missings_.*_smoke$` through
+`tests.suites.smoke.missings_match`: independent missingness/handling values,
+SPSS metadata and non-activating replay. The dedicated module runner also
+checks CSV goldens against legacy JSONL; see [Missings](plan-missings.md).
+
+Wave 10 adds the seven-case `^plot_.*_smoke$` subset selected through
+`tests.suites.smoke.plot_match`: histogram bins/binwidth, violin quantiles,
+linear-model smoothing, grouped QQ, listwise correlation heatmap and grouped
+bar percentages. It checks independent numerical values and saved-request
+replay, requiring ggplot2 and haven in addition to baseline packages. The full
+plot runner is the fourteenth Phase 2 runner; density, box, line, other plotting
+options, import and failure/publication cases remain in complete `phase2`/`all`.
+A missing selector cannot silently run the full suite or report an empty pass.
+
+The final smoke stage also runs the named `smoke` subsets of the independent
+linear mixed-model and legacy mixed-diagnostic suites (registered in
+`tests/tests.yml`). They cover model values, case/cluster identity, SPSS labels,
+saved-request replay, optimizer failure versus singularity, and the repaired
+performance/influence package paths. The complete variants run in `phase2`;
+the earlier diagnostic suites remain regression evidence alongside the Wave 9
+standalone assumptions contract suite.
+
+Wave 9 adds the named `_smoke$` subset of
+`tests.scripts.phase2_assumptions_r`, covering all five diagnostic families and
+their run/replay contract. The complete new runner is the thirteenth independent
+Phase 2 runner; no earlier runner is removed. These five cases require haven,
+car, lme4 and lavaan in addition to the baseline test packages. Optional DHARMa
+and MVN checks do not gate this core subset; their complete dedicated cases
+remain in Phase 2 and missing dependencies are reported explicitly.
+
+Wave 9 also bounds the previously duplicated full psychometric and inference
+runs: smoke now selects **8/34 psychometric groups** and **13/83 inference
+groups** via the exact anchored `tests.suites.smoke.psychometric_match` and
+`inference_match` patterns in `tests/tests.yml`. Those selectors cover scale,
+ICC, kappa, test-retest, all three t-test types, all three correlation methods,
+partial correlations and group comparisons, with SAV/user-missing handling,
+bootstrap and saved-request replay. Their runner READMEs give the coverage map.
+All 117 original groups, test IDs and numerical assertions remain unchanged in
+the complete `phase2`/`all` suites. Missing configured patterns, malformed
+patterns and zero selected cases cannot report successful smoke acceptance.
+
+Wave 8 adds `_smoke$` subsets of independent Power and parameter-only planning
+acceptance. They check package values, pilot design, integer allocation,
+no-dataset provenance and replay. Full family/mode and publication/input tests
+remain part of `phase2`/`all`.
+
+Wave 7 adds named `_smoke` subsets of independent EFA, SEM and legacy SEM
+diagnostic acceptance. They include ordinal/SAV inputs, model values, saved
+replay, raw Mardia probabilities and actual FIML case/group identity. Full suites
+run in `phase2`/`all`; smoke subsets are not counted as independent extra groups.
+
 - Run every current module with a clean variable subset and with edge-case inputs.
 - Exercise the calc utility with basic, vector, unsafe, and failure cases.
 - Exercise the research-academia utility with multiple network searches (when allowed).
@@ -9,6 +60,8 @@
 - Verify logging toggles (enabled/fields) change `analysis_log.jsonl` content as expected, including invalid toggle values.
 - Verify check-integrity on `analysis_log.jsonl`, including tampered copies (edit/delete a line) to confirm warning behavior.
 - Verify reconstruct-reports rebuilds `report_canonical_reconstructed.md` from `analysis_log.jsonl`.
+- Run independent frequency golden values, grouping/label and saved-request replay checks through the registered frequencies module runner.
+- Run the registered scale/reliability numerical and replay smoke subset when its test-reference packages `psych` and `haven` are available; otherwise report the skipped coverage explicitly. Neither becomes a new dependency of the Base-R estimators.
 - Verify label-aware modules render variable/value labels using a labeled RDS dataset derived from the golden dataset and mixed-models long data.
 - Validate outputs in `tests.output_dir/<timestamp>/workspace/<dataset-name>/`: `analysis_log.jsonl`, `report_canonical.md`, `scratchpad.md`, and the workspace parquet copy.
 
@@ -129,7 +182,7 @@ Rscript scripts/R/correlations.R --parquet "${PARQUET}" --x skewed_var,outlier_v
 Rscript scripts/R/scale.R --parquet "${PARQUET}" --vars f2_1,f2_2,f2_3,f2_4_rev --reverse f2_4_rev --reverse-min 1 --reverse-max 5 --missing complete --omega FALSE
 Rscript scripts/R/efa.R --parquet "${PARQUET}" --vars f1_1,f1_2,f1_3_rev,f1_4,f2_1,f2_2,f2_3,f2_4_rev --method minres --n-factors 2 --missing pairwise --cor spearman --loading-cutoff 0.4 --sort-loadings FALSE
 Rscript scripts/R/reliability.R --parquet "${PARQUET}" --analysis kappa --vars cat_var,cat_var2 --kappa-weight none
-Rscript scripts/R/assumptions.R --parquet "${PARQUET}" --analysis anova --dv outcome_anova --between group3 --within pre_score,mid_score,post_score --subject-id id
+Rscript scripts/R/assumptions.R --parquet "${PARQUET}" --analysis anova --between group3 --within pre_score,mid_score,post_score --subject-id id
 Rscript scripts/R/regression.R --parquet "${PARQUET}" --dv outcome_reg --ivs x1,x2,x3 --bootstrap TRUE --bootstrap-samples 200 --seed 42
 Rscript scripts/R/power.R --parquet "${PARQUET}" --analysis correlation --mode sensitivity --n 120 --power 0.8
 Rscript scripts/R/sem.R --parquet "${PARQUET}" --analysis path --dv outcome_reg --ivs skewed_var,outlier_var
@@ -171,8 +224,15 @@ Rscript scripts/R/data_transform.R --parquet "${PARQUET}" --calc "score_avg=(f1_
 
 # Edge-case data-transform
 Rscript scripts/R/init_workspace.R --csv "${DATA}"
-Rscript scripts/R/data_transform.R --parquet "${PARQUET}" --transform "skewed_var=log" --percentile-bins "outlier_var=4" --recode "group3=A:1,B:2,C:3" --drop zero_var
+Rscript scripts/R/data_transform.R --parquet "${PARQUET}" --transform "skewed_var=log" --percentile-bins "outlier_var=4" --recode "group3=A:1,B:2,C:3" --drop zero_var --confirm-drop
 ```
+
+The registered transformation smoke subset adds independent base-R golden
+values for all operations, SPSS label/missing lineage, and replay after a later
+working-data change. `tests.suites.smoke.transform_match` selects this bounded
+subset; the full transform runner includes all edge/failure/publication checks
+and remains part of the complete Phase-2 suite. Smoke overlap is not additional
+independent full-suite coverage.
 
 ## Output Generation Checks (Templates)
 
@@ -228,6 +288,7 @@ Template override steps (per module):
 - impute: `--engine`, `--numeric-method`, `--categorical-method`, `--method-map`, `--indicator`, `--m`, `--k`
 - assumptions: `--analysis`, `--between`, `--within`, `--blocks`, `--formula`, `--vif`, `--outliers`, `--random-effects`, `--mardia`
 - regression: `--blocks`, `--interactions`, `--center`, `--bootstrap`, `--bootstrap-samples`
+- mi-regression: the registered module runner executes seven offline groups covering the MI core, preserved artifact creation, Gaussian/binomial/Poisson CLI pooling, direct mice numerical comparisons, Markdown/replay and unsupported-model rejection.
 - power: `--analysis`, `--mode`, `--effect-metric`, `--effect-size`, `--n`, `--n-per-group`, `--estimate-effect`, `--df`, `--rmsea0`, `--rmsea1`
 - sem: `--analysis`, `--model`, `--factors`, `--x`, `--m`, `--y`, `--estimator`, `--missing`, `--se`, `--ci`, `--std`, `--group`, `--fit`
 - mixed-models: `--formula`, `--random`, `--df-method`, `--emmeans`, `--contrasts`, `--p-adjust`
@@ -242,14 +303,26 @@ Template override steps (per module):
 - t-test with >2 group levels: `--vars outcome_anova --group group3`
 - t-test invalid paired + group combo: `--x pre_score --y post_score --group group3`
 - anova missing subject-id with within variables: `--within pre_score,post_score`
+- assumptions contradictory wide-response roles: `--analysis anova --dv outcome_anova --between group3 --within pre_score,mid_score,post_score --subject-id id`. The valid repeated-measures edge case omits `--dv`; the contradictory legacy invocation remains an expected failed bundle with unchanged prior report/log.
 - regression missing dv: `--ivs x1,x2`
 - mixed-models missing random effects: `--dv score --fixed time,group3`
 - sem missing vars: `--analysis cfa --factors "F1=missing1,missing2"`
 - nonparametric Mann-Whitney with >2 group levels: `--vars outcome_anova --group group3 --test mann_whitney`
 
-For expected failures, informational output counts as a pass (e.g., `t_test` supports `--expect-two-groups TRUE` and prints `EXPECTED_NEGATIVE: t_test group levels`).
-The paired + group negative check relies on `analysis_log.jsonl` with `results.status = invalid_input`.
-For automated checks, prefer the JSONL log entry (`results.status = expected_invalid_input`) when informational output is not captured.
+For legacy expected failures, informational output can count as a pass. Migrated
+`t_test`, ANOVA and nonparametric failures instead require a terminal failed run, request hash, no normal
+`output.md`, released analysis lock and unchanged report/log projections.
+`--expect-two-groups TRUE` may exit 0 for its expected group-count error, but this
+must never be mistaken for a completed analysis.
+
+The smoke runner also executes the `tests.suites.smoke.inference_match` subset
+of `tests.scripts.phase2_inference_r`, the independent t-test/correlation numeric
+and replay acceptance. Import fixtures require haven;
+missing test dependencies are reported explicitly rather than silently skipped.
+The ANOVA/rank-test smoke acceptance uses `tests.scripts.phase2_design_r --match smoke`:
+a bounded subset of the full independent design suite with numerical, import
+and replay checks. It requires car, emmeans and haven. The full design suite
+remains mandatory in `phase2`/`all`; the smoke subset does not replace it.
 
 ## Smoke-Test Checks
 

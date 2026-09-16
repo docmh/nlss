@@ -6,6 +6,7 @@
 - Exercise reverse scoring, missing handling (pairwise vs. complete), score method (sum vs. mean), omega on/off, and grouped analyses.
 - Validate output templates for scale and logging behavior.
 - Numeric value tests: compare `analysis_log.jsonl` outputs against `tests/values/scale_item_golden.csv` and `tests/values/scale_reliability_golden.csv` (regenerate with `tests/values/scale_compute_golden.R`).
+- Independent package/reference and saved-request checks: [Phase 2 psychometric acceptance](../phase2/psychometric-README.md), included by the normal `phase2` harness.
 
 ## Data Sources
 
@@ -36,7 +37,8 @@ Negative/edge coverage:
 - Unknown variables/reverse items/group errors.
 - Non-numeric items without `--coerce`.
 - Coercion paths (factor, logical, date types).
-- Omega status branches: insufficient items, insufficient n, correlation missing, factanal failure.
+- Omega status branches: insufficient items, insufficient n, correlation missing, non-positive-definite correlation. Unexpected estimator failures are not successful estimates.
+- Invalid reverse bounds fail explicitly instead of silently switching to observed bounds.
 - Logging toggle (`--log FALSE`) and append behavior.
 
 ## How to Run
@@ -52,3 +54,9 @@ bash cmdscripts/tests.sh deliberate
 ```
 
 The script validates successful runs by checking new `analysis_log.jsonl` entries, report markers, and golden-value comparisons for item and reliability tables.
+
+The historical standard-data generator remains a regression fixture, not the
+sole numerical oracle. Its grouped selection now excludes missing group values
+before subsetting; only the affected N/missing fields changed. The Phase 2 suite
+uses independent `psych`/`stats` references and tests complete result matrices,
+resolved requests, missing-group identity, labels and deterministic replay.

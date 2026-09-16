@@ -1,6 +1,6 @@
 ---
 name: format-document
-description: NLSS format specification and formatting workflow for producing journal-alike Markdown reports.
+description: NLSS Markdown presentation conventions and scoped formatting of authored reports, preserving scientific meaning and user-selected structure.
 license: Apache-2.0
 ---
 
@@ -8,32 +8,33 @@ license: Apache-2.0
 
 ## Overview
 
-This document is the single source of truth for NLSS format. It consolidates all formatting rules into one sequence that is easy to apply. NLSS format is inspired by APA 7 and is designed to be implemented in Markdown while remaining readable in plain text.
+This document is the single source of truth for NLSS Markdown presentation conventions. NLSS format is inspired by APA 7 while remaining readable in plain text. It does not prescribe the structure of a conversation or the scientific organization of every report.
 
-Use this guide to format a report so it conforms to NLSS format rules that are representable in Markdown. The goal is a clean, journal-alike Markdown report without altering substantive content.
+Use the relevant conventions for the requested document or section. A journal-like manuscript is one use, not the default shape of a short answer. Shared [semantic answer/report guidance](../../SKILL.md#semantic-answers-and-authored-reports) governs scope, evidence use and delivery.
 
 ## Scope and Principles
 
 - NLSS format approximates APA 7 in Markdown; it is not a replacement for final publisher layout.
-- Preserve substantive content (results, interpretations, limitations); only adjust formatting.
-- Apply rules in the order listed below so headings, text style, lists, numbers, citations, quotes, tables/figures, and references remain consistent.
+- User-selected journal or formatting requirements take precedence over these presentation defaults. Apply only conventions relevant to the requested material; no compulsory title page, abstract, section set or processing order.
+- Preserve substantive content, numerical meaning, author edits and meaningful section organization. A formatting-only request does not authorize new analyses, changed conclusions or added study details. Flag substantive problems separately instead of silently correcting the science.
+- Keep scientific content, evidence links and presentation separate. Possible future LaTeX support with an APA 7 template is not implemented here; it must not make a template or Markdown-specific layout the content contract. Current report delivery remains Markdown through the existing saver.
+- The generated root `report_canonical.md` and per-run outputs are evidence, not editable manuscript drafts. Never reformat them in place. If they are the selected source, use a separate visible document and describe a formatting-only copy as such, not as a new semantic synthesis.
 
 ## Inputs and Clarifications
 
-- Report source (path to a Markdown report or workspace report).
+- Source document/section and any user-selected format requirements.
 - Target output filename (default: `<filename>-formatted.md`).
-- Whether section order should be preserved or normalized.
-- Whether citations and references should be reconciled (missing entries flagged, not invented).
+- Preserve section order unless the user requests reorganization.
+- Flag missing/conflicting citation entries; do not invent sources to complete a layout.
 
-Clarify if needed:
-- Which report should be formatted (draft, `report_canonical.md`, or a prior metaskill report)?
-- Should any sections be added or removed (e.g., Abstract, References)?
-- Are citations and references final, or should missing entries be flagged?
-- Are tables/figures embedded or referenced externally?
+Clarify only consequential ambiguities, such as which document was selected or
+whether replacement of an authored source was intended. A formatting request
+does not by itself require a questionnaire or section additions/removals.
 
-## Formatting Workflow (Required Order)
+## Applying the Conventions
 
-Before applying rules, scan the report by section to identify formatting issues that need correction.
+Inspect the requested material and address its actual formatting issues. The
+sections below are a reference, not a required processing or writing sequence:
 
 1. Headings and section labels
 2. Text style and capitalization
@@ -56,11 +57,11 @@ Before applying rules, scan the report by section to identify formatting issues 
 - Level 5 (run-in): `**_Heading._**` followed by text on the same line
 
 Rules:
-- Use Title Case for all headings.
+- For English NLSS-style manuscripts, use Title Case headings; honor the requested language/style and meaningful author organization.
 - Do not skip heading levels (1 → 2 → 3 → 4 → 5).
 - Run-in headings (Levels 4–5) end with a period and continue on the same line.
-- Use dedicated, bold section label lines for labels such as **Abstract** and **References** (centered by renderer if supported).
-- Do not add an “Introduction” heading; the paper title serves as the first heading.
+- When sections such as Abstract or References are present, use consistent section headings; renderer styles can center labels if supported.
+- In a conventional full manuscript, the paper title can introduce the text without a separate Introduction heading. Preserve an existing meaningful heading unless reorganization was requested.
 - Keep a blank line above and below each heading block to avoid Markdown merging.
 
 Renderer notes:
@@ -70,7 +71,7 @@ Renderer notes:
 
 ### Capitalization Rules
 
-- Title Case: paper titles, headings, table titles, figure titles.
+- Title Case: paper titles, headings, table titles, figure titles in English NLSS-style manuscripts; follow the requested language/style otherwise.
 - Sentence case: titles of works in the reference list.
 - Capitalize the first word after a colon, em dash, or end punctuation in a title.
 
@@ -228,12 +229,13 @@ Markdown layout example:
 Additional table/figure rules:
 - Keep a blank line between the title block and the table/figure block.
 - Use a "Note." paragraph (formatted as *Note.*) below the table or figure for notes.
+- Preserve numerical values, units, uncertainty and source attribution. Include notes that are needed, not empty boilerplate. If the visible destination changes, adjust relative artifact links without copying the underlying artifacts.
 
 ## 8) Reference List
 
 ### Reference Section Label
 
-- Add a level 1 heading: `# References` (centered by renderer if supported).
+- When a reference list is present, use a References heading at a level consistent with the document. Flag missing entries instead of manufacturing a bibliography.
 
 ### Ordering and Author Rules
 
@@ -261,16 +263,18 @@ Markdown notes:
 
 ### Final Checks
 
-- Headings are Title Case and in a consistent hierarchy.
+Check the conventions actually used and preserve the scope of the requested edit:
+
+- Headings follow the selected language/style and a consistent hierarchy.
 - Run-in headings (Levels 4–5) end with a period and continue on the same line.
 - Statistical symbols are plain text (no italics or special styling).
 - Squared statistics use ² where appropriate (R², f², eta²).
 - Tables/figures are numbered and titled correctly with notes in order.
-- Every in-text citation has a matching reference list entry.
+- In-text citations match the supplied reference list, or unresolved entries are explicitly flagged.
 - References are alphabetized and formatted consistently.
 - Paragraphs and block elements are separated by blank lines.
 
 ## Output Notes
 
-- Produce a formatted Markdown report that follows this specification.
-- Do not alter substantive content; only adjust formatting.
+- Deliver the requested formatted document/section, not a prescribed manuscript shell. When delivering a project report, use the existing [report-saving workflow](../utilities/project-report.md) with the actual selected evidence.
+- Preserve substantive meaning and useful artifact links; mention any unresolved citation or scientific issues separately. Do not claim strict publisher/APA 7 compliance from Markdown formatting alone.

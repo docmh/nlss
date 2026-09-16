@@ -11,18 +11,10 @@ bootstrap_dir <- {
   }
 }
 
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-render_log_path <- get("render_log_path", mode = "function")
-render_output_path <- get("render_output_path", mode = "function")
-source_lib <- get("source_lib", mode = "function")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
+source_lib("utility_contract.R")
+source_lib("data_change.R")
 
 print_usage <- function() {
   cat("Initialize workspace outputs (base R)\n")
@@ -44,6 +36,7 @@ print_usage <- function() {
   cat("  --df NAMES             RData data frame name(s), comma-separated\n")
   cat("  --sep VALUE            CSV separator (default: ,)\n")
   cat("  --header TRUE/FALSE    CSV header (default: TRUE)\n")
+  print_import_usage()
   cat("  --agent TEXT           Agent name (default from config or CODEX_AGENT)\n")
   cat("  --template REF         Template path or template key (optional)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
@@ -55,260 +48,31 @@ print_usage <- function() {
 interactive_options <- function() {
   cat("Interactive input selected.\n")
   opts <- list()
-  opts$csv <- resolve_prompt("CSV path(s) (comma-separated, blank for none)", "")
+  opts$csv <- prompt("CSV path(s) (comma-separated, blank for none)", "")
   if (nzchar(opts$csv)) {
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    sep_default <- get_config_value("defaults.csv.sep", ",")
+    header_default <- get_config_value("defaults.csv.header", TRUE)
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   }
-  opts$sav <- resolve_prompt("SAV path(s) (comma-separated, blank for none)", "")
-  opts$rds <- resolve_prompt("RDS path(s) (comma-separated, blank for none)", "")
-  opts$rdata <- resolve_prompt("RData path(s) (comma-separated, blank for none)", "")
+  opts$sav <- prompt("SAV path(s) (comma-separated, blank for none)", "")
+  opts$rds <- prompt("RDS path(s) (comma-separated, blank for none)", "")
+  opts$rdata <- prompt("RData path(s) (comma-separated, blank for none)", "")
   if (nzchar(opts$rdata)) {
-    opts$df <- resolve_prompt("RData data frame name(s), comma-separated", "")
+    opts$df <- prompt("RData data frame name(s), comma-separated", "")
   }
-  opts$parquet <- resolve_prompt("Parquet path(s) (comma-separated, blank for none)", "")
+  opts$parquet <- prompt("Parquet path(s) (comma-separated, blank for none)", "")
   agent_default <- resolve_agent_default()
-  opts$agent <- resolve_prompt("Agent name", agent_default)
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  opts$agent <- prompt("Agent name", agent_default)
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log", TRUE)
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts
-}
-
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_parse_list <- function(value, sep = ",") {
-  if (exists("parse_list", mode = "function")) {
-    return(get("parse_list", mode = "function")(value, sep = sep))
-  }
-  if (is.null(value) || is.logical(value)) return(character(0))
-  value <- as.character(value)
-  if (value == "") return(character(0))
-  trimws(strsplit(value, sep, fixed = TRUE)[[1]])
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-resolve_build_workspace_copy_info <- function(label) {
-  if (exists("build_workspace_copy_info", mode = "function")) {
-    return(get("build_workspace_copy_info", mode = "function")(label))
-  }
-  stop("Missing build_workspace_copy_info. Ensure lib/io.R is sourced.")
-}
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  NULL
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-
-resolve_render_template_tokens <- function(text, tokens) {
-  if (exists("render_template_tokens", mode = "function")) {
-    return(get("render_template_tokens", mode = "function")(text, tokens))
-  }
-  text
-}
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (is.null(value) || length(value) == 0 || is.na(value)) return("")
-  as.character(value)
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_update_workspace_manifest <- function(workspace_root, summary_df, active_dataset = NULL) {
-  if (exists("update_workspace_manifest", mode = "function")) {
-    return(get("update_workspace_manifest", mode = "function")(
-      workspace_root,
-      summary_df,
-      active_dataset = active_dataset
-    ))
-  }
-  stop("Missing update_workspace_manifest. Ensure lib/io.R is sourced.")
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-resolve_normalize_input_path <- function(path) {
-  if (exists("normalize_input_path", mode = "function")) {
-    return(get("normalize_input_path", mode = "function")(path))
-  }
-  if (is.null(path)) return("")
-  path <- as.character(path)
-  if (length(path) == 0 || all(is.na(path))) return("")
-  path <- path[1]
-  if (is.na(path) || !nzchar(path)) return("")
-  enc2utf8(trimws(path))
 }
 
 resolve_agent_default <- function() {
-  config_agent <- resolve_config_value("modules.init_workspace.agent", NULL)
+  config_agent <- get_config_value("modules.init_workspace.agent", NULL)
   if (!is.null(config_agent) && nzchar(config_agent)) return(as.character(config_agent))
   env_agent <- Sys.getenv("CODEX_AGENT", unset = "")
   if (nzchar(env_agent)) return(env_agent)
@@ -326,60 +90,18 @@ parse_paths <- function(value) {
   if (is.character(value) && length(value) > 1) {
     values <- value
   } else {
-    values <- resolve_parse_list(value, sep = ",")
+    values <- parse_list(value, sep = ",")
   }
   values <- trimws(as.character(values))
   values <- trim_empty(values)
-  values <- vapply(values, resolve_normalize_input_path, character(1))
+  values <- vapply(values, normalize_input_path, character(1))
   trim_empty(values)
 }
 
-normalize_path <- function(path) {
-  path <- resolve_normalize_input_path(path)
-  if (!nzchar(path)) return("")
-  enc2utf8(normalizePath(path, winslash = "/", mustWork = FALSE))
-}
-
-sanitize_file_component <- function(value) {
-  clean <- enc2utf8(as.character(value))
-  clean <- gsub("[^A-Za-z0-9._-]", "_", clean)
-  clean <- gsub("_+", "_", clean)
-  if (!nzchar(clean)) clean <- "dataset"
-  clean
-}
-
-make_unique_labels <- function(labels) {
-  seen <- list()
-  out <- character(length(labels))
-  for (i in seq_along(labels)) {
-    base <- labels[i]
-    count <- if (!is.null(seen[[base]])) seen[[base]] else 0
-    count <- count + 1
-    seen[[base]] <- count
-    out[i] <- if (count == 1) base else paste0(base, "_", count)
-  }
-  out
-}
-
-escape_yaml_value <- function(value) {
-  if (is.null(value)) return("")
-  val <- as.character(value)
-  val <- gsub("\"", "\\\\\"", val)
-  val
-}
-
 build_yaml_front_matter <- function(info) {
-  lines <- c(
-    "---",
-    paste0("created_at: \"", escape_yaml_value(info$created_at), "\""),
-    paste0("path: \"", escape_yaml_value(info$workspace_path), "\""),
-    paste0("os: \"", escape_yaml_value(info$os), "\""),
-    paste0("r_version: \"", escape_yaml_value(info$r_version), "\""),
-    paste0("agent: \"", escape_yaml_value(info$agent), "\""),
-    paste0("nlss_version: \"", escape_yaml_value(info$nlss_version), "\""),
-    "---"
-  )
-  paste(lines, collapse = "\n")
+  paste0("---\n", yaml::as.yaml(list(created_at = info$created_at, path = info$workspace_path,
+    os = info$os, r_version = info$r_version, agent = info$agent,
+    nlss_version = info$nlss_version)), "---")
 }
 
 format_os_string <- function() {
@@ -396,10 +118,7 @@ build_env_info <- function(out_dir, agent_override = NULL, workspace_root = NULL
   created_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
   agent_default <- resolve_agent_default()
   agent <- if (!is.null(agent_override) && nzchar(agent_override)) as.character(agent_override) else agent_default
-  nlss_version <- ""
-  if (exists("get_nlss_version", mode = "function")) {
-    nlss_version <- get("get_nlss_version", mode = "function")()
-  }
+  nlss_version <- get_nlss_version()
   if (is.na(nlss_version)) nlss_version <- ""
   list(
     created_at = created_at,
@@ -464,38 +183,78 @@ build_dataset_specs <- function(opts, sep, header) {
       specs[[length(specs) + 1]] <- list(type = "parquet", path = path)
     }
   }
+  if (!is.null(opts$`dataset-name`) && length(specs) != 1L) stop("--dataset-name requires exactly one input file.")
+  shared <- c("dataset-name", "import-action", "csv-decimal", "csv-encoding", "csv-col-types", "csv-na-values")
+  for (i in seq_along(specs)) specs[[i]]$import_options <- opts[intersect(shared, names(opts))]
   specs
 }
 
 derive_spec_label <- function(spec) {
+  if (!is.null(spec$import_options$`dataset-name`)) return(spec$import_options$`dataset-name`)
   if (!is.null(spec$df) && nzchar(spec$df)) return(as.character(spec$df))
   base <- tools::file_path_sans_ext(basename(spec$path))
   if (!nzchar(base)) base <- "dataset"
   base
 }
 
-load_dataset <- function(spec) {
+dataset_options <- function(spec) {
+  if (!spec$type %in% c("csv", "sav", "rds", "rdata", "parquet")) stop("Unsupported dataset type.")
+  opts <- spec$import_options
+  if (is.null(opts)) opts <- list()
+  opts[[spec$type]] <- spec$path
+  if (spec$type == "csv") { opts$sep <- spec$sep; opts$header <- spec$header }
+  if (spec$type == "rdata") opts$df <- spec$df
   if (spec$type == "csv") {
-    opts <- list(csv = spec$path, sep = spec$sep, header = spec$header)
-    return(resolve_load_dataframe(opts))
+    for (key in c("decimal", "encoding", "col_types", "na_values")) {
+      flag <- paste0("csv-", gsub("_", "-", key))
+      if (is.null(opts[[flag]])) opts[[flag]] <- get_config_value(paste0("defaults.csv.", key))
+    }
   }
-  if (spec$type == "sav") {
-    opts <- list(sav = spec$path)
-    return(resolve_load_dataframe(opts))
+  opts
+}
+
+preflight_datasets <- function(specs, root) {
+  labels <- vapply(specs, derive_spec_label, character(1))
+  if (any(!nzchar(labels) | labels %in% c(".", ".."))) stop("Invalid dataset name.")
+  folders <- vapply(labels, sanitize_file_component, character(1))
+  if (anyDuplicated(folders)) stop("Input names collide after sanitization; initialize separately with distinct --dataset-name values.")
+  for (i in seq_along(specs)) {
+    spec <- specs[[i]]
+    opts <- dataset_options(spec)
+    path <- file.path(root, folders[i], paste0(folders[i], ".parquet"))
+    directory <- dirname(path)
+    # Validate every target before the first import, including old source/version
+    # directories, which the shared importer may update or reuse.
+    files <- c(path, file.path(directory, c("scratchpad.md", "report_canonical.md", "analysis_log.jsonl", "import.json", "dictionary.json", "codebook.md")),
+      file.path(directory, c("sources/.path-check", "versions/.path-check")),
+      unlist(lapply(file.path(directory, c("sources", "versions")), list.files,
+        recursive = TRUE, full.names = TRUE, all.files = TRUE), use.names = FALSE))
+    for (target in files) nlss_data_change_path(target, root)
+    if (dir.exists(file.path(directory, ".import-lock"))) stop("Dataset import is locked; initialization did not import any files.")
+    if (file.exists(file.path(directory, ".nlss-planning.json"))) stop("Dataset name is reserved for parameter-only planning.")
+    if (!file.exists(spec$path) || dir.exists(spec$path)) stop("Input file not found: ", spec$path)
+    action <- if (is.null(opts$`import-action`)) "verify" else opts$`import-action`
+    if (!action %in% c("verify", "new-version")) stop("--import-action must be verify or new-version.")
+    working <- identical(spec$type, "parquet") && identical(normalize_path(spec$path), normalize_path(path))
+    if (!working && file.exists(path)) {
+      binding <- read_import_json(file.path(directory, "import.json"))
+      descriptor <- import_source_descriptor(spec$path, spec$type, opts)
+      if (is.null(binding) && action != "new-version") stop("Existing data have no verified source binding; use the working --parquet or explicit --import-action new-version.")
+      if (!is.null(binding)) {
+        if (!identical(binding$source$source_key, descriptor$source_key)) stop("Dataset name is already bound to a different source; use a distinct --dataset-name.")
+        if (action != "new-version" && ((!is.null(binding$state) && !identical(binding$state, "ready")) ||
+            !identical(binding$source$source_sha256, descriptor$source_sha256) ||
+            !identical(binding$source$options_sha256, descriptor$options_sha256) ||
+            !identical(binding$source$format, descriptor$format))) stop("Source contents or import options changed; use explicit --import-action new-version.")
+      }
+    }
+    candidate <- switch(spec$type, csv = import_csv(spec$path, opts), sav = read_sav_data(spec$path),
+      rds = readRDS(spec$path), rdata = load_rdata_frame(spec$path, spec$df)$df,
+      parquet = read_parquet_data(spec$path))
+    if (!is.data.frame(candidate)) stop("Input does not contain a data frame: ", basename(spec$path))
+    import_prepare_analysis(candidate)
   }
-  if (spec$type == "rds") {
-    opts <- list(rds = spec$path)
-    return(resolve_load_dataframe(opts))
-  }
-  if (spec$type == "rdata") {
-    opts <- list(rdata = spec$path, df = spec$df)
-    return(resolve_load_dataframe(opts))
-  }
-  if (spec$type == "parquet") {
-    opts <- list(parquet = spec$path)
-    return(resolve_load_dataframe(opts))
-  }
-  stop("Unsupported dataset type.")
+  invisible(NULL)
 }
 
 prepare_dataset_outputs <- function(specs, out_dir) {
@@ -518,10 +277,10 @@ prepare_dataset_outputs <- function(specs, out_dir) {
   for (i in seq_along(specs)) {
     spec <- specs[[i]]
     label <- labels[i]
-    df <- load_dataset(spec)
+    df <- load_dataframe(dataset_options(spec))
     copy_path <- attr(df, "workspace_parquet_path")
     if (is.null(copy_path) || !nzchar(copy_path)) {
-      copy_info <- resolve_build_workspace_copy_info(label)
+      copy_info <- build_workspace_copy_info(label)
       copy_path <- copy_info$copy_path
     }
     summary_rows[[length(summary_rows) + 1]] <- data.frame(
@@ -603,7 +362,7 @@ build_output_targets <- function(summary_df, workspace_root) {
   targets <- list()
   if (nrow(summary_df) == 0) {
     placeholder_label <- "workspace"
-    placeholder_dir <- resolve_ensure_out_dir(file.path(workspace_root, sanitize_file_component(placeholder_label)))
+    placeholder_dir <- ensure_out_dir(file.path(workspace_root, sanitize_file_component(placeholder_label)))
     targets[[1]] <- list(
       label = placeholder_label,
       out_dir = placeholder_dir,
@@ -617,12 +376,12 @@ build_output_targets <- function(summary_df, workspace_root) {
     copy_path <- as.character(row$copy_path)
     dataset_dir <- if (!is.na(copy_path) && nzchar(copy_path)) normalize_path(dirname(copy_path)) else ""
     if (!nzchar(dataset_dir)) {
-      copy_info <- resolve_build_workspace_copy_info(as.character(row$dataset))
+      copy_info <- build_workspace_copy_info(as.character(row$dataset))
       dataset_dir <- normalize_path(copy_info$out_dir)
     }
     targets[[length(targets) + 1]] <- list(
       label = as.character(row$dataset),
-      out_dir = resolve_ensure_out_dir(dataset_dir),
+      out_dir = ensure_out_dir(dataset_dir),
       summary_df = row,
       dataset_labels = as.character(row$dataset)
     )
@@ -639,7 +398,7 @@ build_workspace_table_body <- function(summary_df, table_meta, workspace_root = 
     list(key = "source_path", label = "Source", drop_if_empty = TRUE),
     list(key = "copy_path", label = "Parquet copy", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  columns <- normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
   if (nrow(summary_df) == 0) {
     summary_df <- data.frame(
@@ -663,13 +422,13 @@ build_workspace_table_body <- function(summary_df, table_meta, workspace_root = 
       copy_path = render_log_path(row$copy_path, workspace_root = workspace_root)
     )
     row_cells <- lapply(columns, function(col) {
-      resolve_as_cell_text(row_map[[col$key]])
+      as_cell_text(row_map[[col$key]])
     })
     rows[[length(rows) + 1]] <- row_cells
   }
-  cleaned <- resolve_drop_empty_columns(columns, rows)
+  cleaned <- drop_empty_columns(columns, rows)
   headers <- vapply(cleaned$columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, cleaned$rows)
+  body <- render_markdown_table(headers, cleaned$rows)
   list(body = body, columns = cleaned$columns)
 }
 
@@ -700,30 +459,25 @@ build_nlss_text <- function(info, labels) {
 }
 
 args <- commandArgs(trailingOnly = TRUE)
-opts <- resolve_parse_args(args)
+opts <- parse_args(args)
 
-if (!is.null(opts$help)) {
+if (parse_bool(opts$help, FALSE)) {
   print_usage()
   quit(status = 0)
 }
 
-if (!is.null(opts$interactive)) {
+if (parse_bool(opts$interactive, default = get_config_value("defaults.interactive", FALSE))) {
   opts <- modifyList(opts, interactive_options())
 }
 
-sep_default <- resolve_config_value("defaults.csv.sep", ",")
-header_default <- resolve_config_value("defaults.csv.header", TRUE)
+sep_default <- get_config_value("defaults.csv.sep", ",")
+header_default <- get_config_value("defaults.csv.header", TRUE)
 sep <- if (!is.null(opts$sep)) as.character(opts$sep) else sep_default
-header <- resolve_parse_bool(opts$header, default = header_default)
+header <- parse_bool(opts$header, default = header_default)
 
 specs <- build_dataset_specs(opts, sep, header)
-workspace_root <- resolve_ensure_out_dir(resolve_default_out())
 
-dataset_outputs <- prepare_dataset_outputs(specs, workspace_root)
-summary_df <- dataset_outputs$summary_df
-targets <- build_output_targets(summary_df, workspace_root)
-
-scratchpad_template <- resolve_get_template_path(
+scratchpad_template <- resolve_template_path(
   "init_workspace.scratchpad",
   "scratchpad/default-template.md"
 )
@@ -733,10 +487,11 @@ if (is.null(scratchpad_template) || !file.exists(scratchpad_template)) {
 scratchpad_template_text <- paste(readLines(scratchpad_template, warn = FALSE), collapse = "\n")
 
 template_override <- resolve_template_override(opts$template, module = "init_workspace")
+if (!is.null(opts$template) && nzchar(trimws(opts$template)) && is.null(template_override)) stop("Requested initialization template was not found.")
 template_path <- if (!is.null(template_override)) {
   template_override
 } else {
-  resolve_get_template_path(
+  resolve_template_path(
     "init_workspace.default",
     "init-workspace/default-template.md"
   )
@@ -744,17 +499,50 @@ template_path <- if (!is.null(template_override)) {
 if (is.null(template_path) || !file.exists(template_path)) {
   stop("NLSS format template not found: ", template_path)
 }
-template_meta <- resolve_get_template_meta(template_path)
+template_meta <- get_template_meta(template_path)
 
-log_default <- resolve_config_value("defaults.log", TRUE)
-ctx <- resolve_get_run_context()
+nlss_utility_check_directory(get_default_out())
+workspace_root <- normalize_path(ensure_out_dir(get_default_out()))
+manifest_path <- file.path(workspace_root, get_workspace_manifest_name())
+validate_workspace_manifest_path(manifest_path)
+nlss_data_change_path(manifest_path, workspace_root)
+if (dir.exists(file.path(workspace_root, ".publication-lock"))) stop("Project publication is locked; initialization did not import any files.")
+preflight_datasets(specs, workspace_root)
+dataset_outputs <- tryCatch(prepare_dataset_outputs(specs, workspace_root), error = function(e) {
+  stop(conditionMessage(e), "\nInitialization stopped. Earlier per-dataset imports may already be preserved; no initialization report was published.", call. = FALSE)
+})
+summary_df <- dataset_outputs$summary_df
+targets <- build_output_targets(summary_df, workspace_root)
+references <- lapply(targets, function(target) get_dataset_reference(target$out_dir))
+projection_targets <- c(manifest_path, unlist(lapply(targets, function(target)
+  file.path(target$out_dir, c("scratchpad.md", "report_canonical.md", "analysis_log.jsonl"))), use.names = FALSE))
 
+log_default <- get_config_value("defaults.log", TRUE)
+ctx <- get_run_context()
+nlss_publish_utility("init_workspace", workspace_root,
+  request = list(event = "workspace_initialization", datasets = references,
+    import_commit_scope = "per_dataset", semantic_report_regeneration = FALSE,
+    agent = if (is.null(opts$agent)) resolve_agent_default() else opts$agent, log = parse_bool(opts$log, log_default)),
+  results = list(dataset_count = nrow(summary_df), datasets = references,
+    scratchpads = lapply(targets, function(target) list(path = make_relative_path(file.path(target$out_dir, "scratchpad.md"), workspace_root),
+      action = if (file.exists(file.path(target$out_dir, "scratchpad.md"))) "preserved" else "created"))),
+  output = c("# Workspace initialization", "",
+    paste0("Datasets: ", if (nrow(summary_df)) paste(summary_df$dataset, collapse = ", ") else "none (planning placeholder)."),
+    "Sources and exact working versions are recorded in request.json. Existing scratchpads are preserved.",
+    "Imports commit per dataset; this lifecycle event is not a statistical replay."),
+  artifacts = list("report-template.md" = readBin(template_path, "raw", n = file.info(template_path)$size),
+    "scratchpad-template.md" = readBin(scratchpad_template, "raw", n = file.info(scratchpad_template)$size)),
+  targets = projection_targets,
+  publish = function(run_id, staging) {
+# Establish the protected manifest before logging so even the first import's
+# command/options paths are rendered relative to the project or masked external.
+invisible(update_workspace_manifest(workspace_root, summary_df))
 for (target in targets) {
   env_info <- build_env_info(target$out_dir, opts$agent, workspace_root = workspace_root)
   yaml_front_matter <- build_yaml_front_matter(env_info)
   dataset_labels <- target$dataset_labels
 
-  scratchpad_text <- resolve_render_template_tokens(
+  scratchpad_text <- render_template_tokens(
     scratchpad_template_text,
     list(
       created_at = env_info$created_at,
@@ -767,9 +555,9 @@ for (target in targets) {
     )
   )
   scratchpad_path <- file.path(target$out_dir, "scratchpad.md")
-  scratchpad_con <- file(scratchpad_path, open = "w", encoding = "UTF-8")
-  writeLines(scratchpad_text, scratchpad_con)
-  close(scratchpad_con)
+  if (!file.exists(scratchpad_path)) {
+    writeLines(scratchpad_text, scratchpad_path, useBytes = TRUE)
+  }
 
   table_result <- build_workspace_table_body(target$summary_df, template_meta$table, workspace_root = workspace_root)
   note_text <- if (nrow(target$summary_df) == 0) {
@@ -799,17 +587,17 @@ for (target in targets) {
     )
   )
 
-  resolve_append_nlss_report(
+  append_nlss_report(
     file.path(target$out_dir, "report_canonical.md"),
     "Workspace initialization",
     nlss_table,
     nlss_text,
     analysis_flags = analysis_flags,
-    template_path = template_path,
+    template_path = file.path(staging, "report-template.md"),
     template_context = template_context
   )
 
-  if (resolve_parse_bool(opts$log, default = log_default)) {
+  if (parse_bool(opts$log, default = log_default)) {
     rendered_summary <- target$summary_df
     if (nrow(rendered_summary) > 0) {
       rendered_summary$source_path <- vapply(
@@ -823,12 +611,14 @@ for (target in targets) {
         character(1)
       )
     }
-    resolve_append_analysis_log(
+    logged <- append_analysis_log(
       target$out_dir,
       module = "init_workspace",
       prompt = ctx$prompt,
       commands = ctx$commands,
       results = list(
+        utility_run_id = run_id,
+        dataset = get_dataset_reference(target$out_dir),
         workspace_dir = env_info$workspace_path,
         scratchpad_path = render_output_path(scratchpad_path, workspace_root = workspace_root),
         nlss_report_path = render_output_path(file.path(target$out_dir, "report_canonical.md"), workspace_root = workspace_root),
@@ -845,9 +635,10 @@ for (target in targets) {
         header = header,
         agent = env_info$agent
       ),
-      user_prompt = resolve_get_user_prompt(opts)
+      user_prompt = get_user_prompt(opts)
     )
+    if (resolve_logging_bool("enabled", TRUE) && !isTRUE(logged)) stop("Required initialization JSONL projection was not written.")
   }
 }
 
-resolve_update_workspace_manifest(workspace_root, summary_df)
+})

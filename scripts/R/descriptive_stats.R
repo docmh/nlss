@@ -10,12 +10,8 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
 
 
 # Static analysis aliases for source_lib-defined functions.
@@ -37,10 +33,13 @@ print_usage <- function() {
   cat("  Rscript descriptive_stats.R --interactive\n")
   cat("\n")
   cat("Options:\n")
+  cat("  --project DIR        Select NLSS project (default: nearest ancestor)\n")
+  cat("  --dataset NAME       Registered managed dataset (default: active)\n")
   cat("  --csv PATH           CSV input file\n")
   cat("  --sav PATH           SPSS .sav input file\n")
   cat("  --sep VALUE          CSV separator (default: ,)\n")
   cat("  --header TRUE/FALSE  CSV header (default: TRUE)\n")
+  print_import_usage()
   cat("  --rds PATH           RDS input file (data frame)\n")
   cat("  --rdata PATH         RData input file\n")
   cat("  --parquet PATH       Parquet input file\n")
@@ -486,7 +485,7 @@ build_summary <- function(df, vars, group_var = NULL, digits = 2, trim = 0.1, iq
     group_vec <- df[[group_var]]
     group_levels <- unique(group_vec)
     for (g in group_levels) {
-      idx <- if (is.na(g)) is.na(group_vec) else group_vec == g
+      idx <- if (is.na(g)) is.na(group_vec) else !is.na(group_vec) & group_vec == g
       sub_df <- df[idx, , drop = FALSE]
       for (var in vars) {
         stats <- summarize_vector(
@@ -759,7 +758,7 @@ build_descriptive_note_tokens <- function(trim = 0.1, iqr_multiplier = 1.5, outl
 
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
+  opts <- nlss_run_options(args, "descriptive_stats")
 
   if (!is.null(opts$help)) {
     print_usage()
@@ -780,17 +779,19 @@ main <- function() {
   trim <- if (!is.null(opts$trim)) as.numeric(opts$trim) else trim_default
   iqr_multiplier <- if (!is.null(opts$`iqr-multiplier`)) as.numeric(opts$`iqr-multiplier`) else iqr_default
   outlier_z <- if (!is.null(opts$`outlier-z`)) as.numeric(opts$`outlier-z`) else outlier_default
-  if (is.na(trim) || trim < 0 || trim >= 0.5) {
+  if (!is.finite(digits) || digits < 0 || digits > 15 || digits != floor(digits)) stop("Digits must be an integer from 0 to 15.")
+  if (!is.finite(trim) || trim < 0 || trim >= 0.5) {
     stop("Trim must be between 0 (inclusive) and 0.5 (exclusive).")
   }
-  if (is.na(iqr_multiplier) || iqr_multiplier <= 0) {
+  if (!is.finite(iqr_multiplier) || iqr_multiplier <= 0) {
     stop("IQR multiplier must be greater than 0.")
   }
-  if (is.na(outlier_z) || outlier_z <= 0) {
+  if (!is.finite(outlier_z) || outlier_z <= 0) {
     stop("Outlier z threshold must be greater than 0.")
   }
-  df <- resolve_load_dataframe(opts)
+  df <- nlss_load_input(opts)
   out_dir <- resolve_get_workspace_out_dir(df)
+  nlss_begin_run("descriptive_stats", df, opts, out_dir)
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
   if (!is.null(group_var) && !(group_var %in% names(df))) {
     stop("Grouping variable not found in data frame.")
@@ -798,6 +799,11 @@ main <- function() {
 
   vars <- resolve_select_variables(df, opts$vars, group_var, default = vars_default)
   if (length(vars) == 0) stop("No numeric variables available for analysis.")
+
+  nlss_resolve_request(list(digits = digits, vars = vars, group = group_var,
+    trim = trim, iqr_multiplier = iqr_multiplier, outlier_z = outlier_z),
+    design = list(missing = "variablewise", rows = nrow(df),
+      variable_types = lapply(df[unique(c(vars, group_var))], class)))
 
   summary_df <- build_summary(df, vars, group_var, digits, trim = trim, iqr_multiplier = iqr_multiplier, outlier_z = outlier_z)
   label_meta <- resolve_label_metadata(df)
@@ -812,6 +818,7 @@ main <- function() {
   } else {
     resolve_get_template_path("descriptive_stats.default", "descriptive-stats/default-template.md")
   }
+  template_path <- nlss_freeze_template(template_path, "descriptive_stats.default")
   template_meta <- resolve_get_template_meta(template_path)
   table_body <- build_descriptive_table_body(summary_df, digits, template_meta$table)
   note_tokens <- build_descriptive_note_tokens(trim = trim, iqr_multiplier = iqr_multiplier, outlier_z = outlier_z)
@@ -838,7 +845,7 @@ main <- function() {
     `iqr-multiplier` = iqr_multiplier,
     `outlier-z` = outlier_z
   )
-  resolve_append_nlss_report(
+  nlss_stage_report(
     nlss_report_path,
     "Descriptive statistics",
     nlss_table,
@@ -848,12 +855,11 @@ main <- function() {
     template_context = template_context
   )
 
-  cat("Wrote:\n")
-  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
+  nlss_set_result(list(summary_df = summary_df))
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+    nlss_stage_log(
       out_dir,
       module = "descriptive_stats",
       prompt = ctx$prompt,
@@ -865,4 +871,4 @@ main <- function() {
   }
 }
 
-main()
+nlss_run_main("descriptive_stats", main)

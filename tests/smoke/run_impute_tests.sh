@@ -749,4 +749,16 @@ else
   echo "[SKIP] VIM not installed." | tee -a "${LOG_FILE}"
 fi
 
+PHASE2_IMPUTE_RUNNER="$(get_tests_value tests.scripts.phase2_impute_r)"
+if [ -z "${PHASE2_IMPUTE_RUNNER}" ]; then
+  echo "Missing tests.scripts.phase2_impute_r registration." >&2
+  exit 2
+fi
+run_ok "impute independent numerical CLI cases" Rscript "$(to_abs_path "${PHASE2_IMPUTE_RUNNER}")" \
+  --root "${RUN_ROOT}" --keep "${NLSS_KEEP_RUNS:-0}" --match '^impute_.*_independent_goldens_smoke$'
+GOLDEN_RUN="$(Rscript -e 'paths <- sort(list.dirs(commandArgs(TRUE)[1], recursive=FALSE, full.names=TRUE)); paths <- paths[grepl("^run-[0-9]{14}-[0-9]+$", basename(paths))]; if (!length(paths)) stop("Missing imputation value output"); cat(tail(paths,1))' "${RUN_ROOT}/phase2-impute")"
+for method in auto mean median mode random constant; do
+  run_ok "impute ${method} independent JSONL golden values" "${PYTHON_BIN}" "${ROOT_DIR}/tests/values/check_impute_values.py" \
+    "${GOLDEN_RUN}/cases/golden-${method}/project/sample/analysis_log.jsonl" 0 "${ROOT_DIR}/tests/values/impute_golden.csv" "${method}"
+done
 echo "[DONE] impute deliberate tests finished" | tee -a "${LOG_FILE}"

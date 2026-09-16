@@ -10,20 +10,8 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-render_output_path <- get("render_output_path", mode = "function")
-add_group_label_column <- get("add_group_label_column", mode = "function")
-add_variable_label_column <- get("add_variable_label_column", mode = "function")
-resolve_label_metadata <- get("resolve_label_metadata", mode = "function")
-source_lib <- get("source_lib", mode = "function")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
 
 print_usage <- function() {
   cat("Reliability analysis (base R)\n")
@@ -70,299 +58,64 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    opts$csv <- prompt("CSV path")
+    sep_default <- get_config_value("defaults.csv.sep", ",")
+    header_default <- get_config_value("defaults.csv.header", TRUE)
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
+    opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
+    opts$rds <- prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
+    opts$rdata <- prompt("RData path")
+    opts$df <- prompt("Data frame object name")
   } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
+    opts$parquet <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
 
-  analysis_default <- resolve_config_value("modules.reliability.analysis", "icc")
-  format_default <- resolve_config_value("modules.reliability.format", "wide")
+  analysis_default <- get_config_value("modules.reliability.analysis", "icc")
+  format_default <- get_config_value("modules.reliability.format", "wide")
 
-  opts$analysis <- resolve_prompt("Analysis (icc/kappa/test_retest)", analysis_default)
-  opts$format <- resolve_prompt("Format (wide/long)", format_default)
-  opts$vars <- resolve_prompt("Variables (comma-separated for wide)", "")
-  opts$id <- resolve_prompt("ID variable (long)", "")
-  opts$rater <- resolve_prompt("Rater/time variable (long)", "")
-  opts$score <- resolve_prompt("Score variable (long)", "")
-  opts$group <- resolve_prompt("Grouping variable (blank for none)", "")
+  opts$analysis <- prompt("Analysis (icc/kappa/test_retest)", analysis_default)
+  opts$format <- prompt("Format (wide/long)", format_default)
+  opts$vars <- prompt("Variables (comma-separated for wide)", "")
+  opts$id <- prompt("ID variable (long)", "")
+  opts$rater <- prompt("Rater/time variable (long)", "")
+  opts$score <- prompt("Score variable (long)", "")
+  opts$group <- prompt("Grouping variable (blank for none)", "")
 
-  missing_default <- resolve_config_value("modules.reliability.missing", "complete")
-  conf_default <- resolve_config_value("modules.reliability.conf_level", 0.95)
-  coerce_default <- resolve_config_value("modules.reliability.coerce", FALSE)
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  icc_model_default <- resolve_config_value("modules.reliability.icc_model", "twoway-random")
-  icc_type_default <- resolve_config_value("modules.reliability.icc_type", "agreement")
-  icc_unit_default <- resolve_config_value("modules.reliability.icc_unit", "single")
-  kappa_weight_default <- resolve_config_value("modules.reliability.kappa_weight", "none")
-  method_default <- resolve_config_value("modules.reliability.method", "pearson")
+  missing_default <- get_config_value("modules.reliability.missing", "complete")
+  conf_default <- get_config_value("modules.reliability.conf_level", 0.95)
+  coerce_default <- get_config_value("modules.reliability.coerce", FALSE)
+  digits_default <- get_config_value("defaults.digits", 2)
+  icc_model_default <- get_config_value("modules.reliability.icc_model", "twoway-random")
+  icc_type_default <- get_config_value("modules.reliability.icc_type", "agreement")
+  icc_unit_default <- get_config_value("modules.reliability.icc_unit", "single")
+  kappa_weight_default <- get_config_value("modules.reliability.kappa_weight", "none")
+  method_default <- get_config_value("modules.reliability.method", "pearson")
 
-  opts$missing <- resolve_prompt("Missing handling (complete/pairwise)", missing_default)
-  opts$`icc-model` <- resolve_prompt("ICC model (oneway/twoway-random/twoway-mixed)", icc_model_default)
-  opts$`icc-type` <- resolve_prompt("ICC type (agreement/consistency)", icc_type_default)
-  opts$`icc-unit` <- resolve_prompt("ICC unit (single/average)", icc_unit_default)
-  opts$`kappa-weight` <- resolve_prompt("Kappa weights (none/linear/quadratic)", kappa_weight_default)
-  opts$method <- resolve_prompt("Test-retest method (pearson/spearman)", method_default)
-  opts$`conf-level` <- resolve_prompt("Confidence level", as.character(conf_default))
-  opts$coerce <- resolve_prompt("Coerce numeric TRUE/FALSE", ifelse(isTRUE(coerce_default), "TRUE", "FALSE"))
-  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  opts$missing <- prompt("Missing handling (complete/pairwise)", missing_default)
+  opts$`icc-model` <- prompt("ICC model (oneway/twoway-random/twoway-mixed)", icc_model_default)
+  opts$`icc-type` <- prompt("ICC type (agreement/consistency)", icc_type_default)
+  opts$`icc-unit` <- prompt("ICC unit (single/average)", icc_unit_default)
+  opts$`kappa-weight` <- prompt("Kappa weights (none/linear/quadratic)", kappa_weight_default)
+  opts$method <- prompt("Test-retest method (pearson/spearman)", method_default)
+  opts$`conf-level` <- prompt("Confidence level", as.character(conf_default))
+  opts$coerce <- prompt("Coerce numeric TRUE/FALSE", ifelse(isTRUE(coerce_default), "TRUE", "FALSE"))
+  opts$digits <- prompt("Rounding digits", as.character(digits_default))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log", TRUE)
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts
-}
-
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_parse_list <- function(value, sep = ",") {
-  if (exists("parse_list", mode = "function")) {
-    return(get("parse_list", mode = "function")(value, sep = sep))
-  }
-  if (is.null(value) || is.logical(value)) return(character(0))
-  value <- as.character(value)
-  if (value == "") return(character(0))
-  trimws(strsplit(value, sep, fixed = TRUE)[[1]])
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-resolve_get_workspace_out_dir <- function(df) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df))
-  }
-  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
-}
-
-resolve_select_variables <- function(df, vars, group_var = NULL, default = "numeric") {
-  if (exists("select_variables", mode = "function")) {
-    return(get("select_variables", mode = "function")(df, vars, group_var = group_var, default = default))
-  }
-  available <- names(df)
-  if (is.null(vars) || vars == "") {
-    selected <- if (default == "numeric") available[sapply(df, is.numeric)] else available
-    if (!is.null(group_var)) selected <- setdiff(selected, group_var)
-    return(selected)
-  }
-  requested <- trimws(strsplit(vars, ",", fixed = TRUE)[[1]])
-  missing <- setdiff(requested, available)
-  if (length(missing) > 0) {
-    stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
-  }
-  if (!is.null(group_var)) requested <- setdiff(requested, group_var)
-  requested
-}
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  NULL
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_render_template_tokens <- function(text, tokens) {
-  if (exists("render_template_tokens", mode = "function")) {
-    return(get("render_template_tokens", mode = "function")(text, tokens))
-  }
-  text
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
-  as.character(value)
-}
-
-resolve_round_numeric <- function(df, digits) {
-  if (exists("round_numeric", mode = "function")) {
-    return(get("round_numeric", mode = "function")(df, digits))
-  }
-  out <- df
-  numeric_cols <- sapply(out, is.numeric)
-  out[numeric_cols] <- lapply(out[numeric_cols], function(x) round(x, digits))
-  out
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
 }
 
 normalize_analysis <- function(value, default = "icc") {
@@ -372,14 +125,14 @@ normalize_analysis <- function(value, default = "icc") {
   if (val %in% c("icc", "intra_class", "intraclass")) return("icc")
   if (val %in% c("kappa", "cohen")) return("kappa")
   if (val %in% c("test_retest", "testretest", "retest", "stability")) return("test_retest")
-  default
+  stop("Invalid analysis option: ", val)
 }
 
 normalize_format <- function(value, default = "wide") {
   val <- if (!is.null(value) && value != "") value else default
   val <- tolower(as.character(val))
   if (val %in% c("wide", "long")) return(val)
-  default
+  stop("Invalid format option: ", val)
 }
 
 normalize_missing <- function(value, default = "complete") {
@@ -387,7 +140,7 @@ normalize_missing <- function(value, default = "complete") {
   val <- tolower(as.character(val))
   if (val %in% c("complete", "listwise")) return("complete")
   if (val %in% c("pairwise", "pair")) return("pairwise")
-  default
+  stop("Invalid missing option: ", val)
 }
 
 normalize_icc_model <- function(value, default = "twoway-random") {
@@ -397,7 +150,7 @@ normalize_icc_model <- function(value, default = "twoway-random") {
   if (val %in% c("oneway", "one-way")) return("oneway")
   if (val %in% c("twoway", "two-way", "twoway-random", "two-way-random", "random")) return("twoway-random")
   if (val %in% c("twoway-mixed", "two-way-mixed", "mixed")) return("twoway-mixed")
-  default
+  stop("Invalid icc-model option: ", val)
 }
 
 normalize_icc_type <- function(value, default = "agreement") {
@@ -405,7 +158,7 @@ normalize_icc_type <- function(value, default = "agreement") {
   val <- tolower(as.character(val))
   if (val %in% c("agreement", "absolute")) return("agreement")
   if (val %in% c("consistency", "consist")) return("consistency")
-  default
+  stop("Invalid icc-type option: ", val)
 }
 
 normalize_icc_unit <- function(value, default = "single") {
@@ -413,7 +166,7 @@ normalize_icc_unit <- function(value, default = "single") {
   val <- tolower(as.character(val))
   if (val %in% c("single", "individual")) return("single")
   if (val %in% c("average", "mean", "avg")) return("average")
-  default
+  stop("Invalid icc-unit option: ", val)
 }
 
 normalize_kappa_weight <- function(value, default = "none") {
@@ -422,7 +175,7 @@ normalize_kappa_weight <- function(value, default = "none") {
   if (val %in% c("none", "unweighted")) return("none")
   if (val %in% c("linear", "lin")) return("linear")
   if (val %in% c("quadratic", "quad")) return("quadratic")
-  default
+  stop("Invalid kappa-weight option: ", val)
 }
 
 normalize_method <- function(value, default = "pearson") {
@@ -430,7 +183,7 @@ normalize_method <- function(value, default = "pearson") {
   val <- tolower(as.character(val))
   if (val %in% c("pearson", "pear")) return("pearson")
   if (val %in% c("spearman", "rho")) return("spearman")
-  default
+  stop("Invalid method option: ", val)
 }
 
 coerce_dataframe <- function(df, vars, coerce) {
@@ -450,219 +203,144 @@ compute_missing_summary <- function(values) {
   list(total = total_n, complete = complete_n, missing_n = missing_n, missing_pct = missing_pct)
 }
 
-compute_f_bounds <- function(f_stat, df1, df2, conf_level) {
-  if (is.na(f_stat) || f_stat <= 0 || is.na(df1) || is.na(df2)) {
-    return(list(lower = NA_real_, upper = NA_real_))
-  }
-  alpha <- 1 - conf_level
-  lower <- f_stat / stats::qf(1 - alpha / 2, df1, df2)
-  upper <- f_stat / stats::qf(alpha / 2, df1, df2)
-  list(lower = lower, upper = upper)
-}
-
+# Balanced ANOVA ICCs and intervals follow Shrout/Fleiss as independently
+# implemented in psych::ICC(lmer = FALSE); psych is a test oracle, not a runtime
+# dependency. Model (random/mixed) changes interpretation, not the chosen
+# agreement/consistency formula.
 compute_icc <- function(values, model, type, unit, conf_level) {
   values <- as.matrix(values)
   n <- nrow(values)
   k <- ncol(values)
+  result <- list(estimate = NA_real_, ci_low = NA_real_, ci_high = NA_real_,
+    f_stat = NA_real_, df1 = NA_real_, df2 = NA_real_, p_value = NA_real_,
+    n_subjects = n, n_raters = k, status_reason = "")
   if (n < 2 || k < 2) {
-    return(list(
-      estimate = NA_real_,
-      ci_low = NA_real_,
-      ci_high = NA_real_,
-      f_stat = NA_real_,
-      df1 = NA_real_,
-      df2 = NA_real_,
-      p_value = NA_real_,
-      n_subjects = n,
-      n_raters = k
-    ))
+    result$status_reason <- "ICC requires at least two complete subjects and two raters."
+    return(result)
   }
-
-  grand_mean <- mean(values)
-  row_means <- rowMeans(values)
-  col_means <- colMeans(values)
-
+  grand <- mean(values)
+  ms_rows <- k * sum((rowMeans(values) - grand)^2) / (n - 1)
+  df1 <- n - 1
   if (model == "oneway") {
-    ss_between <- k * sum((row_means - grand_mean)^2)
-    ss_within <- sum((values - row_means)^2)
-    df_between <- n - 1
-    df_within <- n * (k - 1)
-    ms_between <- ss_between / df_between
-    ms_within <- ss_within / df_within
-    if (is.na(ms_within) || ms_within <= 0) {
-      return(list(
-        estimate = NA_real_,
-        ci_low = NA_real_,
-        ci_high = NA_real_,
-        f_stat = NA_real_,
-        df1 = df_between,
-        df2 = df_within,
-        p_value = NA_real_,
-        n_subjects = n,
-        n_raters = k
-      ))
-    }
-    f_stat <- ms_between / ms_within
-    df1 <- df_between
-    df2 <- df_within
-
-    if (unit == "average") {
-      estimate <- (ms_between - ms_within) / ms_between
-      denom_adjust <- 0
-    } else {
-      estimate <- (ms_between - ms_within) / (ms_between + (k - 1) * ms_within)
-      denom_adjust <- (k - 1)
-    }
-
-    bounds <- compute_f_bounds(f_stat, df1, df2, conf_level)
-    if (!is.na(bounds$lower) && !is.na(bounds$upper)) {
-      ci_low <- (bounds$lower - 1) / (bounds$lower + denom_adjust)
-      ci_high <- (bounds$upper - 1) / (bounds$upper + denom_adjust)
-    } else {
-      ci_low <- NA_real_
-      ci_high <- NA_real_
-    }
-
-    p_value <- stats::pf(f_stat, df1, df2, lower.tail = FALSE)
-
-    return(list(
-      estimate = estimate,
-      ci_low = ci_low,
-      ci_high = ci_high,
-      f_stat = f_stat,
-      df1 = df1,
-      df2 = df2,
-      p_value = p_value,
-      n_subjects = n,
-      n_raters = k
-    ))
+    ms_error <- sum((values - rowMeans(values))^2) / (n * (k - 1))
+    ms_cols <- NA_real_
+    df2 <- n * (k - 1)
+  } else {
+    # Computing residuals directly avoids cancellation of almost equal SS terms.
+    residuals <- sweep(sweep(values, 1, rowMeans(values)), 2, colMeans(values)) + grand
+    ms_error <- sum(residuals^2) / ((n - 1) * (k - 1))
+    ms_cols <- n * sum((colMeans(values) - grand)^2) / (k - 1)
+    df2 <- (n - 1) * (k - 1)
   }
-
-  ss_total <- sum((values - grand_mean)^2)
-  ss_rows <- k * sum((row_means - grand_mean)^2)
-  ss_cols <- n * sum((col_means - grand_mean)^2)
-  ss_error <- ss_total - ss_rows - ss_cols
-  if (ss_error < 0) ss_error <- 0
-
-  df_rows <- n - 1
-  df_cols <- k - 1
-  df_error <- df_rows * df_cols
-
-  ms_rows <- ss_rows / df_rows
-  ms_cols <- ss_cols / df_cols
-  ms_error <- ss_error / df_error
-  if (is.na(ms_error) || ms_error <= 0) {
-    return(list(
-      estimate = NA_real_,
-      ci_low = NA_real_,
-      ci_high = NA_real_,
-      f_stat = NA_real_,
-      df1 = df_rows,
-      df2 = df_error,
-      p_value = NA_real_,
-      n_subjects = n,
-      n_raters = k
-    ))
+  agreement <- model != "oneway" && type == "agreement"
+  single_denom <- ms_rows + (k - 1) * ms_error +
+    if (agreement) k * (ms_cols - ms_error) / n else 0
+  average_denom <- ms_rows + if (agreement) (ms_cols - ms_error) / n else 0
+  result$estimate <- (ms_rows - ms_error) / if (unit == "average") average_denom else single_denom
+  result$df1 <- df1
+  result$df2 <- df2
+  if (!is.finite(result$estimate)) {
+    result$status_reason <- "ICC is not estimable because the variance denominator is zero."
+    result$estimate <- NA_real_
+    return(result)
   }
-
-  f_stat <- ms_rows / ms_error
-  df1 <- df_rows
-  df2 <- df_error
-
-  denom_adjust <- 0
-  if (type == "agreement") {
+  if (ms_error == 0) {
+    # A valid point estimate (including perfect agreement) is not an inferential
+    # F test with a positive error mean square.
+    result$status_reason <- "ICC point estimate only: zero error variance; F inference and confidence interval unavailable."
+    return(result)
+  }
+  result$f_stat <- ms_rows / ms_error
+  result$p_value <- stats::pf(result$f_stat, df1, df2, lower.tail = FALSE)
+  alpha <- 1 - conf_level
+  if (agreement) {
+    single <- (ms_rows - ms_error) / single_denom
+    fj <- ms_cols / ms_error
+    a <- k * single * fj
+    b <- n * (1 + (k - 1) * single) - k * single
+    v <- (k - 1) * (n - 1) * (a + b)^2 / ((n - 1) * a^2 + b^2)
+    if (!is.finite(v) || v <= 0) {
+      result$status_reason <- "ICC point estimate and F test available; agreement CI degrees of freedom are not estimable."
+      return(result)
+    }
+    f_upper <- stats::qf(1 - alpha / 2, n - 1, v)
+    f_lower <- stats::qf(1 - alpha / 2, v, n - 1)
+    common <- k * ms_cols + (k * n - k - n) * ms_error
+    low <- n * (ms_rows - f_upper * ms_error) / (f_upper * common + n * ms_rows)
+    high <- n * (f_lower * ms_rows - ms_error) / (common + n * f_lower * ms_rows)
     if (unit == "average") {
-      denom_adjust <- (ms_cols - ms_error) / (n * ms_error)
-      estimate <- (ms_rows - ms_error) / (ms_rows + (ms_cols - ms_error) / n)
-    } else {
-      denom_adjust <- (k - 1) + k * (ms_cols - ms_error) / (n * ms_error)
-      estimate <- (ms_rows - ms_error) / (ms_rows + (k - 1) * ms_error + k * (ms_cols - ms_error) / n)
+      low <- k * low / (1 + (k - 1) * low)
+      high <- k * high / (1 + (k - 1) * high)
     }
   } else {
+    f_low <- result$f_stat / stats::qf(1 - alpha / 2, df1, df2)
+    f_high <- result$f_stat / stats::qf(alpha / 2, df1, df2)
     if (unit == "average") {
-      estimate <- (ms_rows - ms_error) / ms_rows
-      denom_adjust <- 0
+      low <- 1 - 1 / f_low
+      high <- 1 - 1 / f_high
     } else {
-      estimate <- (ms_rows - ms_error) / (ms_rows + (k - 1) * ms_error)
-      denom_adjust <- (k - 1)
+      low <- (f_low - 1) / (f_low + k - 1)
+      high <- (f_high - 1) / (f_high + k - 1)
     }
   }
-
-  bounds <- compute_f_bounds(f_stat, df1, df2, conf_level)
-  if (!is.na(bounds$lower) && !is.na(bounds$upper)) {
-    ci_low <- (bounds$lower - 1) / (bounds$lower + denom_adjust)
-    ci_high <- (bounds$upper - 1) / (bounds$upper + denom_adjust)
+  if (is.na(low) || is.na(high) || low > high) {
+    result$status_reason <- "ICC point estimate and F test available; the confidence-interval transformation is singular."
   } else {
-    ci_low <- NA_real_
-    ci_high <- NA_real_
+    result$ci_low <- low
+    result$ci_high <- high
   }
-
-  p_value <- stats::pf(f_stat, df1, df2, lower.tail = FALSE)
-
-  list(
-    estimate = estimate,
-    ci_low = ci_low,
-    ci_high = ci_high,
-    f_stat = f_stat,
-    df1 = df1,
-    df2 = df2,
-    p_value = p_value,
-    n_subjects = n,
-    n_raters = k
-  )
+  result
 }
 
-compute_kappa <- function(x, y, weight = "none") {
+kappa_category_order <- function(x, y, weight = "none") {
+  declared <- lapply(list(x, y), function(z) if (is.factor(z)) levels(z) else NULL)
+  declared <- Filter(Negate(is.null), declared)
+  if (length(declared)) {
+    if (weight != "none" && length(declared) == 2 &&
+        !identical(declared[[1]], declared[[2]])) {
+      stop("Weighted kappa requires the same declared category order for both raters.")
+    }
+    categories <- unique(unlist(declared, use.names = FALSE))
+    observed <- unique(c(as.character(x[!is.na(x)]), as.character(y[!is.na(y)])))
+    if (weight != "none" && any(!observed %in% categories)) {
+      stop("Weighted kappa has observed values outside the declared category order.")
+    }
+    return(list(levels = unique(c(categories, sort(setdiff(observed, categories)))),
+      source = "declared factor levels, including unused categories"))
+  }
+  if (is.numeric(x) && is.numeric(y)) {
+    return(list(levels = as.character(sort(unique(c(x[!is.na(x)], y[!is.na(y)])))),
+      source = "numeric code order"))
+  }
+  list(levels = sort(unique(c(as.character(x[!is.na(x)]), as.character(y[!is.na(y)])))),
+    source = "lexical character order under recorded locale")
+}
+
+compute_kappa <- function(x, y, weight = "none", categories = kappa_category_order(x, y, weight)$levels) {
   idx <- complete.cases(x, y)
   x <- x[idx]
   y <- y[idx]
   n <- length(x)
-  if (n == 0) {
-    return(list(
-      estimate = NA_real_,
-      n = 0,
-      n_categories = 0
-    ))
+  k <- length(categories)
+  result <- list(estimate = NA_real_, n = n, n_categories = k, status_reason = "")
+  if (n == 0 || k < 2) {
+    result$status_reason <- "Kappa is not estimable without complete pairs in at least two categories."
+    return(result)
   }
-
-  levels <- sort(unique(c(as.character(x), as.character(y))))
-  fx <- factor(as.character(x), levels = levels)
-  fy <- factor(as.character(y), levels = levels)
-  tab <- table(fx, fy)
-  k <- length(levels)
-  if (k < 2) {
-    return(list(
-      estimate = NA_real_,
-      n = n,
-      n_categories = k
-    ))
-  }
-
-  weights <- matrix(0, nrow = k, ncol = k)
-  for (i in seq_len(k)) {
-    for (j in seq_len(k)) {
-      if (weight == "none") {
-        weights[i, j] <- ifelse(i == j, 1, 0)
-      } else if (weight == "linear") {
-        weights[i, j] <- 1 - abs(i - j) / (k - 1)
-      } else {
-        weights[i, j] <- 1 - ((i - j) / (k - 1))^2
-      }
-    }
-  }
-
+  tab <- table(factor(as.character(x), levels = categories), factor(as.character(y), levels = categories))
+  distances <- abs(outer(seq_len(k), seq_len(k), "-"))
+  weights <- switch(weight, none = (distances == 0) * 1,
+    linear = 1 - distances / (k - 1), quadratic = 1 - (distances / (k - 1))^2)
   observed <- tab / n
   expected <- outer(rowSums(observed), colSums(observed))
   po <- sum(weights * observed)
   pe <- sum(weights * expected)
-
-  estimate <- ifelse(1 - pe == 0, NA_real_, (po - pe) / (1 - pe))
-
-  list(
-    estimate = estimate,
-    n = n,
-    n_categories = k
-  )
+  if (1 - pe <= .Machine$double.eps) {
+    result$status_reason <- "Kappa is not estimable because expected agreement equals one."
+  } else {
+    result$estimate <- (po - pe) / (1 - pe)
+  }
+  result
 }
 
 compute_test_retest <- function(x, y, method = "pearson", conf_level = 0.95) {
@@ -670,64 +348,66 @@ compute_test_retest <- function(x, y, method = "pearson", conf_level = 0.95) {
   x <- x[idx]
   y <- y[idx]
   n <- length(x)
-  if (n < 3) {
-    return(list(
-      estimate = NA_real_,
-      ci_low = NA_real_,
-      ci_high = NA_real_,
-      p_value = NA_real_,
-      n = n
-    ))
+  result <- list(estimate = NA_real_, ci_low = NA_real_, ci_high = NA_real_,
+    p_value = NA_real_, n = n, status_reason = "")
+  if (n < 3 || stats::sd(x) == 0 || stats::sd(y) == 0) {
+    result$status_reason <- "Test-retest inference requires at least three complete pairs and variation in both variables."
+    return(result)
   }
-
-  test_args <- list(x = x, y = y, method = method)
+  test_args <- list(x = x, y = y, method = method, conf.level = conf_level)
   if (method == "spearman") test_args$exact <- FALSE
-  test <- suppressWarnings(do.call(stats::cor.test, test_args))
-  estimate <- as.numeric(test$estimate)
-  p_value <- test$p.value
-
-  estimate <- max(min(estimate, 0.999999), -0.999999)
-  z <- atanh(estimate)
-  se <- 1 / sqrt(n - 3)
-  z_crit <- stats::qnorm(1 - (1 - conf_level) / 2)
-  ci_low <- tanh(z - z_crit * se)
-  ci_high <- tanh(z + z_crit * se)
-
-  list(
-    estimate = estimate,
-    ci_low = ci_low,
-    ci_high = ci_high,
-    p_value = p_value,
-    n = n
-  )
+  test <- do.call(stats::cor.test, test_args)
+  result$estimate <- as.numeric(test$estimate)
+  result$p_value <- test$p.value
+  if (method == "pearson") {
+    if (!is.null(test$conf.int)) {
+      result$ci_low <- test$conf.int[1]
+      result$ci_high <- test$conf.int[2]
+    }
+  } else if (n > 3) {
+    # Compatibility estimate: Fisher-z interval for Spearman is an approximation,
+    # not an exact rank interval. Do not perturb a perfect point correlation.
+    z <- atanh(result$estimate)
+    half_width <- stats::qnorm(1 - (1 - conf_level) / 2) / sqrt(n - 3)
+    result$ci_low <- tanh(z - half_width)
+    result$ci_high <- tanh(z + half_width)
+  }
+  if (n == 3) result$status_reason <- "Correlation and p value available; Fisher-z CI requires at least four complete pairs."
+  result
 }
 
 long_to_wide <- function(df, id_var, rater_var, score_var) {
-  df <- df[, c(id_var, rater_var, score_var), drop = FALSE]
-  df <- df[!is.na(df[[id_var]]) & !is.na(df[[rater_var]]), , drop = FALSE]
-  if (nrow(df) == 0) {
-    stop("No rows available after removing missing id/rater values.")
-  }
-  combos <- df[, c(id_var, rater_var), drop = FALSE]
-  if (any(duplicated(combos))) {
+  valid <- !is.na(df[[id_var]]) & !is.na(df[[rater_var]])
+  filtered <- df[valid, c(id_var, rater_var, score_var), drop = FALSE]
+  if (!nrow(filtered)) stop("No rows available after removing missing id/rater values.")
+  if (anyDuplicated(filtered[, c(id_var, rater_var), drop = FALSE])) {
     stop("Duplicate id/rater combinations found in long data. Aggregate before running reliability.")
   }
-  ids <- unique(df[[id_var]])
-  raters <- unique(df[[rater_var]])
-  mat <- matrix(NA, nrow = length(ids), ncol = length(raters))
-  rownames(mat) <- as.character(ids)
-  colnames(mat) <- as.character(raters)
-  id_idx <- match(df[[id_var]], ids)
-  rater_idx <- match(df[[rater_var]], raters)
-  mat[cbind(id_idx, rater_idx)] <- df[[score_var]]
-  list(matrix = mat, ids = ids, raters = raters)
+  ids <- unique(filtered[[id_var]])
+  raters <- unique(filtered[[rater_var]])
+  # Index the original score vector to preserve factors/ordered levels and values;
+  # assigning a factor into a generic matrix would silently use integer codes.
+  values <- lapply(raters, function(r) {
+    r_rows <- which(filtered[[rater_var]] == r)
+    filtered[[score_var]][r_rows[match(ids, filtered[[id_var]][r_rows])]]
+  })
+  names(values) <- as.character(raters)
+  wide <- as.data.frame(values, check.names = FALSE)
+  source_rows_by_rater <- lapply(raters, function(r) {
+    r_rows <- which(filtered[[rater_var]] == r)
+    which(valid)[r_rows[match(ids, filtered[[id_var]][r_rows])]]
+  })
+  names(source_rows_by_rater) <- names(values)
+  list(matrix = wide, ids = ids, raters = raters,
+    included_rows = which(valid), dropped_id_rater_rows = which(!valid),
+    source_rows_by_rater = source_rows_by_rater,
+    source_rows_by_subject = lapply(ids, function(id) which(valid)[which(filtered[[id_var]] == id)]))
 }
 
-icc_label <- function(model, unit) {
-  if (model == "oneway") return(ifelse(unit == "average", "ICC(1,k)", "ICC(1,1)"))
-  if (model == "twoway-random") return(ifelse(unit == "average", "ICC(2,k)", "ICC(2,1)"))
-  if (model == "twoway-mixed") return(ifelse(unit == "average", "ICC(3,k)", "ICC(3,1)"))
-  "ICC"
+icc_label <- function(model, type, unit) {
+  size <- if (unit == "average") "k" else "1"
+  family <- if (model == "oneway") "1" else if (type == "agreement") "A" else "C"
+  paste0("ICC(", family, ",", size, ")")
 }
 
 analysis_label <- function(analysis) {
@@ -792,7 +472,7 @@ build_reliability_table_body <- function(summary_df, digits, conf_level, table_s
   display$var1_display <- if ("var1_label" %in% names(display)) display$var1_label else display$var1
   display$var2_display <- if ("var2_label" %in% names(display)) display$var2_label else display$var2
 
-  ci_label <- paste0(round(conf_level * 100), "% CI")
+  ci_label <- paste0(format(conf_level * 100, trim = TRUE, scientific = FALSE), "% CI")
   default_columns <- list(
     list(key = "analysis", label = "Analysis"),
     list(key = "group", label = "Group", drop_if_empty = TRUE),
@@ -813,7 +493,7 @@ build_reliability_table_body <- function(summary_df, digits, conf_level, table_s
     list(key = "df2", label = "df2", drop_if_empty = TRUE)
   )
 
-  columns <- resolve_normalize_table_columns(
+  columns <- normalize_table_columns(
     if (!is.null(table_spec$columns)) table_spec$columns else NULL,
     default_columns
   )
@@ -826,11 +506,11 @@ build_reliability_table_body <- function(summary_df, digits, conf_level, table_s
       key <- col$key
       val <- ""
       if (key == "analysis") {
-        val <- resolve_as_cell_text(row$analysis_label)
+        val <- as_cell_text(row$analysis_label)
       } else if (key == "group") {
-        val <- resolve_as_cell_text(row$group_display)
+        val <- as_cell_text(row$group_display)
       } else if (key == "method_label") {
-        val <- resolve_as_cell_text(row$method_label)
+        val <- as_cell_text(row$method_label)
       } else if (key == "estimate") {
         val <- format_num(row$estimate, digits)
       } else if (key == "ci") {
@@ -851,11 +531,11 @@ build_reliability_table_body <- function(summary_df, digits, conf_level, table_s
           val <- format_num(cell, digits)
         } else {
           if (key == "var1") {
-            val <- resolve_as_cell_text(row$var1_display[1])
+            val <- as_cell_text(row$var1_display[1])
           } else if (key == "var2") {
-            val <- resolve_as_cell_text(row$var2_display[1])
+            val <- as_cell_text(row$var2_display[1])
           } else {
-            val <- resolve_as_cell_text(cell)
+            val <- as_cell_text(cell)
           }
         }
       }
@@ -864,21 +544,21 @@ build_reliability_table_body <- function(summary_df, digits, conf_level, table_s
     rows[[length(rows) + 1]] <- row_vals
   }
 
-  filtered <- resolve_drop_empty_columns(columns, rows)
+  filtered <- drop_empty_columns(columns, rows)
   columns <- filtered$columns
   rows <- filtered$rows
 
   label_tokens <- list(ci_label = ci_label)
   headers <- vapply(columns, function(col) {
     label <- if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
-    resolve_render_template_tokens(label, label_tokens)
+    render_template_tokens(label, label_tokens)
   }, character(1))
 
-  resolve_render_markdown_table(headers, rows)
+  render_markdown_table(headers, rows)
 }
 
 build_reliability_note_tokens <- function(summary_df, analysis, conf_level, missing_method, icc_model, icc_type, icc_unit, kappa_weight, retest_method) {
-  ci_label <- paste0(round(conf_level * 100), "% CI")
+  ci_label <- paste0(format(conf_level * 100, trim = TRUE, scientific = FALSE), "% CI")
   missing_note <- paste0("Missing values handled ", missing_method, ".")
   icc_note <- ""
   kappa_note <- ""
@@ -887,7 +567,7 @@ build_reliability_note_tokens <- function(summary_df, analysis, conf_level, miss
     icc_note <- paste0("ICC model = ", icc_model, ", type = ", icc_type, ", unit = ", icc_unit, ".")
   }
   if (analysis == "kappa") {
-    kappa_note <- if (kappa_weight == "none") "Unweighted kappa." else paste0("Kappa weights: ", kappa_weight, ".")
+    kappa_note <- paste(if (kappa_weight == "none") "Unweighted kappa." else paste0("Kappa weights: ", kappa_weight, "; equally spaced ranks in the recorded category order."), "Kappa confidence intervals and p values are not implemented.")
   }
   if (analysis == "test_retest") {
     retest_note <- paste0("Test-retest method: ", retest_method, ".")
@@ -896,13 +576,14 @@ build_reliability_note_tokens <- function(summary_df, analysis, conf_level, miss
   ci_note <- ""
   if (nrow(summary_df) > 0 && any(!is.na(summary_df$ci_low))) {
     if (analysis == "test_retest") {
-      ci_note <- paste(ci_label, "computed via Fisher's z.")
+      ci_note <- paste(ci_label, if (retest_method == "spearman") "is a Fisher-z approximation for Spearman, not an exact rank interval." else "uses the Fisher-z approximation from stats::cor.test.")
     } else if (analysis == "icc") {
       ci_note <- paste(ci_label, "computed from F distributions.")
     }
   }
 
-  note_parts <- c(missing_note, icc_note, kappa_note, retest_note, ci_note)
+  limitations <- unique(summary_df$status_reason[nzchar(summary_df$status_reason)])
+  note_parts <- c(missing_note, icc_note, kappa_note, retest_note, ci_note, limitations)
   note_default <- paste(note_parts[nzchar(note_parts)], collapse = " ")
 
   list(
@@ -941,7 +622,7 @@ build_reliability_narrative_rows <- function(summary_df, digits, conf_level) {
     estimate_text <- format_num_text(row$estimate, digits)
     ci_text <- ""
     if (!is.na(row$ci_low) && !is.na(row$ci_high)) {
-      ci_text <- paste0(", ", round(conf_level * 100), "% CI ", format_ci(row$ci_low, row$ci_high, digits))
+      ci_text <- paste0(", ", format(conf_level * 100, trim = TRUE, scientific = FALSE), "% CI ", format_ci(row$ci_low, row$ci_high, digits))
     }
 
     p_text <- format_p_text(row$p_value)
@@ -1005,20 +686,20 @@ build_reliability_narrative_rows <- function(summary_df, digits, conf_level) {
     }
 
     rows[[length(rows) + 1]] <- list(
-      analysis = resolve_as_cell_text(row$analysis),
-      analysis_label = resolve_as_cell_text(row$analysis_label),
-      group = resolve_as_cell_text(row$group_display),
+      analysis = as_cell_text(row$analysis),
+      analysis_label = as_cell_text(row$analysis_label),
+      group = as_cell_text(row$group_display),
       group_label = group_label,
-      method_label = resolve_as_cell_text(row$method_label),
-      icc_label = resolve_as_cell_text(row$icc_label),
+      method_label = as_cell_text(row$method_label),
+      icc_label = as_cell_text(row$icc_label),
       estimate = estimate_text,
       ci = format_ci(row$ci_low, row$ci_high, digits),
       ci_text = ci_text,
       p = format_p_text(row$p_value),
       n = ifelse(is.na(row$n), "NA", as.character(row$n)),
       n_raters = ifelse(is.na(row$n_raters), "NA", as.character(row$n_raters)),
-      var1 = resolve_as_cell_text(row$var1_display),
-      var2 = resolve_as_cell_text(row$var2_display),
+      var1 = as_cell_text(row$var1_display),
+      var2 = as_cell_text(row$var2_display),
       missing_n = ifelse(is.na(row$missing_n), "NA", as.character(row$missing_n)),
       missing_pct = missing_pct,
       missing_text = missing_text,
@@ -1043,10 +724,10 @@ format_nlss_table <- function(summary_df, digits, note_text, conf_level) {
 }
 
 emit_input_issue <- function(out_dir, opts, message, details = list(), status = "invalid_input", expected = FALSE) {
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+  log_default <- get_config_value("defaults.log", TRUE)
+  if (parse_bool(opts$log, default = log_default)) {
+    ctx <- get_run_context()
+    nlss_stage_log(
       out_dir,
       module = "reliability",
       prompt = ctx$prompt,
@@ -1064,238 +745,213 @@ emit_input_issue <- function(out_dir, opts, message, details = list(), status = 
         rater = opts$rater,
         score = opts$score
       ),
-      user_prompt = resolve_get_user_prompt(opts)
+      user_prompt = get_user_prompt(opts)
     )
   }
   if (expected) {
-    cat("EXPECTED_NEGATIVE: reliability invalid input\n")
-    quit(status = 0)
+    stop(structure(list(message = message, call = NULL),
+      class = c("nlss_reliability_expected_invalid", "error", "condition")))
   }
   stop(message)
 }
 
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
-
+  opts <- nlss_run_options(args, "reliability")
   if (!is.null(opts$help)) {
     print_usage()
     quit(status = 0)
   }
-
-  if (!is.null(opts$interactive)) {
+  if (parse_bool(opts$interactive, default = FALSE)) {
     opts <- modifyList(opts, interactive_options())
   }
-
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  analysis_default <- resolve_config_value("modules.reliability.analysis", "icc")
-  format_default <- resolve_config_value("modules.reliability.format", "wide")
-  missing_default <- resolve_config_value("modules.reliability.missing", "complete")
-  conf_default <- resolve_config_value("modules.reliability.conf_level", 0.95)
-  coerce_default <- resolve_config_value("modules.reliability.coerce", FALSE)
-  icc_model_default <- resolve_config_value("modules.reliability.icc_model", "twoway-random")
-  icc_type_default <- resolve_config_value("modules.reliability.icc_type", "agreement")
-  icc_unit_default <- resolve_config_value("modules.reliability.icc_unit", "single")
-  kappa_weight_default <- resolve_config_value("modules.reliability.kappa_weight", "none")
-  method_default <- resolve_config_value("modules.reliability.method", "pearson")
-
-  digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  analysis <- normalize_analysis(opts$analysis, default = analysis_default)
-  format <- normalize_format(opts$format, default = format_default)
-  missing_method <- normalize_missing(opts$missing, default = missing_default)
-  conf_level <- if (!is.null(opts$`conf-level`)) as.numeric(opts$`conf-level`) else conf_default
-  coerce_flag <- resolve_parse_bool(opts$coerce, default = coerce_default)
-  expect_invalid <- resolve_parse_bool(opts$`expect-invalid`, default = FALSE)
-
-  if (analysis == "icc" && missing_method != "complete") {
-    missing_method <- "complete"
+  df <- nlss_load_input(opts)
+  out_dir <- get_workspace_out_dir(df)
+  nlss_begin_run("reliability", df, opts, out_dir)
+  expect_invalid <- parse_bool(opts$`expect-invalid`, default = FALSE)
+  input_issue <- function(message, details = list()) {
+    emit_input_issue(out_dir, opts, message, details, expected = expect_invalid)
   }
-
-  icc_model <- normalize_icc_model(opts$`icc-model`, default = icc_model_default)
-  icc_type <- normalize_icc_type(opts$`icc-type`, default = icc_type_default)
-  icc_unit <- normalize_icc_unit(opts$`icc-unit`, default = icc_unit_default)
-  kappa_weight <- normalize_kappa_weight(opts$`kappa-weight`, default = kappa_weight_default)
-  retest_method <- normalize_method(opts$method, default = method_default)
-
-  df <- resolve_load_dataframe(opts)
-  out_dir <- resolve_get_workspace_out_dir(df)
-
+  scientific_options <- tryCatch({
+    list(
+      analysis = normalize_analysis(opts$analysis, get_config_value("modules.reliability.analysis")),
+      format = normalize_format(opts$format, get_config_value("modules.reliability.format")),
+      missing = normalize_missing(opts$missing, get_config_value("modules.reliability.missing")),
+      icc_model = normalize_icc_model(opts$`icc-model`, get_config_value("modules.reliability.icc_model")),
+      icc_type = normalize_icc_type(opts$`icc-type`, get_config_value("modules.reliability.icc_type")),
+      icc_unit = normalize_icc_unit(opts$`icc-unit`, get_config_value("modules.reliability.icc_unit")),
+      kappa_weight = normalize_kappa_weight(opts$`kappa-weight`, get_config_value("modules.reliability.kappa_weight")),
+      method = normalize_method(opts$method, get_config_value("modules.reliability.method"))
+    )
+  }, error = function(e) input_issue(conditionMessage(e)))
+  analysis <- scientific_options$analysis
+  format <- scientific_options$format
+  missing_requested <- scientific_options$missing
+  missing_method <- if (analysis == "icc") "complete" else missing_requested
+  icc_model <- scientific_options$icc_model
+  icc_type <- scientific_options$icc_type
+  effective_type <- if (icc_model == "oneway") "agreement" else icc_type
+  icc_unit <- scientific_options$icc_unit
+  kappa_weight <- scientific_options$kappa_weight
+  retest_method <- scientific_options$method
+  conf_level <- if (!is.null(opts$`conf-level`)) as.numeric(opts$`conf-level`) else get_config_value("modules.reliability.conf_level")
+  digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else get_config_value("defaults.digits")
+  coerce_flag <- parse_bool(opts$coerce, get_config_value("modules.reliability.coerce"))
+  log_default <- get_config_value("defaults.log")
+  if (!is.finite(conf_level) || conf_level <= 0 || conf_level >= 1) input_issue("Confidence level must be strictly between zero and one.")
+  if (!is.finite(digits) || digits != floor(digits) || digits < 0 || digits > 15) input_issue("Digits must be an integer from 0 to 15.")
+  if (analysis == "icc" && icc_model == "oneway" && icc_type != "agreement") {
+    warning("One-way ICC has no separate consistency estimand; computing one-way agreement and recording the requested type.")
+  }
+  if (analysis == "icc" && missing_requested != "complete") {
+    warning("ICC requires complete subjects across all raters; requested pairwise handling is resolved to complete cases.")
+  }
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
-  if (!is.null(group_var) && !(group_var %in% names(df))) {
-    stop("Grouping variable not found in data frame.")
-  }
-
-  if (analysis == "icc" && icc_model == "twoway-mixed" && icc_type == "agreement") {
-    icc_type <- "consistency"
-  }
-
-  if (analysis %in% c("kappa", "test_retest") && format == "wide") {
-    vars_default <- if (analysis == "kappa") "non-numeric" else "numeric"
+  if (!is.null(group_var) && !group_var %in% names(df)) input_issue("Grouping variable not found in data frame.")
+  id_var <- if (format == "long") opts$id else NULL
+  rater_var <- if (format == "long") opts$rater else NULL
+  score_var <- if (format == "long") opts$score else NULL
+  vars <- character(0)
+  if (format == "long") {
+    roles <- c(id_var, rater_var, score_var)
+    if (length(roles) != 3 || any(!nzchar(roles))) input_issue("Long format requires --id, --rater, and --score.")
+    if (any(!roles %in% names(df))) input_issue(paste("Long-format variables not found:", paste(setdiff(roles, names(df)), collapse = ", ")))
+    if (anyDuplicated(roles)) input_issue("Long-format ID, rater, and score must be distinct variables.")
+    if (!is.null(group_var) && group_var %in% c(rater_var, score_var)) input_issue("The grouping variable must differ from the rater and score variables.")
   } else {
-    vars_default <- "numeric"
+    if (anyDuplicated(parse_list(opts$vars))) input_issue("Rating variables must be distinct.")
+    vars <- tryCatch(select_variables(df, opts$vars, group_var,
+      default = if (analysis == "kappa") "non-numeric" else "numeric"),
+      error = function(e) input_issue(conditionMessage(e)))
+    if (anyDuplicated(vars)) input_issue("Rating variables must be distinct.")
+    if (analysis == "icc" && length(vars) < 2) input_issue("ICC requires at least two variables in wide format.")
+    if (analysis != "icc" && length(vars) != 2) input_issue("Kappa and test-retest require exactly two variables in wide format.")
   }
-
-  summary_rows <- list()
-
-  group_levels <- if (!is.null(group_var)) unique(df[[group_var]]) else ""
-  for (g in group_levels) {
-    if (!is.null(group_var)) {
-      idx <- if (is.na(g)) is.na(df[[group_var]]) else df[[group_var]] == g
-      df_sub <- df[idx, , drop = FALSE]
-      group_label <- ifelse(is.na(g), "NA", as.character(g))
-    } else {
-      df_sub <- df
-      group_label <- ""
-    }
-
-    wide_data <- NULL
-    var_names <- character(0)
-
+  label_meta <- resolve_label_metadata(df)
+  group_values <- if (is.null(group_var)) "" else unique(df[[group_var]])
+  if (!length(group_values)) input_issue("No observed groups available for reliability analysis.")
+  missing_group <- if (is.null(group_var)) "NA" else nlss_missing_group_label(df[[group_var]], label_meta, group_var)
+  prepared <- list()
+  groups <- list()
+  for (group_index in seq_along(group_values)) {
+    g <- group_values[group_index]
+    is_missing <- !is.null(group_var) && is.na(g)
+    indices <- if (is.null(group_var)) seq_len(nrow(df)) else
+      if (is_missing) which(is.na(df[[group_var]])) else which(!is.na(df[[group_var]]) & df[[group_var]] == g)
+    group_label <- if (is_missing) missing_group else as.character(g)
+    subset <- df[indices, , drop = FALSE]
+    long_result <- NULL
     if (format == "long") {
-      id_var <- if (!is.null(opts$id) && opts$id != "") opts$id else NULL
-      rater_var <- if (!is.null(opts$rater) && opts$rater != "") opts$rater else NULL
-      score_var <- if (!is.null(opts$score) && opts$score != "") opts$score else NULL
-
-      if (is.null(id_var) || is.null(rater_var) || is.null(score_var)) {
-        emit_input_issue(out_dir, opts, "Long format requires --id, --rater, and --score.", expected = expect_invalid)
-      }
-
-      if (!(id_var %in% names(df_sub))) {
-        emit_input_issue(out_dir, opts, paste("ID variable not found:", id_var), expected = expect_invalid)
-      }
-      if (!(rater_var %in% names(df_sub))) {
-        emit_input_issue(out_dir, opts, paste("Rater variable not found:", rater_var), expected = expect_invalid)
-      }
-      if (!(score_var %in% names(df_sub))) {
-        emit_input_issue(out_dir, opts, paste("Score variable not found:", score_var), expected = expect_invalid)
-      }
-
-      long_result <- long_to_wide(df_sub, id_var, rater_var, score_var)
-      wide_data <- long_result$matrix
-      var_names <- colnames(wide_data)
+      long_result <- tryCatch(long_to_wide(subset, id_var, rater_var, score_var),
+        error = function(e) input_issue(conditionMessage(e), list(group = group_label)))
+      wide <- long_result$matrix
     } else {
-      vars <- resolve_select_variables(df_sub, opts$vars, group_var, default = vars_default)
-      if (analysis == "icc" && length(vars) < 2) {
-        emit_input_issue(out_dir, opts, "ICC requires at least two variables in wide format.", expected = expect_invalid)
-      }
-      if (analysis %in% c("kappa", "test_retest") && length(vars) != 2) {
-        emit_input_issue(out_dir, opts, "Kappa and test-retest require exactly two variables in wide format.", expected = expect_invalid)
-      }
-      wide_data <- df_sub[, vars, drop = FALSE]
-      var_names <- vars
+      wide <- subset[, vars, drop = FALSE]
     }
-
+    var_names <- names(wide)
+    if (analysis == "icc" && ncol(wide) < 2) input_issue("ICC requires at least two raters.")
+    if (analysis != "icc" && ncol(wide) != 2) input_issue("Kappa and test-retest require exactly two raters/variables.")
+    original_classes <- lapply(wide, class)
+    introduced_missing <- lapply(wide, function(x) integer(0))
     if (analysis %in% c("icc", "test_retest")) {
-      wide_data <- coerce_dataframe(as.data.frame(wide_data), var_names, coerce_flag)
-      for (var in var_names) {
-        if (!is.numeric(wide_data[[var]])) {
-          emit_input_issue(out_dir, opts, paste("Variable is not numeric:", var), expected = expect_invalid)
-        }
+      before <- wide
+      wide <- coerce_dataframe(wide, var_names, coerce_flag)
+      for (v in var_names) {
+        if (!is.numeric(wide[[v]])) input_issue(paste("Variable is not numeric:", v))
+        if (any(!is.finite(wide[[v]]) & !is.na(wide[[v]]))) input_issue(paste("Non-finite numeric ratings are not supported:", v))
+        introduced_missing[[v]] <- which(!is.na(before[[v]]) & is.na(wide[[v]]))
+        if (length(introduced_missing[[v]])) warning("Numeric coercion introduced missing ratings in ", v, "; exact subject rows are recorded in the request.")
       }
     }
-
-    missing_summary <- compute_missing_summary(as.data.frame(wide_data))
-    complete_data <- wide_data[complete.cases(wide_data), , drop = FALSE]
-
-    if (analysis == "icc") {
-      icc_stats <- compute_icc(complete_data, icc_model, icc_type, icc_unit, conf_level)
-      icc_code <- icc_label(icc_model, icc_unit)
-      row <- data.frame(
-        analysis = analysis,
-        analysis_label = analysis_label(analysis),
-        group = group_label,
-        method_label = "",
-        icc_label = icc_code,
-        model = icc_model,
-        type = icc_type,
-        unit = icc_unit,
-        weight = "",
-        method = "",
-        var1 = "",
-        var2 = "",
-        estimate = icc_stats$estimate,
-        ci_low = icc_stats$ci_low,
-        ci_high = icc_stats$ci_high,
-        p_value = icc_stats$p_value,
-        f_stat = icc_stats$f_stat,
-        df1 = icc_stats$df1,
-        df2 = icc_stats$df2,
-        n = icc_stats$n_subjects,
-        n_raters = icc_stats$n_raters,
-        missing_n = missing_summary$missing_n,
-        missing_pct = missing_summary$missing_pct,
-        stringsAsFactors = FALSE
-      )
-      row$method_label <- build_method_label(row)
-      summary_rows[[length(summary_rows) + 1]] <- row
-    } else if (analysis == "kappa") {
-      if (ncol(wide_data) != 2) {
-        emit_input_issue(out_dir, opts, "Kappa requires exactly two raters/variables.", expected = expect_invalid)
-      }
-      kappa_stats <- compute_kappa(wide_data[[1]], wide_data[[2]], kappa_weight)
-      row <- data.frame(
-        analysis = analysis,
-        analysis_label = analysis_label(analysis),
-        group = group_label,
-        method_label = "",
-        icc_label = "",
-        model = "",
-        type = "",
-        unit = "",
-        weight = kappa_weight,
-        method = "",
-        var1 = var_names[1],
-        var2 = var_names[2],
-        estimate = kappa_stats$estimate,
-        ci_low = NA_real_,
-        ci_high = NA_real_,
-        p_value = NA_real_,
-        f_stat = NA_real_,
-        df1 = NA_real_,
-        df2 = NA_real_,
-        n = kappa_stats$n,
-        n_raters = 2,
-        missing_n = missing_summary$missing_n,
-        missing_pct = missing_summary$missing_pct,
-        stringsAsFactors = FALSE
-      )
-      row$method_label <- build_method_label(row)
-      summary_rows[[length(summary_rows) + 1]] <- row
-    } else {
-      if (ncol(wide_data) != 2) {
-        emit_input_issue(out_dir, opts, "Test-retest requires exactly two raters/variables.", expected = expect_invalid)
-      }
-      retest_stats <- compute_test_retest(wide_data[[1]], wide_data[[2]], retest_method, conf_level)
-      row <- data.frame(
-        analysis = analysis,
-        analysis_label = analysis_label(analysis),
-        group = group_label,
-        method_label = "",
-        icc_label = "",
-        model = "",
-        type = "",
-        unit = "",
-        weight = "",
-        method = retest_method,
-        var1 = var_names[1],
-        var2 = var_names[2],
-        estimate = retest_stats$estimate,
-        ci_low = retest_stats$ci_low,
-        ci_high = retest_stats$ci_high,
-        p_value = retest_stats$p_value,
-        f_stat = NA_real_,
-        df1 = NA_real_,
-        df2 = NA_real_,
-        n = retest_stats$n,
-        n_raters = 2,
-        missing_n = missing_summary$missing_n,
-        missing_pct = missing_summary$missing_pct,
-        stringsAsFactors = FALSE
-      )
-      row$method_label <- build_method_label(row)
-      summary_rows[[length(summary_rows) + 1]] <- row
+    category_order <- if (analysis == "kappa")
+      tryCatch(kappa_category_order(wide[[1]], wide[[2]], kappa_weight),
+        error = function(e) input_issue(conditionMessage(e))) else NULL
+    complete_indices <- which(complete.cases(wide))
+    source_rows <- if (format == "long")
+      lapply(long_result$source_rows_by_subject, function(i) indices[i]) else lapply(indices, identity)
+    source_rows_by_rater <- if (format == "long")
+      lapply(long_result$source_rows_by_rater, function(i) indices[i]) else
+      setNames(rep(list(indices), ncol(wide)), var_names)
+    introduced_source_rows <- lapply(var_names, function(v) source_rows_by_rater[[v]][introduced_missing[[v]]])
+    names(introduced_source_rows) <- var_names
+    group_design <- list(value = if (is_missing) NULL else g, label = group_label,
+      group_class = if (is.null(group_var)) NULL else class(df[[group_var]]),
+      is_missing = is_missing, row_indices = indices, rating_variables = var_names,
+      input_classes = original_classes, analysis_classes = lapply(wide, class),
+      factor_levels = lapply(wide, function(x) if (is.factor(x)) levels(x) else NULL),
+      complete_subject_indices = complete_indices,
+      complete_source_row_indices = sort(unlist(source_rows[complete_indices], use.names = FALSE)),
+      source_rows_by_subject = source_rows,
+      source_rows_by_rater = source_rows_by_rater,
+      coercion_introduced_missing_subject_indices = introduced_missing,
+      coercion_introduced_missing_source_rows = introduced_source_rows,
+      category_order = category_order)
+    if (format == "long") {
+      group_design$long <- list(ids = long_result$ids, raters = long_result$raters,
+        id_variable = id_var, rater_variable = rater_var, score_variable = score_var,
+        included_row_indices = indices[long_result$included_rows],
+        dropped_id_rater_row_indices = indices[long_result$dropped_id_rater_rows])
     }
+    groups[[length(groups) + 1]] <- group_design
+    prepared[[length(prepared) + 1]] <- list(data = wide, group = group_label, group_missing = is_missing,
+      var_names = var_names, category_order = category_order)
+  }
+  resolved_options <- list(analysis = analysis, format = format, vars = vars,
+    id = id_var, rater = rater_var, score = score_var, group = group_var,
+    missing = missing_method, missing_requested = missing_requested,
+    icc_model = icc_model, icc_type = icc_type, icc_effective_type = effective_type,
+    icc_unit = icc_unit, kappa_weight = kappa_weight, method = retest_method,
+    conf_level = conf_level, coerce = coerce_flag, digits = digits)
+  nlss_resolve_request(resolved_options, design = list(rows = nrow(df), groups = groups,
+    missing = "Complete rating vectors within each group; pairwise and complete coincide for two raters.",
+    icc_effective_type = if (analysis == "icc") effective_type else NULL,
+    kappa_weights = if (analysis == "kappa") "Equally spaced category ranks in the recorded order." else NULL,
+    ci_method = if (analysis == "kappa") "not implemented" else if (analysis == "icc")
+      "Shrout-Fleiss balanced-ANOVA F intervals; agreement uses estimated denominator degrees of freedom" else
+      if (retest_method == "pearson") "stats::cor.test Fisher-z approximation" else
+      "Fisher-z approximation for Spearman; not an exact rank interval"))
+  summary_rows <- list()
+  for (entry in prepared) {
+    wide <- entry$data
+    var_names <- entry$var_names
+    missing_summary <- compute_missing_summary(wide)
+    complete_data <- wide[complete.cases(wide), , drop = FALSE]
+    calculated <- switch(analysis,
+      icc = compute_icc(complete_data, icc_model, effective_type, icc_unit, conf_level),
+      kappa = compute_kappa(wide[[1]], wide[[2]], kappa_weight, entry$category_order$levels),
+      test_retest = compute_test_retest(wide[[1]], wide[[2]], retest_method, conf_level))
+    if (!is.finite(calculated$estimate)) {
+      input_issue(paste("Reliability is not estimable for", if (entry$group == "") "the dataset:" else paste0("group ", entry$group, ":"), calculated$status_reason),
+        list(group = entry$group, group_missing = entry$group_missing, reason = calculated$status_reason))
+    }
+    if (nzchar(calculated$status_reason)) warning(calculated$status_reason)
+    value <- function(key) if (is.null(calculated[[key]])) NA_real_ else calculated[[key]]
+    row <- data.frame(
+      analysis = analysis, analysis_label = analysis_label(analysis), group = entry$group,
+      group_missing = entry$group_missing, method_label = "",
+      icc_label = if (analysis == "icc") icc_label(icc_model, effective_type, icc_unit) else "",
+      model = if (analysis == "icc") icc_model else "",
+      type = if (analysis == "icc") effective_type else "",
+      unit = if (analysis == "icc") icc_unit else "",
+      weight = if (analysis == "kappa") kappa_weight else "",
+      method = if (analysis == "test_retest") retest_method else "",
+      var1 = if (analysis == "icc") "" else var_names[1],
+      var2 = if (analysis == "icc") "" else var_names[2],
+      estimate = calculated$estimate, ci_low = value("ci_low"), ci_high = value("ci_high"),
+      p_value = value("p_value"), f_stat = value("f_stat"), df1 = value("df1"), df2 = value("df2"),
+      n = if (analysis == "icc") calculated$n_subjects else calculated$n,
+      n_raters = ncol(wide), n_categories = value("n_categories"),
+      missing_n = missing_summary$missing_n, missing_pct = missing_summary$missing_pct,
+      estimate_status = "finite",
+      ci_status = if (analysis == "kappa") "not_implemented" else if (anyNA(c(value("ci_low"), value("ci_high")))) "not_available" else "available",
+      inference_status = if (analysis == "kappa") "not_implemented" else if (is.na(value("p_value"))) "not_available" else "available",
+      status_reason = calculated$status_reason, stringsAsFactors = FALSE)
+    for (key in c("ci_low", "ci_high", "f_stat")) {
+      row[[paste0(key, "_status")]] <- if (is.na(row[[key]])) "not_available" else
+        if (is.infinite(row[[key]])) if (row[[key]] > 0) "positive_infinity" else "negative_infinity" else "finite"
+    }
+    row$method_label <- build_method_label(row)
+    summary_rows[[length(summary_rows) + 1]] <- row
   }
 
   summary_df <- do.call(rbind, summary_rows)
@@ -1303,14 +959,16 @@ main <- function() {
   summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "var1")
   summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "var2")
   summary_df <- add_group_label_column(summary_df, label_meta, group_var, group_col = "group")
+  if (!is.null(group_var)) summary_df$group_label[summary_df$group_missing] <- summary_df$group[summary_df$group_missing]
 
   template_override <- resolve_template_override(opts$template, module = "reliability")
   template_path <- if (!is.null(template_override)) {
     template_override
   } else {
-    resolve_get_template_path("reliability.default", "reliability/default-template.md")
+    resolve_template_path("reliability.default", "reliability/default-template.md")
   }
-  template_meta <- resolve_get_template_meta(template_path)
+  template_path <- nlss_freeze_template(template_path, "reliability.main")
+  template_meta <- get_template_meta(template_path)
   nlss_report_path <- file.path(out_dir, "report_canonical.md")
 
   note_tokens <- build_reliability_note_tokens(
@@ -1319,7 +977,7 @@ main <- function() {
     conf_level,
     missing_method,
     icc_model,
-    icc_type,
+    effective_type,
     icc_unit,
     kappa_weight,
     retest_method
@@ -1351,7 +1009,8 @@ main <- function() {
     group = if (!is.null(group_var) && group_var != "") group_var else "None",
     missing = missing_method,
     "icc-model" = if (analysis == "icc") icc_model else NULL,
-    "icc-type" = if (analysis == "icc") icc_type else NULL,
+    "icc-type" = if (analysis == "icc") effective_type else NULL,
+    "icc-type-requested" = if (analysis == "icc" && icc_type != effective_type) icc_type else NULL,
     "icc-unit" = if (analysis == "icc") icc_unit else NULL,
     "kappa-weight" = if (analysis == "kappa") kappa_weight else NULL,
     method = if (analysis == "test_retest") retest_method else NULL,
@@ -1360,7 +1019,7 @@ main <- function() {
     digits = digits
   )
 
-  resolve_append_nlss_report(
+  nlss_stage_report(
     nlss_report_path,
     "Reliability analysis",
     nlss_table,
@@ -1370,38 +1029,21 @@ main <- function() {
     template_context = template_context
   )
 
-  cat("Wrote:\n")
-  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
+  nlss_set_result(list(summary_df = summary_df))
 
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+  if (parse_bool(opts$log, default = log_default)) {
+    ctx <- get_run_context()
+    nlss_stage_log(
       out_dir,
       module = "reliability",
       prompt = ctx$prompt,
       commands = ctx$commands,
       results = list(summary_df = summary_df),
-      options = list(
-        analysis = analysis,
-        format = format,
-        vars = if (format == "wide") var_names else NULL,
-        id = if (format == "long") opts$id else NULL,
-        rater = if (format == "long") opts$rater else NULL,
-        score = if (format == "long") opts$score else NULL,
-        group = group_var,
-        missing = missing_method,
-        icc_model = icc_model,
-        icc_type = icc_type,
-        icc_unit = icc_unit,
-        kappa_weight = kappa_weight,
-        method = retest_method,
-        conf_level = conf_level,
-        coerce = coerce_flag,
-        digits = digits
-      ),
-      user_prompt = resolve_get_user_prompt(opts)
+      options = resolved_options,
+      user_prompt = get_user_prompt(opts)
     )
   }
 }
 
-main()
+tryCatch(nlss_run_main("reliability", main),
+  nlss_reliability_expected_invalid = function(e) cat("EXPECTED_NEGATIVE: reliability invalid input: ", conditionMessage(e), "\n", sep = ""))

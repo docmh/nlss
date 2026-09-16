@@ -50,386 +50,58 @@ require_pkg("lmerTest")
 require_pkg("performance")
 require_pkg("emmeans")
 
-coerce_model_factors <- function(df, vars, dv) {
-  for (var in vars) {
-    if (!var %in% names(df)) next
-    if (identical(var, dv)) next
-    if (is.numeric(df[[var]])) next
-    df[[var]] <- as.factor(df[[var]])
-  }
-  df
+# Independent package oracles: no NLSS source or adapter helpers are loaded.
+raw <- read.csv(data_path, stringsAsFactors = FALSE)
+long_df <- reshape(raw, varying = c("pre_score", "mid_score", "post_score"),
+  v.names = "score", timevar = "time", times = c("pre", "mid", "post"), idvar = "id", direction = "long")
+long_df <- long_df[complete.cases(long_df[, c("score", "id", "time", "group3", "x1")]), c("id", "time", "score", "group3", "x1")]
+long_df$time <- factor(long_df$time)
+long_df$group3 <- factor(long_df$group3)
+base_formula <- score ~ time + group3 + x1 + (1 | id)
+fit_base <- lmerTest::lmer(base_formula, long_df, REML = TRUE,
+  control = lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 100000)))
+fit_std <- lmerTest::lmer(base_formula, long_df, REML = FALSE,
+  control = lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 20000)))
+coefficient_table <- function(fit, standardize = FALSE) {
+  coef <- coef(summary(fit, ddf = "Satterthwaite"))
+  critical <- qt(.975, coef[, "df"])
+  beta <- rep(NA_real_, nrow(coef))
+  if (standardize) beta[rownames(coef) == "x1"] <- coef["x1", "Estimate"] * sd(long_df$x1) / sd(long_df$score)
+  data.frame(term = rownames(coef), estimate = coef[, "Estimate"], se = coef[, "Std. Error"],
+    df = coef[, "df"], t = coef[, "t value"], p = coef[, "Pr(>|t|)"],
+    ci_low = coef[, "Estimate"] - critical * coef[, "Std. Error"],
+    ci_high = coef[, "Estimate"] + critical * coef[, "Std. Error"], std_beta = beta, row.names = NULL)
 }
+fixed_base <- coefficient_table(fit_base)
+fixed_std <- coefficient_table(fit_std, TRUE)
+vc <- as.data.frame(lme4::VarCorr(fit_base))
+random_base <- data.frame(group = vc$grp, term = ifelse(is.na(vc$var1), "Residual", vc$var1),
+  variance = vc$vcov, stddev = vc$sdcor, corr = NA_real_)
+fit_base_stats <- data.frame(n = nobs(fit_base), aic = AIC(fit_base), bic = BIC(fit_base),
+  logLik = as.numeric(logLik(fit_base)), deviance = suppressWarnings(deviance(fit_base)))
+r2 <- performance::r2(fit_base)
+r2_base <- data.frame(r2_marginal = r2$R2_marginal, r2_conditional = r2$R2_conditional)
+icc_base <- data.frame(icc = performance::icc(fit_base)$ICC_adjusted)
+anova_base <- as.data.frame(anova(fit_base, type = 3, ddf = "Satterthwaite"))
+anova_base$term <- rownames(anova_base)
+rownames(anova_base) <- NULL
+shapiro <- shapiro.test(residuals(fit_base))
+diagnostics_base <- data.frame(metric = c("singular_fit", "convergence", "shapiro_wilk"),
+  value = c(as.character(lme4::isSingular(fit_base)), if (fit_base@optinfo$conv$opt == 0) "ok" else "warning", "available"),
+  statistic = c(NA_real_, NA_real_, unname(shapiro$statistic)), p = c(NA_real_, NA_real_, shapiro$p.value), note = "")
 
-get_complete_rows <- function(df) {
-  if (nrow(df) == 0) return(logical(0))
-  idx <- complete.cases(df)
-  if (any(idx)) {
-    num_cols <- names(df)[sapply(df, is.numeric)]
-    if (length(num_cols) > 0) {
-      finite_idx <- rep(TRUE, nrow(df))
-      for (col in num_cols) {
-        finite_idx <- finite_idx & is.finite(df[[col]])
-      }
-      idx <- idx & finite_idx
-    }
-  }
-  idx
-}
-
-build_lmer_control <- function(optimizer, maxfun) {
-  if (is.null(optimizer) || !nzchar(optimizer)) {
-    if (is.null(maxfun) || is.na(maxfun)) return(lme4::lmerControl())
-    return(lme4::lmerControl(optCtrl = list(maxfun = maxfun)))
-  }
-  if (is.null(maxfun) || is.na(maxfun)) return(lme4::lmerControl(optimizer = optimizer))
-  lme4::lmerControl(optimizer = optimizer, optCtrl = list(maxfun = maxfun))
-}
-
-compute_standardized_betas <- function(data, dv, term_names, estimates, standardize) {
-  if (standardize == "none") return(rep(NA_real_, length(term_names)))
-  if (!dv %in% names(data)) return(rep(NA_real_, length(term_names)))
-  y <- data[[dv]]
-  if (!is.numeric(y)) return(rep(NA_real_, length(term_names)))
-  sd_y <- sd(y)
-  if (is.na(sd_y) || sd_y == 0) return(rep(NA_real_, length(term_names)))
-  betas <- rep(NA_real_, length(term_names))
-  for (i in seq_along(term_names)) {
-    term <- term_names[i]
-    if (term == "(Intercept)") next
-    if (!term %in% names(data)) next
-    if (!is.numeric(data[[term]])) next
-    sd_x <- sd(data[[term]])
-    if (is.na(sd_x) || sd_x == 0) next
-    betas[i] <- estimates[i] * sd_x / sd_y
-  }
-  betas
-}
-
-get_coef_column <- function(mat, names) {
-  for (name in names) {
-    if (name %in% colnames(mat)) return(mat[, name])
-  }
-  NULL
-}
-
-extract_fixed_effects <- function(summary_obj, data, dv, conf_level, standardize) {
-  coef_mat <- as.matrix(summary_obj$coefficients)
-  if (is.null(coef_mat) || nrow(coef_mat) == 0) return(data.frame())
-  term_names <- rownames(coef_mat)
-  estimate <- coef_mat[, 1]
-  se <- coef_mat[, 2]
-  df_vals <- get_coef_column(coef_mat, c("df"))
-  if (is.null(df_vals)) df_vals <- rep(NA_real_, length(estimate))
-  t_vals <- get_coef_column(coef_mat, c("t value", "t", "t.value"))
-  if (is.null(t_vals)) t_vals <- estimate / se
-  p_vals <- get_coef_column(coef_mat, c("Pr(>|t|)", "Pr(>|z|)", "p.value", "p-value"))
-  if (is.null(p_vals)) p_vals <- rep(NA_real_, length(estimate))
-
-  ci_low <- rep(NA_real_, length(estimate))
-  ci_high <- rep(NA_real_, length(estimate))
-  for (i in seq_along(estimate)) {
-    df_val <- df_vals[i]
-    crit <- if (!is.na(df_val)) {
-      qt(1 - (1 - conf_level) / 2, df_val)
-    } else {
-      qnorm(1 - (1 - conf_level) / 2)
-    }
-    ci_low[i] <- estimate[i] - crit * se[i]
-    ci_high[i] <- estimate[i] + crit * se[i]
-  }
-
-  std_beta <- compute_standardized_betas(data, dv, term_names, estimate, standardize)
-
-  data.frame(
-    term = term_names,
-    estimate = estimate,
-    se = se,
-    df = df_vals,
-    t = t_vals,
-    p = p_vals,
-    ci_low = ci_low,
-    ci_high = ci_high,
-    std_beta = std_beta,
-    stringsAsFactors = FALSE
-  )
-}
-
-extract_random_effects <- function(fit) {
-  vc <- lme4::VarCorr(fit)
-  if (length(vc) == 0) return(data.frame())
-  rows <- list()
-  for (grp in names(vc)) {
-    mat <- as.matrix(vc[[grp]])
-    sd_vals <- attr(vc[[grp]], "stddev")
-    terms <- rownames(mat)
-    if (length(terms) == 0) next
-    for (i in seq_along(terms)) {
-      rows[[length(rows) + 1]] <- data.frame(
-        group = grp,
-        term = terms[i],
-        variance = sd_vals[i]^2,
-        stddev = sd_vals[i],
-        corr = NA_real_,
-        stringsAsFactors = FALSE
-      )
-    }
-    corr <- attr(vc[[grp]], "correlation")
-    if (!is.null(corr) && nrow(corr) > 1) {
-      for (i in seq_len(nrow(corr) - 1)) {
-        for (j in (i + 1):nrow(corr)) {
-          rows[[length(rows) + 1]] <- data.frame(
-            group = grp,
-            term = paste0("corr(", terms[i], ",", terms[j], ")"),
-            variance = NA_real_,
-            stddev = NA_real_,
-            corr = corr[i, j],
-            stringsAsFactors = FALSE
-          )
-        }
-      }
-    }
-  }
-  if (length(rows) == 0) return(data.frame())
-  do.call(rbind, rows)
-}
-
-extract_fit_stats <- function(fit) {
-  data.frame(
-    n = tryCatch(nobs(fit), error = function(e) NA_real_),
-    aic = suppressWarnings(AIC(fit)),
-    bic = suppressWarnings(BIC(fit)),
-    logLik = suppressWarnings(as.numeric(logLik(fit))),
-    deviance = suppressWarnings(deviance(fit)),
-    stringsAsFactors = FALSE
-  )
-}
-
-extract_r2_df <- function(fit) {
-  res <- tryCatch(performance::r2(fit), error = function(e) NULL)
-  if (is.null(res)) return(data.frame())
-  data.frame(
-    r2_marginal = res$R2_marginal,
-    r2_conditional = res$R2_conditional,
-    stringsAsFactors = FALSE
-  )
-}
-
-resolve_icc_value <- function(res) {
-  if (!(is.data.frame(res) || is.list(res))) return(NA_real_)
-  keys <- names(res)
-  if (is.null(keys) || length(keys) == 0) return(NA_real_)
-  preferred <- c("ICC", "ICC_adjusted", "ICC_unadjusted", "ICC_conditional", "ICC_marginal")
-  for (key in preferred) {
-    if (key %in% keys) {
-      val <- res[[key]]
-      if (length(val) > 0) return(as.numeric(val[1]))
-    }
-  }
-  for (key in keys) {
-    if (grepl("^ICC", key, ignore.case = TRUE)) {
-      val <- res[[key]]
-      if (length(val) > 0) return(as.numeric(val[1]))
-    }
-  }
-  for (key in keys) {
-    val <- suppressWarnings(as.numeric(res[[key]]))
-    if (length(val) > 0 && !all(is.na(val))) return(val[1])
-  }
-  NA_real_
-}
-
-extract_icc_df <- function(fit) {
-  res <- tryCatch(performance::icc(fit), error = function(e) NULL)
-  if (is.null(res)) return(data.frame())
-  icc_val <- resolve_icc_value(res)
-  if (is.na(icc_val)) return(data.frame())
-  data.frame(
-    icc = icc_val,
-    stringsAsFactors = FALSE
-  )
-}
-
-build_anova_df <- function(fit, type, df_method) {
-  used_type <- type
-  fallback_used <- FALSE
-  out <- NULL
-  if (type == "I") {
-    out <- tryCatch(stats::anova(fit), error = function(e) NULL)
-  } else {
-    type_val <- ifelse(type == "III", 3, 2)
-    ddf_label <- if (df_method == "kenward-roger") "Kenward-Roger" else "Satterthwaite"
-    out <- tryCatch(stats::anova(fit, type = type_val, ddf = ddf_label), error = function(e) NULL)
-  }
-  if (is.null(out)) {
-    out <- tryCatch(stats::anova(fit), error = function(e) NULL)
-    if (!is.null(out) && type != "I") {
-      fallback_used <- TRUE
-      used_type <- "I"
-    }
-  }
-  if (is.null(out)) return(data.frame())
-  df <- as.data.frame(out)
-  df$term <- rownames(df)
-  rownames(df) <- NULL
-  attr(df, "type_used") <- used_type
-  attr(df, "fallback_used") <- fallback_used
-  df
-}
-
-build_diagnostics <- function(fit, max_shapiro_n) {
-  rows <- list()
-  is_singular <- tryCatch(lme4::isSingular(fit), error = function(e) NA)
-  rows[[length(rows) + 1]] <- data.frame(
-    metric = "singular_fit",
-    value = ifelse(is.na(is_singular), "", ifelse(isTRUE(is_singular), "TRUE", "FALSE")),
-    statistic = NA_real_,
-    p = NA_real_,
-    note = "",
-    stringsAsFactors = FALSE
-  )
-
-  conv_note <- ""
-  conv_msgs <- tryCatch(fit@optinfo$conv$lme4$messages, error = function(e) NULL)
-  if (!is.null(conv_msgs) && length(conv_msgs) > 0) {
-    conv_note <- paste(conv_msgs, collapse = "; ")
-  }
-  rows[[length(rows) + 1]] <- data.frame(
-    metric = "convergence",
-    value = ifelse(nzchar(conv_note), "warning", "ok"),
-    statistic = NA_real_,
-    p = NA_real_,
-    note = conv_note,
-    stringsAsFactors = FALSE
-  )
-
-  resid_vals <- tryCatch(residuals(fit), error = function(e) NULL)
-  if (!is.null(resid_vals)) {
-    n <- length(resid_vals)
-    if (n > 2 && n <= max_shapiro_n) {
-      shap <- tryCatch(shapiro.test(resid_vals), error = function(e) NULL)
-      if (!is.null(shap)) {
-        rows[[length(rows) + 1]] <- data.frame(
-          metric = "shapiro_wilk",
-          value = "",
-          statistic = unname(shap$statistic),
-          p = shap$p.value,
-          note = "",
-          stringsAsFactors = FALSE
-        )
-      }
-    }
-  }
-
-  do.call(rbind, rows)
-}
-
-build_emmeans_rows <- function(emm_summary, term_label) {
-  base_cols <- c("emmean", "SE", "df", "lower.CL", "upper.CL", "t.ratio", "p.value")
-  factor_cols <- setdiff(names(emm_summary), base_cols)
-  level <- ""
-  if (length(factor_cols) > 0) {
-    level <- apply(emm_summary[, factor_cols, drop = FALSE], 1, function(row) {
-      paste(paste0(factor_cols, "=", row), collapse = ", ")
-    })
-  }
-  data.frame(
-    term = term_label,
-    level = level,
-    contrast = "",
-    emmean = emm_summary$emmean,
-    estimate = NA_real_,
-    se = emm_summary$SE,
-    df = emm_summary$df,
-    t = emm_summary$t.ratio,
-    p = emm_summary$p.value,
-    p_adj = NA_real_,
-    ci_low = emm_summary$lower.CL,
-    ci_high = emm_summary$upper.CL,
-    method = "emmeans",
-    stringsAsFactors = FALSE
-  )
-}
-
-build_contrasts_rows <- function(contrast_summary, term_label, p_adjust, method_label) {
-  p_adj_vals <- ifelse(p_adjust != "none", contrast_summary$p.value, NA_real_)
-  p_vals <- ifelse(p_adjust == "none", contrast_summary$p.value, NA_real_)
-  method <- if (!is.null(method_label) && nzchar(method_label)) method_label else p_adjust
-  data.frame(
-    term = term_label,
-    level = "",
-    contrast = contrast_summary$contrast,
-    emmean = NA_real_,
-    estimate = contrast_summary$estimate,
-    se = contrast_summary$SE,
-    df = contrast_summary$df,
-    t = contrast_summary$t.ratio,
-    p = p_vals,
-    p_adj = p_adj_vals,
-    ci_low = contrast_summary$lower.CL,
-    ci_high = contrast_summary$upper.CL,
-    method = method,
-    stringsAsFactors = FALSE
-  )
-}
-
-prepare_long_data <- function(path) {
-  raw <- read.csv(path, stringsAsFactors = FALSE)
-  long_df <- reshape(
-    raw,
-    varying = c("pre_score", "mid_score", "post_score"),
-    v.names = "score",
-    timevar = "time",
-    times = c("pre", "mid", "post"),
-    idvar = "id",
-    direction = "long"
-  )
-  long_df <- long_df[!is.na(long_df$score), ]
-  long_df <- long_df[, c("id", "time", "score", "group3", "x1"), drop = FALSE]
-  long_df
-}
-
-build_model_data <- function(df, formula, dv) {
-  vars <- all.vars(formula)
-  df <- coerce_model_factors(df, vars, dv)
-  complete_idx <- get_complete_rows(df[, vars, drop = FALSE])
-  data_model <- df[complete_idx, , drop = FALSE]
-  droplevels(data_model)
-}
-
-long_df <- prepare_long_data(data_path)
-control <- build_lmer_control("bobyqa", 100000)
-control_std <- build_lmer_control("bobyqa", 20000)
-
-# Base model
-base_formula <- as.formula("score ~ time + group3 + x1 + (1|id)")
-base_data <- build_model_data(long_df, base_formula, "score")
-fit_base <- lmerTest::lmer(base_formula, data = base_data, REML = TRUE, control = control)
-summary_base <- summary(fit_base, ddf = "Satterthwaite")
-fixed_base <- extract_fixed_effects(summary_base, base_data, "score", 0.95, "none")
-random_base <- extract_random_effects(fit_base)
-fit_base_stats <- extract_fit_stats(fit_base)
-r2_base <- extract_r2_df(fit_base)
-icc_base <- extract_icc_df(fit_base)
-anova_base <- build_anova_df(fit_base, "III", "satterthwaite")
-diagnostics_base <- build_diagnostics(fit_base, 100000)
-
-# Standardized predictors model
-std_formula <- base_formula
-std_data <- base_data
-fit_std <- lmerTest::lmer(std_formula, data = std_data, REML = FALSE, control = control_std)
-summary_std <- summary(fit_std, ddf = "Satterthwaite")
-fixed_std <- extract_fixed_effects(summary_std, std_data, "score", 0.95, "predictors")
-
-# emmeans/contrasts model
-emm_formula <- as.formula("score ~ time * group3 + x1 + (1|id)")
-emm_data <- build_model_data(long_df, emm_formula, "score")
-fit_emm <- lmerTest::lmer(emm_formula, data = emm_data, REML = TRUE, control = control)
-emm <- emmeans::emmeans(fit_emm, specs = ~ time * group3)
-emm_summary <- summary(emm, infer = c(TRUE, TRUE), level = 0.9)
-emmeans_rows <- build_emmeans_rows(emm_summary, "time*group3")
-cont <- emmeans::contrast(emm, method = "pairwise")
-cont_summary <- summary(cont, infer = c(TRUE, TRUE), adjust = "holm", level = 0.9)
-contrast_rows <- build_contrasts_rows(cont_summary, "time*group3", "holm", "pairwise")
+fit_emm <- lmerTest::lmer(score ~ time * group3 + x1 + (1 | id), long_df, REML = TRUE,
+  control = lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 100000)))
+emm <- emmeans::emmeans(fit_emm, specs = ~ time * group3, lmer.df = "satterthwaite",
+  lmerTest.limit = Inf, pbkrtest.limit = Inf, disable.lmerTest = FALSE, disable.pbkrtest = FALSE)
+es <- summary(emm, infer = c(TRUE, TRUE), level = .9, adjust = "none")
+emmeans_rows <- data.frame(term = "time*group3", level = paste0("time=", es$time, ", group3=", es$group3),
+  contrast = "", emmean = es$emmean, estimate = NA_real_, se = es$SE, df = es$df, t = es$t.ratio,
+  p = es$p.value, p_adj = NA_real_, ci_low = es$lower.CL, ci_high = es$upper.CL, method = "emmeans")
+cs <- summary(emmeans::contrast(emm, method = "pairwise"), infer = c(TRUE, TRUE), adjust = "holm", level = .9)
+contrast_rows <- data.frame(term = "time*group3", level = "", contrast = cs$contrast, emmean = NA_real_,
+  estimate = cs$estimate, se = cs$SE, df = cs$df, t = cs$t.ratio, p = NA_real_, p_adj = cs$p.value,
+  ci_low = cs$lower.CL, ci_high = cs$upper.CL, method = "pairwise")
 
 require_row <- function(df, label) {
   if (is.null(df) || nrow(df) == 0) stop(paste0("Missing expected row: ", label))
@@ -587,6 +259,12 @@ contrasts_out <- cbind(
   ),
   contrast_row
 )
+# Include every other family member: testing only the first row cannot detect
+# accidental scalar recycling of adjusted p-values.
+other_contrasts <- contrast_rows[contrast_rows$contrast != "mid A - post A", , drop = FALSE]
+contrasts_out <- rbind(contrasts_out, cbind(data.frame(
+  case_id = paste0("contrast_family_", seq_len(nrow(other_contrasts))),
+  formula = "score ~ time * group3 + x1 + (1|id)", emmeans = "time*group3", contrasts = "pairwise"), other_contrasts))
 
 # diagnostics golden
 diag_singular <- diagnostics_base[diagnostics_base$metric == "singular_fit", , drop = FALSE]

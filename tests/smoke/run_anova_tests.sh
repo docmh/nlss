@@ -353,23 +353,32 @@ run_expect_fail() {
 run_expect_invalid() {
   local label="$1"; shift
   local status="$1"; shift
-  echo "[RUN-EXPECT-INVALID] ${label}" | tee -a "${LOG_FILE}"
-  local start_count
-  start_count="$(log_count "${LOG_PATH}")"
-  set +e
-  "$@" >>"${LOG_FILE}" 2>&1
-  local exit_status=$?
-  set -e
-  if [ "${exit_status}" -eq 0 ]; then
-    echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
-  if check_anova_log "${start_count}" "-" "-" "-" "-" "-" "${status}"; then
-    echo "[PASS] ${label} (status ${status})" | tee -a "${LOG_FILE}"
-  else
-    echo "[FAIL] ${label} (status ${status} not logged)" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
+  local before_runs before_hashes
+  before_runs="$("${PYTHON_BIN}" - "${DATASET_GOLDEN_DIR}" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+d=Path(sys.argv[1])
+print(json.dumps({"runs":sorted(str(p) for p in (d/"runs").glob("*/request.json")),
+    "projections":{name:hashlib.sha256((d/name).read_bytes()).hexdigest() if (d/name).exists() else None
+     for name in ("report_canonical.md","analysis_log.jsonl")}}))
+PY
+)"
+  run_expect_fail "$label" "$@"
+  "${PYTHON_BIN}" - "${DATASET_GOLDEN_DIR}" "$before_runs" <<'PY'
+import hashlib,json,sys
+from pathlib import Path
+d=Path(sys.argv[1]); before=json.loads(sys.argv[2])
+new=set(str(p) for p in (d/"runs").glob("*/request.json"))-set(before["runs"])
+assert len(new)==1,"Expected one new terminal failed run"
+request=Path(new.pop()); result=json.loads((request.parent/"result.json").read_text())
+assert result["status"]=="failed" and result["module"]=="anova" and result["error"]
+assert result["artifacts"]["request"]["sha256"]==hashlib.sha256(request.read_bytes()).hexdigest()
+assert not (request.parent/"output.md").exists()
+assert not (d/".analysis-lock").exists()
+for name, digest in before["projections"].items():
+    actual=hashlib.sha256((d/name).read_bytes()).hexdigest() if (d/name).exists() else None
+    assert actual==digest, "Failed run changed " + name
+PY
 }
 
 assert_contains() {

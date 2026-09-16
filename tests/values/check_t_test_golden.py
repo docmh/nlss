@@ -260,6 +260,9 @@ def main():
     for key in numeric_keys:
         expected_val = parse_float(expected.get(key))
         compare_numeric(row.get(key), expected_val, key)
+        status_key = f"{key}_status"
+        if status_key in expected and row.get(status_key) != expected[status_key]:
+            fail(f"Incorrect bound status for {key}: {row.get(status_key)!r}")
 
 
 if __name__ == "__main__":

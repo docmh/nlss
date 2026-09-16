@@ -1,6 +1,6 @@
 ---
 name: explain-statistics
-description: Conversational, student-friendly explanations of statistical concepts, methods, outputs, and interpretations without running analyses.
+description: Context-sensitive explanations of statistical concepts and methods, from accessible intuition to technical detail, without requiring data or analysis.
 license: Apache-2.0
 ---
 
@@ -8,98 +8,60 @@ license: Apache-2.0
 
 ## Overview
 
-This metaskill provides teacher-style explanations of statistical concepts, test logic, and interpretation. It is used when the user asks for clarification (for example, "How do custom contrasts work?") rather than for running analyses. It is conversational by default and intentionally skips `metaskill-runner` activation/finalization logs unless the user explicitly requests documentation.
-
-## Assistant Researcher Model
-
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
+Help the researcher understand the concept or decision they are asking about.
+Use the shared [semantic answer/report guidance](../../SKILL.md#semantic-answers-and-authored-reports).
+The agent chooses the explanation's shape, not a teaching script. No dataset,
+project setup, R execution or lifecycle event is required for a conceptual
+conversation or simply to document it.
 
 ## Intent/Triggers
 
-Use this metaskill when the user asks for an explanation of statistical concepts, outputs, or interpretation, for example:
+Examples include “How do custom contrasts work?”, “Explain an interaction term”,
+“What does a p-value tell me?” or “When is Spearman appropriate?”
+For interpretation of a particular empirical result, use
+[explain-results](explain-results.md); conceptual explanation may accompany it.
 
-- "How do custom contrasts work?"
-- "Explain what an interaction term means."
-- "What does a p-value tell me?"
-- "When should I use Spearman instead of Pearson?"
-- "How do I interpret this ANOVA table?"
+## Context and Depth
 
-## Inputs/Clarifications
+Use the question and any supplied design, model or output to infer the useful
+level of detail. Ask about familiarity or context only when it would materially
+change the explanation. Do not impose an introductory level on a professional
+researcher or require an audience questionnaire.
 
-### Inputs
+Plain language, an analogy, a worked illustration, formulas or a visual are
+available choices, not obligatory stages. Explain unfamiliar terms when useful
+and use notation when it clarifies the concept. A focused question may need one
+paragraph; a request for a derivation may need considerable detail. There is no
+fixed sequence, length, list of misconceptions or mandatory check-in question.
 
-- The concept, method, or output that needs explanation.
-- Context (analysis type, model, design, or software output).
-- Audience level (intro, intermediate, advanced).
-- Desired depth (intuition, step-by-step mechanics, formulas, or reporting guidance).
-- Optional: a specific output table, contrast definition, or snippet to interpret.
+## Scientific Grounding
 
-### Clarifying Questions
+- Make clear what the concept means and when it applies, including distinctions
+  or limitations material to the question. Simplification must not change its
+  statistical meaning.
+- Label invented example numbers as illustrative, not findings from the user's
+  data. Keep any arithmetic consistent. An example does not establish evidence
+  about the user's study.
+- When a real output is supplied, distinguish its actual values and interpretation
+  from the hypothetical illustration; read relevant rows and context rather
+  than pretending to have checked the underlying data.
+- Method-choice explanations can discuss tradeoffs without selecting or running
+  a new analysis on the user's behalf. If actual computation is requested, use
+  the appropriate existing NLSS procedure and its normal permissions.
+- For requested citations or source-dependent claims, read and assess available
+  sources. Use [research-academia](../utilities/research-academia.md) when relevant
+  support is missing; do not force a fresh search when adequate sources were
+  supplied or manufacture references when support is unavailable.
 
-- What concept or output do you want explained?
-- Which analysis or model is this from (ANOVA, regression, mixed model, SEM, etc.)?
-- What is your current familiarity level?
-- Do you want intuition, formulas, or step-by-step mechanics?
-- Do you have a specific output table, contrast definition, or example we should use?
+## Delivery
 
-If the user does not specify a level, default to an intro-friendly explanation with minimal math.
+The normal output is an answer in the conversation, without new files, scratchpad
+entries or protocol appends. If the researcher asks to retain the explanation,
+write the selected note or document; documentation alone does not call for
+statistics, metaskill activation or a plan/completion log.
 
-## Procedure (Pseudocode)
-
-```
-identify the concept and user goal
-if intent or context is ambiguous:
-  ask 1-3 clarifying questions
-choose depth based on audience and request
-stay conversational; do not run `metaskill-runner` or R scripts unless the user requests documentation
-explain in a teacher style:
-  define in plain language
-  provide intuition or a short analogy
-  give a simple worked example (small numbers or a toy table)
-  connect to interpretation and decisions
-  list common pitfalls or misconceptions
-  offer reporting tips when relevant
-check understanding and invite follow-up questions
-
-if the user requests citations or literature support:
-  run research-academia (multiple query variants; curate sources)
-
-if the user asks for an actual analysis:
-  pivot to the appropriate NLSS subskill or metaskill
-```
-
-## Default Rules and Decision Logic
-
-- Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
-- Keep explanations concise and structured; expand only when asked.
-- Define jargon the first time it appears.
-- Use ASCII math and minimal notation unless the user requests formulas.
-- If a specific output is provided, tie the explanation to the exact rows/columns.
-- Avoid prescriptive decisions unless the user asks for recommendations.
-- If the request turns into data analysis, use the appropriate NLSS subskill or metaskill.
-
-## Outputs
-
-- Primary output: a conversational explanation in the chat.
-- `scratchpad.md`: only if the user requests documentation in a workspace context.
-- `report_canonical.md`: only if the user explicitly asks to log the explanation; append a short "Explanation" entry manually (do not use `metaskill-runner`).
-- `analysis_log.jsonl`: not used for conversational-only requests unless explicitly requested.
-- `report_<YYYYMMDD>_explain-statistics_<intent>.md`: optional, only if the user asks for a formal write-up.
-
-## Scratchpad Updates
-
-- If documentation is requested, write a brief plan (concept, audience level, depth), then note completion after the explanation is delivered.
-- Otherwise, do not update `scratchpad.md`.
-
-## Finalization
-
-- No finalization step is required for conversational use.
-- If a formal report is requested, write `report_<YYYYMMDD>_explain-statistics_<intent>.md` (ASCII slug for `<intent>`), align it using `references/metaskills/format-document.md`, then append a brief `# Synopsis` to `report_canonical.md` manually (no `metaskill-runner`).
-
-## NLSS format Templates
-
-This metaskill does not define NLSS format templates. It is conversational and does not run subskills by default.
-
-## Parquet Support
-
-Not applicable unless the user requests a data-based example. If a dataset must be loaded, follow workspace parquet conventions and note that Parquet support requires the R package `arrow`.
+Apply [format-document](format-document.md) only as appropriate to the requested
+document. A report using saved NLSS results follows the existing
+[project-report](../utilities/project-report.md) delivery workflow. A concept-only
+document needs no fabricated evidence IDs, project initialization or statistical
+run. No new response or report templates.

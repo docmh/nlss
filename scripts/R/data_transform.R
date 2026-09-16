@@ -10,20 +10,12 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("formatting.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-render_output_path <- get("render_output_path", mode = "function")
-backup_workspace_parquet <- get("backup_workspace_parquet", mode = "function")
-source_lib <- get("source_lib", mode = "function")
-write_parquet_data <- get("write_parquet_data", mode = "function")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
+source_lib("data_change.R")
 
 print_usage <- function() {
+  cat("Project selection: --project DIR [--dataset NAME] (default: nearest ancestor).\n")
   cat("Data transformation (base R)\n")
   cat("\n")
   cat("Usage:\n")
@@ -68,266 +60,78 @@ print_usage <- function() {
   cat("  --log TRUE/FALSE          Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive             Prompt for inputs\n")
   cat("  --help                    Show this help\n")
+  cat("  General --calc expressions remain available but may be non-replayable.\n")
+  cat("  Mandatory run bundles are written even with --log FALSE.\n")
+  print_import_usage()
 }
 
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    opts$csv <- prompt("CSV path")
+    sep_default <- get_config_value("defaults.csv.sep")
+    header_default <- get_config_value("defaults.csv.header")
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
+    opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
+    opts$rds <- prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
+    opts$rdata <- prompt("RData path")
+    opts$df <- prompt("Data frame object name")
   } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
+    opts$parquet <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
 
-  opts$calc <- resolve_prompt("Calculated variables (newvar=expr|newvar2=expr)", "")
-  opts$transform <- resolve_prompt("Transforms (var=log|var2=sqrt|var3=scale)", "")
-  opts$`transform-into` <- resolve_prompt("Transform output names (var=newname|var2=newname2)", "")
-  opts$standardize <- resolve_prompt("Standardize variables (comma-separated)", "")
-  standardize_suffix_default <- resolve_config_value("modules.data_transform.standardize_suffix", "_z")
-  opts$`standardize-suffix` <- resolve_prompt("Standardize suffix", standardize_suffix_default)
-  opts$`standardize-into` <- resolve_prompt("Standardize output names (var=newname|var2=newname2)", "")
-  opts$`percentile-bins` <- resolve_prompt("Percentile bins (var=4|var2=5)", "")
-  percentile_suffix_default <- resolve_config_value("modules.data_transform.percentile_suffix", "_pct")
-  opts$`percentile-suffix` <- resolve_prompt("Percentile bins suffix", percentile_suffix_default)
-  opts$`percentile-into` <- resolve_prompt("Percentile bin output names (var=newname|var2=newname2)", "")
-  opts$bins <- resolve_prompt("Custom bins (var=0,10,20|var2=5,15,25)", "")
-  bins_suffix_default <- resolve_config_value("modules.data_transform.bins_suffix", "_bin")
-  opts$`bins-suffix` <- resolve_prompt("Custom bins suffix", bins_suffix_default)
-  opts$`bins-into` <- resolve_prompt("Custom bin output names (var=newname|var2=newname2)", "")
-  opts$recode <- resolve_prompt("Recodes (var=1:0,2:1|var2=low:0,high:1)", "")
-  recode_suffix_default <- resolve_config_value("modules.data_transform.recode_suffix", "_rec")
-  opts$`recode-suffix` <- resolve_prompt("Recode suffix", recode_suffix_default)
-  opts$`recode-into` <- resolve_prompt("Recode output names (var=newname|var2=newname2)", "")
-  opts$rename <- resolve_prompt("Rename variables (old:new,old2:new2)", "")
-  opts$drop <- resolve_prompt("Drop variables (comma-separated)", "")
-  coerce_default <- resolve_config_value("modules.data_transform.coerce", FALSE)
-  overwrite_default <- resolve_config_value("modules.data_transform.overwrite_vars", FALSE)
-  confirm_overwrite_default <- resolve_config_value("modules.data_transform.confirm_overwrite", FALSE)
-  confirm_drop_default <- resolve_config_value("modules.data_transform.confirm_drop", FALSE)
-  opts$coerce <- resolve_prompt("Coerce non-numeric vars for transforms TRUE/FALSE", ifelse(isTRUE(coerce_default), "TRUE", "FALSE"))
-  opts$`overwrite-vars` <- resolve_prompt("Allow overwriting variables TRUE/FALSE", ifelse(isTRUE(overwrite_default), "TRUE", "FALSE"))
-  opts$`confirm-overwrite` <- resolve_prompt(
+  opts$calc <- prompt("Calculated variables (newvar=expr|newvar2=expr)", "")
+  opts$transform <- prompt("Transforms (var=log|var2=sqrt|var3=scale)", "")
+  opts$`transform-into` <- prompt("Transform output names (var=newname|var2=newname2)", "")
+  opts$standardize <- prompt("Standardize variables (comma-separated)", "")
+  standardize_suffix_default <- get_config_value("modules.data_transform.standardize_suffix")
+  opts$`standardize-suffix` <- prompt("Standardize suffix", standardize_suffix_default)
+  opts$`standardize-into` <- prompt("Standardize output names (var=newname|var2=newname2)", "")
+  opts$`percentile-bins` <- prompt("Percentile bins (var=4|var2=5)", "")
+  percentile_suffix_default <- get_config_value("modules.data_transform.percentile_suffix")
+  opts$`percentile-suffix` <- prompt("Percentile bins suffix", percentile_suffix_default)
+  opts$`percentile-into` <- prompt("Percentile bin output names (var=newname|var2=newname2)", "")
+  opts$bins <- prompt("Custom bins (var=0,10,20|var2=5,15,25)", "")
+  bins_suffix_default <- get_config_value("modules.data_transform.bins_suffix")
+  opts$`bins-suffix` <- prompt("Custom bins suffix", bins_suffix_default)
+  opts$`bins-into` <- prompt("Custom bin output names (var=newname|var2=newname2)", "")
+  opts$recode <- prompt("Recodes (var=1:0,2:1|var2=low:0,high:1)", "")
+  recode_suffix_default <- get_config_value("modules.data_transform.recode_suffix")
+  opts$`recode-suffix` <- prompt("Recode suffix", recode_suffix_default)
+  opts$`recode-into` <- prompt("Recode output names (var=newname|var2=newname2)", "")
+  opts$rename <- prompt("Rename variables (old:new,old2:new2)", "")
+  opts$drop <- prompt("Drop variables (comma-separated)", "")
+  coerce_default <- get_config_value("modules.data_transform.coerce")
+  overwrite_default <- get_config_value("modules.data_transform.overwrite_vars")
+  confirm_overwrite_default <- get_config_value("modules.data_transform.confirm_overwrite")
+  confirm_drop_default <- get_config_value("modules.data_transform.confirm_drop")
+  opts$coerce <- prompt("Coerce non-numeric vars for transforms TRUE/FALSE", ifelse(isTRUE(coerce_default), "TRUE", "FALSE"))
+  opts$`overwrite-vars` <- prompt("Allow overwriting variables TRUE/FALSE", ifelse(isTRUE(overwrite_default), "TRUE", "FALSE"))
+  opts$`confirm-overwrite` <- prompt(
     "Confirm overwriting variables TRUE/FALSE",
     ifelse(isTRUE(confirm_overwrite_default), "TRUE", "FALSE")
   )
-  opts$`confirm-drop` <- resolve_prompt("Confirm dropping variables TRUE/FALSE", ifelse(isTRUE(confirm_drop_default), "TRUE", "FALSE"))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  opts$`confirm-drop` <- prompt("Confirm dropping variables TRUE/FALSE", ifelse(isTRUE(confirm_drop_default), "TRUE", "FALSE"))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log")
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts
 }
 
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_dt_bool <- function(value, key, fallback = FALSE) {
-  default_val <- resolve_config_value(paste0("modules.data_transform.", key), fallback)
-  resolve_parse_bool(value, default = default_val)
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts, lock_safe = TRUE))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-
-resolve_get_workspace_out_dir <- function(df) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df))
-  }
-  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  NULL
-}
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (is.null(value) || length(value) == 0 || is.na(value)) return("")
-  as.character(value)
+dt_bool <- function(opts, key) {
+  parse_bool(opts[[key]], get_config_value(paste0("modules.data_transform.", gsub("-", "_", key))))
 }
 
 split_commas <- function(value) {
@@ -344,7 +148,7 @@ split_pipe <- function(value) {
   trimws(strsplit(value, "\\|")[[1]])
 }
 
-is_numeric_string <- function(value) {
+dt_numeric_string <- function(value) {
   grepl("^[+-]?[0-9]*\\.?[0-9]+([eE][+-]?[0-9]+)?$", value)
 }
 
@@ -356,7 +160,7 @@ parse_value <- function(value) {
   if ((startsWith(val, "'") && endsWith(val, "'")) || (startsWith(val, "\"") && endsWith(val, "\""))) {
     return(substr(val, 2, nchar(val) - 1))
   }
-  if (is_numeric_string(val)) return(as.numeric(val))
+  if (dt_numeric_string(val)) return(as.numeric(val))
   val
 }
 
@@ -428,9 +232,11 @@ parse_percentile_rules <- function(value) {
     var <- trimws(parts[1])
     bins <- trimws(paste(parts[-1], collapse = "="))
     if (var == "" || bins == "") stop("Invalid --percentile-bins rule: ", item)
-    bins_num <- suppressWarnings(as.integer(bins))
-    if (is.na(bins_num) || bins_num < 2) stop("Percentile bins must be an integer >= 2 for ", var)
-    rules[[length(rules) + 1]] <- list(var = var, bins = bins_num)
+    bins_num <- suppressWarnings(as.numeric(bins))
+    if (!is.finite(bins_num) || bins_num < 2 || bins_num != floor(bins_num) || bins_num >= .Machine$integer.max) {
+      stop("Percentile bins must be an integer >= 2 for ", var)
+    }
+    rules[[length(rules) + 1]] <- list(var = var, bins = as.integer(bins_num))
   }
   rules
 }
@@ -505,18 +311,18 @@ get_transform_function <- function(fn) {
 }
 
 confirm_action <- function(opts, message, confirm_flag) {
-  if (resolve_parse_bool(opts$interactive, FALSE)) {
-    answer <- resolve_prompt(paste0(message, " (yes/no)"), "no")
+  if (parse_bool(opts$interactive, FALSE)) {
+    answer <- prompt(paste0(message, " (yes/no)"), "no")
     if (!tolower(answer) %in% c("yes", "y")) stop("Operation cancelled.")
     return(TRUE)
   }
-  if (resolve_dt_bool(opts[[confirm_flag]], gsub("-", "_", confirm_flag), FALSE)) return(TRUE)
+  if (dt_bool(opts, confirm_flag)) return(TRUE)
   stop(paste0(message, " Use --", confirm_flag, " or --interactive."))
 }
 
 ensure_target_name <- function(df, target, opts, action_label) {
   if (!(target %in% names(df))) return(TRUE)
-  if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
+  if (!dt_bool(opts, "overwrite-vars") && !parse_bool(opts$interactive, FALSE)) {
     stop("Target variable already exists: ", target, ". Use --overwrite-vars to allow overwriting.")
   }
   confirm_action(opts, paste0(action_label, " will overwrite existing variable '", target, "'."), "confirm-overwrite")
@@ -525,32 +331,147 @@ ensure_target_name <- function(df, target, opts, action_label) {
 
 coerce_numeric <- function(vec, var, opts) {
   if (is.numeric(vec)) return(list(vec = vec, note = ""))
-  if (!resolve_dt_bool(opts$coerce, "coerce", FALSE)) stop("Variable '", var, "' is not numeric. Use --coerce to convert.")
-  converted <- suppressWarnings(as.numeric(vec))
+  if (!dt_bool(opts, "coerce")) stop("Variable '", var, "' is not numeric. Use --coerce to convert.")
+  converted <- suppressWarnings(as.numeric(if (is.factor(vec)) as.character(vec) else vec))
   introduced_na <- any(is.na(converted) & !is.na(vec))
   note <- if (introduced_na) "coerced with NAs introduced" else "coerced"
   list(vec = converted, note = note)
 }
 
 apply_recode <- function(vec, mapping) {
-  out <- vec
+  # Every match uses the original values, not earlier replacements. Factors
+  # become text so a valid new category cannot silently become missing.
+  source <- if (is.factor(vec)) as.character(vec) else vec
+  out <- source
+  seen <- list()
+  matched <- rep(FALSE, length(source))
   for (pair in mapping) {
     old <- pair$old
     new <- pair$new
+    duplicate <- any(vapply(seen, function(value) {
+      if (is.na(old) || is.na(value)) return(is.na(old) && is.na(value))
+      isTRUE(all.equal(old, value, tolerance = 0, check.attributes = FALSE))
+    }, logical(1)))
+    if (duplicate) stop("Duplicate source value in recode mapping: ", as.character(old))
+    seen <- c(seen, list(old))
     if (is.na(old)) {
-      idx <- is.na(out)
-    } else if (is.numeric(out) && is.numeric(old)) {
-      idx <- out == old
+      idx <- is.na(source)
+    } else if (is.numeric(source)) {
+      # Quoting a numeric code must not route through display-rounded strings.
+      # Incompatible text has no numeric match; original values stay unchanged.
+      code <- suppressWarnings(as.numeric(old))
+      idx <- if (is.na(code)) rep(FALSE, length(source)) else !is.na(source) & source == code
     } else {
-      idx <- as.character(out) == as.character(old)
+      idx <- !is.na(source) & as.character(source) == as.character(old)
     }
+    if (any(matched & idx)) stop("Ambiguous recode mappings match the same source observation.")
+    matched <- matched | idx
     out[idx] <- new
   }
   out
 }
 
+calc_functions <- function() {
+  keys <- c("(", "+", "-", "*", "/", "^", "%%", "%/%", ":", "==", "!=", "<", "<=", ">", ">=", "!", "&",
+    "abs", "sqrt", "log", "log10", "log2", "log1p", "exp", "expm1", "round", "signif", "floor", "ceiling", "trunc", "sign",
+    "sum", "prod", "mean", "min", "max", "pmin", "pmax", "ifelse", "is.na", "is.finite", "is.nan", "is.infinite",
+    "as.numeric", "as.integer", "as.character", "as.logical", "length", "seq_along", "rep", "c")
+  c(setNames(lapply(keys, get, envir = baseenv(), inherits = FALSE), keys), list(sd = stats::sd, var = stats::var))
+}
+
+classify_calculations <- function(rules, df) {
+  known <- names(df)[vapply(df, function(x) is.atomic(x) && !is.object(x) && is.null(dim(x)), logical(1))]
+  column_names <- names(df)
+  functions <- names(calc_functions())
+  constants <- c("TRUE", "FALSE", "NA", "NA_real_", "NA_integer_", "NA_character_", "NaN", "Inf", "pi")
+  classifications <- list()
+  for (rule in rules) {
+    expression <- tryCatch(parse(text = rule$expr), error = function(e) stop("Invalid calc expression for ", rule$var, ": ", conditionMessage(e)))
+    unknown <- character()
+    eligible_node <- function(node) {
+      if (is.atomic(node) && length(node) == 1L) return(TRUE)
+      if (is.symbol(node)) {
+        name <- as.character(node)
+        if (name %in% c(known, setdiff(constants, column_names))) return(TRUE)
+        unknown <<- c(unknown, name)
+        return(FALSE)
+      }
+      if (!is.call(node) || !is.symbol(node[[1]]) || !as.character(node[[1]]) %in% functions) return(FALSE)
+      all(vapply(as.list(node)[-1], eligible_node, logical(1)))
+    }
+    eligible <- length(expression) == 1L && eligible_node(expression[[1]])
+    classifications[[length(classifications) + 1L]] <- list(variable = rule$var, expression = rule$expr,
+      eligible = eligible, classification = if (eligible) "deterministic_plain_vector_expression" else "general_R_expression",
+      reason = if (eligible) "Only explicitly bound arithmetic/base functions and plain input vectors."
+        else "Expression or dependency is outside the conservative replay whitelist; arbitrary code remains available, not sandboxed.",
+      unverified_symbols = unique(unknown))
+    known <- setdiff(known, rule$var)
+    column_names <- union(column_names, rule$var)
+    if (eligible) known <- c(known, rule$var)
+  }
+  eligible <- all(vapply(classifications, function(x) x$eligible, logical(1)))
+  list(eligible = eligible,
+    reason = if (eligible) "Deterministic built-in operations and verified plain-vector calculations."
+      else "General R calculations may depend on unrecorded state or produce external side effects; automatic replay is disabled.",
+    calc_classification = classifications)
+}
+
+evaluate_calculation <- function(rule, df, eligible) {
+  expression <- parse(text = rule$expr)
+  if (!eligible) return(with(df, eval(expression)))
+  # This explicit environment avoids accidentally binding a same-named global
+  # function. It is a replay boundary, not a sandbox for unrestricted --calc.
+  functions <- list2env(calc_functions(), parent = emptyenv())
+  for (name in c("TRUE", "FALSE", "NA", "NA_real_", "NA_integer_", "NA_character_", "NaN", "Inf", "pi")) {
+    assign(name, eval(parse(text = name), envir = baseenv()), envir = functions)
+  }
+  eval(expression, envir = list2env(as.list(df), parent = functions))
+}
+
+clean_transform_metadata <- function(df, before, origins) {
+  old <- attr(before, "nlss_import_contract", exact = TRUE)
+  labels <- resolve_label_metadata(before)
+  clean_labels <- list(variables = list(), values = list())
+  for (name in names(df)) {
+    source <- origins[[name]]
+    if (!is.na(source)) {
+      if (!is.null(labels$variables[[source]])) clean_labels$variables[[name]] <- labels$variables[[source]]
+      if (!is.null(labels$values[[source]])) clean_labels$values[[name]] <- labels$values[[source]]
+    } else {
+      for (key in c("label", "labels", "variable.label", "var.label", "value.labels", "na_values", "na_range",
+                    "format.spss", "format.stata", "format.sas")) attr(df[[name]], key) <- NULL
+    }
+  }
+  # Runtime source paths, input hashes and their attachment order are not data
+  # semantics. Arrow serializes frame attributes, so keep a canonical data-only
+  # set to make replay bytes independent of the ordinary/replay load route.
+  attributes(df) <- attributes(df)[c("names", "row.names", "class")]
+  attr(df, "nlss_labels") <- normalize_label_metadata(clean_labels)
+  dictionary <- import_capture_dictionary(df)
+  dictionary$source_rows <- old$source_rows
+  for (name in names(df)) {
+    source <- origins[[name]]
+    if (!is.na(source) && !is.null(old$columns[[source]])) dictionary$columns[[name]] <- old$columns[[source]]
+  }
+  # Source missing definitions survive only on unchanged values (including a
+  # pure rename). Derived variables point back to the immutable before version.
+  dictionary$transformation <- list(input_version_id = attr(before, "nlss_dataset_ref")$version_id,
+    observation_basis = "input_version_rows", preserved_column_origins = as.list(origins[!is.na(origins)]))
+  attr(df, "nlss_import_contract") <- dictionary
+  attr(df, "nlss_import_contract") <- attr(import_prepare_storage(df), "nlss_import_contract")
+  df
+}
+
+transform_value_status <- function(vec) {
+  list(class = class(vec), type = typeof(vec), n = length(vec),
+    missing_rows = which(is.na(vec)),
+    nan_rows = if (is.numeric(vec)) which(is.nan(vec)) else integer(),
+    infinite_rows = if (is.numeric(vec)) which(is.infinite(vec)) else integer())
+}
+
 build_percentile_bins <- function(vec, bins) {
   if (all(is.na(vec))) stop("Percentile bins require at least one non-missing value.")
+  if (any(!is.finite(vec) & !is.na(vec))) stop("Percentile bins require finite non-missing values.")
   probs <- seq(0, 1, length.out = bins + 1)
   qs <- as.numeric(quantile(vec, probs = probs, na.rm = TRUE, type = 7))
   uniq <- unique(qs)
@@ -562,19 +483,6 @@ build_custom_bins <- function(breaks) {
   sorted <- sort(breaks)
   if (any(duplicated(sorted))) stop("Custom bins contain duplicate breakpoints.")
   list(breaks = sorted, sorted = !identical(breaks, sorted))
-}
-
-make_markdown_table <- function(df) {
-  if (nrow(df) == 0) {
-    return(c("| Step | Action | Variable | New_Variable | Details |",
-             "| --- | --- | --- | --- | --- |",
-             "| 1 | none |  |  | No transformations applied. |"))
-  }
-  df[is.na(df)] <- ""
-  header <- paste0("| ", paste(names(df), collapse = " | "), " |")
-  sep <- paste0("| ", paste(rep("---", ncol(df)), collapse = " | "), " |")
-  rows <- apply(df, 1, function(row) paste0("| ", paste(row, collapse = " | "), " |"))
-  c(header, sep, rows)
 }
 
 get_action_label <- function(action) {
@@ -619,7 +527,7 @@ build_transform_table_body <- function(log_df, table_spec = NULL) {
     list(key = "details", label = "Details"),
     list(key = "note", label = "Note", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(
+  columns <- normalize_table_columns(
     if (!is.null(table_spec$columns)) table_spec$columns else NULL,
     default_columns
   )
@@ -663,19 +571,19 @@ build_transform_table_body <- function(log_df, table_spec = NULL) {
       } else if (key == "action_code") {
         val <- row$action_code
       }
-      row_vals <- c(row_vals, resolve_as_cell_text(val))
+      row_vals <- c(row_vals, as_cell_text(val))
     }
     table_rows[[length(table_rows) + 1]] <- row_vals
   }
 
-  filtered <- resolve_drop_empty_columns(columns, table_rows)
+  filtered <- drop_empty_columns(columns, table_rows)
   columns <- filtered$columns
   table_rows <- filtered$rows
   headers <- vapply(columns, function(col) {
     if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
   }, character(1))
   list(
-    body = resolve_render_markdown_table(headers, table_rows),
+    body = render_markdown_table(headers, table_rows),
     columns = vapply(columns, function(col) col$key, character(1))
   )
 }
@@ -722,7 +630,7 @@ build_transform_note_tokens <- function(log_df, summary_tokens) {
     note_parts <- c(note_parts, paste0("Actions: ", summary_tokens$actions_present, "."))
   }
   has_notes <- any(nzchar(as.character(log_df$note)))
-  note_details <- if (has_notes) "Notes indicate coercion or bin adjustments." else ""
+  note_details <- if (has_notes) "Notes document coercion, bin adjustments and missing/nonfinite results." else ""
   if (nzchar(note_details)) note_parts <- c(note_parts, note_details)
   list(
     note_default = paste(note_parts, collapse = " "),
@@ -770,377 +678,247 @@ build_transform_narrative_rows <- function(log_df) {
   rows
 }
 
-args <- commandArgs(trailingOnly = TRUE)
-opts <- resolve_parse_args(args)
+main <- function() {
+  opts <- nlss_run_options(commandArgs(trailingOnly = TRUE), "data_transform")
+  if (!is.null(opts[["help"]])) { print_usage(); return(invisible(NULL)) }
+  if (parse_bool(opts[["interactive"]], FALSE)) {
+    opts <- modifyList(opts, interactive_options())
+    opts[["interactive"]] <- TRUE
+  }
+  before <- nlss_load_input(opts)
+  out_dir <- get_workspace_out_dir(before)
+  nlss_begin_run("data_transform", before, opts, out_dir)
+  rules <- list(calc = parse_calc_rules(opts[["calc"]]), transform = parse_transform_rules(opts[["transform"]]),
+    standardize = split_commas(opts[["standardize"]]), recode = parse_recode_rules(opts[["recode"]]),
+    percentile_bin = parse_percentile_rules(opts[["percentile-bins"]]), bin = parse_bins_rules(opts[["bins"]]),
+    rename = parse_rename_map(opts[["rename"]]), drop = split_commas(opts[["drop"]]))
+  settings <- list()
+  for (key in c("standardize-suffix", "percentile-suffix", "bins-suffix", "recode-suffix")) {
+    settings[[key]] <- if (is.null(opts[[key]])) get_config_value(paste0("modules.data_transform.", gsub("-", "_", key))) else opts[[key]]
+  }
+  for (key in c("coerce", "overwrite-vars", "confirm-overwrite", "confirm-drop")) settings[[key]] <- dt_bool(opts, key)
+  into <- lapply(c("transform", "standardize", "percentile", "bins", "recode"), function(key) parse_into_map(opts[[paste0(key, "-into")]]))
+  names(into) <- c("transform", "standardize", "percentile", "bins", "recode")
+  settings$into <- into
+  replay_policy <- classify_calculations(rules$calc, before)
+  if (!is.null(nlss_run_context$replay) && !isTRUE(replay_policy$eligible)) {
+    stop("Current expression classification does not permit automatic replay; no calculation was executed.")
+  }
+  design <- list(operation_order = names(rules), rules = rules, source_n = nrow(before),
+    source_classes = lapply(before, class), source_rows = seq_len(nrow(before)), replay = replay_policy)
+  nlss_resolve_request(settings, design)
+  if (!isTRUE(replay_policy$eligible)) warning(replay_policy$reason, call. = FALSE)
 
-if (!is.null(opts$help)) {
-  print_usage()
-  quit(status = 0)
-}
+  df <- before
+  origins <- setNames(names(before), names(before))
+  log_rows <- step_details <- list()
+  record <- function(action, variable, target, details, note = "", source = NULL, result = NULL, extra = list()) {
+    log_rows[[length(log_rows) + 1L]] <<- data.frame(action = action, variable = variable,
+      new_variable = target, details = details, note = note, stringsAsFactors = FALSE)
+    source_status <- if (is.null(source)) NULL else transform_value_status(source)
+    result_status <- if (is.null(result)) NULL else transform_value_status(result)
+    step_details[[length(step_details) + 1L]] <<- c(list(step = length(log_rows), action = action,
+      variable = variable, new_variable = target, details = details, note = note,
+      before = source_status, after = result_status,
+      comparison_basis = if (is.null(source_status)) "No previous target; resulting missingness is recorded in after."
+        else "Input source or overwritten target, at the same row positions.",
+      newly_missing_rows = if (is.null(source_status) || is.null(result_status)) NULL
+        else setdiff(result_status$missing_rows, source_status$missing_rows),
+      newly_infinite_rows = if (is.null(source_status) || is.null(result_status)) NULL
+        else setdiff(result_status$infinite_rows, source_status$infinite_rows)), extra)
+  }
+  target_name <- function(var, key, default) if (is.null(into[[key]][[var]])) default else into[[key]][[var]]
+  assign_numeric <- function(action, var, target, method, details) {
+    if (!var %in% names(df)) stop("Unknown variable for ", action, ": ", var)
+    ensure_target_name(df, target, opts, get_action_label(action))
+    source <- df[[var]]
+    coerced <- coerce_numeric(source, var, opts)
+    value <- method(coerced$vec)
+    note <- coerced$note
+    new_missing <- sum(is.na(value) & !is.na(source))
+    new_infinite <- if (is.numeric(value)) sum(is.infinite(value) & !is.infinite(coerced$vec)) else 0L
+    if (new_missing) note <- trimws(paste(note, paste0(new_missing, " new missing value(s)")))
+    if (new_infinite) note <- trimws(paste(note, paste0(new_infinite, " new infinite value(s)")))
+    if (new_missing || new_infinite) warning(action, " of ", var, ": ", note, call. = FALSE)
+    df[[target]] <<- value
+    origins[target] <<- NA_character_
+    record(action, var, target, details, note, source, value)
+  }
 
-if (!is.null(opts$interactive)) {
-  opts <- modifyList(opts, interactive_options())
-  opts$interactive <- TRUE
-}
-
-df <- resolve_load_dataframe(opts)
-out_dir <- resolve_get_workspace_out_dir(df)
-workspace_parquet_path <- attr(df, "workspace_parquet_path")
-
-calc_rules <- if (!is.null(opts$calc)) parse_calc_rules(opts$calc) else list()
-transform_rules <- if (!is.null(opts$transform)) parse_transform_rules(opts$transform) else list()
-standardize_vars <- split_commas(opts$standardize)
-percentile_rules <- if (!is.null(opts$`percentile-bins`)) parse_percentile_rules(opts$`percentile-bins`) else list()
-bins_rules <- if (!is.null(opts$bins)) parse_bins_rules(opts$bins) else list()
-recode_rules <- if (!is.null(opts$recode)) parse_recode_rules(opts$recode) else list()
-rename_map <- if (!is.null(opts$rename)) parse_rename_map(opts$rename) else list()
-drop_vars <- split_commas(opts$drop)
-
-transform_into <- if (!is.null(opts$`transform-into`)) parse_into_map(opts$`transform-into`) else list()
-standardize_into <- if (!is.null(opts$`standardize-into`)) parse_into_map(opts$`standardize-into`) else list()
-percentile_into <- if (!is.null(opts$`percentile-into`)) parse_into_map(opts$`percentile-into`) else list()
-bins_into <- if (!is.null(opts$`bins-into`)) parse_into_map(opts$`bins-into`) else list()
-recode_into <- if (!is.null(opts$`recode-into`)) parse_into_map(opts$`recode-into`) else list()
-
-standardize_suffix_default <- resolve_config_value("modules.data_transform.standardize_suffix", "_z")
-percentile_suffix_default <- resolve_config_value("modules.data_transform.percentile_suffix", "_pct")
-bins_suffix_default <- resolve_config_value("modules.data_transform.bins_suffix", "_bin")
-recode_suffix_default <- resolve_config_value("modules.data_transform.recode_suffix", "_rec")
-standardize_suffix <- if (!is.null(opts$`standardize-suffix`)) opts$`standardize-suffix` else standardize_suffix_default
-percentile_suffix <- if (!is.null(opts$`percentile-suffix`)) opts$`percentile-suffix` else percentile_suffix_default
-bins_suffix <- if (!is.null(opts$`bins-suffix`)) opts$`bins-suffix` else bins_suffix_default
-recode_suffix <- if (!is.null(opts$`recode-suffix`)) opts$`recode-suffix` else recode_suffix_default
-
-log_rows <- list()
-add_log <- function(action, variable, new_variable, details, note = "") {
-  log_rows[[length(log_rows) + 1]] <<- data.frame(
-    action = action,
-    variable = variable,
-    new_variable = new_variable,
-    details = details,
-    note = note,
-    stringsAsFactors = FALSE
-  )
-}
-
-if (length(calc_rules) > 0) {
-  for (rule in calc_rules) {
+  for (i in seq_along(rules$calc)) {
+    rule <- rules$calc[[i]]
     ensure_target_name(df, rule$var, opts, "Calculation")
-    result <- tryCatch(with(df, eval(parse(text = rule$expr))), error = function(e) e)
-    if (inherits(result, "error")) stop("Failed to evaluate calc expression for ", rule$var, ": ", result$message)
-    if (length(result) == 1) result <- rep(result, nrow(df))
+    source <- df[[rule$var]]
+    result <- tryCatch(evaluate_calculation(rule, df, replay_policy$calc_classification[[i]]$eligible),
+      error = function(e) stop("Failed to evaluate calc expression for ", rule$var, ": ", conditionMessage(e)))
+    if (is.matrix(result) && ncol(result) == 1L) result <- as.vector(result)
+    if (is.null(result) || !(is.atomic(result) || is.list(result)) || !is.null(dim(result))) {
+      stop("Calc result must be a one-dimensional atomic or list column for ", rule$var)
+    }
+    if (length(result) == 1L) result <- rep(result, nrow(df))
     if (length(result) != nrow(df)) stop("Calc result length does not match rows for ", rule$var)
     df[[rule$var]] <- result
-    add_log("calc", rule$var, rule$var, rule$expr)
+    origins[rule$var] <- NA_character_
+    record("calc", rule$var, rule$var, rule$expr, source = source, result = result,
+      extra = list(input_variables = intersect(all.vars(parse(text = rule$expr)), names(df)),
+        replay_classification = replay_policy$calc_classification[[i]]$classification))
   }
-}
-
-if (length(transform_rules) > 0) {
-  for (rule in transform_rules) {
-    var <- rule$var
-    if (!(var %in% names(df))) stop("Unknown variable for transform: ", var)
+  for (rule in rules$transform) {
     fn <- normalize_transform(rule$fn)
-    target <- if (!is.null(transform_into[[var]])) {
-      transform_into[[var]]
-    } else if (fn == "scale") {
-      paste0(var, standardize_suffix)
-    } else {
-      paste0(fn, "_", var)
-    }
-    if (target == var) {
-      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
-        stop("Transform target matches source and overwrite is disabled for ", var)
-      }
-      confirm_action(opts, paste0("Transform will overwrite variable '", var, "'."), "confirm-overwrite")
-    } else {
-      ensure_target_name(df, target, opts, "Transform")
-    }
-    coerced <- coerce_numeric(df[[var]], var, opts)
-    fn_apply <- get_transform_function(fn)
-    df[[target]] <- fn_apply(coerced$vec)
-    add_log("transform", var, target, fn, coerced$note)
+    default <- if (fn == "scale") paste0(rule$var, settings[["standardize-suffix"]]) else paste0(fn, "_", rule$var)
+    assign_numeric("transform", rule$var, target_name(rule$var, "transform", default), get_transform_function(fn), fn)
   }
-}
-
-if (length(standardize_vars) > 0) {
-  for (var in standardize_vars) {
-    if (var == "") next
-    if (!(var %in% names(df))) stop("Unknown variable for standardize: ", var)
-    target <- if (!is.null(standardize_into[[var]])) {
-      standardize_into[[var]]
-    } else {
-      paste0(var, standardize_suffix)
-    }
-    if (target == var) {
-      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
-        stop("Standardize target matches source and overwrite is disabled for ", var)
-      }
-      confirm_action(opts, paste0("Standardize will overwrite variable '", var, "'."), "confirm-overwrite")
-    } else {
-      ensure_target_name(df, target, opts, "Standardize")
-    }
-    coerced <- coerce_numeric(df[[var]], var, opts)
-    df[[target]] <- as.numeric(scale(coerced$vec))
-    add_log("standardize", var, target, paste0("z-score (suffix ", standardize_suffix, ")"), coerced$note)
+  for (var in rules$standardize[nzchar(rules$standardize)]) {
+    assign_numeric("standardize", var, target_name(var, "standardize", paste0(var, settings[["standardize-suffix"]])),
+      get_transform_function("scale"), paste0("z-score (suffix ", settings[["standardize-suffix"]], ")"))
   }
-}
-
-if (length(recode_rules) > 0) {
-  for (rule in recode_rules) {
+  for (rule in rules$recode) {
     var <- rule$var
-    if (!(var %in% names(df))) stop("Unknown variable for recode: ", var)
-    target <- if (!is.null(recode_into[[var]])) {
-      recode_into[[var]]
-    } else {
-      paste0(var, recode_suffix)
-    }
-    if (target == var) {
-      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
-        stop("Recode target matches source and overwrite is disabled for ", var)
-      }
-      confirm_action(opts, paste0("Recode will overwrite variable '", var, "'."), "confirm-overwrite")
-    } else {
-      ensure_target_name(df, target, opts, "Recode")
-    }
-    df[[target]] <- apply_recode(df[[var]], rule$mapping)
-    add_log("recode", var, target, paste0("pairs=", length(rule$mapping)))
+    if (!var %in% names(df)) stop("Unknown variable for recode: ", var)
+    target <- target_name(var, "recode", paste0(var, settings[["recode-suffix"]]))
+    ensure_target_name(df, target, opts, "Recode")
+    source <- df[[var]]
+    value <- apply_recode(source, rule$mapping)
+    df[[target]] <- value
+    origins[target] <- NA_character_
+    record("recode", var, target, paste0("pairs=", length(rule$mapping)), source = source, result = value,
+      extra = list(mapping = rule$mapping, matching = "simultaneous_original_values"))
   }
-}
-
-if (length(percentile_rules) > 0) {
-  for (rule in percentile_rules) {
-    var <- rule$var
-    if (!(var %in% names(df))) stop("Unknown variable for percentile bins: ", var)
-    target <- if (!is.null(percentile_into[[var]])) {
-      percentile_into[[var]]
-    } else {
-      paste0(var, percentile_suffix)
+  for (kind in c("percentile_bin", "bin")) {
+    for (rule in rules[[kind]]) {
+      var <- rule$var
+      if (!var %in% names(df)) stop("Unknown variable for ", kind, ": ", var)
+      key <- if (kind == "percentile_bin") "percentile" else "bins"
+      target <- target_name(var, key, paste0(var, settings[[paste0(key, "-suffix")]]))
+      ensure_target_name(df, target, opts, get_action_label(kind))
+      source <- df[[var]]
+      coerced <- coerce_numeric(source, var, opts)
+      bin_info <- if (kind == "percentile_bin") build_percentile_bins(coerced$vec, rule$bins) else build_custom_bins(rule$breaks)
+      value <- cut(coerced$vec, breaks = bin_info$breaks, include.lowest = TRUE, right = TRUE, labels = FALSE)
+      note <- coerced$note
+      if (isTRUE(bin_info$reduced)) note <- trimws(paste(note, paste0("reduced to ", length(bin_info$breaks) - 1L, " bins")))
+      if (isTRUE(bin_info$sorted)) note <- trimws(paste(note, "sorted breaks"))
+      out_of_range <- which(!is.na(coerced$vec) & is.na(value))
+      if (length(out_of_range)) note <- trimws(paste(note, length(out_of_range), "value(s) outside custom breaks; set missing"))
+      if (length(out_of_range) || any(is.na(coerced$vec) & !is.na(source))) warning(kind, " of ", var, ": ", note, call. = FALSE)
+      df[[target]] <- value
+      origins[target] <- NA_character_
+      detail <- if (kind == "percentile_bin") paste0("bins=", rule$bins) else paste0("breaks=", paste(bin_info$breaks, collapse = ","))
+      record(kind, var, target, detail, note, source, value, list(breaks = bin_info$breaks,
+        effective_bins = length(bin_info$breaks) - 1L, quantile_type = if (kind == "percentile_bin") 7L else NULL,
+        include_lowest = TRUE, right_closed = TRUE, out_of_range_rows = out_of_range))
     }
-    if (target == var) {
-      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
-        stop("Percentile bins target matches source and overwrite is disabled for ", var)
-      }
-      confirm_action(opts, paste0("Percentile bins will overwrite variable '", var, "'."), "confirm-overwrite")
-    } else {
-      ensure_target_name(df, target, opts, "Percentile bins")
-    }
-    coerced <- coerce_numeric(df[[var]], var, opts)
-    bin_info <- build_percentile_bins(coerced$vec, rule$bins)
-    df[[target]] <- cut(coerced$vec, breaks = bin_info$breaks, include.lowest = TRUE, right = TRUE, labels = FALSE)
-    detail <- paste0("bins=", rule$bins)
-    note <- coerced$note
-    if (bin_info$reduced) {
-      reduced_bins <- length(bin_info$breaks) - 1
-      note <- trimws(paste(note, paste0("reduced to ", reduced_bins, " bins")))
-    }
-    add_log("percentile_bin", var, target, detail, note)
   }
-}
-
-if (length(bins_rules) > 0) {
-  for (rule in bins_rules) {
-    var <- rule$var
-    if (!(var %in% names(df))) stop("Unknown variable for custom bins: ", var)
-    target <- if (!is.null(bins_into[[var]])) {
-      bins_into[[var]]
-    } else {
-      paste0(var, bins_suffix)
-    }
-    if (target == var) {
-      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
-        stop("Custom bins target matches source and overwrite is disabled for ", var)
-      }
-      confirm_action(opts, paste0("Custom bins will overwrite variable '", var, "'."), "confirm-overwrite")
-    } else {
-      ensure_target_name(df, target, opts, "Custom bins")
-    }
-    coerced <- coerce_numeric(df[[var]], var, opts)
-    bin_info <- build_custom_bins(rule$breaks)
-    df[[target]] <- cut(coerced$vec, breaks = bin_info$breaks, include.lowest = TRUE, right = TRUE, labels = FALSE)
-    detail <- paste0("breaks=", paste(bin_info$breaks, collapse = ","))
-    note <- coerced$note
-    if (bin_info$sorted) {
-      note <- trimws(paste(note, "sorted breaks"))
-    }
-    add_log("bin", var, target, detail, note)
-  }
-}
-
-if (length(rename_map) > 0) {
-  for (old in names(rename_map)) {
-    new <- rename_map[[old]]
-    if (!(old %in% names(df))) stop("Unknown variable for rename: ", old)
+  for (old in names(rules$rename)) {
+    new <- rules$rename[[old]]
+    if (!old %in% names(df)) stop("Unknown variable for rename: ", old)
     if (old == new) next
-    if (new %in% names(df)) {
-      if (!resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE) && !resolve_parse_bool(opts$interactive, FALSE)) {
-        stop("Rename target already exists: ", new, ". Use --overwrite-vars to allow.")
-      }
-      confirm_action(opts, paste0("Rename will overwrite variable '", new, "'."), "confirm-overwrite")
-      df[[new]] <- NULL
-    }
+    ensure_target_name(df, new, opts, "Rename")
+    source <- df[[old]]
+    if (new %in% names(df)) { df[[new]] <- NULL; origins <- origins[names(origins) != new] }
     names(df)[names(df) == old] <- new
-    add_log("rename", old, new, "rename")
+    names(origins)[names(origins) == old] <- new
+    record("rename", old, new, "rename", source = source, result = source)
   }
-}
-
-if (length(drop_vars) > 0) {
-  drop_vars <- drop_vars[drop_vars != ""]
-  if (length(drop_vars) > 0) {
-    missing_drop <- setdiff(drop_vars, names(df))
-    if (length(missing_drop) > 0) stop("Unknown variables to drop: ", paste(missing_drop, collapse = ", "))
+  drop_vars <- unique(rules$drop[nzchar(rules$drop)])
+  if (length(drop_vars)) {
+    unknown <- setdiff(drop_vars, names(df))
+    if (length(unknown)) stop("Unknown variables to drop: ", paste(unknown, collapse = ", "))
     confirm_action(opts, paste0("Drop variables: ", paste(drop_vars, collapse = ", "), "."), "confirm-drop")
+    for (var in drop_vars) record("drop", var, "", "dropped", source = df[[var]])
     df[drop_vars] <- NULL
-    for (var in drop_vars) {
-      add_log("drop", var, "", "dropped")
+    origins <- origins[!names(origins) %in% drop_vars]
+  }
+  if (!ncol(df)) stop("A dataset must retain at least one variable; no data were published.")
+  if (length(log_rows)) df <- clean_transform_metadata(df, before, origins)
+  log_df <- if (length(log_rows)) do.call(rbind, log_rows) else data.frame(action = character(), variable = character(),
+    new_variable = character(), details = character(), note = character(), stringsAsFactors = FALSE)
+  changes <- list(added = setdiff(names(df), names(before)), removed = setdiff(names(before), names(df)),
+    modified = names(df)[vapply(names(df), function(name) name %in% names(before) && !identical(before[[name]], df[[name]]), logical(1))],
+    metadata_reset = names(origins)[is.na(origins)],
+    preserved_column_origins = as.list(origins[!is.na(origins)]),
+    renamed = step_details[vapply(step_details, function(x) identical(x$action, "rename"), logical(1))],
+    unchanged_values = identical(names(before), names(df)) && all(vapply(names(df), function(name) identical(before[[name]], df[[name]]), logical(1))))
+  design$steps <- step_details
+  nlss_resolve_request(settings, design)
+
+  template <- resolve_template_override(opts[["template"]], module = "data_transform")
+  if (is.null(template)) template <- resolve_template_path("data_transform.default", "data-transform/default-template.md")
+  template <- nlss_freeze_template(template, "data_transform.main")
+  data_change <- nlss_prepare_data_change(before, df)
+  # JSON temporal values use the same lossless numeric units as Parquet, with
+  # their explicit logical types beside them (jsonlite has no difftime encoder).
+  json_df <- import_prepare_storage(df)
+  results <- list(transformed_df = json_df,
+    transformed_df_storage = attr(json_df, "nlss_import_contract")$storage,
+    transform_log_df = log_df, step_details = step_details,
+    column_changes = changes, labels = resolve_label_metadata(df), data_change = data_change,
+    output_path = data_change$output_path, backup_path = data_change$backup_path)
+  if (!is.null(nlss_run_context$managed)) {
+    # The immutable Parquet/dictionary are already the complete output. Avoid a
+    # second row-by-row JSON dataset in every managed transformation run.
+    results$transformed_df <- results$transformed_df_storage <- NULL
+    results$data_representation <- "data_change.output: preserved Parquet and dictionary"
+  }
+
+  report_log <- log_df
+  for (name in names(report_log)) report_log[[name]] <- nlss_mask_prose_paths(report_log[[name]], nlss_run_context$root)
+  calc_rows <- which(log_df$action == "calc")
+  report_log$details[calc_rows] <- nlss_mask_expression_paths(log_df$details[calc_rows], nlss_run_context$root)
+  summary_tokens <- build_transform_summary_tokens(report_log)
+  note_tokens <- build_transform_note_tokens(report_log, summary_tokens)
+  note_tokens$note_default <- paste(note_tokens$note_default,
+    "Steps run in calculation, transformation, standardization, recode, percentile-bin, custom-bin, rename, then drop order.",
+    "The calculated result is preserved as an immutable version; actual publication status is recorded separately. Replay never changes current working data or its preview.",
+    if (isTRUE(changes$unchanged_values)) "Column values and names are unchanged." else "",
+    if (!isTRUE(replay_policy$eligible)) replay_policy$reason else "")
+  if (nrow(log_df)) {
+    narrative_rows <- build_transform_narrative_rows(report_log)
+    nlss_text <- paste(sprintf("Data transformations were applied in %d step%s.", nrow(log_df), if (nrow(log_df) == 1L) "" else "s"),
+      paste(vapply(narrative_rows, function(row) row$full_sentence, character(1)), collapse = " "))
+  } else {
+    narrative_rows <- build_transform_narrative_rows(report_log)
+    nlss_text <- "No transformations applied. Data exported unchanged."
+  }
+  table <- build_transform_table_body(report_log, get_template_meta(template)$table)
+  template_context <- list(tokens = c(list(table_body = table$body, narrative_default = nlss_text), summary_tokens, note_tokens),
+    narrative_rows = narrative_rows)
+  flags <- c(opts[intersect(names(opts), c("calc", "transform", "standardize", "percentile-bins", "bins", "recode", "rename", "drop"))],
+    settings[c("coerce", "overwrite-vars")])
+  for (name in names(flags)) if (is.character(flags[[name]])) flags[[name]] <- nlss_mask_prose_paths(flags[[name]], nlss_run_context$root)
+  if (!is.null(opts[["calc"]])) flags$calc <- nlss_mask_expression_paths(opts[["calc"]], nlss_run_context$root)
+  nlss_set_result(results)
+  nlss_stage_report(file.path(out_dir, "report_canonical.md"), "Data transformation",
+    table$body, nlss_text, analysis_flags = flags, template_path = template, template_context = template_context)
+  if (parse_bool(opts[["log"]], get_config_value("defaults.log"))) {
+    ctx <- get_run_context()
+    legacy_options <- list(calc = opts[["calc"]], transform = opts[["transform"]], standardize = opts[["standardize"]],
+      percentile_bins = opts[["percentile-bins"]], bins = opts[["bins"]], recode = opts[["recode"]],
+      rename = opts[["rename"]], drop = opts[["drop"]], overwrite_vars = settings[["overwrite-vars"]],
+      resolved_settings = settings)
+    for (name in names(legacy_options)) if (is.character(legacy_options[[name]])) {
+      legacy_options[[name]] <- nlss_mask_prose_paths(legacy_options[[name]], nlss_run_context$root)
     }
+    legacy_options$calc <- nlss_mask_expression_paths(opts[["calc"]], nlss_run_context$root)
+    legacy_results <- results
+    legacy_results$transform_log_df <- report_log
+    legacy_results$step_details <- lapply(step_details, function(step) {
+      step$details <- if (identical(step$action, "calc")) nlss_mask_expression_paths(step$details, nlss_run_context$root)
+        else nlss_mask_prose_paths(step$details, nlss_run_context$root)
+      step
+    })
+    redact_legacy_values <- function(value) {
+      if (is.character(value)) return(nlss_mask_prose_paths(value, nlss_run_context$root))
+      if (is.list(value)) return(lapply(value, redact_legacy_values))
+      value
+    }
+    for (name in names(legacy_results$transformed_df)) {
+      legacy_results$transformed_df[[name]] <- redact_legacy_values(legacy_results$transformed_df[[name]])
+    }
+    legacy_results$display_note <- "Workspace-external textual paths are redacted in this legacy projection; immutable data and private run results retain exact values."
+    nlss_stage_log(out_dir, "data_transform", ctx$prompt, ctx$commands, legacy_results,
+      legacy_options, get_user_prompt(opts))
   }
 }
 
-log_df <- if (length(log_rows) > 0) do.call(rbind, log_rows) else {
-  data.frame(action = character(0), variable = character(0), new_variable = character(0), details = character(0), note = character(0), stringsAsFactors = FALSE)
-}
-
-backup_path <- ""
-output_path <- file.path(out_dir, "transformed_data.rds")
-if (!is.null(workspace_parquet_path) && nzchar(workspace_parquet_path)) {
-  backup_path <- backup_workspace_parquet(workspace_parquet_path)
-  write_parquet_data(df, workspace_parquet_path)
-  output_path <- workspace_parquet_path
-} else {
-  saveRDS(df, output_path)
-}
-
-if (nrow(log_df) == 0) {
-  nlss_text <- "No transformations applied. Data exported unchanged."
-} else {
-  total_steps <- nrow(log_df)
-  actions <- unique(log_df$action)
-  sentences <- c(sprintf("Data transformations were applied in %d step%s.", total_steps, ifelse(total_steps == 1, "", "s")))
-  if ("calc" %in% actions) {
-    vars <- unique(log_df$new_variable[log_df$action == "calc"])
-    sentences <- c(sentences, paste0("Derived variables created: ", paste(vars, collapse = ", "), "."))
-  }
-  if ("transform" %in% actions) {
-    vars <- unique(log_df$new_variable[log_df$action == "transform"])
-    sentences <- c(sentences, paste0("Transformed variables added: ", paste(vars, collapse = ", "), "."))
-  }
-  if ("standardize" %in% actions) {
-    vars <- unique(log_df$new_variable[log_df$action == "standardize"])
-    sentences <- c(sentences, paste0("Standardized variables added: ", paste(vars, collapse = ", "), "."))
-  }
-  if ("recode" %in% actions) {
-    vars <- unique(log_df$new_variable[log_df$action == "recode"])
-    sentences <- c(sentences, paste0("Recoded variables added: ", paste(vars, collapse = ", "), "."))
-  }
-  if ("percentile_bin" %in% actions) {
-    vars <- unique(log_df$new_variable[log_df$action == "percentile_bin"])
-    sentences <- c(sentences, paste0("Percentile bins created: ", paste(vars, collapse = ", "), "."))
-  }
-  if ("bin" %in% actions) {
-    vars <- unique(log_df$new_variable[log_df$action == "bin"])
-    sentences <- c(sentences, paste0("Custom bins created: ", paste(vars, collapse = ", "), "."))
-  }
-  if ("rename" %in% actions) {
-    vars <- unique(paste0(log_df$variable[log_df$action == "rename"], "->", log_df$new_variable[log_df$action == "rename"]))
-    sentences <- c(sentences, paste0("Variables renamed: ", paste(vars, collapse = ", "), "."))
-  }
-  if ("drop" %in% actions) {
-    vars <- unique(log_df$variable[log_df$action == "drop"])
-    sentences <- c(sentences, paste0("Variables dropped: ", paste(vars, collapse = ", "), "."))
-  }
-  nlss_text <- paste(sentences, collapse = " ")
-}
-
-table_df <- if (nrow(log_df) == 0) {
-  data.frame(
-    Step = 1,
-    Action = "None",
-    Variable = "",
-    New_Variable = "",
-    Details = "No transformations applied.",
-    stringsAsFactors = FALSE
-  )
-} else {
-  data.frame(
-    Step = seq_len(nrow(log_df)),
-    Action = vapply(log_df$action, get_action_label, character(1)),
-    Variable = log_df$variable,
-    New_Variable = log_df$new_variable,
-    Details = log_df$details,
-    stringsAsFactors = FALSE
-  )
-}
-
-nlss_table <- make_markdown_table(table_df)
-summary_tokens <- build_transform_summary_tokens(log_df)
-note_tokens <- build_transform_note_tokens(log_df, summary_tokens)
-template_override <- resolve_template_override(opts$template, module = "data_transform")
-template_path <- if (!is.null(template_override)) {
-  template_override
-} else {
-  resolve_get_template_path("data_transform.default", "data-transform/default-template.md")
-}
-template_meta <- resolve_get_template_meta(template_path)
-table_result <- build_transform_table_body(log_df, template_meta$table)
-narrative_rows <- build_transform_narrative_rows(log_df)
-template_context <- list(
-  tokens = c(
-    list(
-      table_body = table_result$body,
-      narrative_default = nlss_text
-    ),
-    summary_tokens,
-    note_tokens
-  ),
-  narrative_rows = narrative_rows
-)
-analysis_flags <- list(
-  calc = opts$calc,
-  transform = opts$transform,
-  standardize = opts$standardize,
-  "percentile-bins" = opts$`percentile-bins`,
-  bins = opts$bins,
-  recode = opts$recode,
-  rename = opts$rename,
-  drop = opts$drop,
-  coerce = resolve_dt_bool(opts$coerce, "coerce", FALSE),
-  "overwrite-vars" = resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE)
-)
-resolve_append_nlss_report(
-  file.path(out_dir, "report_canonical.md"),
-  "Data transformation",
-  nlss_table,
-  nlss_text,
-  analysis_flags = analysis_flags,
-  template_path = template_path,
-  template_context = template_context
-)
-
-log_default <- resolve_config_value("defaults.log", TRUE)
-if (resolve_parse_bool(opts$log, default = log_default)) {
-  ctx <- resolve_get_run_context()
-  resolve_append_analysis_log(
-    out_dir,
-    module = "data_transform",
-    prompt = ctx$prompt,
-    commands = ctx$commands,
-    results = list(
-      transformed_df = df,
-      transform_log_df = log_df,
-      output_path = render_output_path(output_path, out_dir),
-      backup_path = backup_path
-    ),
-    options = list(
-      calc = opts$calc,
-      transform = opts$transform,
-      standardize = opts$standardize,
-      percentile_bins = opts$`percentile-bins`,
-      bins = opts$bins,
-      recode = opts$recode,
-      rename = opts$rename,
-      drop = opts$drop,
-      overwrite_vars = resolve_dt_bool(opts$`overwrite-vars`, "overwrite_vars", FALSE)
-    ),
-    user_prompt = resolve_get_user_prompt(opts)
-  )
-}
+nlss_run_main("data_transform", main)

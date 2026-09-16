@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #!/usr/bin/env python3
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -149,8 +150,17 @@ def main():
         backup_path = results.get("backup_path")
         if not backup_path:
             fail("Expected backup_path in results")
-        if not Path(backup_path).exists():
-            fail(f"Missing backup file: {backup_path}")
+        backup_file = Path(backup_path)
+        if not backup_file.is_absolute():
+            backup_file = log_path.parent / backup_file
+        if not backup_file.is_file():
+            fail(f"Missing backup file: {backup_file}")
+        input_ref = (results.get("data_change") or {}).get("input") or {}
+        expected_hash = input_ref.get("data_sha256")
+        if expected_hash:
+            actual_hash = hashlib.sha256(backup_file.read_bytes()).hexdigest()
+            if actual_hash != expected_hash:
+                fail(f"Backup does not match verified input SHA-256: {backup_file}")
     elif expect_backup is False:
         if results.get("backup_path"):
             fail("Did not expect backup_path")

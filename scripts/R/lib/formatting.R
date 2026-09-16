@@ -1176,6 +1176,8 @@ format_nlss_figure_report <- function(analysis_label, figure_body, analysis_flag
 }
 
 append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
+  if (exists("nlss_run_context", mode = "environment") && !is.null(nlss_run_context$protocol_root) &&
+      identical(basename(path), "report_canonical.md")) path <- file.path(nlss_run_context$protocol_root, "report_canonical.md")
   table_start <- get_next_table_number(path)
   resolved_template <- template_path
   if (is.null(resolved_template)) {
@@ -1218,6 +1220,8 @@ append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, anal
 }
 
 append_nlss_figure_report <- function(path, analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, template_context = NULL, figure_start = NULL) {
+  if (exists("nlss_run_context", mode = "environment") && !is.null(nlss_run_context$protocol_root) &&
+      identical(basename(path), "report_canonical.md")) path <- file.path(nlss_run_context$protocol_root, "report_canonical.md")
   figure_number <- if (is.null(figure_start)) get_next_figure_number(path) else as.integer(figure_start)
   resolved_template <- template_path
   if (is.null(resolved_template)) {

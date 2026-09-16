@@ -8,7 +8,7 @@ license: Apache-2.0
 
 ## Overview
 
-Generate frequency tables in base R for categorical variables and return an NLSS format report (table + narrative). Factor levels are preserved; non-factor variables are sorted by their unique values. Missing values are reported separately and excluded from valid percentages.
+Generate frequency tables in base R for categorical variables and return an NLSS format report (table + narrative). Factor levels are preserved; non-factor variables are sorted by their unique values. Missing values are reported separately and excluded from valid percentages. Numeric value labels do not automatically turn a variable into a factor: select the variable explicitly or use `--include-numeric` when appropriate.
 
 ## Assistant Researcher Model
 
@@ -16,14 +16,14 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 ## Core Workflow
 
-1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
+1. Identify the input type (CSV, SAV, RDS, RData data frame, Parquet, or interactive); review [the import contract](../import-contract.md) for labels and user-defined missings.
 2. Choose variables for frequency tables and an optional grouping variable.
 3. Run `scripts/R/frequencies.R` with the correct flags.
-4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
+4. Review the saved run, canonical Markdown, and its recorded status to craft a context-sensitive response. The statistical output is evidence, not a prescribed final-report narrative.
 
 ## Script: `scripts/R/frequencies.R`
 
-Run with `Rscript` and base R only.
+Run with `Rscript`. Frequency calculations use base R; the shared runtime requires the installed NLSS import/configuration/report dependencies, including `arrow` for workspace Parquet and `haven` for SAV import.
 
 ### CSV Input
 
@@ -60,21 +60,31 @@ Rscript <path to scripts/R/frequencies.R> --interactive
 - Defaults are loaded from `scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
 - `--vars` defaults to `modules.frequencies.vars_default` (typically non-numeric columns). Use `--include-numeric` to include numeric columns when `--vars` is omitted.
-- `--group` is optional and produces grouped frequency tables (one grouping variable).
-- `--digits` controls rounding for percentages (default: `defaults.digits`).
+- `--group` is optional and produces grouped frequency tables (one grouping variable). Groups follow first appearance, while factor category levels retain their original order, including unused levels when valid data exist. Missing grouping values form a separate group; they never add artificial missing observations to other groups.
+- `--digits` controls display rounding for percentages, not saved numeric precision (integer 0–15; default: `defaults.digits`).
 - `--include-numeric` defaults to `modules.frequencies.include_numeric`.
 - `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
-- `--log` toggles JSONL logging (default: `defaults.log`).
-- `--user-prompt` stores the original AI prompt in the JSONL log (optional).
+- `--log` toggles the optional standalone log (default: `defaults.log`, falling back to TRUE). It does not disable the mandatory run bundle.
+- `--user-prompt` stores the original AI prompt when `logging.include_user_prompt` permits it; otherwise it is excluded from the saved request and staged log.
 
 ## Outputs
 
-Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
+Frequencies uses the shared [run contract](../run-contract.md). Each completed analysis publishes a project-local `.nlss/runs/<run-id>/` bundle alongside the automatic root canonical report. This deterministic per-run output is not a standalone semantic research report; authored reports use freely chosen visible Markdown paths.
 
-- Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`; not user-overridable).
+Outputs in a current project follow the [shared run contract](../run-contract.md):
+`.nlss/runs/<run-id>/` holds request/result/output and artifacts; the automatic
+`report_canonical.md` stays at the project root. No additional project JSONL log
+is produced. `--log` affects optional standalone logging, not this evidence.
 
 - `report_canonical.md`: NLSS format report containing analysis type, table, and narrative text.
-- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
+- `result.json`: Machine-readable results and options, always retained in the saved run.
+- `.nlss/runs/<run-id>/request.json`: Resolved variables, grouping, display digits and numeric-selection policy; immutable dataset/dictionary references; variable classes and levels, missing counts, and each group's original row indices. Each group records its original `value`, `is_missing`, and unique presentation key `group`.
+- `.nlss/runs/<run-id>/result.json`: Completion or failure state, warnings and full-precision `results.summary_df`, independent of legacy logging settings. The additive Boolean `group_missing` distinguishes true missing grouping values from literal category text.
+- `.nlss/runs/<run-id>/output.md` and `templates/`: Deterministic statistical output and the exact template used. `replay_run.R --request <saved request.json>` verifies and repeats a completed run from its immutable input, configuration and template.
+
+Missing groups display as `NA` only if that does not collide with an actual group code or label. Otherwise the label is `NA (missing)`, with a numeric suffix if necessary. A literal `NA` group remains a separate, ordinary category. This corrects the older grouping path that could insert artificial missing rows into every non-missing group and merge missing groups with literal `NA` in reports. Counts and percentages now use exactly the recorded source rows.
+
+Unknown variables/groups, invalid display digits, and grouped inputs with no observed groups fail explicitly. All-missing analysis variables remain valid descriptive results with no valid observations. A failed run does not publish a normal `output.md` or append a successful result to the canonical report; see the run contract for pre-input failures and interrupted-run limitations.
 
 ## NLSS format Templates
 

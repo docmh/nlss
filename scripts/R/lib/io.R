@@ -1,4 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
+# Load the import contract from this library's location, also for direct source().
+.nlss_io_file <- local({
+  files <- unlist(lapply(sys.frames(), function(frame) frame$ofile), use.names = FALSE)
+  files <- files[basename(files) == "io.R"]
+  if (length(files)) normalizePath(tail(files, 1L), winslash = "/", mustWork = TRUE) else NULL
+})
+if (is.null(.nlss_io_file)) stop("io.R must be loaded with source().")
+source(file.path(dirname(.nlss_io_file), "import_contract.R"), local = TRUE)
+source(file.path(dirname(.nlss_io_file), "import_registry.R"), local = TRUE)
+
 resolve_config_value <- function(path, default = NULL) {
   if (exists("get_config_value", mode = "function")) {
     return(get("get_config_value", mode = "function")(path, default = default))
@@ -6,12 +16,89 @@ resolve_config_value <- function(path, default = NULL) {
   default
 }
 
+# Read-only location contract. Publication callers must consume project_root and
+# output_root separately; neither identifies the editable dataset directory.
+nlss_resolve_locations <- function(project = NULL, dataset = NULL, start = getwd(), use_dataset = TRUE) {
+  if (!exists("nlss_locate_project", mode = "function")) {
+    source(file.path(dirname(.nlss_io_file), "project_inspect.R"), local = environment(nlss_resolve_locations))
+  }
+  if (!is.logical(use_dataset) || length(use_dataset) != 1L || is.na(use_dataset)) {
+    stop("use_dataset must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (!use_dataset && !is.null(dataset)) stop("Dataset selection is not applicable to this input.", call. = FALSE)
+  if (is.null(project)) {
+    start <- normalizePath(normalize_input_path(start), winslash = "/", mustWork = TRUE)
+    if (!dir.exists(start)) stop("Project discovery must start in a directory.", call. = FALSE)
+  }
+  marker <- nlss_locate_project(project, start, required = FALSE)
+  locations <- list(project_root = NULL, manifest_path = NULL, output_root = NULL,
+                    dataset_name = NULL, working_path = NULL, metadata_path = NULL,
+                    source_path = NULL)
+  if (is.null(marker)) {
+    if (!is.null(dataset)) stop("Dataset selection requires a project marker.", call. = FALSE)
+    output <- normalize_input_path(resolve_config_value("defaults.output_dir", "./outputs/tmp"))
+    if (!nzchar(output)) output <- "./outputs/tmp"
+    if (!is_absolute_path(output)) output <- file.path(start, output)
+    locations$output_root <- normalize_path(output)
+    return(locations)
+  }
+  root <- dirname(marker)
+  metadata <- nlss_project_metadata(root, basename(marker), yaml = TRUE)
+  manifest <- metadata$value
+  if (metadata$status != "read") stop("Cannot read project marker: ", metadata$status, call. = FALSE)
+  if (!identical(manifest$schema_version, 2L) || !identical(manifest$storage, "managed_parquet_v1")) {
+    stop("Unsupported project marker; expected the current project-create format. No conversion was performed.", call. = FALSE)
+  }
+  nlss_project_string(manifest$workspace_id, "Workspace ID")
+  entries <- nlss_project_dataset_entries(manifest$datasets)
+  path <- function(relative, visible = FALSE) {
+    target <- nlss_project_path(root, relative)
+    if (!target$status %in% c("present", "missing") || identical(target$path, ".")) {
+      stop("Invalid registered location: ", target$status, call. = FALSE)
+    }
+    if (visible && strsplit(target$path, "/", fixed = TRUE)[[1]][1] %in% c(".nlss", basename(marker))) {
+      stop("Working data and original sources must remain outside .nlss/ and the marker.", call. = FALSE)
+    }
+    target$absolute
+  }
+  locations$project_root <- root
+  locations$manifest_path <- marker
+  locations$output_root <- path(".nlss")
+  if (file.exists(locations$output_root) && !dir.exists(locations$output_root)) {
+    stop("Project output location .nlss must be a directory.", call. = FALSE)
+  }
+  if (!use_dataset) return(locations)
+  if (is.null(dataset)) dataset <- manifest$active_dataset
+  nlss_project_string(dataset, "Dataset selection")
+  index <- which(vapply(entries, function(entry) identical(entry$name, dataset), logical(1)))
+  if (length(index) != 1L) stop("Dataset is not registered in this project.", call. = FALSE)
+  entry <- entries[[index]]
+  id <- nlss_project_string(entry$id, "Dataset ID")
+  if (!grepl("^ds-[a-zA-Z0-9]+$", id)) stop("Invalid dataset ID.", call. = FALSE)
+  descriptor <- paste0(".nlss/datasets/", id, "/dataset.json")
+  metadata <- nlss_project_metadata(root, descriptor)
+  record <- metadata$value
+  if (metadata$status != "read") stop("Cannot read dataset metadata: ", metadata$status, call. = FALSE)
+  if (!identical(record$schema_version, 1L) || !identical(record$dataset_id, id) ||
+      !identical(record$workspace_id, manifest$workspace_id)) stop("Dataset/project identity mismatch.", call. = FALSE)
+  locations$dataset_name <- dataset
+  locations$metadata_path <- path(descriptor)
+  locations$working_path <- path(record$working, visible = TRUE)
+  locations$source_path <- path(record$source$selected_path, visible = TRUE)
+  if (identical(locations$working_path, locations$source_path)) stop("Working location must not replace the original source.", call. = FALSE)
+  locations
+}
+
 get_default_out <- function() {
-  manifest_path <- find_workspace_manifest()
-  if (nzchar(manifest_path)) return(dirname(manifest_path))
-  default_out <- resolve_config_value("defaults.output_dir", "./outputs/tmp")
-  if (is.null(default_out) || !nzchar(default_out)) return("./outputs/tmp")
-  default_out
+  # Existing import/lifecycle callers need the project root, not the results
+  # directory. Publishers consume output_root separately.
+  locations <- nlss_current_locations()
+  if (!is.null(locations$project_root)) locations$project_root else locations$output_root
+}
+
+nlss_current_locations <- function(start = getwd()) {
+  selected <- if (exists("nlss_run_context", mode = "environment")) nlss_run_context$project_selection else NULL
+  nlss_resolve_locations(project = selected, start = start, use_dataset = FALSE)
 }
 
 ensure_out_dir <- function(path) {
@@ -131,7 +218,7 @@ make_relative_path <- function(path, base_dir) {
   if (!nzchar(base_dir)) return(path)
   base_dir <- sub("/+$", "", base_dir)
   prefix <- paste0(base_dir, "/")
-  if (startsWith(path, prefix)) return(sub(paste0("^", prefix), "", path))
+  if (startsWith(path, prefix)) return(substring(path, nchar(prefix) + 1L))
   path
 }
 
@@ -236,32 +323,12 @@ is_path_within <- function(path, base_dir) {
 }
 
 find_workspace_manifest <- function(base_dir = getwd()) {
-  manifest_name <- get_workspace_manifest_name()
-  base_dir <- normalize_dir_path(base_dir)
-  if (!nzchar(base_dir)) return("")
-
-  candidates <- character(0)
-  current_path <- file.path(base_dir, manifest_name)
-  if (file.exists(current_path)) candidates <- c(candidates, normalize_path(current_path))
-
-  parent_dir <- dirname(base_dir)
-  if (nzchar(parent_dir) && parent_dir != base_dir) {
-    parent_path <- file.path(parent_dir, manifest_name)
-    if (file.exists(parent_path)) candidates <- c(candidates, normalize_path(parent_path))
-  }
-
-  child_dirs <- list.dirs(base_dir, full.names = TRUE, recursive = FALSE)
-  child_dirs <- child_dirs[child_dirs != base_dir]
-  for (child_dir in child_dirs) {
-    candidate <- file.path(child_dir, manifest_name)
-    if (file.exists(candidate)) candidates <- c(candidates, normalize_path(candidate))
-  }
-  candidates <- unique(candidates)
-  if (length(candidates) == 0) return("")
-  if (length(candidates) > 1) {
-    stop("Multiple workspace manifests detected. Workspaces must be non-nested and unique per parent directory.")
-  }
-  validate_workspace_manifest_path(candidates[1])
+  # Output directories may not exist yet. Discover only through their existing
+  # ancestors; never inspect children/siblings or create a directory to find it.
+  base_dir <- normalize_path(base_dir)
+  while (!dir.exists(base_dir) && !identical(dirname(base_dir), base_dir)) base_dir <- dirname(base_dir)
+  locations <- nlss_resolve_locations(start = base_dir, use_dataset = FALSE)
+  if (is.null(locations$manifest_path)) "" else locations$manifest_path
 }
 
 read_workspace_manifest <- function(path) {
@@ -272,6 +339,9 @@ read_workspace_manifest <- function(path) {
 
 write_workspace_manifest <- function(manifest, path) {
   if (is.null(path) || !nzchar(path)) return("")
+  if (!identical(as.integer(manifest$schema_version), 2L) || !identical(manifest$storage, "managed_parquet_v1")) {
+    stop("Writing old project formats is unsupported. Use project_create.R for the current project layout; no conversion was performed.")
+  }
   ensure_yaml()
   ensure_out_dir(dirname(path))
   yaml::write_yaml(manifest, path)
@@ -401,9 +471,24 @@ resolve_dataset_from_cwd <- function(manifest, manifest_path, cwd = getwd()) {
 
 validate_workspace_manifest_path <- function(manifest_path) {
   if (is.null(manifest_path) || !nzchar(manifest_path)) return("")
+  if (file.exists(manifest_path) && (!is.na(Sys.readlink(manifest_path)) && nzchar(Sys.readlink(manifest_path)))) {
+    stop("Workspace marker must not be a symlink.")
+  }
+  if (file.exists(manifest_path) && is_absolute_path(manifest_path) &&
+      !identical(normalize_path(manifest_path), normalize_input_path(manifest_path))) stop("Workspace marker path must not traverse symlinks or ambiguous components.")
   manifest_path <- normalize_path(manifest_path)
   workspace_root <- dirname(manifest_path)
   manifest_name <- get_workspace_manifest_name()
+  marker <- NULL
+  if (file.exists(manifest_path)) {
+    if (!exists("nlss_project_metadata", mode = "function")) source_lib("project_inspect.R")
+    metadata <- nlss_project_metadata(workspace_root, basename(manifest_path), yaml = TRUE)
+    if (metadata$status != "read") stop("Cannot verify workspace marker: ", metadata$status)
+    marker <- metadata$value
+  }
+  if (identical(marker$storage, "managed_parquet_v1") || identical(as.integer(marker$schema_version), 2L)) {
+    stop("Managed projects require an explicitly supported --project workflow; legacy loading/publication is disabled.")
+  }
 
   parent_dir <- dirname(workspace_root)
   while (nzchar(parent_dir) && parent_dir != workspace_root) {
@@ -480,6 +565,8 @@ build_manifest_dataset_entry <- function(row, workspace_root) {
     if (nzchar(type_label)) source$format <- type_label
     entry$source <- source
   }
+  reference <- get_dataset_reference(dirname(copy_path))
+  if (!is.null(reference)) entry$dataset <- reference
   entry
 }
 
@@ -628,12 +715,12 @@ record_report_block <- function(report) {
   invisible(TRUE)
 }
 
-record_metaskill_report_block <- function(report) {
+record_metaskill_report_block <- function(report, preserve_bytes = FALSE) {
   if (is.null(report)) return(invisible(FALSE))
   text <- as.character(report)
   if (length(text) == 0) return(invisible(FALSE))
   text <- text[1]
-  text <- normalize_report_text(text)
+  if (!isTRUE(preserve_bytes)) text <- normalize_report_text(text)
   if (!nzchar(text)) return(invisible(FALSE))
   nlss_log_cache$metaskill_report_block <- text
   invisible(TRUE)
@@ -1115,6 +1202,9 @@ format_log_os_string <- function() {
 }
 
 append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
+  # The published run/utility bundle is authoritative in a current project.
+  # Callers may retain their existing logging callback without a parallel JSONL.
+  if (exists("nlss_run_context", mode = "environment") && !is.null(nlss_run_context$protocol_root)) return(invisible(TRUE))
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
     cat("Note: jsonlite not installed; skipping analysis_log.jsonl output.\n")
     return(invisible(FALSE))
@@ -1195,6 +1285,8 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
   if (isTRUE(include_inputs)) {
     entry$options <- log_options
   }
+  dataset_ref <- get_dataset_reference(out_dir)
+  if (!is.null(dataset_ref)) entry$dataset <- dataset_ref
 
   if (isTRUE(include_outputs)) {
     report_blocks <- consume_report_blocks()
@@ -1292,15 +1384,10 @@ append_analysis_log <- function(out_dir, module, prompt, commands, results, opti
 read_sav_data <- function(path) {
   path <- normalize_input_path(path)
   if (requireNamespace("haven", quietly = TRUE)) {
-    df <- haven::read_sav(path)
+    df <- haven::read_sav(path, user_na = TRUE)
     return(as.data.frame(df, stringsAsFactors = FALSE))
   }
-  if (requireNamespace("foreign", quietly = TRUE)) {
-    df <- suppressWarnings(foreign::read.spss(path, to.data.frame = TRUE, use.value.labels = FALSE))
-    if (!is.data.frame(df)) df <- as.data.frame(df, stringsAsFactors = FALSE)
-    return(df)
-  }
-  stop("SPSS .sav support requires the 'haven' or 'foreign' package. Install one: install.packages('haven').")
+  stop("SPSS .sav support requires 'haven' to preserve labels and user-missing definitions. Install it: install.packages('haven').")
 }
 
 configure_arrow_defaults <- function() {
@@ -1432,6 +1519,7 @@ read_parquet_data <- function(path, lock_safe = FALSE) {
     temp_path <- copy_parquet_to_temp(path)
     if (nzchar(temp_path)) path <- temp_path
   }
+  input_hash <- import_hash(path, file = TRUE)
   read_fun <- arrow::read_parquet
   extra <- list()
   read_formals <- formals(read_fun)
@@ -1447,6 +1535,13 @@ read_parquet_data <- function(path, lock_safe = FALSE) {
   extracted <- resolve_extract_label_metadata(df)
   merged <- resolve_merge_label_metadata(label_meta, extracted)
   df <- resolve_attach_label_metadata(df, merged)
+  metadata <- get_arrow_table_metadata(tbl)
+  contract_json <- metadata[["nlss:import_contract"]]
+  contract <- if (is.null(contract_json)) NULL else jsonlite::fromJSON(contract_json, simplifyVector = FALSE)
+  df <- import_restore_storage(df, contract)
+  df <- resolve_attach_label_metadata(df, merged)
+  if (!identical(input_hash, import_hash(path, file = TRUE))) stop("Parquet changed during reading; retry with a stable dataset.")
+  attr(df, "nlss_input_file_sha256") <- input_hash
   if (nzchar(temp_path)) {
     try(unlink(temp_path), silent = TRUE)
   }
@@ -1456,31 +1551,21 @@ read_parquet_data <- function(path, lock_safe = FALSE) {
 write_parquet_data <- function(df, path, label_metadata = NULL) {
   ensure_arrow()
   path <- normalize_input_path(path)
+  label_metadata <- resolve_merge_label_metadata(attr(df, "nlss_labels"), label_metadata)
   label_metadata <- resolve_merge_label_metadata(label_metadata, resolve_extract_label_metadata(df))
   label_json <- serialize_label_metadata(label_metadata)
-  if (nzchar(label_json)) {
-    tbl <- arrow::arrow_table(df)
-    meta <- get_arrow_table_metadata(tbl)
-    meta[["nlss:labels"]] <- label_json
-    tbl <- replace_arrow_table_metadata(tbl, meta)
-    arrow::write_parquet(tbl, path)
-    return(invisible(TRUE))
-  }
-  arrow::write_parquet(df, path)
-}
-
-load_or_create_parquet <- function(copy_path, read_source) {
-  if (file.exists(copy_path)) {
-    return(read_parquet_data(copy_path))
-  }
-  df <- read_source()
-  label_metadata <- resolve_extract_label_metadata(df)
-  write_parquet_data(df, copy_path, label_metadata = label_metadata)
-  df_out <- read_parquet_data(copy_path)
-  if (!is.null(label_metadata) && length(label_metadata) > 0) {
-    df_out <- resolve_attach_label_metadata(df_out, label_metadata)
-  }
-  df_out
+  stored <- import_prepare_storage(df)
+  tbl <- arrow::arrow_table(stored)
+  meta <- get_arrow_table_metadata(tbl)
+  if (nzchar(label_json)) meta[["nlss:labels"]] <- label_json
+  meta[["nlss:import_contract"]] <- import_json(attr(stored, "nlss_import_contract"))
+  tbl <- replace_arrow_table_metadata(tbl, meta)
+  ensure_out_dir(dirname(path))
+  tmp <- tempfile(".nlss-parquet-", tmpdir = dirname(path), fileext = ".parquet")
+  on.exit(unlink(tmp), add = TRUE)
+  arrow::write_parquet(tbl, tmp)
+  if (!file.rename(tmp, path)) stop("Could not publish Parquet file: ", path)
+  invisible(TRUE)
 }
 
 sanitize_file_component <- function(value) {
@@ -1507,22 +1592,29 @@ normalize_path <- function(path) {
 get_dataset_workspace_dir <- function(label) {
   file_label <- sanitize_file_component(label)
   root <- ensure_out_dir(get_default_out())
-  ensure_out_dir(file.path(root, file_label))
+  path <- file.path(root, file_label)
+  if (file.exists(file.path(path, ".nlss-planning.json"))) stop("This folder is reserved for parameter-only study planning. Choose a different --dataset-name.")
+  ensure_out_dir(path)
 }
 
 get_workspace_out_dir <- function(df = NULL, label = NULL) {
+  locations <- nlss_current_locations()
+  if (is.null(locations$project_root) && !is.null(attr(df, "workspace_dir"))) {
+    locations <- nlss_resolve_locations(start = attr(df, "workspace_dir"), use_dataset = FALSE)
+  }
+  if (!is.null(locations$project_root)) return(locations$output_root)
   if (!is.null(df)) {
     dir_attr <- attr(df, "workspace_dir")
-    if (!is.null(dir_attr) && nzchar(dir_attr)) return(ensure_out_dir(dir_attr))
+    if (!is.null(dir_attr) && nzchar(dir_attr)) return(normalize_path(dir_attr))
     parquet_path <- attr(df, "workspace_parquet_path")
     if (!is.null(parquet_path) && nzchar(parquet_path)) {
-      return(ensure_out_dir(dirname(parquet_path)))
+      return(normalize_path(dirname(parquet_path)))
     }
   }
   if (!is.null(label) && nzchar(label)) {
-    return(get_dataset_workspace_dir(label))
+    return(file.path(get_default_out(), sanitize_file_component(label)))
   }
-  ensure_out_dir(get_default_out())
+  get_default_out()
 }
 
 format_backup_timestamp <- function() {
@@ -1542,7 +1634,7 @@ backup_workspace_parquet <- function(parquet_path) {
   timestamp <- format_backup_timestamp()
   backup_path <- file.path(backup_dir, paste0(file_label, "-", timestamp, ".parquet"))
   copied <- file.copy(parquet_path, backup_path, overwrite = FALSE)
-  if (!isTRUE(copied)) return("")
+  if (!isTRUE(copied)) stop("Could not back up workspace Parquet; refusing to overwrite it.")
   normalize_path(backup_path)
 }
 
@@ -1561,8 +1653,9 @@ load_rdata_frame <- function(path, object_name = NULL) {
   path <- normalize_input_path(path)
   env <- new.env()
   load(path, envir = env)
-  if (!is.null(object_name) && nzchar(object_name) && exists(object_name, envir = env)) {
-    df <- get(object_name, envir = env)
+  if (!is.null(object_name) && nzchar(object_name)) {
+    if (!exists(object_name, envir = env, inherits = FALSE)) stop("RData object not found: ", object_name)
+    df <- get(object_name, envir = env, inherits = FALSE)
     if (!is.data.frame(df)) stop("RData object is not a data frame.")
     return(list(df = df, object_name = object_name))
   }
@@ -1579,86 +1672,48 @@ load_rdata_frame <- function(path, object_name = NULL) {
 }
 
 load_dataframe <- function(opts, lock_safe = FALSE) {
+  if (exists("nlss_dependency_preflight", mode = "function")) {
+    operation <- nlss_dependency_entrypoint()
+    if (!is.null(operation)) nlss_dependency_preflight(operation, opts)
+  }
+  locations <- cli_resolve_locations(opts, use_dataset = !is.null(opts[["dataset"]]))
+  if (!is.null(locations$project_root) && !any(c("csv", "sav", "rds", "rdata", "parquet") %in% names(opts))) {
+    source_lib("project_store.R")
+    opts$project <- locations$project_root
+    return(nlss_managed_load(opts))
+  }
   ensure_out_dir(get_default_out())
 
-  if (!is.null(opts$parquet)) {
-    source_path <- normalize_input_path(opts$parquet)
-    label <- derive_dataset_label(source_path)
+  formats <- c("csv", "sav", "rds", "rdata", "parquet")
+  selected <- formats[vapply(formats, function(key) !is.null(opts[[key]]), logical(1))]
+  if (length(selected) > 1L) stop("Specify exactly one input format.")
+  if (length(selected) == 1L) {
+    format <- selected[[1]]
+    if (format == "rdata" && (is.null(opts$df) || length(opts$df) != 1L || is.na(opts$df) || !nzchar(opts$df))) stop("--df must name a non-empty RData object.")
+    source_path <- normalize_input_path(opts[[format]])
+    label <- if (is.null(opts$`dataset-name`)) derive_dataset_label(source_path, if (format == "rdata") opts$df else NULL) else opts$`dataset-name`
+    if (length(label) != 1L || !nzchar(label) || label %in% c(".", "..")) stop("Invalid dataset name.")
     copy_info <- build_workspace_copy_info(label)
-    if (normalizePath(source_path, winslash = "/", mustWork = FALSE) ==
-        normalizePath(copy_info$copy_path, winslash = "/", mustWork = FALSE)) {
-      df <- read_parquet_data(copy_info$copy_path, lock_safe = lock_safe)
-    } else {
-      df <- load_or_create_parquet(copy_info$copy_path, function() {
-        read_parquet_data(source_path)
-      })
+    if (format == "parquet" && normalize_path(source_path) == normalize_path(copy_info$copy_path)) {
+      df <- snapshot_working_dataframe(source_path, lock_safe = lock_safe)
+      return(df)
     }
-    attr(df, "workspace_parquet_path") <- normalize_path(copy_info$copy_path)
-    attr(df, "workspace_source_path") <- normalize_path(source_path)
-    attr(df, "workspace_dir") <- normalize_path(copy_info$out_dir)
-    return(df)
-  }
-
-  if (!is.null(opts$csv)) {
-    source_path <- normalize_input_path(opts$csv)
-    label <- derive_dataset_label(source_path)
-    copy_info <- build_workspace_copy_info(label)
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    sep <- if (!is.null(opts$sep)) opts$sep else sep_default
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    header <- resolve_parse_bool(opts$header, default = header_default)
-    df <- load_or_create_parquet(copy_info$copy_path, function() {
-      read.csv(source_path, sep = sep, header = header, stringsAsFactors = FALSE)
-    })
-    attr(df, "workspace_parquet_path") <- normalize_path(copy_info$copy_path)
-    attr(df, "workspace_source_path") <- normalize_path(source_path)
-    attr(df, "workspace_dir") <- normalize_path(copy_info$out_dir)
-    return(df)
-  }
-
-  if (!is.null(opts$sav)) {
-    source_path <- normalize_input_path(opts$sav)
-    label <- derive_dataset_label(source_path)
-    copy_info <- build_workspace_copy_info(label)
-    df <- load_or_create_parquet(copy_info$copy_path, function() {
-      df <- read_sav_data(source_path)
-      if (!is.data.frame(df)) stop("SAV does not contain a data frame.")
-      df
-    })
-    attr(df, "workspace_parquet_path") <- normalize_path(copy_info$copy_path)
-    attr(df, "workspace_source_path") <- normalize_path(source_path)
-    attr(df, "workspace_dir") <- normalize_path(copy_info$out_dir)
-    return(df)
-  }
-
-  if (!is.null(opts$rds)) {
-    source_path <- normalize_input_path(opts$rds)
-    label <- derive_dataset_label(source_path)
-    copy_info <- build_workspace_copy_info(label)
-    df <- load_or_create_parquet(copy_info$copy_path, function() {
-      df <- readRDS(source_path)
-      if (!is.data.frame(df)) stop("RDS does not contain a data frame.")
-      df
-    })
-    attr(df, "workspace_parquet_path") <- normalize_path(copy_info$copy_path)
-    attr(df, "workspace_source_path") <- normalize_path(source_path)
-    attr(df, "workspace_dir") <- normalize_path(copy_info$out_dir)
-    return(df)
-  }
-
-  if (!is.null(opts$rdata)) {
-    if (is.null(opts$df)) stop("--df is required when using --rdata")
-    source_path <- normalize_input_path(opts$rdata)
-    label <- derive_dataset_label(source_path, opts$df)
-    copy_info <- build_workspace_copy_info(label)
-    df <- load_or_create_parquet(copy_info$copy_path, function() {
-      res <- load_rdata_frame(source_path, opts$df)
-      res$df
-    })
-    attr(df, "workspace_parquet_path") <- normalize_path(copy_info$copy_path)
-    attr(df, "workspace_source_path") <- normalize_path(source_path)
-    attr(df, "workspace_dir") <- normalize_path(copy_info$out_dir)
-    return(df)
+    if (format == "csv") {
+      if (is.null(opts$sep)) opts$sep <- resolve_config_value("defaults.csv.sep", ",")
+      if (is.null(opts$header)) opts$header <- resolve_config_value("defaults.csv.header", TRUE)
+      csv_defaults <- list(decimal = ".", encoding = "UTF-8", col_types = NULL, na_values = "NA")
+      for (key in names(csv_defaults)) {
+        flag <- paste0("csv-", gsub("_", "-", key))
+        if (is.null(opts[[flag]])) opts[[flag]] <- resolve_config_value(paste0("defaults.csv.", key), csv_defaults[[key]])
+      }
+    }
+    reader <- switch(format,
+      csv = function() import_csv(source_path, opts),
+      sav = function() read_sav_data(source_path),
+      rds = function() readRDS(source_path),
+      rdata = function() load_rdata_frame(source_path, opts$df)$df,
+      parquet = function() read_parquet_data(source_path))
+    return(load_verified_import(copy_info, source_path, format, opts, reader))
   }
 
   manifest_path <- find_workspace_manifest()
@@ -1680,7 +1735,7 @@ load_dataframe <- function(opts, lock_safe = FALSE) {
     if (!nzchar(parquet_path) || !file.exists(parquet_path)) {
       stop("Workspace parquet not found: ", parquet_path)
     }
-    df <- read_parquet_data(parquet_path, lock_safe = lock_safe)
+    df <- snapshot_working_dataframe(parquet_path, lock_safe = lock_safe)
     attr(df, "workspace_parquet_path") <- normalize_path(parquet_path)
     attr(df, "workspace_dir") <- normalize_path(dirname(parquet_path))
     attr(df, "workspace_manifest_path") <- normalize_path(manifest_path)

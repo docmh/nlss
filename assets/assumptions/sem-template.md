@@ -30,8 +30,10 @@ table:
     - key: "value"
       label: "Value"
       drop_if_empty: true
+    - key: "status"
+      label: "Status"
     - key: "decision"
-      label: "Decision"
+      label: "Screen"
       drop_if_empty: true
     - key: "note"
       label: "Note"

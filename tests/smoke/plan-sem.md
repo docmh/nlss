@@ -9,6 +9,10 @@
 - Confirm optional logging behaviors (`--log`, `--user-prompt`) and `--paths` alias handling.
 - Include clean, edge, and negative cases with expected errors logged.
 - Run value tests (fit indices, parameters, R², invariance deltas, modindices) using `tests/values` goldens.
+- Use private `NLSS_CONFIG_PATH` configuration and separate RDS/RData/SAV dataset
+  identities so source-binding guards are exercised rather than overwritten.
+- Group-specific goldens use lavaan's fitted group labels and include free loadings
+  in both groups; alphabetical factor levels must never relabel estimates.
 
 ## Prereqs
 
@@ -41,6 +45,8 @@
 - CFA with ordered indicators and WLSMV.
 - Grouped CFA (`--group group2`) and group-equal constraints.
 - Bootstrap with `--ci bca` and custom `--conf-level`.
+- Seeded bootstrap with `--ci standard` checks the normal-bootstrap interval path,
+  including `--se bootstrap` without `--bootstrap` (no partial CLI-key matching).
 - Modindices + residuals logging.
 - Missing handling `pairwise`, `--r2 FALSE`, `--log FALSE`, and `--user-prompt` logging.
 
@@ -56,8 +62,19 @@
 
 ## Outputs
 
-- `analysis_log.jsonl` under the sem workspace with expected statuses (`ok` and `invalid_input`).
+- `analysis_log.jsonl` under the sem workspace contains successful compatibility
+  projections; invalid analyses preserve previous log bytes and save their
+  `invalid_input` validation issue in a new failed run bundle instead.
 - `report_canonical.md` with appended SEM sections and template override markers.
+- Mandatory run bundles and the same fit's supplementary variance/intercept/
+  threshold table. Exact replay, failed publication, labelled/ordinal import,
+  case identities, robust inference and bootstrap reference comparisons have
+  separate independent coverage in `tests/phase2/run_sem_tests.R`.
+
+The compact golden generator calls public lavaan directly and selects reference
+rows without loading NLSS modules or copying their builders or inference code.
+The prior grouped-control standardized-loading golden was corrected after a
+public-CLI reproduction showed it contained the treatment group's value.
 
 ## Script
 

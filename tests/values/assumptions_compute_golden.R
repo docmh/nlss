@@ -29,183 +29,45 @@ if (is.null(out_path)) {
 
 df <- read.csv(data_path, stringsAsFactors = FALSE)
 
+# Only reference adapters: no NLSS helper or duplicated scientific engine.
+for (pkg in c("car", "lmtest", "lme4", "lavaan", "performance", "influence.ME")) {
+  if (!requireNamespace(pkg, quietly = TRUE)) stop("Golden generation requires ", pkg)
+}
+# influence.ME declares lme4 in Depends and calls its exported functions unqualified.
+suppressPackageStartupMessages(library(lme4))
 safe_shapiro <- function(values, max_n = 5000) {
   values <- values[!is.na(values)]
-  n <- length(values)
-  if (n < 3 || n > max_n) {
-    return(list(w = NA_real_, p = NA_real_, n = n))
-  }
-  test <- tryCatch(shapiro.test(values), error = function(e) NULL)
-  if (is.null(test)) return(list(w = NA_real_, p = NA_real_, n = n))
-  list(w = unname(test$statistic), p = test$p.value, n = n)
+  stopifnot(length(values) >= 3L, length(values) <= max_n)
+  ref <- stats::shapiro.test(values)
+  list(w = unname(ref$statistic), p = ref$p.value, n = length(values))
 }
-
 calc_levene <- function(values, group) {
-  group <- as.factor(group)
-  if (nlevels(group) < 2) {
-    return(list(stat = NA_real_, df1 = NA_real_, df2 = NA_real_, p = NA_real_))
-  }
-  fit <- tryCatch(
-    lm(abs(values - tapply(values, group, median, na.rm = TRUE)[as.character(group)]) ~ group),
-    error = function(e) NULL
-  )
-  if (is.null(fit)) return(list(stat = NA_real_, df1 = NA_real_, df2 = NA_real_, p = NA_real_))
-  res <- anova(fit)
-  list(
-    stat = res$`F value`[1],
-    df1 = res$Df[1],
-    df2 = res$Df[2],
-    p = res$`Pr(>F)`[1]
-  )
+  ref <- car::leveneTest(values, factor(group), center = median)
+  list(stat = ref$`F value`[1], df1 = ref$Df[1], df2 = ref$Df[2], p = ref$`Pr(>F)`[1])
 }
-
-calc_bartlett <- function(values, group) {
-  test <- tryCatch(bartlett.test(values, group), error = function(e) NULL)
-  if (is.null(test)) return(list(stat = NA_real_, df1 = NA_real_, df2 = NA_real_, p = NA_real_))
-  list(
-    stat = unname(test$statistic),
-    df1 = unname(test$parameter),
-    df2 = NA_real_,
-    p = test$p.value
-  )
+homogeneity_reference <- function(test) {
+  list(stat = unname(test$statistic), df1 = unname(test$parameter[1]),
+       df2 = if (length(test$parameter) > 1L) unname(test$parameter[2]) else NA_real_,
+       p = test$p.value)
 }
-
-calc_fligner <- function(values, group) {
-  test <- tryCatch(fligner.test(values, group), error = function(e) NULL)
-  if (is.null(test)) return(list(stat = NA_real_, df1 = NA_real_, df2 = NA_real_, p = NA_real_))
-  list(
-    stat = unname(test$statistic),
-    df1 = unname(test$parameter),
-    df2 = NA_real_,
-    p = test$p.value
-  )
-}
-
-calc_var_test <- function(values, group) {
-  group <- as.factor(group)
-  levels <- levels(group)
-  if (length(levels) != 2) return(list(stat = NA_real_, df1 = NA_real_, df2 = NA_real_, p = NA_real_))
-  x <- values[group == levels[1]]
-  y <- values[group == levels[2]]
-  test <- tryCatch(var.test(x, y), error = function(e) NULL)
-  if (is.null(test)) return(list(stat = NA_real_, df1 = NA_real_, df2 = NA_real_, p = NA_real_))
-  df_vals <- unname(test$parameter)
-  list(
-    stat = unname(test$statistic),
-    df1 = df_vals[1],
-    df2 = df_vals[2],
-    p = test$p.value
-  )
-}
-
-calc_bp <- function(model) {
-  res <- resid(model)
-  model_frame <- model.frame(model)
-  if (ncol(model_frame) <= 1) return(NULL)
-  predictors <- model_frame[, -1, drop = FALSE]
-  aux <- tryCatch(lm(res^2 ~ ., data = predictors), error = function(e) NULL)
-  if (is.null(aux)) return(NULL)
-  r2 <- summary(aux)$r.squared
-  n <- length(res)
-  df <- length(coef(aux)) - 1
-  if (df <= 0) return(NULL)
-  stat <- n * r2
-  p <- pchisq(stat, df, lower.tail = FALSE)
-  list(stat = stat, df1 = df, df2 = NA_real_, p = p)
-}
-
-calc_dw <- function(resid) {
-  if (length(resid) < 2) return(NA_real_)
-  sum(diff(resid)^2) / sum(resid^2)
-}
-
+calc_bartlett <- function(values, group) homogeneity_reference(stats::bartlett.test(values, group))
+calc_fligner <- function(values, group) homogeneity_reference(stats::fligner.test(values, group))
+calc_var_test <- function(values, group) homogeneity_reference(stats::var.test(values ~ factor(group)))
+calc_bp <- function(model) homogeneity_reference(lmtest::bptest(model, studentize = TRUE))
+calc_dw <- function(resid) sum(diff(resid)^2) / sum(resid^2)
 calc_vif <- function(model) {
-  mm <- model.matrix(model)
-  if ("(Intercept)" %in% colnames(mm)) {
-    mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
-  }
-  if (ncol(mm) == 0) return(data.frame())
-  if (ncol(mm) == 1) {
-    return(data.frame(term = colnames(mm), vif = 1, stringsAsFactors = FALSE))
-  }
-  vifs <- numeric(ncol(mm))
-  for (j in seq_len(ncol(mm))) {
-    fit <- tryCatch(lm(mm[, j] ~ mm[, -j, drop = FALSE]), error = function(e) NULL)
-    if (is.null(fit)) {
-      vifs[j] <- NA_real_
-    } else {
-      r2 <- summary(fit)$r.squared
-      vifs[j] <- ifelse(is.na(r2) || r2 >= 1, Inf, 1 / (1 - r2))
-    }
-  }
-  data.frame(term = colnames(mm), vif = vifs, stringsAsFactors = FALSE)
+  value <- car::vif(model)
+  data.frame(term = names(value), vif = unname(value))
 }
-
-calc_linearity <- function(x, residuals) {
-  if (!is.numeric(x) || length(x) < 3) return(list(stat = NA_real_, p = NA_real_))
-  test <- tryCatch(cor.test(x, residuals), error = function(e) NULL)
-  if (is.null(test)) return(list(stat = NA_real_, p = NA_real_))
-  list(stat = unname(test$estimate), p = test$p.value)
+calc_linearity <- function(model) {
+  data <- model.frame(model)
+  augmented <- lm(outcome_reg ~ x1 + x2 + x3 + I((x1 - mean(x1))^2), data = data)
+  ref <- stats::anova(model, augmented)
+  list(stat = ref$F[2], df1 = ref$Df[2], df2 = df.residual(augmented), p = ref$`Pr(>F)`[2])
 }
-
 calc_abs_resid_cor <- function(resid, fitted_vals) {
-  if (length(resid) < 3 || length(fitted_vals) < 3) return(NULL)
-  test <- tryCatch(cor.test(abs(resid), fitted_vals), error = function(e) NULL)
-  if (is.null(test)) return(NULL)
-  list(stat = unname(test$estimate), p = test$p.value, df1 = unname(test$parameter))
-}
-
-extract_first_numeric <- function(value) {
-  if (is.null(value)) return(NA_real_)
-  if (is.numeric(value)) return(as.numeric(value[1]))
-  if (is.character(value)) return(suppressWarnings(as.numeric(value[1])))
-  if (is.list(value) && length(value) > 0) return(extract_first_numeric(value[[1]]))
-  NA_real_
-}
-
-extract_named_numeric <- function(obj, keys) {
-  for (key in keys) {
-    if (!is.null(obj[[key]])) {
-      val <- extract_first_numeric(obj[[key]])
-      if (!is.na(val)) return(val)
-    }
-  }
-  NA_real_
-}
-
-extract_test_values <- function(test) {
-  if (is.null(test)) {
-    return(list(stat = NA_real_, p = NA_real_, df1 = NA_real_, df2 = NA_real_))
-  }
-  if (inherits(test, "htest")) {
-    stat <- extract_first_numeric(test$statistic)
-    p <- extract_first_numeric(test$p.value)
-    df <- test$parameter
-    df1 <- NA_real_
-    df2 <- NA_real_
-    if (!is.null(df)) {
-      df_vals <- as.numeric(df)
-      if (length(df_vals) > 0) df1 <- df_vals[1]
-      if (length(df_vals) > 1) df2 <- df_vals[2]
-    }
-    return(list(stat = stat, p = p, df1 = df1, df2 = df2))
-  }
-  if (is.data.frame(test) && nrow(test) > 0) {
-    row <- test[1, , drop = FALSE]
-    stat <- extract_named_numeric(row, c("statistic", "stat", "chisq", "chi.square", "t", "z"))
-    p <- extract_named_numeric(row, c("p", "p.value", "p_value", "pval"))
-    df1 <- extract_named_numeric(row, c("df", "df1", "df_1"))
-    df2 <- extract_named_numeric(row, c("df2", "df_2"))
-    return(list(stat = stat, p = p, df1 = df1, df2 = df2))
-  }
-  if (is.list(test)) {
-    stat <- extract_named_numeric(test, c("statistic", "stat", "chisq", "chi.square", "t", "z"))
-    p <- extract_named_numeric(test, c("p.value", "p", "p_value", "pval"))
-    df1 <- extract_named_numeric(test, c("df", "df1", "df_1"))
-    df2 <- extract_named_numeric(test, c("df2", "df_2"))
-    return(list(stat = stat, p = p, df1 = df1, df2 = df2))
-  }
-  list(stat = NA_real_, p = NA_real_, df1 = NA_real_, df2 = NA_real_)
+  ref <- stats::cor.test(abs(resid), fitted_vals)
+  list(stat = unname(ref$estimate), p = ref$p.value, df1 = unname(ref$parameter))
 }
 
 make_row <- function(case_id, analysis_type, model, assumption, test, target, group,
@@ -308,10 +170,12 @@ rows[[length(rows) + 1]] <- make_row(
   sh$w, NA_real_, NA_real_, sh$p, NA_real_, sh$n
 )
 fit <- lm(cbind(pre_score, mid_score, post_score) ~ 1, data = within_df)
-mauchly <- mauchly.test(fit)
+mauchly <- stats::mauchly.test(fit, X = ~1)
+contrast_dimension <- length(within_vars) - 1L
+mauchly_df <- contrast_dimension * (contrast_dimension + 1L) / 2 - 1L
 rows[[length(rows) + 1]] <- make_row(
   "anova_within_mauchly_within", "anova", "Within", "Sphericity", "Mauchly", "Within", "",
-  unname(mauchly$statistic), NA_real_, NA_real_, mauchly$p.value, NA_real_, nrow(within_df)
+  unname(mauchly$statistic), mauchly_df, NA_real_, mauchly$p.value, NA_real_, nrow(within_df)
 )
 
 # ANOVA mixed (within + between group3)
@@ -329,10 +193,10 @@ rows[[length(rows) + 1]] <- make_row(
   lev$stat, lev$df1, lev$df2, lev$p, NA_real_, nrow(mixed_df)
 )
 fit <- lm(cbind(pre_score, mid_score, post_score) ~ group3, data = mixed_df)
-mauchly <- mauchly.test(fit)
+mauchly <- stats::mauchly.test(fit, X = ~1)
 rows[[length(rows) + 1]] <- make_row(
   "anova_mixed_mauchly_within", "anova", "Mixed", "Sphericity", "Mauchly", "Within", "",
-  unname(mauchly$statistic), NA_real_, NA_real_, mauchly$p.value, NA_real_, nrow(mixed_df)
+  unname(mauchly$statistic), mauchly_df, NA_real_, mauchly$p.value, NA_real_, nrow(mixed_df)
 )
 
 # Regression diagnostics
@@ -345,10 +209,10 @@ rows[[length(rows) + 1]] <- make_row(
   sh$w, NA_real_, NA_real_, sh$p, NA_real_, sh$n
 )
 mf <- model.frame(reg_model)
-lin <- calc_linearity(mf[["x1"]], resid_vals)
+lin <- calc_linearity(reg_model)
 rows[[length(rows) + 1]] <- make_row(
-  "regression_linearity_x1_block1", "regression", "Block 1", "Linearity", "Residual correlation", "x1", "",
-  lin$stat, NA_real_, NA_real_, lin$p, NA_real_, n_reg
+  "regression_linearity_x1_block1", "regression", "Block 1", "Linearity", "Quadratic added-term F", "x1", "",
+  lin$stat, lin$df1, lin$df2, lin$p, NA_real_, n_reg
 )
 bp <- calc_bp(reg_model)
 rows[[length(rows) + 1]] <- make_row(
@@ -403,7 +267,8 @@ long_df <- reshape(
 long_df$time <- factor(long_df$time, levels = c("pre", "mid", "post"))
 long_df$group3 <- factor(long_df$group3)
 long_df <- long_df[!is.na(long_df$score), ]
-mm_fit <- lme4::lmer(score ~ time + group3 + x1 + (1 | id), data = long_df, REML = TRUE)
+mm_fit <- lme4::lmer(score ~ time + group3 + x1 + (1 | id), data = long_df, REML = TRUE,
+  control = lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 100000L)))
 mm_resid <- residuals(mm_fit)
 mm_fitted <- fitted(mm_fit)
 n_mm <- length(mm_resid)
@@ -432,7 +297,8 @@ if (!is.null(cor_res)) {
 }
 if (requireNamespace("performance", quietly = TRUE)) {
   perf_test <- tryCatch(performance::check_heteroscedasticity(mm_fit), error = function(e) NULL)
-  perf_vals <- extract_test_values(perf_test)
+  if (is.null(perf_test)) stop("Direct performance reference failed.")
+  perf_vals <- list(stat = NA_real_, df1 = NA_real_, df2 = NA_real_, p = as.numeric(perf_test)[1])
   if (!is.na(perf_vals$stat) || !is.na(perf_vals$p)) {
     rows[[length(rows) + 1]] <- make_row(
       "mixed_models_performance_heteroscedasticity", "mixed_models", "Mixed", "Homoscedasticity",
@@ -455,7 +321,7 @@ if (requireNamespace("influence.ME", quietly = TRUE)) {
   if (!is.null(group_list) && "id" %in% names(group_list)) {
     infl <- tryCatch(influence.ME::influence(mm_fit, group = "id"), error = function(e) NULL)
     if (!is.null(infl)) {
-      cooks <- tryCatch(influence.ME::cooks.distance(infl), error = function(e) NULL)
+      cooks <- tryCatch(stats::cooks.distance(infl), error = function(e) NULL)
       if (!is.null(cooks)) {
         max_cook <- max(cooks, na.rm = TRUE)
         rows[[length(rows) + 1]] <- make_row(
@@ -533,18 +399,19 @@ if (!is.null(pe) && nrow(pe) > 0) {
   neg_count <- sum(var_rows$est < 0, na.rm = TRUE)
   rows[[length(rows) + 1]] <- make_row(
     "sem_cfa_heywood_negative_variances", "sem", "CFA", "Heywood", "Negative variances", "Model", "",
-    NA_real_, NA_real_, NA_real_, NA_real_, neg_count, NA_real_
+    NA_real_, NA_real_, NA_real_, NA_real_, neg_count, lavaan::lavInspect(fit, "nobs")
   )
   if ("std.all" %in% names(pe)) {
     load_rows <- pe[pe$op == "=~", , drop = FALSE]
     count <- sum(abs(load_rows$std.all) > 1, na.rm = TRUE)
     rows[[length(rows) + 1]] <- make_row(
       "sem_cfa_heywood_std_loading_gt1", "sem", "CFA", "Heywood", "Std. loading > 1", "Model", "",
-      NA_real_, NA_real_, NA_real_, NA_real_, count, NA_real_
+      NA_real_, NA_real_, NA_real_, NA_real_, count, lavaan::lavInspect(fit, "nobs")
     )
   }
 }
 
 assumptions_rows <- do.call(rbind, rows)
+stopifnot(nrow(assumptions_rows) == 33L, !anyDuplicated(assumptions_rows$case_id))
 write.csv(assumptions_rows, out_path, row.names = FALSE)
 cat("Wrote assumptions golden values to", out_path, "\n")

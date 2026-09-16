@@ -1,0 +1,9 @@
+{
+  "name": "nlss",
+  "description": "Natural-language statistical research with local R, auditable project evidence and freely authored reports.",
+  "author": {"name": "Mike Hammes"},
+  "homepage": "https://github.com/docmh/nlss",
+  "repository": "https://github.com/docmh/nlss",
+  "license": "Apache-2.0",
+  "keywords": ["statistics", "research", "R"]
+}

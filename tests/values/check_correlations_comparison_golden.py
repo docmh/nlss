@@ -129,7 +129,8 @@ def main():
     numeric_keys = ["r1", "r2", "n1", "n2", "z", "p_value"]
     for key in numeric_keys:
         expected_val = parse_float(expected.get(key))
-        compare_numeric(row.get(key), expected_val, key)
+        compare_numeric(row.get(key), expected_val, key,
+                        abs_tol=0.0 if key == "p_value" else 1e-6)
 
 
 if __name__ == "__main__":

@@ -10,17 +10,9 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-render_output_path <- get("render_output_path", mode = "function")
-source_lib <- get("source_lib", mode = "function")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
+source_lib("sem_helpers.R")
 
 print_usage <- function() {
   cat("Structural equation modeling (lavaan)\n")
@@ -64,6 +56,7 @@ print_usage <- function() {
   cat("  --conf-level VALUE      Confidence level (default: 0.95)\n")
   cat("  --bootstrap TRUE/FALSE  Bootstrap standard errors\n")
   cat("  --bootstrap-samples N   Bootstrap resamples (default: 5000)\n")
+  cat("  --seed N                Reproducible bootstrap seed (canonical default)\n")
   cat("  --std TYPE              none/std.lv/std.all\n")
   cat("  --fit LIST              Fit indices to report\n")
   cat("  --r2 TRUE/FALSE         Report R² (default: TRUE)\n")
@@ -79,508 +72,137 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    opts[["csv"]] <- prompt("CSV path")
+    sep_default <- get_config_value("defaults.csv.sep")
+    header_default <- get_config_value("defaults.csv.header")
+    opts[["sep"]] <- prompt("Separator", sep_default)
+    opts[["header"]] <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
+    opts[["sav"]] <- prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
+    opts[["rds"]] <- prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
+    opts[["rdata"]] <- prompt("RData path")
+    opts[["df"]] <- prompt("Data frame object name")
   } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
+    opts[["parquet"]] <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
 
-  analysis_default <- resolve_config_value("modules.sem.analysis", "sem")
-  opts$analysis <- resolve_prompt("Analysis (sem/cfa/path/mediation/invariance)", analysis_default)
+  analysis_default <- get_config_value("modules.sem.analysis")
+  opts[["analysis"]] <- prompt("Analysis (sem/cfa/path/mediation/invariance)", analysis_default)
 
-  if (tolower(opts$analysis) == "cfa") {
-    opts$factors <- resolve_prompt("Factors (F1=item1,item2;F2=item3,item4)", "")
-    opts$model <- resolve_prompt("Model syntax (blank to use factors)", "")
-  } else if (tolower(opts$analysis) == "mediation") {
-    opts$x <- resolve_prompt("Predictor (x)")
-    opts$m <- resolve_prompt("Mediators (comma-separated)")
-    opts$y <- resolve_prompt("Outcome (y)")
-    opts$covariates <- resolve_prompt("Covariates (comma-separated, optional)", "")
-    opts$serial <- resolve_prompt("Serial mediation TRUE/FALSE", "FALSE")
-  } else if (tolower(opts$analysis) == "path") {
-    opts$dv <- resolve_prompt("Dependent variable", "")
-    opts$ivs <- resolve_prompt("Predictors (comma-separated)", "")
-    opts$model <- resolve_prompt("Model syntax (blank to use dv/ivs)", "")
+  if (tolower(opts[["analysis"]]) == "cfa") {
+    opts[["factors"]] <- prompt("Factors (F1=item1,item2;F2=item3,item4)", "")
+    opts[["model"]] <- prompt("Model syntax (blank to use factors)", "")
+  } else if (tolower(opts[["analysis"]]) == "mediation") {
+    opts[["x"]] <- prompt("Predictor (x)")
+    opts[["m"]] <- prompt("Mediators (comma-separated)")
+    opts[["y"]] <- prompt("Outcome (y)")
+    opts[["covariates"]] <- prompt("Covariates (comma-separated, optional)", "")
+    opts[["serial"]] <- prompt("Serial mediation TRUE/FALSE", ifelse(get_config_value("modules.sem.serial"), "TRUE", "FALSE"))
+  } else if (tolower(opts[["analysis"]]) == "path") {
+    opts[["dv"]] <- prompt("Dependent variable", "")
+    opts[["ivs"]] <- prompt("Predictors (comma-separated)", "")
+    opts[["model"]] <- prompt("Model syntax (blank to use dv/ivs)", "")
   } else {
-    opts$model <- resolve_prompt("Model syntax", "")
+    opts[["model"]] <- prompt("Model syntax", "")
   }
 
-  estimator_default <- resolve_config_value("modules.sem.estimator", "MLR")
-  missing_default <- resolve_config_value("modules.sem.missing", "fiml")
-  se_default <- resolve_config_value("modules.sem.se", "robust")
-  ci_default <- resolve_config_value("modules.sem.ci", "standard")
-  conf_default <- resolve_config_value("modules.sem.conf_level", 0.95)
-  bootstrap_default <- resolve_config_value("modules.sem.bootstrap", FALSE)
-  bootstrap_samples_default <- resolve_config_value("modules.sem.bootstrap_samples", 5000)
-  std_default <- resolve_config_value("modules.sem.std", "std.all")
-  fit_default <- resolve_config_value("modules.sem.fit", "chisq,df,cfi,tli,rmsea,srmr")
-  r2_default <- resolve_config_value("modules.sem.r2", TRUE)
-  modindices_default <- resolve_config_value("modules.sem.modindices", 0)
-  residuals_default <- resolve_config_value("modules.sem.residuals", FALSE)
-  digits_default <- resolve_config_value("defaults.digits", 2)
+  estimator_default <- get_config_value("modules.sem.estimator")
+  missing_default <- get_config_value("modules.sem.missing")
+  se_default <- get_config_value("modules.sem.se")
+  ci_default <- get_config_value("modules.sem.ci")
+  conf_default <- get_config_value("modules.sem.conf_level")
+  bootstrap_default <- get_config_value("modules.sem.bootstrap")
+  bootstrap_samples_default <- get_config_value("modules.sem.bootstrap_samples")
+  std_default <- get_config_value("modules.sem.std")
+  fit_default <- get_config_value("modules.sem.fit")
+  r2_default <- get_config_value("modules.sem.r2")
+  modindices_default <- get_config_value("modules.sem.modindices")
+  residuals_default <- get_config_value("modules.sem.residuals")
+  digits_default <- get_config_value("defaults.digits")
 
-  opts$estimator <- resolve_prompt("Estimator", estimator_default)
-  opts$missing <- resolve_prompt("Missing handling", missing_default)
-  opts$se <- resolve_prompt("SE type", se_default)
-  opts$ci <- resolve_prompt("CI type", ci_default)
-  opts$`conf-level` <- resolve_prompt("Confidence level", as.character(conf_default))
-  opts$bootstrap <- resolve_prompt("Bootstrap TRUE/FALSE", ifelse(isTRUE(bootstrap_default), "TRUE", "FALSE"))
-  opts$`bootstrap-samples` <- resolve_prompt("Bootstrap samples", as.character(bootstrap_samples_default))
-  opts$std <- resolve_prompt("Standardization (none/std.lv/std.all)", std_default)
-  opts$fit <- resolve_prompt("Fit indices", fit_default)
-  opts$r2 <- resolve_prompt("Report R² TRUE/FALSE", ifelse(isTRUE(r2_default), "TRUE", "FALSE"))
-  opts$modindices <- resolve_prompt("Modindices cutoff", as.character(modindices_default))
-  opts$residuals <- resolve_prompt("Include residuals TRUE/FALSE", ifelse(isTRUE(residuals_default), "TRUE", "FALSE"))
-  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  opts[["estimator"]] <- prompt("Estimator", estimator_default)
+  opts[["missing"]] <- prompt("Missing handling", missing_default)
+  opts[["se"]] <- prompt("SE type", se_default)
+  opts[["ci"]] <- prompt("CI type", ci_default)
+  opts$`conf-level` <- prompt("Confidence level", as.character(conf_default))
+  opts[["bootstrap"]] <- prompt("Bootstrap TRUE/FALSE", ifelse(isTRUE(bootstrap_default), "TRUE", "FALSE"))
+  opts$`bootstrap-samples` <- prompt("Bootstrap samples", as.character(bootstrap_samples_default))
+  opts[["std"]] <- prompt("Standardization (none/std.lv/std.all)", std_default)
+  opts[["fit"]] <- prompt("Fit indices", fit_default)
+  opts[["r2"]] <- prompt("Report R² TRUE/FALSE", ifelse(isTRUE(r2_default), "TRUE", "FALSE"))
+  opts[["modindices"]] <- prompt("Modindices cutoff", as.character(modindices_default))
+  opts[["residuals"]] <- prompt("Include residuals TRUE/FALSE", ifelse(isTRUE(residuals_default), "TRUE", "FALSE"))
+  opts[["digits"]] <- prompt("Rounding digits", as.character(digits_default))
+  opts[["template"]] <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log")
+  opts[["log"]] <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts
 }
 
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_parse_list <- function(value, sep = ",") {
-  if (exists("parse_list", mode = "function")) {
-    return(get("parse_list", mode = "function")(value, sep = sep))
-  }
-  if (is.null(value) || is.logical(value)) return(character(0))
-  value <- as.character(value)
-  if (value == "") return(character(0))
-  trimws(strsplit(value, sep, fixed = TRUE)[[1]])
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-resolve_get_workspace_out_dir <- function(df) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df))
-  }
-  resolve_default_out()
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  list(prompt = "", commands = character(0))
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  if (is.null(default_relative) || !nzchar(default_relative)) return(NULL)
-  if (exists("get_assets_dir", mode = "function")) {
-    return(file.path(get("get_assets_dir", mode = "function")(), default_relative))
-  }
-  file.path(getwd(), "nlss", "assets", default_relative)
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
-  as.character(value)
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-normalize_analysis <- function(value, default = "sem") {
+normalize_analysis <- function(value, default) {
   val <- if (!is.null(value) && nzchar(value)) tolower(as.character(value)) else tolower(default)
   if (val %in% c("sem", "structural")) return("sem")
   if (val %in% c("cfa", "confirmatory")) return("cfa")
   if (val %in% c("path", "path-analysis", "path_analysis")) return("path")
   if (val %in% c("mediation", "med", "indirect")) return("mediation")
   if (val %in% c("invariance", "measurement-invariance", "mi")) return("invariance")
-  default
+  stop("Unknown SEM analysis: ", val)
 }
 
-normalize_estimator <- function(value, default = "MLR") {
+normalize_estimator <- function(value, default) {
   val <- if (!is.null(value) && nzchar(value)) as.character(value) else as.character(default)
   val <- toupper(val)
   allowed <- c("ML", "MLR", "MLM", "MLMV", "MLMVS", "WLSMV", "ULSMV", "DWLS", "ULS", "GLS")
   if (val %in% allowed) return(val)
-  toupper(default)
+  stop("Unknown SEM estimator: ", val)
 }
 
-normalize_missing <- function(value, default = "fiml") {
+normalize_missing <- function(value, default) {
   val <- if (!is.null(value) && nzchar(value)) tolower(as.character(value)) else tolower(default)
   if (val %in% c("fiml", "ml")) return("fiml")
   if (val %in% c("listwise", "list")) return("listwise")
   if (val %in% c("pairwise", "pair")) return("pairwise")
-  val
+  stop("Unknown SEM missing-data method: ", val)
 }
 
-normalize_se <- function(value, default = "robust") {
+normalize_se <- function(value, default) {
   val <- if (!is.null(value) && nzchar(value)) tolower(as.character(value)) else tolower(default)
   if (val %in% c("standard", "none", "default")) return("standard")
   if (val %in% c("robust", "sandwich")) return("robust")
   if (val %in% c("bootstrap", "boot")) return("bootstrap")
-  "standard"
+  stop("Unknown SEM SE method: ", val)
 }
 
-normalize_ci <- function(value, default = "standard") {
+normalize_ci <- function(value, default) {
   val <- if (!is.null(value) && nzchar(value)) tolower(as.character(value)) else tolower(default)
   if (val %in% c("standard", "normal", "none")) return("standard")
   if (val %in% c("bootstrap", "boot", "perc", "percentile")) return("bootstrap")
   if (val %in% c("bca", "bca.simple", "bca_simple")) return("bca")
-  "standard"
+  stop("Unknown SEM CI method: ", val)
 }
 
-normalize_std <- function(value, default = "std.all") {
+normalize_std <- function(value, default) {
   val <- if (!is.null(value) && nzchar(value)) tolower(as.character(value)) else tolower(default)
   if (val %in% c("none", "no", "false")) return("none")
   if (val %in% c("std.lv", "std_lv", "latent")) return("std.lv")
   if (val %in% c("std.all", "std_all", "all")) return("std.all")
-  default
-}
-
-normalize_model_syntax <- function(text) {
-  if (is.null(text)) return("")
-  if (length(text) > 1) text <- paste(text, collapse = "\n")
-  text <- as.character(text)
-  if (!nzchar(text)) return("")
-  out <- gsub("\r\n?", "\n", text)
-  out <- gsub(";", "\n", out)
-  trimws(out)
-}
-
-parse_factor_spec <- function(text) {
-  if (is.null(text) || !nzchar(text)) return(list())
-  parts <- strsplit(text, ";", fixed = TRUE)[[1]]
-  factors <- list()
-  for (chunk in parts) {
-    chunk <- trimws(chunk)
-    if (!nzchar(chunk)) next
-    pair <- strsplit(chunk, "=", fixed = TRUE)[[1]]
-    if (length(pair) != 2) {
-      stop("Invalid factor specification: ", chunk)
-    }
-    name <- trimws(pair[1])
-    items <- trimws(strsplit(pair[2], ",", fixed = TRUE)[[1]])
-    items <- items[nzchar(items)]
-    if (!nzchar(name) || length(items) == 0) {
-      stop("Invalid factor specification: ", chunk)
-    }
-    factors[[name]] <- items
-  }
-  factors
-}
-
-build_cfa_model <- function(factors) {
-  if (length(factors) == 0) return("")
-  lines <- character(0)
-  for (name in names(factors)) {
-    items <- factors[[name]]
-    if (length(items) == 0) next
-    lines <- c(lines, paste0(name, " =~ ", paste(items, collapse = " + ")))
-  }
-  paste(lines, collapse = "\n")
-}
-
-build_path_model <- function(dv, ivs, covariates) {
-  if (!nzchar(dv) || length(ivs) == 0) return("")
-  rhs <- paste(ivs, collapse = " + ")
-  if (length(covariates) > 0) rhs <- paste(rhs, paste(covariates, collapse = " + "), sep = " + ")
-  paste0(dv, " ~ ", rhs)
-}
-
-build_mediation_model <- function(x, mediators, y, covariates, serial = FALSE) {
-  if (!nzchar(x) || !nzchar(y) || length(mediators) == 0) return("")
-  cov_text <- ""
-  if (length(covariates) > 0) cov_text <- paste0(" + ", paste(covariates, collapse = " + "))
-
-  lines <- character(0)
-  if (isTRUE(serial)) {
-    if (length(mediators) != 2) {
-      stop("Serial mediation currently supports exactly two mediators.")
-    }
-    m1 <- mediators[1]
-    m2 <- mediators[2]
-    lines <- c(lines, paste0(m1, " ~ a1*", x, cov_text))
-    lines <- c(lines, paste0(m2, " ~ a2*", x, " + d21*", m1, cov_text))
-    lines <- c(lines, paste0(y, " ~ c_prime*", x, " + b1*", m1, " + b2*", m2, cov_text))
-    lines <- c(lines, paste0("indirect_", m1, " := a1*b1"))
-    lines <- c(lines, paste0("indirect_", m2, " := a2*b2"))
-    lines <- c(lines, "indirect_serial := a1*d21*b2")
-    lines <- c(lines, paste0("total_indirect := indirect_", m1, " + indirect_", m2, " + indirect_serial"))
-    lines <- c(lines, "total := c_prime + total_indirect")
-  } else {
-    b_terms <- character(0)
-    indirect_terms <- character(0)
-    for (i in seq_along(mediators)) {
-      m <- mediators[i]
-      lines <- c(lines, paste0(m, " ~ a", i, "*", x, cov_text))
-      b_terms <- c(b_terms, paste0("b", i, "*", m))
-      indirect_terms <- c(indirect_terms, paste0("indirect_", m, " := a", i, "*b", i))
-    }
-    rhs <- paste(c(paste0("c_prime*", x), b_terms), collapse = " + ")
-    if (length(covariates) > 0) rhs <- paste(rhs, paste(covariates, collapse = " + "), sep = " + ")
-    lines <- c(lines, paste0(y, " ~ ", rhs))
-    lines <- c(lines, indirect_terms)
-    if (length(indirect_terms) > 0) {
-      total_indirect <- paste(sub(" :=.*$", "", indirect_terms), collapse = " + ")
-      lines <- c(lines, paste0("total_indirect := ", total_indirect))
-      lines <- c(lines, "total := c_prime + total_indirect")
-    }
-  }
-  paste(lines, collapse = "\n")
-}
-
-extract_model_vars <- function(model_syntax) {
-  if (is.null(model_syntax)) return(character(0))
-  if (length(model_syntax) > 1) model_syntax <- paste(model_syntax, collapse = "\n")
-  if (!nzchar(model_syntax)) return(character(0))
-
-  vars <- character(0)
-  latent_vars <- character(0)
-  if (requireNamespace("lavaan", quietly = TRUE)) {
-    table <- tryCatch(lavaan::lavaanify(model_syntax, auto = FALSE), error = function(e) NULL)
-    if (is.null(table) || nrow(table) == 0) {
-      table <- tryCatch(lavaan::lavaanify(model_syntax, auto = TRUE), error = function(e) NULL)
-    }
-    if (!is.null(table) && nrow(table) > 0) {
-      relevant_ops <- table$op %in% c("=~", "~", "~~")
-      latent_vars <- unique(table$lhs[table$op == "=~"])
-      vars <- unique(c(table$lhs[relevant_ops], table$rhs[relevant_ops]))
-      vars <- setdiff(vars, latent_vars)
-      vars <- vars[nzchar(vars)]
-      vars <- setdiff(vars, "1")
-    }
-  }
-  if (length(vars) > 0) return(vars)
-
-  text <- gsub("\r\n?", "\n", model_syntax)
-  lines <- unlist(strsplit(text, "\n", fixed = TRUE))
-  lines <- trimws(lines)
-  lines <- sub("#.*$", "", lines)
-  lines <- trimws(lines)
-  lines <- lines[nzchar(lines)]
-
-  extract_terms <- function(expr) {
-    expr <- trimws(expr)
-    if (!nzchar(expr)) return(character(0))
-    expr <- gsub("-", "+-", expr, fixed = TRUE)
-    parts <- unlist(strsplit(expr, "+", fixed = TRUE))
-    parts <- trimws(parts)
-    parts <- parts[nzchar(parts)]
-    out <- character(0)
-    for (part in parts) {
-      part <- trimws(part)
-      if (!nzchar(part)) next
-      part <- sub("^[^\\*]+\\*", "", part)
-      part <- gsub("[()]", "", part)
-      if (!nzchar(part)) next
-      tokens <- regmatches(part, gregexpr("[A-Za-z\\.][A-Za-z0-9_\\.]*", part, perl = TRUE))[[1]]
-      if (length(tokens) > 0) out <- c(out, tokens)
-    }
-    out
-  }
-
-  for (line in lines) {
-    if (!nzchar(line)) next
-    if (grepl(":=", line, fixed = TRUE)) next
-    op <- NULL
-    if (grepl("=~", line, fixed = TRUE)) {
-      op <- "=~"
-    } else if (grepl("~~", line, fixed = TRUE)) {
-      op <- "~~"
-    } else if (grepl("~", line, fixed = TRUE)) {
-      op <- "~"
-    }
-    if (is.null(op)) next
-    parts <- strsplit(line, op, fixed = TRUE)[[1]]
-    if (length(parts) < 2) next
-    lhs <- trimws(parts[1])
-    rhs <- trimws(paste(parts[-1], collapse = op))
-    if (op == "=~") {
-      latent_vars <- c(latent_vars, extract_terms(lhs))
-      vars <- c(vars, extract_terms(rhs))
-    } else {
-      vars <- c(vars, extract_terms(lhs), extract_terms(rhs))
-    }
-  }
-
-  vars <- unique(vars)
-  vars <- vars[nzchar(vars)]
-  vars <- setdiff(vars, c("1", latent_vars))
-  vars
+  stop("Unknown SEM standardization: ", val)
 }
 
 format_stat <- function(value, digits) {
   if (is.na(value)) return("")
   txt <- format(round(value, digits), nsmall = digits, trim = TRUE)
-  sub("^(-?)0", "\\1", txt)
+  sub("^(-?)0[.]", "\\1.", txt)
 }
 
 format_p <- function(p_value) {
@@ -692,7 +314,7 @@ build_sem_table_body <- function(param_df, digits, table_meta) {
     list(key = "ci_high", label = "CI high", drop_if_empty = TRUE),
     list(key = "std", label = "Std", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  columns <- normalize_table_columns(table_meta$columns, default_specs)
   show_group <- any(nzchar(param_df$group), na.rm = TRUE)
 
   rows <- list()
@@ -711,15 +333,15 @@ build_sem_table_body <- function(param_df, digits, table_meta) {
       std = format_stat(row$std, digits)
     )
     row_vals <- vapply(columns, function(col) {
-      resolve_as_cell_text(row_map[[col$key]])
+      as_cell_text(row_map[[col$key]])
     }, character(1))
     rows[[length(rows) + 1]] <- row_vals
   }
-  drop_result <- resolve_drop_empty_columns(columns, rows)
+  drop_result <- drop_empty_columns(columns, rows)
   columns <- drop_result$columns
   rows <- drop_result$rows
   headers <- vapply(columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, rows)
+  body <- render_markdown_table(headers, rows)
   list(body = body, columns = columns)
 }
 
@@ -737,7 +359,7 @@ build_invariance_table_body <- function(summary_df, digits, table_meta) {
     list(key = "delta_cfi", label = "Delta CFI", drop_if_empty = TRUE),
     list(key = "delta_rmsea", label = "Delta RMSEA", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  columns <- normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
   for (i in seq_len(nrow(summary_df))) {
     row <- summary_df[i, ]
@@ -755,15 +377,15 @@ build_invariance_table_body <- function(summary_df, digits, table_meta) {
       delta_rmsea = format_stat(row$delta_rmsea, digits)
     )
     row_vals <- vapply(columns, function(col) {
-      resolve_as_cell_text(row_map[[col$key]])
+      as_cell_text(row_map[[col$key]])
     }, character(1))
     rows[[length(rows) + 1]] <- row_vals
   }
-  drop_result <- resolve_drop_empty_columns(columns, rows)
+  drop_result <- drop_empty_columns(columns, rows)
   columns <- drop_result$columns
   rows <- drop_result$rows
   headers <- vapply(columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, rows)
+  body <- render_markdown_table(headers, rows)
   list(body = body, columns = columns)
 }
 
@@ -785,75 +407,28 @@ build_sem_note_tokens <- function(estimator, missing, se, ci, conf_level, std, n
 }
 
 emit_input_issue <- function(out_dir, opts, message, details = list(), status = "invalid_input") {
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
-      out_dir,
-      module = "sem",
-      prompt = ctx$prompt,
-      commands = ctx$commands,
-      results = list(
-        status = status,
-        message = message,
-        details = details
-      ),
-      options = details,
-      user_prompt = resolve_get_user_prompt(opts)
-    )
-  }
+  message <- render_paths_for_log(message, workspace_root = nlss_run_context$root)
+  nlss_run_context$request$validation_issue <- list(message = message,
+    details = render_paths_for_log(details, workspace_root = nlss_run_context$root), status = status)
   stop(message)
-}
-
-fit_sem_model <- function(analysis, model_syntax, df, estimator, missing, se, bootstrap_samples, ordered_vars, group_var, group_equal) {
-  args <- list(
-    model = model_syntax,
-    data = df,
-    estimator = estimator,
-    missing = missing,
-    se = se
-  )
-  if (length(ordered_vars) > 0) args$ordered <- ordered_vars
-  if (nzchar(group_var)) args$group <- group_var
-  if (!is.null(group_equal) && length(group_equal) > 0) args$group.equal <- group_equal
-  if (se == "bootstrap") args$bootstrap <- bootstrap_samples
-
-  if (analysis == "cfa") {
-    do.call(lavaan::cfa, args)
-  } else {
-    do.call(lavaan::sem, args)
-  }
 }
 
 collect_fit_values <- function(fit, fit_indices) {
   values <- list()
   if (length(fit_indices) == 0) return(values)
-  fit_vals <- tryCatch(lavaan::fitMeasures(fit, fit_indices), error = function(e) NULL)
-  if (is.null(fit_vals)) return(values)
-  if (is.numeric(fit_vals)) {
-    values <- as.list(fit_vals)
-  } else if (is.list(fit_vals)) {
-    values <- fit_vals
-  }
+  fit_vals <- lavaan::fitMeasures(fit, fit_indices)
+  values <- as.list(fit_vals)
+  absent <- setdiff(fit_indices, c(names(values), "all", "default"))
+  if (length(absent)) stop("Unknown or unavailable requested fit indices: ", paste(absent, collapse = ", "))
   values
 }
 
-build_param_df <- function(fit, std, conf_level, ci_type, group_labels) {
-  boot_ci_type <- NULL
-  if (ci_type == "bootstrap") boot_ci_type <- "perc"
-  if (ci_type == "bca") boot_ci_type <- "bca.simple"
-  pe <- lavaan::parameterEstimates(
-    fit,
-    standardized = (std != "none"),
-    ci = TRUE,
-    level = conf_level,
-    boot.ci.type = boot_ci_type
-  )
-
-  keep_ops <- c("=~", "~", "~~", ":=")
+build_param_df <- function(pe, std, group_labels, primary = TRUE) {
+  keep_ops <- if (primary) c("=~", "~", "~~", ":=") else c("~~", "~1", "|", "~*~")
   pe <- pe[pe$op %in% keep_ops, , drop = FALSE]
   if (nrow(pe) == 0) return(data.frame())
-  pe <- pe[!(pe$op == "~~" & pe$lhs == pe$rhs), , drop = FALSE]
+  if (primary) pe <- pe[!(pe$op == "~~" & pe$lhs == pe$rhs), , drop = FALSE]
+  else pe <- pe[!(pe$op == "~~" & pe$lhs != pe$rhs), , drop = FALSE]
 
   std_col <- NULL
   if (std == "std.all" && "std.all" %in% names(pe)) std_col <- "std.all"
@@ -862,9 +437,9 @@ build_param_df <- function(fit, std, conf_level, ci_type, group_labels) {
   group_vals <- rep("", nrow(pe))
   if (!is.null(pe$group) && length(group_labels) > 0) {
     group_vals <- vapply(pe$group, function(idx) {
-      if (is.na(idx)) return("")
+      if (is.na(idx) || idx < 1L || idx > length(group_labels)) return("")
       label <- group_labels[as.integer(idx)]
-      if (is.null(label) || !nzchar(label)) return("")
+      if (is.na(label) || !nzchar(label)) return("")
       as.character(label)
     }, character(1))
   }
@@ -887,6 +462,8 @@ build_param_df <- function(fit, std, conf_level, ci_type, group_labels) {
     ci_high = pe$ci.upper,
     std = if (!is.null(std_col)) pe[[std_col]] else NA_real_,
     op = pe$op,
+    estimate_status = ifelse(is.finite(pe$est), "available", "unavailable"),
+    inference_status = ifelse(is.finite(pe$se) & is.finite(pe$ci.lower) & is.finite(pe$ci.upper), "available", "unavailable"),
     stringsAsFactors = FALSE
   )
 }
@@ -939,51 +516,98 @@ build_invariance_summary <- function(steps, fits, fit_indices) {
   )
 }
 
+collect_sem_output <- function(fit, std, conf_level, ci_type, fit_indices, r2_flag, modindices_cutoff, residuals_flag) {
+  ci_method <- switch(ci_type, bootstrap = "perc", bca = "bca.simple", "norm")
+  pe <- lavaan::parameterEstimates(fit, standardized = (std != "none"), ci = TRUE,
+    level = conf_level, boot.ci.type = ci_method)
+  group_labels <- lavaan::lavInspect(fit, "group.label")
+  optional <- function(requested, fun) {
+    if (!requested) return(list(status = "not_requested", value = NULL))
+    tryCatch(list(status = "available", value = fun()), error = function(e) {
+      warning("Requested SEM output unavailable: ", conditionMessage(e))
+      list(status = "unavailable", message = conditionMessage(e), value = NULL)
+    })
+  }
+  r2 <- optional(r2_flag, function() lavaan::lavInspect(fit, "r2"))
+  mi <- optional(modindices_cutoff > 0, function() lavaan::modindices(fit, sort. = TRUE, minimum.value = modindices_cutoff))
+  residuals <- optional(residuals_flag, function() lavaan::residuals(fit, type = "standardized"))
+  params <- build_param_df(pe, std, group_labels)
+  fit_values <- collect_fit_values(fit, fit_indices)
+  list(n = as.numeric(lavaan::lavInspect(fit, "nobs")), fit = fit_values,
+    parameter_table = pe, parameter_specification = lavaan::parTable(fit),
+    supplementary_params_df = build_param_df(pe, std, group_labels, primary = FALSE),
+    params_df = params, params = list(rows = nrow(params)),
+    r2_df = build_r2_df(r2$value), r2_values = r2$value,
+    modindices = if (is.null(mi$value)) 0L else nrow(mi$value), modindices_df = mi$value,
+    residuals_output = residuals$value,
+    availability = list(r2 = r2[setdiff(names(r2), "value")],
+      modindices = mi[setdiff(names(mi), "value")], residuals = residuals[setdiff(names(residuals), "value")],
+      fit = lapply(fit_values, function(x) if (is.finite(x)) "available" else "unavailable")))
+}
+
+sem_audit_note <- function(audit, ci_type) {
+  effective <- audit$inference$effective
+  notes <- c(paste0("Effective lavaan estimator = ", effective$estimator,
+    " (requested ", audit$inference$requested$estimator, "); SE = ", effective$se,
+    "; test = ", paste(effective$test, collapse = ", "), "; missing = ", effective$missing, "."),
+    paste0("Fit status: ", audit$fit_status$status, "."))
+  if (!audit$fit_status$standard_errors_available) notes <- c(notes, "Some free-parameter standard errors or intervals are unavailable.")
+  if (audit$bootstrap$enabled) notes <- c(notes, paste0("Bootstrap: ", audit$bootstrap$successful,
+    "/", audit$bootstrap$attempted, " successful; ", audit$bootstrap$failed, " failed; ",
+    audit$bootstrap$inadmissible, " nonadmissible draws. Finite nonadmissible draws remain in lavaan inference."),
+    switch(ci_type, bca = "CI alias bca uses lavaan bca.simple (bias correction without acceleration), not full BCa.",
+      bootstrap = "Percentile bootstrap confidence intervals.",
+      "Normal bootstrap intervals use lavaan norm (bootstrap bias correction)."))
+  paste(notes, collapse = " ")
+}
+
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
+  opts <- nlss_run_options(args, "sem")
 
-  if (!is.null(opts$help)) {
+  if (!is.null(opts[["help"]])) {
     print_usage()
     quit(status = 0)
   }
 
-  if (!is.null(opts$interactive)) {
+  if (!is.null(opts[["interactive"]])) {
     opts <- modifyList(opts, interactive_options())
   }
 
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  analysis_default <- resolve_config_value("modules.sem.analysis", "sem")
-  estimator_default <- resolve_config_value("modules.sem.estimator", "MLR")
-  missing_default <- resolve_config_value("modules.sem.missing", "fiml")
-  se_default <- resolve_config_value("modules.sem.se", "robust")
-  ci_default <- resolve_config_value("modules.sem.ci", "standard")
-  conf_default <- resolve_config_value("modules.sem.conf_level", 0.95)
-  bootstrap_default <- resolve_config_value("modules.sem.bootstrap", FALSE)
-  bootstrap_samples_default <- resolve_config_value("modules.sem.bootstrap_samples", 5000)
-  std_default <- resolve_config_value("modules.sem.std", "std.all")
-  fit_default <- resolve_config_value("modules.sem.fit", "chisq,df,cfi,tli,rmsea,srmr")
-  r2_default <- resolve_config_value("modules.sem.r2", TRUE)
-  modindices_default <- resolve_config_value("modules.sem.modindices", 0)
-  residuals_default <- resolve_config_value("modules.sem.residuals", FALSE)
-  invariance_default <- resolve_config_value("modules.sem.invariance", "configural,metric,scalar,strict")
+  digits_default <- get_config_value("defaults.digits")
+  log_default <- get_config_value("defaults.log")
+  analysis_default <- get_config_value("modules.sem.analysis")
+  estimator_default <- get_config_value("modules.sem.estimator")
+  missing_default <- get_config_value("modules.sem.missing")
+  se_default <- get_config_value("modules.sem.se")
+  ci_default <- get_config_value("modules.sem.ci")
+  conf_default <- get_config_value("modules.sem.conf_level")
+  bootstrap_default <- get_config_value("modules.sem.bootstrap")
+  bootstrap_samples_default <- get_config_value("modules.sem.bootstrap_samples")
+  std_default <- get_config_value("modules.sem.std")
+  fit_default <- get_config_value("modules.sem.fit")
+  r2_default <- get_config_value("modules.sem.r2")
+  modindices_default <- get_config_value("modules.sem.modindices")
+  residuals_default <- get_config_value("modules.sem.residuals")
+  invariance_default <- get_config_value("modules.sem.invariance")
 
-  digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  analysis <- normalize_analysis(opts$analysis, analysis_default)
-  estimator <- normalize_estimator(opts$estimator, estimator_default)
-  missing <- normalize_missing(opts$missing, missing_default)
-  bootstrap <- resolve_parse_bool(opts$bootstrap, default = bootstrap_default)
-  se <- normalize_se(opts$se, se_default)
+  digits <- if (!is.null(opts[["digits"]])) as.numeric(opts[["digits"]]) else digits_default
+  analysis <- normalize_analysis(opts[["analysis"]], analysis_default)
+  estimator <- normalize_estimator(opts[["estimator"]], estimator_default)
+  missing <- normalize_missing(opts[["missing"]], missing_default)
+  bootstrap <- parse_bool(opts[["bootstrap"]], default = bootstrap_default)
+  se <- normalize_se(opts[["se"]], se_default)
   if (bootstrap && se != "bootstrap") se <- "bootstrap"
   if (se == "bootstrap" && !bootstrap) bootstrap <- TRUE
-  ci_type <- normalize_ci(opts$ci, ci_default)
+  ci_type <- normalize_ci(opts[["ci"]], ci_default)
   conf_level <- if (!is.null(opts$`conf-level`)) as.numeric(opts$`conf-level`) else conf_default
-  if (is.na(conf_level) || conf_level <= 0 || conf_level >= 1) conf_level <- conf_default
+  if (!is.finite(conf_level) || conf_level <= 0 || conf_level >= 1) stop("Confidence level must be between 0 and 1.")
   bootstrap_samples <- if (!is.null(opts$`bootstrap-samples`)) as.numeric(opts$`bootstrap-samples`) else bootstrap_samples_default
-  if (is.na(bootstrap_samples) || bootstrap_samples <= 0) bootstrap_samples <- bootstrap_samples_default
-  std <- normalize_std(opts$std, std_default)
-  fit_indices <- resolve_parse_list(if (!is.null(opts$fit)) opts$fit else fit_default)
+  if (!is.finite(bootstrap_samples) || bootstrap_samples < 2 || bootstrap_samples != floor(bootstrap_samples) || bootstrap_samples > .Machine$integer.max) stop("Bootstrap samples must be an integer from 2 to R's integer limit.")
+  if (!is.finite(digits) || digits < 0 || digits > 15 || digits != floor(digits)) stop("Digits must be an integer from 0 to 15.")
+  if (ci_type != "standard" && !bootstrap) stop("Bootstrap/bca intervals require --bootstrap TRUE or --se bootstrap; no analytic fallback is permitted.")
+  std <- normalize_std(opts[["std"]], std_default)
+  fit_indices <- parse_list(if (!is.null(opts[["fit"]])) opts[["fit"]] else fit_default)
   if (length(fit_indices) > 0 && "chisq" %in% fit_indices) {
     if (!("df" %in% fit_indices)) fit_indices <- c(fit_indices, "df")
     if (!("pvalue" %in% fit_indices)) fit_indices <- c(fit_indices, "pvalue")
@@ -992,47 +616,59 @@ main <- function() {
     needed <- c("chisq", "df", "pvalue", "cfi", "tli", "rmsea", "srmr")
     fit_indices <- unique(c(fit_indices, needed))
   }
-  r2_flag <- resolve_parse_bool(opts$r2, default = r2_default)
-  modindices_cutoff <- if (!is.null(opts$modindices)) as.numeric(opts$modindices) else modindices_default
-  if (is.na(modindices_cutoff) || modindices_cutoff < 0) modindices_cutoff <- 0
-  residuals_flag <- resolve_parse_bool(opts$residuals, default = residuals_default)
+  r2_flag <- parse_bool(opts[["r2"]], default = r2_default)
+  modindices_cutoff <- if (!is.null(opts[["modindices"]])) as.numeric(opts[["modindices"]]) else modindices_default
+  if (!is.finite(modindices_cutoff) || modindices_cutoff < 0) stop("Modification-index cutoff must be finite and non-negative.")
+  residuals_flag <- parse_bool(opts[["residuals"]], default = residuals_default)
 
-  df <- resolve_load_dataframe(opts)
-  out_dir <- resolve_get_workspace_out_dir(df)
-  template_override <- resolve_template_override(opts$template, module = "sem")
+  df <- nlss_load_input(opts)
+  out_dir <- get_workspace_out_dir(df)
+  nlss_begin_run("sem", df, opts, out_dir)
+  source_n <- nrow(df)
+  source_classes <- lapply(df, class)
+  seed <- nlss_run_seed(opts[["seed"]], stochastic = bootstrap)
+  template_override <- resolve_template_override(opts[["template"]], module = "sem")
 
   if (!requireNamespace("lavaan", quietly = TRUE)) {
     emit_input_issue(out_dir, opts, "SEM requires the 'lavaan' package.", details = list(package = "lavaan"), status = "missing_dependency")
   }
 
-  ordered_vars <- resolve_parse_list(opts$ordered)
+  ordered_vars <- parse_list(opts[["ordered"]])
   ordered_vars <- ordered_vars[nzchar(ordered_vars)]
   if (length(ordered_vars) > 0) {
     missing_ordered <- setdiff(ordered_vars, names(df))
     if (length(missing_ordered) > 0) {
       emit_input_issue(out_dir, opts, paste0("Unknown ordered variables: ", paste(missing_ordered, collapse = ", ")))
     }
-    for (var in ordered_vars) {
-      df[[var]] <- as.ordered(df[[var]])
-    }
   }
 
   group_var <- ""
-  if (!is.null(opts$group) && nzchar(opts$group)) {
-    group_var <- as.character(opts$group)
+  if (!is.null(opts[["group"]]) && nzchar(opts[["group"]])) {
+    group_var <- as.character(opts[["group"]])
     if (!group_var %in% names(df)) {
       emit_input_issue(out_dir, opts, paste0("Grouping variable not found: ", group_var))
     }
-    df[[group_var]] <- as.factor(df[[group_var]])
   }
 
-  group_equal <- resolve_parse_list(opts$`group-equal`)
+  group_equal <- parse_list(opts$`group-equal`)
+  if (length(group_equal) && !nzchar(group_var)) emit_input_issue(out_dir, opts, "Group-equality constraints require --group.")
 
   model_text <- ""
-  if (!is.null(opts[["model-file"]]) && nzchar(opts[["model-file"]])) {
-    model_path <- as.character(opts[["model-file"]])
+  if (!is.null(nlss_run_context$replay)) {
+    model_text <- nlss_run_context$replay$request$design$model_syntax
+  } else if (!is.null(opts[["model-file"]]) && nzchar(opts[["model-file"]])) {
+    model_path <- normalize_input_path(opts[["model-file"]])
+    if (!is_absolute_path(model_path)) model_path <- file.path(getwd(), model_path)
+    model_path <- normalize_path(model_path)
+    model_path <- file.path(normalize_path(dirname(model_path)), basename(model_path))
+    # A missing file can still have a canonical parent. If even that parent is
+    # unresolved, fail closed to a basename rather than expose ../ paths.
+    model_location <- if (dir.exists(dirname(model_path))) render_log_path(model_path,
+      workspace_root = nlss_run_context$root) else paste0("<external>/", basename(model_path))
+    nlss_run_context$request$cli[["model-file"]] <- model_location
     if (!file.exists(model_path)) {
-      emit_input_issue(out_dir, opts, paste0("Model file not found: ", model_path))
+      emit_input_issue(out_dir, opts, paste0("Model file not found: ",
+        model_location))
     }
     model_text <- paste(readLines(model_path, warn = FALSE), collapse = "\n")
   }
@@ -1043,22 +679,22 @@ main <- function() {
     model_text <- as.character(opts[["paths"]])
   }
 
-  factors_text <- if (!is.null(opts$factors)) as.character(opts$factors) else ""
-  dv <- if (!is.null(opts$dv)) as.character(opts$dv) else ""
-  ivs <- resolve_parse_list(opts$ivs)
+  factors_text <- if (!is.null(opts[["factors"]])) as.character(opts[["factors"]]) else ""
+  dv <- if (!is.null(opts[["dv"]])) as.character(opts[["dv"]]) else ""
+  ivs <- parse_list(opts[["ivs"]])
   ivs <- ivs[nzchar(ivs)]
-  covariates <- resolve_parse_list(opts$covariates)
+  covariates <- parse_list(opts[["covariates"]])
   covariates <- covariates[nzchar(covariates)]
-  x <- if (!is.null(opts$x)) as.character(opts$x) else ""
-  mediators <- resolve_parse_list(opts$m)
+  x <- if (!is.null(opts[["x"]])) as.character(opts[["x"]]) else ""
+  mediators <- parse_list(opts[["m"]])
   mediators <- mediators[nzchar(mediators)]
-  y <- if (!is.null(opts$y)) as.character(opts$y) else ""
-  serial <- resolve_parse_bool(opts$serial, default = FALSE)
+  y <- if (!is.null(opts[["y"]])) as.character(opts[["y"]]) else ""
+  serial <- parse_bool(opts[["serial"]], default = get_config_value("modules.sem.serial"))
 
   model_syntax <- ""
   if (nzchar(model_text)) {
     model_syntax <- normalize_model_syntax(model_text)
-  } else if (analysis == "cfa" && nzchar(factors_text)) {
+  } else if (analysis %in% c("cfa", "invariance") && nzchar(factors_text)) {
     factors <- tryCatch(parse_factor_spec(factors_text), error = function(e) {
       emit_input_issue(out_dir, opts, e$message)
     })
@@ -1076,17 +712,44 @@ main <- function() {
   }
 
   model_vars <- extract_model_vars(model_syntax)
-  if (length(model_vars) == 0) {
-    tokens <- regmatches(model_syntax, gregexpr("[A-Za-z\\.][A-Za-z0-9_\\.]*", model_syntax, perl = TRUE))[[1]]
-    tokens <- unique(tokens)
-    tokens <- tokens[nzchar(tokens)]
-    if (length(tokens) > 0) {
-      model_vars <- intersect(tokens, names(df))
-    }
-  }
   missing_vars <- setdiff(model_vars, names(df))
   if (length(missing_vars) > 0) {
     emit_input_issue(out_dir, opts, paste0("Missing variables: ", paste(missing_vars, collapse = ", ")))
+  }
+  if (length(setdiff(ordered_vars, model_vars))) emit_input_issue(out_dir, opts, "Ordered variables must occur in the model.")
+  for (var in unique(c(model_vars, group_var[nzchar(group_var)]))) {
+    if (is.numeric(df[[var]]) && any(is.infinite(df[[var]]))) {
+      emit_input_issue(out_dir, opts, paste0("Selected SEM variable contains Inf/-Inf: ", var))
+    }
+  }
+  for (var in ordered_vars) df[[var]] <- sem_ordered_factor(df[[var]])
+  # Existing ordered factors keep their declared order. Numeric SPSS labels are
+  # metadata, not factor levels; explicit ordered roles use the underlying codes.
+  ordered_vars <- unique(c(ordered_vars, model_vars[vapply(df[model_vars], is.ordered, logical(1))]))
+  if (nzchar(group_var)) {
+    if (group_var %in% model_vars) emit_input_issue(out_dir, opts, "A multi-group variable cannot also be an observed SEM variable.")
+    df[[group_var]] <- sem_group_factor(df[[group_var]])
+    if (nlevels(droplevels(df[[group_var]])) < 2L) emit_input_issue(out_dir, opts, "Multi-group SEM requires at least two observed groups.")
+  }
+  requested <- list(estimator = estimator, missing = missing,
+    se = normalize_se(opts[["se"]], se_default), ci = ci_type, bootstrap = parse_bool(opts[["bootstrap"]], bootstrap_default),
+    bootstrap_samples = bootstrap_samples, conf_level = conf_level)
+  resolved_options <- list(analysis = analysis, estimator = estimator, missing = missing,
+    se = se, ci = ci_type, conf_level = conf_level, bootstrap = bootstrap,
+    bootstrap_samples = bootstrap_samples, seed = seed, std = std, fit = fit_indices,
+    ordered = ordered_vars, group = group_var, group_equal = group_equal,
+    r2 = r2_flag, modindices_cutoff = modindices_cutoff, residuals = residuals_flag, digits = digits)
+  design <- list(model_syntax = model_syntax, model_variables = model_vars,
+    source_n = source_n, source_variable_classes = source_classes[unique(c(model_vars, group_var[nzchar(group_var)]))],
+    variable_classes = lapply(df[model_vars], class), group_variable = group_var,
+    ordered_variables = ordered_vars, category_levels = lapply(df[ordered_vars], levels))
+  nlss_resolve_request(resolved_options, design)
+  audit_fit <- function(fit) {
+    audit <- sem_fit_audit(fit, requested, source_n)
+    if (!audit$fit_status$converged) emit_input_issue(out_dir, opts, "SEM did not converge; estimates are not published as a completed analysis.", audit, "fit_failed")
+    if (!isTRUE(audit$fit_status$admissible)) warning("SEM solution is inadmissible or its admissibility is unavailable; do not interpret it as a validated model.")
+    if (!audit$fit_status$standard_errors_available) warning("SEM standard errors are unavailable for one or more free parameters.")
+    audit
   }
 
   analysis_label <- switch(
@@ -1102,12 +765,12 @@ main <- function() {
     if (!nzchar(group_var)) {
       emit_input_issue(out_dir, opts, "Invariance analysis requires --group.")
     }
-    invariance_steps <- resolve_parse_list(opts$invariance)
+    invariance_steps <- parse_list(opts[["invariance"]])
     if (length(invariance_steps) == 0) {
       if (length(group_equal) > 0) {
         invariance_steps <- "custom"
       } else {
-        invariance_steps <- resolve_parse_list(invariance_default)
+        invariance_steps <- parse_list(invariance_default)
       }
     }
     if (length(invariance_steps) == 0) {
@@ -1123,8 +786,10 @@ main <- function() {
       } else if (label %in% c("metric", "loadings")) {
         constraints <- c("loadings")
       } else if (label %in% c("scalar", "intercepts")) {
+        if (length(ordered_vars)) emit_input_issue(out_dir, opts, "Automatic scalar/strict steps use continuous-indicator intercept constraints. For ordinal indicators specify theoretically justified custom --group-equal constraints (including thresholds where appropriate); no automatic ordinal invariance claim is made.")
         constraints <- c("loadings", "intercepts")
       } else if (label %in% c("strict", "residuals")) {
+        if (length(ordered_vars)) emit_input_issue(out_dir, opts, "Automatic scalar/strict steps are continuous-indicator constraints; use explicit custom constraints for ordinal invariance.")
         constraints <- c("loadings", "intercepts", "residuals")
       } else if (label == "custom" && length(group_equal) > 0) {
         constraints <- group_equal
@@ -1135,6 +800,7 @@ main <- function() {
     }
 
     fits <- list()
+    step_results <- list()
     for (step in step_defs) {
       fit <- tryCatch(
         fit_sem_model("cfa", model_syntax, df, estimator, missing, se, bootstrap_samples, ordered_vars, group_var, step$group_equal),
@@ -1142,6 +808,9 @@ main <- function() {
           emit_input_issue(out_dir, opts, paste0("Model fit failed: ", e$message), status = "fit_failed")
         }
       )
+      audit <- audit_fit(fit)
+      output <- collect_sem_output(fit, std, conf_level, ci_type, fit_indices, r2_flag, modindices_cutoff, residuals_flag)
+      step_results[[length(step_results) + 1L]] <- c(list(step = step$label, constraints = step$group_equal), output, audit)
       fits[[length(fits) + 1]] <- fit
     }
 
@@ -1150,10 +819,19 @@ main <- function() {
       emit_input_issue(out_dir, opts, "No invariance results could be computed.", status = "fit_failed")
     }
 
-    group_labels <- levels(df[[group_var]])
-    n_obs <- tryCatch(lavaan::nobs(fits[[1]]), error = function(e) NA_real_)
+    group_labels <- lavaan::lavInspect(fits[[1]], "group.label")
+    n_obs <- step_results[[1]]$n
     n_obs_label <- if (length(n_obs) > 1) paste(n_obs, collapse = ", ") else n_obs
     note_tokens <- build_sem_note_tokens(estimator, missing, se, ci_type, conf_level, std, n_obs, group_labels)
+    note_tokens$note_default <- paste(note_tokens$note_default,
+      paste(vapply(step_results, function(x) paste0(x$step, ": ", sem_audit_note(x, ci_type)), character(1)), collapse = " "),
+      "Fit-index deltas compare adjacent requested steps; they are not a significance test or an automatic finding of invariance.")
+    if (length(nlss_run_context$warnings)) note_tokens$note_default <- paste(note_tokens$note_default,
+      paste(unique(vapply(nlss_run_context$warnings, `[[`, character(1), "message")), collapse = " "))
+    design$group_levels <- group_labels
+    design$steps <- lapply(step_results, function(x) x[c("step", "constraints", "fit_status", "inference", "bootstrap", "case_selection")])
+    resolved_options$invariance <- invariance_steps
+    nlss_resolve_request(resolved_options, design)
     fit_sentence <- "Measurement invariance fit indices are summarized in Table 1."
     token_meta <- list(
       estimator = estimator,
@@ -1169,9 +847,10 @@ main <- function() {
     template_path <- if (!is.null(template_override)) {
       template_override
     } else {
-      resolve_get_template_path("sem.invariance", "sem/invariance-template.md")
+      resolve_template_path("sem.invariance", "sem/invariance-template.md")
     }
-    template_meta <- resolve_get_template_meta(template_path)
+    template_path <- nlss_freeze_template(template_path, "invariance")
+    template_meta <- get_template_meta(template_path)
     table_result <- build_invariance_table_body(summary_df, digits, template_meta$table)
     nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
 
@@ -1187,7 +866,7 @@ main <- function() {
     )
 
     nlss_report_path <- file.path(out_dir, "report_canonical.md")
-    resolve_append_nlss_report(
+    nlss_stage_report(
       nlss_report_path,
       analysis_label,
       nlss_table,
@@ -1212,19 +891,18 @@ main <- function() {
     cat("Wrote:\n")
     cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
-    if (resolve_parse_bool(opts$log, default = log_default)) {
-      ctx <- resolve_get_run_context()
-      resolve_append_analysis_log(
+    results <- list(status = "ok", analysis = analysis, n = n_obs, fit = summary_df,
+      steps = step_results, fit_status = lapply(step_results, `[[`, "fit_status"),
+      inference = lapply(step_results, `[[`, "inference"), bootstrap = lapply(step_results, `[[`, "bootstrap"))
+    nlss_set_result(results)
+    if (parse_bool(opts[["log"]], default = log_default)) {
+      ctx <- get_run_context()
+      nlss_stage_log(
         out_dir,
         module = "sem",
         prompt = ctx$prompt,
         commands = ctx$commands,
-        results = list(
-          status = "ok",
-          analysis = analysis,
-          n = n_obs,
-          fit = summary_df
-        ),
+        results = results,
         options = list(
           analysis = analysis,
           estimator = estimator,
@@ -1238,7 +916,7 @@ main <- function() {
           invariance = invariance_steps,
           model = model_syntax
         ),
-        user_prompt = resolve_get_user_prompt(opts)
+        user_prompt = get_user_prompt(opts)
       )
     }
     return(invisible(NULL))
@@ -1251,26 +929,29 @@ main <- function() {
     }
   )
 
-  group_labels <- character(0)
-  if (nzchar(group_var)) {
-    group_labels <- levels(df[[group_var]])
-  }
-
-  fit_values <- collect_fit_values(fit, fit_indices)
-  param_df <- build_param_df(fit, std, conf_level, ci_type, group_labels)
-  if (nrow(param_df) == 0) {
+  audit <- audit_fit(fit)
+  group_labels <- lavaan::lavInspect(fit, "group.label")
+  output <- collect_sem_output(fit, std, conf_level, ci_type, fit_indices, r2_flag, modindices_cutoff, residuals_flag)
+  fit_values <- output$fit
+  param_df <- output$params_df
+  if (nrow(output$parameter_table) == 0) {
     emit_input_issue(out_dir, opts, "No parameter estimates could be computed.", status = "fit_failed")
   }
 
-  r2_values <- NULL
-  if (isTRUE(r2_flag)) {
-    r2_values <- tryCatch(lavaan::inspect(fit, "r2"), error = function(e) NULL)
-  }
-  r2_df <- build_r2_df(r2_values)
+  r2_values <- output$r2_values
+  r2_df <- output$r2_df
+  design <- c(design, list(group_levels = group_labels), audit)
+  nlss_resolve_request(resolved_options, design)
 
-  n_obs <- tryCatch(lavaan::nobs(fit), error = function(e) NA_real_)
+  n_obs <- output$n
   n_obs_label <- if (length(n_obs) > 1) paste(n_obs, collapse = ", ") else n_obs
   note_tokens <- build_sem_note_tokens(estimator, missing, se, ci_type, conf_level, std, n_obs, group_labels)
+  note_tokens$note_default <- paste(note_tokens$note_default, sem_audit_note(audit, ci_type))
+  if (length(nlss_run_context$warnings)) note_tokens$note_default <- paste(note_tokens$note_default,
+    paste(unique(vapply(nlss_run_context$warnings, `[[`, character(1), "message")), collapse = " "))
+  if (any(param_df$estimate_status == "unavailable" | param_df$inference_status == "unavailable")) {
+    note_tokens$note_default <- paste(note_tokens$note_default, "Some parameter estimates or inference are unavailable; empty cells are not zero effects.")
+  }
   token_meta <- list(
     estimator = estimator,
     missing = missing,
@@ -1326,9 +1007,10 @@ main <- function() {
   template_path <- if (!is.null(template_override)) {
     template_override
   } else {
-    resolve_get_template_path(template_key, template_default)
+    resolve_template_path(template_key, template_default)
   }
-  template_meta <- resolve_get_template_meta(template_path)
+  template_path <- nlss_freeze_template(template_path, "parameters")
+  template_meta <- get_template_meta(template_path)
   table_result <- build_sem_table_body(param_df, digits, template_meta$table)
   nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
 
@@ -1347,7 +1029,7 @@ main <- function() {
   )
 
   nlss_report_path <- file.path(out_dir, "report_canonical.md")
-  resolve_append_nlss_report(
+  nlss_stage_report(
     nlss_report_path,
     analysis_label,
     nlss_table,
@@ -1379,39 +1061,32 @@ main <- function() {
     template_context = template_context
   )
 
+  if (nrow(output$supplementary_params_df)) {
+    supplementary <- build_sem_table_body(output$supplementary_params_df, digits, template_meta$table)
+    nlss_stage_report(nlss_report_path, "SEM (Variances, intercepts and thresholds)",
+      paste0("Table 1\n\n", supplementary$body),
+      "These parameters belong to the same fitted model; unavailable cells are not zero estimates.",
+      template_path = template_path, template_context = list(tokens = list(
+        table_body = supplementary$body, note_default = note_tokens$note_default,
+        narrative_default = "Additional parameters of the same fitted model.")))
+  }
+
   cat("Wrote:\n")
   cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
-  modindices_df <- NULL
-  if (!is.na(modindices_cutoff) && modindices_cutoff > 0) {
-    modindices_df <- tryCatch(
-      lavaan::modindices(fit, sort. = TRUE, minimum.value = modindices_cutoff),
-      error = function(e) NULL
-    )
-  }
+  modindices_df <- output$modindices_df
+  residuals_info <- output$residuals_output
+  results <- c(list(status = "ok", analysis = analysis), output, audit)
+  nlss_set_result(results)
 
-  residuals_info <- NULL
-  if (isTRUE(residuals_flag)) {
-    residuals_info <- tryCatch(lavaan::residuals(fit, type = "standardized"), error = function(e) NULL)
-  }
-
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+  if (parse_bool(opts[["log"]], default = log_default)) {
+    ctx <- get_run_context()
+    nlss_stage_log(
       out_dir,
       module = "sem",
       prompt = ctx$prompt,
       commands = ctx$commands,
-        results = list(
-          status = "ok",
-          analysis = analysis,
-          n = n_obs,
-          fit = fit_values,
-          params_df = param_df,
-          r2_df = r2_df,
-          params = list(rows = nrow(param_df)),
-          modindices = if (!is.null(modindices_df)) nrow(modindices_df) else 0
-        ),
+      results = results,
       options = list(
         analysis = analysis,
         estimator = estimator,
@@ -1426,15 +1101,16 @@ main <- function() {
         group_equal = group_equal,
         bootstrap = bootstrap,
         bootstrap_samples = bootstrap_samples,
+        seed = seed,
         model = model_syntax,
         modindices_cutoff = modindices_cutoff,
         residuals = residuals_flag,
         modindices = modindices_df,
         residuals_output = residuals_info
       ),
-      user_prompt = resolve_get_user_prompt(opts)
+      user_prompt = get_user_prompt(opts)
     )
   }
 }
 
-main()
+nlss_run_main("sem", main)

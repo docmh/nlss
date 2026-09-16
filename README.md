@@ -1,1027 +1,397 @@
 # NLSS — Natural Language Statistics Suite
 
-**NLSS helps researchers run statistical analyses through natural language conversations with an AI coding agent.**
+**Ask research questions in your own words. Run established statistics in R.
+Keep the evidence.**
 
-You describe what you want in plain English; NLSS handles the R scripts, produces well-formatted tables, and logs everything for reproducibility.
+NLSS turns your local AI coding agent into a statistical research assistant.
+Describe your study, discuss an analysis, inspect the results, and develop a
+scientific report through conversation.
 
----
+Built for researchers in **psychology, the social sciences, and economics**,
+NLSS combines an agent that understands context and conversation with an R
+backend that executes explicit statistical procedures. You remain the
+researcher: consequential choices are discussed, assumptions stay visible,
+and interpretations can be checked against the actual results.
 
-## Table of Contents
+> “These questionnaire items measure well-being. Inspect their coding and
+> missing values, assess the scale, and help me test whether well-being differs
+> between the groups. Explain effect sizes and uncertainty alongside p-values.”
 
-- [Quick Start (5 minutes)](#quick-start-5-minutes)
-- [What NLSS Does](#what-nlss-does)
-- [Glossary](#glossary)
-- **Part I — Installation**
-  - [Step 1: Install an IDE](#step-1-install-an-ide)
-  - [Step 2: Install a Coding Agent](#step-2-install-a-coding-agent)
-  - [Step 3: Install R](#step-3-install-r)
-  - [Step 4: Install R Packages](#step-4-install-r-packages)
-  - [Step 5: Install NLSS](#step-5-install-nlss)
-  - [Step 6: Verify Everything Works](#step-6-verify-everything-works)
-- **Part II — Using NLSS**
-  - [Your First Analysis](#your-first-analysis)
-  - [Understanding the Workspace](#understanding-the-workspace)
-  - [Example Prompts](#example-prompts)
-  - [Available Analyses](#available-analyses)
-  - [Tips for Best Results](#tips-for-best-results)
-- **Part III — Configuration & Customization**
-  - [Configuration File](#configuration-file)
-  - [Templates](#templates)
-  - [Logging](#logging)
-- **Part IV — For Developers**
-  - [Architecture](#architecture)
-  - [Module Reference](#module-reference)
-  - [Testing](#testing)
-  - [Contributing](#contributing)
-- [Troubleshooting](#troubleshooting)
-- [License & Legal](#license--legal)
+Begin with a question like this, refine the analysis together, and ask
+“Why that method?” or “What does this mean for my hypothesis?” at any point.
 
----
+[Get started](#get-started) · [Analyses](#what-you-can-analyze) ·
+[Your data and results](#your-data-and-results) · [Reports](#reports-that-understand-your-study) ·
+[Installation guide](references/installation.md) ·
+[Changelog](https://github.com/docmh/nlss/blob/main/CHANGELOG.md)
 
-## Quick Start (5 minutes)
+## Why Work With NLSS?
 
-Already have VS Code, a coding agent (Codex or Claude Code), and R installed? Here's the fastest path:
+- **A conversation, backed by R.** The agent interprets your intention and
+  explains findings; established R procedures calculate the statistics.
+  Methods, options and diagnostic results are inspectable.
+- **A familiar evidence trail.** A cumulative analysis protocol in Markdown
+  grows as you work, with tables, diagnostics and links to figures. It is
+  available by default in your project folder.
+- **Your project stays yours.** Work in an ordinary research folder. Original
+  datasets stay untouched; working data and authored reports remain visible
+  and accessible in your own tools.
+- **Reports grounded in your study.** Supply study context, discuss
+  competing explanations, compare selected findings, or request a full report.
+  The agent shapes the report around your question, evidence and audience.
+- **A record you can return to.** Saved runs retain inputs, settings, results
+  and artifacts. Delivered report revisions link the evidence used.
+  Verification and supported replay are explicit operations.
 
-### 1. Install R packages (one time)
+## Get Started
 
-Open **R** — from your Start menu (Windows), Applications folder (macOS), or terminal (Linux: type `R`) — and paste:
+You need a **local agent that can read files and run commands**, access to an
+appropriate model, and **R available as `Rscript` in that agent's environment**.
+NLSS runs through a terminal or an IDE; its runtime is R. Your chosen agent
+may have additional prerequisites.
 
-```r
-install.packages(c("arrow","car","curl","DHARMa","emmeans","foreign","ggplot2","haven","influence.ME","jsonlite","lavaan","lme4","lmerTest","mice","MVN","performance","psych","pwr","semPower","VIM","viridisLite","yaml"))
+### 1. Give Your Agent the Repository Link
+
+> “Install NLSS from https://github.com/docmh/nlss for this agent.
+> Follow its installation guide and ask before installing missing software.”
+
+The [installation guide](references/installation.md) explains how to select a
+release and the appropriate plugin or standalone skill. Install once for your
+chosen agent and reuse that installation across research projects. Start a new
+session when prompted.
+
+**Current Release: [2.0.0](https://github.com/docmh/nlss/releases/tag/v2.0.0).**
+Follow the installation guide to select the matching plugin or standalone-skill
+package. [All Releases](https://github.com/docmh/nlss/releases)
+
+### 2. Open Your Research Folder and Ask a Question
+
+> “Use NLSS with `survey.sav`. Describe the sample and show me missing values
+> for the variables we need to test H1.”
+
+NLSS supports **CSV, SAV (`.sav`), RDS, RData and Parquet**. The agent handles
+project initialization and import, preserving the original and creating a
+separate working dataset. It creates the required project infrastructure and
+handles format conversion, asking you about consequential ambiguities.
+
+R packages are checked **when the selected operation needs them**. The agent
+asks before installing missing requirements, keeping setup focused on the
+packages needed for your selected analysis.
+
+### 3. Inspect and Discuss Your Results
+
+Keep **`report_canonical.md` in your project root** open while working. Ask for
+a figure, an explanation, another analysis, or a report at the depth you need.
+
+To explore NLSS with sample data, ask:
+
+> “Run the NLSS demo in a separate folder to show me what it can do.”
+
+The release includes sample data. Power planning also supports direct entry of
+design parameters and effect sizes.
+
+### Choose Your Agent
+
+| Environment | NLSS Delivery |
+| --- | --- |
+| Codex CLI and supported local desktop | Plugin |
+| Codex IDE extension | Standalone skill |
+| Claude Code | Plugin; standalone fallback available |
+| VS Code with GitHub Copilot | Plugin through local plugin registration |
+| Google Antigravity | Plugin through the selected CLI or desktop route |
+| Mistral Vibe Code | Standalone skill |
+
+These routes share **one set of scientific instructions and R code**. Local
+Linux workflows have been exercised; Antigravity has documented limitations.
+Codex IDE/App checks were limited activation checks. Native Windows/macOS routes
+are prepared, with live verification pending. The [exact support matrix](references/installation.md#acceptance-status--16-september-2026)
+records tested versions, routes and limitations.
+
+## What Research With NLSS Looks Like
+
+Start with your design and the question, then build the analysis through
+conversation. The agent selects the relevant NLSS procedures with you.
+
+| Your Question | A Useful Next Request |
+| --- | --- |
+| “What is in this dataset?” | “Show variable labels, coding, distributions and missingness.” |
+| “Does the outcome differ between conditions?” | “Account for the design, report effect sizes and confidence intervals, and check the relevant assumptions.” |
+| “Do these items form a defensible scale?” | “Check coding and dimensionality; distinguish reliability from validity.” |
+| “Does adding these predictors help?” | “Compare the selected models and make differences in analyzed samples explicit.” |
+| “What can I conclude?” | “Explain the finding in the context of the design, including alternative explanations and limitations.” |
+| “I need to write this up.” | “Draft a Results section from these analyses, using my study description.” |
+
+Give the agent any relevant study document, hypotheses or source literature.
+A file such as `research_note.md` is an ordinary study document; you choose its
+name and contents. Be explicit about consequential choices such as variable
+roles, score construction and missing-data handling.
+
+## What You Can Analyze
+
+Choose procedures that fit your study design. The method references give exact
+options, assumptions and supported variants.
+
+| Area | Procedures and References |
+| --- | --- |
+| Get to know the data | [Descriptive statistics](references/subskills/descriptive-stats.md), [frequencies](references/subskills/frequencies.md), [cross-tabulations](references/subskills/crosstabs.md), [data explorer](references/subskills/data-explorer.md) |
+| Relationships and group differences | [Correlations](references/subskills/correlations.md) including partial/group comparisons; [t-tests](references/subskills/t-test.md); [ANOVA/ANCOVA](references/subskills/anova.md) including repeated-measures designs; [rank-based tests](references/subskills/nonparametric.md) |
+| Statistical models | [Linear/logistic/Poisson regression](references/subskills/regression.md), [linear mixed models](references/subskills/mixed-models.md), [SEM/CFA, mediation and invariance](references/subskills/sem.md) |
+| Psychometric instruments | [EFA/PCA](references/subskills/efa.md), [scale analysis](references/subskills/scale.md) including alpha/omega, [ICC/kappa/test-retest reliability](references/subskills/reliability.md) |
+| Prepare and scrutinize data | [Transformations](references/subskills/data-transform.md), [missingness](references/subskills/missings.md), [imputation](references/subskills/impute.md), [assumption checks](references/subskills/assumptions.md) |
+| Multiple-imputation inference | [Pooled regression](references/subskills/mi-regression.md) for supported Gaussian, binomial and Poisson models from preserved mice imputations |
+| Plan and communicate | [Power analysis](references/subskills/power.md), including dataset-free planning; [figures](references/subskills/plot.md), with nine plot types |
+
+Repeated-measures ANOVA uses the documented sequential `aov(Error(...))`
+approach; mixed models offer a separate modeling route. For multiple-imputation
+inference, use the pooled-regression procedure with preserved imputation sets.
+A single completed or averaged dataset does not provide pooled inference.
+Consult the linked references for the scope of each method.
+
+### Research Workflows
+
+NLSS also guides [sample descriptions](references/metaskills/describe-sample.md),
+[data exploration](references/metaskills/explore-data.md),
+[screening](references/metaskills/screen-data.md),
+[preparation](references/metaskills/prepare-data.md),
+[assumption checking](references/metaskills/check-assumptions.md),
+[hypothesis testing](references/metaskills/test-hypotheses.md),
+[instrument assessment](references/metaskills/check-instruments.md) and
+[power planning](references/metaskills/plan-power.md).
+
+For writing and understanding, use ordinary requests for
+[result interpretation](references/metaskills/explain-results.md),
+[statistical explanations](references/metaskills/explain-statistics.md),
+[full reports](references/metaskills/write-full-report.md), or
+[document formatting](references/metaskills/format-document.md).
+[The demo](references/metaskills/run-demo.md) introduces the workflow.
+[Custom R generation](references/metaskills/generate-r-script.md) is an
+explicitly approved last resort for work outside existing procedure coverage.
+
+Utilities cover [calculations](references/utilities/calc.md),
+[literature retrieval](references/utilities/research-academia.md),
+[project setup](references/utilities/project-create.md),
+[inspection](references/utilities/project-inspect.md),
+[report preservation](references/utilities/project-report.md) and
+[verified replay](references/utilities/replay-run.md).
+Historical [log checks](references/utilities/check-integrity.md) and
+[report reconstruction](references/utilities/reconstruct-reports.md) remain
+available for their documented historical inputs.
+
+## Your Data and Results
+
+An NLSS project is your research folder with two **required infrastructure
+components**, created and managed by NLSS:
+
+- **`nlss-workspace.yml`** identifies the project and registers its datasets
+  and working-data paths.
+- **`.nlss/`** stores preserved data versions, analysis runs, artifacts and
+  report evidence used for traceability and replay.
+
+**Both are necessary for NLSS's project workflow to operate correctly.** Keep
+their names and contents intact, and include both when moving or backing up the
+project. Let NLSS manage them while you work with the visible datasets, protocol
+and reports. Deleting or manually changing this infrastructure can break dataset
+resolution and access to saved evidence.
+
+One example — visible data/report names are your choice:
+
+```text
+my-study/
+  survey.sav                 original source, untouched by NLSS
+  research_note.md           optional study context supplied by you
+  nlss-workspace.yml         required project and dataset registration
+  data/
+    survey_working.parquet   visible, editable working data
+  report_canonical.md        automatic cumulative analysis protocol
+  Study-report.md            optional, freely authored report
+  .nlss/                     required data versions, runs and report evidence
 ```
 
-### 2. Install NLSS
+- **Originals and working data are separate.** Registered working data remain
+  outside `.nlss/`; you can inspect or edit them with suitable tools. Source
+  bytes and analysis-input versions are preserved for the recorded evidence.
+- **Import meaning matters.** Shared readers handle variable/value labels and
+  user-defined missing values consistently; CSV has explicit encoding, decimal,
+  column-type and missing-value options. Measurement levels are selected as
+  analytical decisions. See the [import contract](references/import-contract.md).
+- **The protocol is always available after execution.** Runs write numerical
+  results, deterministic Markdown and figures through the shared publisher,
+  which automatically extends the root protocol.
+- **Browse before rerunning.** Ask “Show the saved results in this project.”
+  Inspection provides a read-only view linking data, runs and reports, with
+  explicit labels for missing or incomplete evidence. Verification and replay
+  are available as separate, requested operations.
+- **Keep the whole project together.** Relative references allow moving the
+  project as a whole. Keep individual registered files at their recorded paths
+  so NLSS can resolve them reliably. Identical evidence bytes share storage objects.
 
-**Codex users:** Tell your agent:
-> "Install NLSS from https://github.com/docmh/nlss.git using $skill-installer"
+Each statistical run has `request.json`, `result.json` and `output.md` beneath
+`.nlss/runs/`; figures stay with that run. Authored-report revisions link their
+selected evidence separately.
 
-**Claude Code users:** Download the [NLSS ZIP](https://github.com/docmh/nlss), extract it, and move the `nlss` folder to:
-- Windows: `%USERPROFILE%\.claude\skills\nlss`
-- macOS/Linux: `~/.claude/skills/nlss`
+**Coming from an older NLSS project?** Version 2 uses a different project
+layout and does not convert older project folders. Begin a new project from a
+deliberately selected source dataset, keeping
+the old project, its history and its original software together for reference.
+Review the [breaking changes and numerical corrections](https://github.com/docmh/nlss/blob/main/CHANGELOG.md)
+before comparing old and new results.
 
-### 3. Try it
+## Reports That Understand Your Study
 
-Restart your agent, then say:
-> "Run the NLSS demo to show me what it can do."
+The automatic protocol answers **“What was run, and what did R return?”**
+A scientific report also asks **“What does that mean for this study?”**
 
-That's it! For detailed instructions, continue reading below.
+NLSS keeps those responsibilities distinct. You can request a short answer,
+a Methods or Results section, a comparison of selected models, or a full
+research report. The agent considers your design, instruments, hypotheses,
+sampling, uncertainty and limitations. It checks numerical claims against the
+actual evidence and makes missing study details or diagnostic results explicit.
 
----
+Reports are **freely authored, editable Markdown** with NLSS/APA-inspired
+presentation, organized for your question and audience.
+When you request a delivered report, it is preserved as a revision alongside
+references to the analysis evidence used. Follow-up explanations draw on existing
+results; you choose when to request another analysis or saved revision.
 
-## What NLSS Does
+When literature research is needed, the agent must actively search, read and
+assess sources, prioritizing established citable scholarship, current reviews
+and meta-analyses, and well-executed relevant primary studies: **quality first,
+quantity second**. The depth of the search follows the question, and adequate
+supplied literature can be reused. Source appraisal guides the selection.
+[Literature guidance](references/utilities/research-academia.md#agentic-literature-research-required)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  YOU (Senior Researcher)                                            │
-│  "Run descriptive stats for age and score, grouped by condition"    │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  AI AGENT (Assistant Researcher)                                    │
-│  • Understands your request                                         │
-│  • Runs the appropriate R scripts                                   │
-│  • Asks clarifying questions if needed                              │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  NLSS OUTPUTS                                                       │
-│  • report_canonical.md    → Human-readable tables & narrative       │
-│  • analysis_log.jsonl     → Machine-readable audit log              │
-│  • plots/                 → Well-formatted figures               │
-│  • Full reports           → Journal-style write-ups                 │
-└─────────────────────────────────────────────────────────────────────┘
-```
+Bring your own edits back for discussion. Formatting preserves scientific
+meaning, while you remain responsible for reviewing the interpretation and
+conclusions. LaTeX with an APA 7 template is a potential future presentation option.
 
-**NLSS is packaged as an Agent Skill** following the open [Agent Skills standard](https://agentskills.io/specification). Your AI agent reads `SKILL.md` to discover what NLSS can do.
+## Installation Instructions for Agents
 
----
+For an installation request, read **[Installation and maintenance](references/installation.md)**
+and follow the route for the user's actual harness and environment. Resolve a
+published release, retain its exact version, check its assets, and use the
+existing native manager or standalone installer. Install one selected route per
+harness at a stable location shared across the user's research projects.
 
-## Glossary
+The guide is the single installation authority and covers permissions,
+dependencies, updates, removal and rollback. If required assets are unavailable,
+report that and ask the user how to proceed. An installation request covers
+installation; project creation and analysis follow the user's research request.
 
-New to NLSS? Here are the key terms:
+For research work, use the installed [SKILL.md](SKILL.md). For development,
+read [AGENTS.md](AGENTS.md). These public documents provide the onboarding guidance.
 
-| Term | What it means |
-|------|---------------|
-| **Workspace** | A folder where NLSS stores your data, reports, and logs. Created automatically when you analyze a dataset. |
-| **Parquet** | A fast, efficient file format. NLSS converts your data (CSV, SPSS, etc.) to Parquet for faster analysis. |
-| **Subskill** | A single analysis module (e.g., `descriptive-stats`, `t-test`, `regression`). |
-| **Metaskill** | A multi-step workflow that chains subskills together (e.g., `write-full-report`). |
-| **Agent** | The AI assistant (Codex or Claude Code) that interprets your requests and runs NLSS. |
-| **IDE** | Integrated Development Environment — the app where you write code and talk to the agent (e.g., VS Code, Cursor). |
-| **Skill** | A plugin that teaches an AI agent new capabilities. NLSS is a skill. |
+## Advanced Use and Customization
 
----
+Researchers can use natural language throughout. For scripts or troubleshooting,
+the same operations are available through the existing launcher:
 
-# Part I — Installation
-
-This guide walks you through setup step by step. Each step has **GUI instructions** (point-and-click) with terminal alternatives for those who prefer them.
-
-## Installation Overview
-
-```
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│   Step 1     │    │   Step 2     │    │   Step 3     │    │   Step 4     │    │   Step 5     │
-│  Install     │  → │  Install     │  → │  Install     │  → │  Install R   │  → │  Install     │
-│  an IDE      │    │  an Agent    │    │  R           │    │  Packages    │    │  NLSS        │
-└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
-       ↓                   ↓                   ↓                   ↓                   ↓
-   VS Code or          Codex or           Download            Open R and         Copy folder
-   Cursor              Claude Code        from CRAN           paste command      to skills dir
-```
-
----
-
-## Step 1: Install an IDE
-
-An IDE is where you'll interact with the AI agent. Choose one:
-
-### Option A: Visual Studio Code (Recommended for beginners)
-
-**Windows / macOS:**
-1. Go to [code.visualstudio.com](https://code.visualstudio.com/)
-2. Click the big **Download** button
-3. Run the installer and follow the prompts
-4. Launch VS Code when done
-
-**Linux:**
-1. Go to [code.visualstudio.com](https://code.visualstudio.com/)
-2. Download the `.deb` (Ubuntu/Debian) or `.rpm` (Fedora/RHEL) package
-3. Install via your package manager or double-click the file
-4. Or use Snap: `sudo snap install code --classic`
-
-### Option B: Cursor
-
-1. Go to [cursor.com](https://www.cursor.com/)
-2. Download the installer for your platform (Windows, macOS, or Linux AppImage)
-3. Run the installer or make the AppImage executable and run it
-4. Cursor has AI built-in, but you'll still need to configure it for NLSS
-
----
-
-## Step 2: Install a Coding Agent
-
-The coding agent is the AI that understands your requests and runs NLSS. Choose one:
-
-### Option A: OpenAI Codex
-
-1. Go to [Codex download page](https://developers.openai.com/codex/)
-2. Follow the installation instructions for your platform
-3. Open VS Code — Codex will appear in the sidebar
-
-**Recommended settings for NLSS:**
-- Use **Agent mode** (not Chat mode)
-- Enable **Auto context**
-- Use **GPT-5.2-Codex** model
-- Set reasoning effort to **Medium** or **High** for better reports
-
-<details>
-<summary>Detailed Codex configuration</summary>
-
-Codex exposes controls in the bottom bar. For NLSS:
-
-- **Mode:** Agent (so it can edit files and run commands)
-- **Reasoning effort:** Medium or High for statistics-heavy tasks
-- **Network access:** Required for the `research-academia` utility. Enable via UI toggle, or add to your `config.toml`:
-
-  ```toml
-  [sandbox_workspace_write]
-  network_access = true
-  ```
-
-See [Codex docs](https://developers.openai.com/codex/ide) for details.
-
-</details>
-
-### Option B: Anthropic Claude Code
-
-1. Go to [Claude Code overview](https://docs.claude.com/en/docs/claude-code/overview)
-2. Follow the installation instructions
-3. Claude Code runs in your terminal or integrates with VS Code
-
-**Recommended settings for NLSS:**
-- Use **Opus 4.5** for best results (Sonnet 4.5 also works)
-- Run `/config` to see settings, `/model` to switch models
-
-<details>
-<summary>Detailed Claude Code configuration</summary>
-
-In Claude Code's interactive mode:
-- `/config` — Opens settings interface
-- `/model` — Switch between models
-- `/status` — Shows current model
-
-Settings are stored in `~/.claude/settings.json` (user) and `.claude/settings.json` (project).
-
-See [Claude Code settings docs](https://docs.claude.com/en/docs/claude-code/settings) for details.
-
-</details>
-
----
-
-## Step 3: Install R
-
-R is the statistical engine that powers NLSS. You don't need to know R — the agent handles it.
-
-### Windows
-
-1. Go to [CRAN R for Windows](https://cran.r-project.org/bin/windows/base/)
-2. Click **"Download R-4.x.x for Windows"**
-3. Run the installer
-4. **Important:** When prompted, choose **"Yes"** to modify the PATH (this lets NLSS find R)
-
-> **Note:** If the installer doesn't offer a PATH option, you may need to add it manually. See [Troubleshooting](#rscript-is-not-recognized-windows).
-
-### macOS
-
-1. Go to [CRAN R for macOS](https://cran.r-project.org/bin/macosx/)
-2. Download the `.pkg` file for your Mac (Apple Silicon or Intel)
-3. Double-click to install
-4. R is automatically added to your PATH
-
-### Linux
-
-**Ubuntu / Debian:**
-```bash
-sudo apt update
-sudo apt install r-base
+```text
+Rscript "<installed-skill>/scripts/R/run_nlss.R" project-create --project "<study folder>" --source "<source file>"
+Rscript "<installed-skill>/scripts/R/run_nlss.R" descriptive-stats --project "<study folder>" --dataset "<returned name>" --vars age,score
+Rscript "<installed-skill>/scripts/R/run_nlss.R" project-inspect --project "<study folder>"
 ```
 
-**Fedora:**
-```bash
-sudo dnf install R
-```
-
-**Arch Linux:**
-```bash
-sudo pacman -S r
-```
-
-After installation, verify with: `Rscript --version`
-
----
-
-## Step 4: Install R Packages
-
-NLSS needs several R packages for statistical analyses. Install them once and you're set.
-
-### The Easy Way (Recommended)
-
-1. Open **R**:
-   - **Windows:** Start menu → search for "R" or "R x64"
-   - **macOS:** Applications folder → R
-   - **Linux:** Open a terminal and type `R`, or find "R" in your applications menu
-2. The R Console will open
-3. Paste this command and press Enter:
-
-```r
-install.packages(c("arrow","car","curl","DHARMa","emmeans","foreign","ggplot2","haven","influence.ME","jsonlite","lavaan","lme4","lmerTest","mice","MVN","performance","psych","pwr","semPower","VIM","viridisLite","yaml"))
-```
-
-4. Wait for installation to complete (may take a few minutes)
-5. You can close R when done
-
-<details>
-<summary>Alternative: Install via terminal</summary>
-
-If you prefer using the terminal:
-
-```bash
-Rscript -e "install.packages(c('arrow','car','curl','DHARMa','emmeans','foreign','ggplot2','haven','influence.ME','jsonlite','lavaan','lme4','lmerTest','mice','MVN','performance','psych','pwr','semPower','VIM','viridisLite','yaml'), repos='https://cloud.r-project.org')"
-```
-
-</details>
-
-<details>
-<summary>Troubleshooting: Package installation fails on Linux</summary>
-
-Some R packages need system libraries. Install the dependencies for your distribution:
-
-**Ubuntu / Debian:**
-```bash
-sudo apt update
-sudo apt install -y libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev
-```
-
-**Fedora:**
-```bash
-sudo dnf install libcurl-devel openssl-devel libxml2-devel fontconfig-devel harfbuzz-devel fribidi-devel freetype-devel libpng-devel libtiff-devel libjpeg-devel
-```
-
-**Arch Linux:**
-```bash
-sudo pacman -S curl openssl libxml2 fontconfig harfbuzz fribidi freetype2 libpng libtiff libjpeg-turbo
-```
-
-Then retry the R package installation.
-
-</details>
-
----
-
-## Step 5: Install NLSS
-
-NLSS is installed as a "skill" that your AI agent can use.
-
-### For Codex Users
-
-**Easiest method:** Ask your agent to install it:
-
-> "$skill-installer Install NLSS from https://github.com/docmh/nlss.git"
-
-**Manual method:**
-
-1. Download NLSS:
-   - Go to [github.com/docmh/nlss](https://github.com/docmh/nlss)
-   - Click the green **Code** button → **Download ZIP**
-
-2. Extract the ZIP file
-
-3. Rename the extracted folder to exactly `nlss`
-
-4. Move the `nlss` folder to your Codex skills directory:
-
-   **Windows:**
-   - Open File Explorer
-   - Type `%USERPROFILE%\.codex\skills` in the address bar and press Enter
-   - If the `skills` folder doesn't exist, create it
-   - Move the `nlss` folder here
-
-   **macOS:**
-   - Open Finder
-   - Press Cmd+Shift+G and type `~/.codex/skills`
-   - If the folder doesn't exist, create it
-   - Move the `nlss` folder here
-
-   **Linux:**
-   - Open your file manager (Files, Nautilus, Dolphin, etc.)
-   - Press Ctrl+L to show the address bar, then type `~/.codex/skills`
-   - Or navigate to your home folder, show hidden files (Ctrl+H), and find/create `.codex/skills`
-   - Move the `nlss` folder here
-
-5. Restart Codex
-
-6. Verify: Type `/skills` in Codex — you should see `nlss` listed
-
-### For Claude Code Users
-
-1. Download NLSS:
-   - Go to [github.com/docmh/nlss](https://github.com/docmh/nlss)
-   - Click the green **Code** button → **Download ZIP**
-
-2. Extract the ZIP file
-
-3. Rename the extracted folder to exactly `nlss`
-
-4. Move the `nlss` folder to your Claude skills directory:
-
-   **Windows:**
-   - Open File Explorer
-   - Type `%USERPROFILE%\.claude\skills` in the address bar and press Enter
-   - If the `skills` folder doesn't exist, create it
-   - Move the `nlss` folder here
-
-   **macOS:**
-   - Open Finder
-   - Press Cmd+Shift+G and type `~/.claude/skills`
-   - If the folder doesn't exist, create it
-   - Move the `nlss` folder here
-
-   **Linux:**
-   - Open your file manager (Files, Nautilus, Dolphin, etc.)
-   - Press Ctrl+L to show the address bar, then type `~/.claude/skills`
-   - Or navigate to your home folder, show hidden files (Ctrl+H), and find/create `.claude/skills`
-   - Move the `nlss` folder here
-
-5. Restart Claude Code
-
-6. Verify: Ask "What skills are available?" — you should see `nlss`
-
-<details>
-<summary>Alternative: Install via terminal (git clone)</summary>
-
-**Codex (macOS/Linux/WSL):**
-```bash
-mkdir -p ~/.codex/skills
-git clone https://github.com/docmh/nlss.git ~/.codex/skills/nlss
-```
-
-**Codex (Windows PowerShell):**
-```powershell
-New-Item -ItemType Directory -Force -Path "$HOME\.codex\skills" | Out-Null
-git clone https://github.com/docmh/nlss.git "$HOME\.codex\skills\nlss"
-```
-
-**Claude Code (macOS/Linux):**
-```bash
-mkdir -p ~/.claude/skills
-git clone https://github.com/docmh/nlss.git ~/.claude/skills/nlss
-```
-
-**Claude Code (Windows PowerShell):**
-```powershell
-New-Item -ItemType Directory -Force -Path "$HOME\.claude\skills" | Out-Null
-git clone https://github.com/docmh/nlss.git "$HOME\.claude\skills\nlss"
-```
-
-</details>
-
----
-
-## Step 6: Verify Everything Works
-
-Let's make sure NLSS is ready to go.
-
-### Quick Check
-
-Ask your agent:
-
-> "Can you run `Rscript --version` and tell me what you see?"
-
-You should get a response showing R version 4.x.x.
-
-### Run the Demo
-
-The best way to verify everything works is to run the built-in demo:
-
-> "Run the NLSS run-demo metaskill to show me what NLSS can do."
-
-The agent will:
-1. Explain the NLSS workflow
-2. Set up a demo workspace with sample data
-3. Run some example analyses
-4. Show you the outputs
-
----
-
-# Part II — Using NLSS
-
-## Your First Analysis
-
-Once NLSS is installed, analyzing data is simple:
-
-### 1. Point to your data
-
-Tell the agent where your data is:
-
-> "Use NLSS to analyze `C:\Users\Me\Documents\my_study.csv`"
-
-Or for SPSS files:
-
-> "Analyze `data/experiment1.sav` with NLSS"
-
-**Supported formats:** CSV, SPSS (.sav), RDS, RData, Parquet
-
-### 2. Describe what you want
-
-Use natural language:
-
-> "Run descriptive statistics for age and income, grouped by gender"
-
-> "Is there a correlation between stress and performance?"
-
-> "Compare test scores between the treatment and control groups"
-
-### 3. Find your results
-
-NLSS creates a workspace folder with your results:
-
-```
-your-project/
-  nlss-workspace/
-    my_study/
-      report_canonical.md    ← Your results are here!
-      analysis_log.jsonl     ← Audit trail
-      plots/                 ← Any figures
-```
-
-**Tip:** Keep `report_canonical.md` open in your editor to watch results appear in real time.
-
----
-
-## Understanding the Workspace
-
-When you first analyze a dataset, NLSS creates a **workspace** — a dedicated folder for that dataset's analyses.
-
-```
-nlss-workspace/                    ← Workspace root
-  nlss-workspace.yml               ← Manifest (tracks all datasets)
-  my_study/                        ← One folder per dataset
-    my_study.parquet               ← Fast copy of your data
-    scratchpad.md                  ← Agent's planning notes
-    report_canonical.md            ← All results (keeps growing)
-    analysis_log.jsonl             ← Machine-readable log
-    plots/                         ← Saved figures
-    backup/                        ← Data backups before changes
-    report_20240115_describe-sample_demographics.md  ← Full reports from metaskills
-```
-
-### Key Files
-
-| File | Purpose |
-|------|---------|
-| `report_canonical.md` | Your main results file. Every analysis appends a new section. Think of it as a lab notebook. |
-| `analysis_log.jsonl` | Machine-readable log of every analysis. Used for reproducibility and integrity checks. |
-| `scratchpad.md` | The agent's working notes. Useful for seeing its reasoning. |
-| `*.parquet` | Your data in a fast format. All analyses read from this copy. |
-
----
-
-## Example Prompts
-
-Copy and paste these to try NLSS:
-
-### Descriptive Statistics
-> "Run descriptive stats for age, income, and satisfaction, grouped by region"
-
-### Comparing Groups
-> "Compare anxiety scores between the treatment and control groups using a t-test"
-
-> "Is there a significant difference in performance across the three training conditions? Use ANOVA."
-
-### Correlations
-> "What's the correlation between hours_studied and exam_score? Use Spearman."
-
-> "Run a correlation matrix for all the personality variables"
-
-### Regression
-> "Predict job_satisfaction from salary, work_hours, and commute_time"
-
-> "Run a hierarchical regression: first demographics, then add personality traits"
-
-### Frequencies and Cross-tabs
-> "Show me the frequency distribution for education_level"
-
-> "Create a crosstab of gender by department with chi-square test"
-
-### Factor Analysis
-> "Run exploratory factor analysis on items q1 through q20"
-
-### Full Workflows
-> "Describe my sample demographics for a methods section"
-
-> "Check all assumptions for running a regression predicting outcome from predictors A, B, and C"
-
-> "Write a full report testing whether condition affects performance, controlling for age"
-
----
-
-## Available Analyses
-
-### Subskills (Single Analyses)
-
-| Analysis | What it does | Example prompt |
-|----------|--------------|----------------|
-| `descriptive-stats` | Means, SDs, distributions | "Descriptive stats for age and score" |
-| `frequencies` | Frequency tables | "Frequencies for gender and education" |
-| `crosstabs` | Cross-tabulations with chi² | "Crosstab of gender by condition" |
-| `correlations` | Pearson, Spearman, partial | "Correlate stress with performance" |
-| `t-test` | Group comparisons | "Compare scores between groups" |
-| `anova` | Multi-group comparisons | "ANOVA for outcome by condition" |
-| `nonparametric` | Mann-Whitney, Kruskal-Wallis | "Non-parametric comparison" |
-| `regression` | Linear/logistic regression | "Predict Y from X1, X2, X3" |
-| `mixed-models` | Multilevel/repeated measures | "Mixed model with random intercepts" |
-| `sem` | SEM, CFA, mediation | "CFA for my scale items" |
-| `efa` | Exploratory factor analysis | "Factor analysis on survey items" |
-| `scale` | Reliability (alpha, omega) | "Reliability for scale items" |
-| `reliability` | ICC, kappa | "Inter-rater reliability" |
-| `power` | Power analysis | "Power for detecting medium effect" |
-| `assumptions` | Check statistical assumptions | "Check regression assumptions" |
-| `plot` | Create figures | "Scatter plot of X vs Y" |
-| `missings` | Missing data analysis | "Analyze missing data patterns" |
-| `impute` | Imputation | "Impute missing values" |
-| `data-transform` | Recode, compute, standardize | "Create a mean score variable" |
-| `data-explorer` | Data dictionary | "Show me what's in this dataset" |
-
-### Metaskills (Workflows)
-
-| Workflow | What it does |
-|----------|--------------|
-| `run-demo` | Guided onboarding with sample data |
-| `describe-sample` | Write a sample description for methods section |
-| `explore-data` | Comprehensive data exploration |
-| `screen-data` | Data quality checks and diagnostics |
-| `prepare-data` | Data cleaning and transformation workflow |
-| `check-assumptions` | Verify assumptions for planned analyses |
-| `test-hypotheses` | Run and interpret hypothesis tests |
-| `write-full-report` | Complete analysis with journal-style report |
-| `explain-statistics` | Plain-language stats explanations |
-| `explain-results` | Help interpreting NLSS output |
-| `check-instruments` | Psychometric analysis of scales |
-| `plan-power` | Power analysis planning |
-| `format-document` | Format text in NLSS style |
-| `generate-r-script` | Create standalone R script from analyses |
-
-### Utilities
-
-| Utility | What it does |
-|---------|--------------|
-| `calc` | Quick statistical calculations |
-| `research-academia` | Search scholarly literature (requires network) |
-| `check-integrity` | Verify log integrity |
-| `reconstruct-reports` | Rebuild reports from logs |
-
----
-
-## Tips for Best Results
-
-### Be Specific
-Instead of: "Analyze my data"
-Say: "Run descriptive statistics for age, income, and satisfaction, grouped by gender"
-
-### Name Your Variables
-Instead of: "Compare the groups"
-Say: "Compare anxiety_score between the treatment and control conditions"
-
-### Ask for Interpretation
-Add: "...and interpret the results" to get plain-language explanations.
-
-### Use Metaskills for Complex Tasks
-Instead of running analyses one by one, use:
-> "Use the write-full-report metaskill to test whether training_type affects performance"
-
-### Keep report_canonical.md Open
-Watch results appear in real time and catch any issues immediately.
-
-### Ask Questions
-The agent can explain what it's doing:
-> "Explain why you chose that test"
-> "What assumptions should I check?"
-
----
-
-# Part III — Configuration & Customization
-
-## Configuration File
-
-NLSS settings live in `scripts/config.yml`. Key sections:
+Use the dataset name returned by project creation. For a selected operation,
+`--help` lists its options; procedure references document statistical choices.
+Use the launcher with quoted paths for installed operations, including replay.
+The standalone installation helper is the documented exception.
+
+### Configuration and Output Formatting
+
+Defaults and their validated types live in `scripts/config.yml`. Keep personal
+overrides outside the installation and set `NLSS_CONFIG_PATH` to that YAML file;
+CLI options take precedence. For example:
 
 ```yaml
 defaults:
-  output_dir: "./nlss-workspace"    # Where workspaces are created
-  digits: 2                          # Decimal places in output
-
-logging:
-  enabled: true                      # Log all analyses
-  include_outputs: true              # Store output in logs (enables recovery)
-
+  digits: 3
 modules:
   crosstabs:
-    percent: "column"                # Default percentage type
-  regression:
-    bootstrap: false                 # Bootstrap CIs off by default
+    percent: "column"
 ```
 
-CLI flags override config settings for individual runs.
-
-## Templates
-
-Output formatting is controlled by templates in `assets/<subskill>/`. Each template is a Markdown file with YAML front matter.
-
-To customize output:
-1. Copy an existing template (e.g., `assets/descriptive-stats/default-template.md`)
-2. Modify the formatting
-3. Either replace the original or register your template in `config.yml`
-
-## Logging
-
-Every analysis is logged to `analysis_log.jsonl` with:
-- Timestamp
-- Parameters used
-- Results (if `include_outputs: true`)
-- Checksums for integrity verification
-
-Use `check-integrity` to verify logs haven't been modified.
-Use `reconstruct-reports` to rebuild `report_canonical.md` from logs.
-
----
-
-# Part IV — For Developers
-
-## Architecture
-
-NLSS follows the [Agent Skills standard](https://agentskills.io/specification):
-
-```
-nlss/
-  SKILL.md                 ← Entry point for agents
-  scripts/
-    R/                     ← R analysis scripts
-    config.yml             ← Configuration
-  assets/                  ← Templates and sample data
-  references/
-    subskills/             ← Documentation for each analysis
-    metaskills/            ← Documentation for workflows
-    utilities/             ← Documentation for utilities
-  tests/                   ← Test suite
-```
-
-### Stateful Workspace Architecture
-
-- Workspace root detected by `nlss-workspace.yml` (current dir, parent, or child)
-- All data converted to Parquet for fast I/O
-- `data-transform` and `missings` update data in place with automatic backups
-- Non-nested workspaces enforced
-
-### Path Handling
-
-- Paths inside workspace: shown as relative
-- Paths outside workspace: masked as `<external>/<filename>`
-
-## Module Reference
-
-### Subskills (R Scripts)
-
-Each subskill has:
-- **Script:** `scripts/R/<name>.R`
-- **Reference:** `references/subskills/<name>.md`
-- **Template(s):** `assets/<name>/*.md`
-
-| Subskill | Script | Templates |
-|----------|--------|-----------|
-| `descriptive-stats` | `descriptive_stats.R` | default, robust, distribution |
-| `frequencies` | `frequencies.R` | default, grouped |
-| `crosstabs` | `crosstabs.R` | default, grouped |
-| `correlations` | `correlations.R` | default, cross-correlation, matrix, comparison |
-| `scale` | `scale.R` | default |
-| `efa` | `efa.R` | default |
-| `reliability` | `reliability.R` | default |
-| `data-explorer` | `data_explorer.R` | default |
-| `plot` | `plot.R` | default |
-| `data-transform` | `data_transform.R` | default |
-| `missings` | `missings.R` | default |
-| `impute` | `impute.R` | default |
-| `assumptions` | `assumptions.R` | ttest, anova, regression, mixed-models, sem |
-| `regression` | `regression.R` | default |
-| `power` | `power.R` | default |
-| `mixed-models` | `mixed_models.R` | default, emmeans |
-| `sem` | `sem.R` | default, cfa, mediation, invariance |
-| `anova` | `anova.R` | default, posthoc, contrasts |
-| `t-test` | `t_test.R` | default |
-| `nonparametric` | `nonparametric.R` | default, posthoc |
-| `init-workspace` | `init_workspace.R` | default |
-| `metaskill-runner` | `metaskill_runner.R` | default, finalization |
-
-### Metaskills
-
-Metaskills are agent-run workflows documented in `references/metaskills/`. They chain subskills and produce comprehensive reports.
-
-Metaskill completion writes:
-1. `report_<YYYYMMDD>_<metaskill>_<intent>.md` — Full report
-2. Synopsis appended to `report_canonical.md` via `metaskill-runner --synopsis`
-
-### CLI Usage Examples
-
-<details>
-<summary>Descriptive Statistics</summary>
-
-```bash
-Rscript scripts/R/descriptive_stats.R \
-  --csv data.csv --vars age,score --group condition
-```
-
-</details>
-
-<details>
-<summary>Correlations</summary>
-
-```bash
-Rscript scripts/R/correlations.R \
-  --csv data.csv --vars age,score,stress --method spearman
-```
-
-</details>
-
-<details>
-<summary>Regression</summary>
-
-```bash
-Rscript scripts/R/regression.R \
-  --csv data.csv --dv outcome --blocks "age,gender;stress,trait"
-```
-
-</details>
-
-<details>
-<summary>ANOVA</summary>
-
-```bash
-Rscript scripts/R/anova.R \
-  --csv data.csv --dv outcome --between group
-```
-
-</details>
-
-<details>
-<summary>SEM/CFA</summary>
-
-```bash
-Rscript scripts/R/sem.R \
-  --csv data.csv --analysis cfa --factors "F1=item1,item2;F2=item3,item4"
-```
-
-</details>
-
-<details>
-<summary>Mixed Models</summary>
-
-```bash
-Rscript scripts/R/mixed_models.R \
-  --csv data.csv --formula "score ~ time + (1|id)"
-```
-
-</details>
-
-See individual reference docs in `references/subskills/` for full CLI options.
-
-## Testing
-
-### Smoke Tests
-
-```bash
-# Unix/WSL
-bash cmdscripts/tests.sh smoke
-
-# Windows PowerShell
-.\cmdscripts\tests.ps1 smoke
-```
-
-Tests read from `tests/tests.yml` and output to `outputs/test-runs/<timestamp>/`.
-
-### Value Tests (Golden Files)
-
-Statistical modules include golden-value tests for numerical correctness:
-
-1. Generate goldens with independent R scripts in `tests/values/`
-2. Compare against `analysis_log.jsonl` outputs
-3. Python checkers in `tests/values/check_<module>_golden.py`
-
-### Prompt Robustness Testing
-
-For batch testing prompts through Codex CLI:
-
-```bash
-# WSL/bash
-./tests/prompt-robustness/run_prompts.sh --cd "/path/to/workspace" --effort medium
-
-# PowerShell
-.\tests\prompt-robustness\run_prompts.ps1 --cd "C:\path\to\workspace" --effort medium
-```
-
-## Contributing
-
-NLSS was developed with AI assistance for drafting and iteration. All changes are curated, reviewed, and tested by the human maintainer.
-
-### Requirements
-
-- R 4.4+
-- `Rscript` on PATH
-- Base R packages: `base`, `stats`, `utils`, `graphics`, `grDevices`, `tools`
-- CRAN packages: `arrow`, `car`, `curl`, `DHARMa`, `emmeans`, `foreign`, `ggplot2`, `haven`, `influence.ME`, `jsonlite`, `lavaan`, `lme4`, `lmerTest`, `mice`, `MVN`, `performance`, `psych`, `pwr`, `semPower`, `VIM`, `viridisLite`, `yaml`
-
----
-
-# Troubleshooting
-
-## "Rscript is not recognized" (Windows)
-
-R's installer doesn't always add `Rscript` to your PATH. Fix it:
-
-1. Find your R installation:
-   - Open **R** from the Start menu
-   - Type `R.home("bin")` and press Enter
-   - Note the path shown (e.g., `C:\Program Files\R\R-4.4.0\bin`)
-
-2. Add to PATH:
-   - Press Windows key, type "environment variables"
-   - Click **Edit the system environment variables**
-   - Click **Environment Variables...**
-   - Under "User variables", select **Path** → **Edit** → **New**
-   - Paste the path from step 1
-   - Click OK three times
-
-3. Restart your IDE
-
-## "Rscript not found" (macOS)
-
-After installing R, restart your terminal or IDE. If still not found:
-
-```bash
-echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-## "Rscript not found" (Linux)
-
-R should be on your PATH after installation. If not:
-
-1. Check if R is installed: `which R` or `whereis R`
-2. If installed but not found, add to your shell config:
-
-   **bash (~/.bashrc):**
-   ```bash
-   echo 'export PATH="/usr/bin:$PATH"' >> ~/.bashrc
-   source ~/.bashrc
-   ```
-
-   **zsh (~/.zshrc):**
-   ```bash
-   echo 'export PATH="/usr/bin:$PATH"' >> ~/.zshrc
-   source ~/.zshrc
-   ```
-
-3. Restart your terminal or IDE
-
-## NLSS skill not showing up
-
-1. Verify the folder structure:
-   ```
-   ~/.codex/skills/nlss/SKILL.md      # Codex
-   ~/.claude/skills/nlss/SKILL.md     # Claude Code
-   ```
-   The `SKILL.md` file must be directly inside the `nlss` folder.
-
-2. Restart your agent completely (not just the conversation)
-
-3. Check for typos in the folder name — it must be exactly `nlss`
-
-## Package installation fails
-
-### Windows
-- Make sure you're running R as Administrator for system-wide installs
-- Or install to user library (R will prompt you)
-
-### macOS
-- Install Xcode Command Line Tools: `xcode-select --install`
-
-### Linux
-- Install system dependencies first (see Step 4)
-
-## Agent can't find my data file
-
-- Use absolute paths:
-  - **Windows:** `C:\Users\Me\Documents\data.csv`
-  - **macOS:** `/Users/me/Documents/data.csv`
-  - **Linux:** `/home/me/Documents/data.csv`
-- Or use relative paths from where the agent is running
-- Check that the file actually exists at that path
-
-## "Network access required" for research-academia
-
-The `research-academia` utility needs internet access. In Codex:
-1. Open settings
-2. Enable network access, or add to `config.toml`:
-   ```toml
-   [sandbox_workspace_write]
-   network_access = true
-   ```
-
-## Results look wrong
-
-1. Check `scratchpad.md` to see the agent's reasoning
-2. Look at `analysis_log.jsonl` for exact parameters used
-3. Ask the agent: "Explain what analysis you ran and why"
-
-## Still stuck?
-
-- Check the detailed reference docs in `references/`
-- Ask the agent: "Help me troubleshoot NLSS"
-- Report issues at [github.com/docmh/nlss/issues](https://github.com/docmh/nlss/issues)
-
----
-
-# License & Legal
-
-## License
-
-NLSS is licensed under the **Apache License, Version 2.0**. See `LICENSE` for details.
-
-## Trademark
-
-NLSS™ is a trademark of Mike Hammes. The Apache License 2.0 does not grant permission to use the NLSS™ name beyond reasonable use to describe origin. See `TRADEMARKS.md`.
-
-## Dependencies
-
-NLSS uses R packages from CRAN installed by the user. No third-party code is bundled.
-
-## Disclaimer
-
-- Provided "AS IS" under Apache-2.0; no warranties
-- Users are responsible for validating results
-- Not intended for safety-critical decisions without independent verification
-- Modified versions may behave differently
-
-## Maintainer
-
-Mike Hammes (mike.hammes@mikehammes.name)
-
-## Cite
-
-If you use NLSS in published research, please cite:
-
-Hammes, M. (2026). docmh/nlss: NLSS [Software]. Zenodo. https://doi.org/10.5281/zenodo.18173833
-
----
-
-**Find detailed testing information at [github.com/docmh/nlss-demo](https://github.com/docmh/nlss-demo)**
+Deterministic analysis tables use the templates in `assets/`. Register a custom
+template through the existing configuration. The LLM independently shapes its
+reports and short answers around the research question.
+
+Saved requests capture execution evidence and supported seeded calculations.
+[Replay](references/utilities/replay-run.md) verifies its required code, inputs
+and environment before recomputing, keeping replay output separate from the
+current working dataset. Provide the recorded R environment for historical
+replay; rerunning with corrected software is a separate analysis.
+
+## Troubleshooting
+
+| Symptom | First Check |
+| --- | --- |
+| The agent cannot find R | Run `Rscript --version` in the agent's environment. Check the actual R installation and PATH; WSL and native Windows are separate environments. Ask before changing host configuration. |
+| Missing or unloadable R package | Use the [dependency resolver](references/utilities/dependency-resolver.md); approve only the required installation/replacements. System libraries or compilers require a separate decision. |
+| NLSS does not appear | Check the selected [installation route](references/installation.md), location and enabled state, then start a new agent session. |
+| A dataset cannot be found | Confirm the selected research folder and source path; use an absolute path to resolve ambiguity. |
+| Literature search is unavailable | Check the selected agent's network permissions and the retrieval service; distinguish supplied sources from a live search. |
+| A result looks unexpected | Inspect the saved request/results and variable coding. Review the analyzed cases, assumptions and method before drawing conclusions. |
+
+If needed, ask “Help me troubleshoot NLSS” or
+[open an issue](https://github.com/docmh/nlss/issues) with the release version,
+environment and a minimal non-sensitive example. Use synthetic or anonymized
+data and redact credentials and private project details before sharing.
+
+## For Developers
+
+NLSS follows the [Agent Skills standard](https://agentskills.io/specification).
+The plugin and standalone skill contain the same R runtime and guidance.
+Statistical procedures use shared execution, import, publication and project
+management infrastructure.
+
+- [SKILL.md](SKILL.md): research workflow and capability reference.
+- [AGENTS.md](AGENTS.md): contribution and implementation conventions.
+- [Run contract](references/run-contract.md), [utility contract](references/utility-contract.md)
+  and [import contract](references/import-contract.md): technical boundaries.
+- [Source tests](https://github.com/docmh/nlss/tree/main/tests) and
+  [test inventory](https://github.com/docmh/nlss/blob/main/tests/tests.yml):
+  source-checkout checks and independent numerical references.
+- [Release checklist](https://github.com/docmh/nlss/blob/main/packaging/RELEASE_CHECKLIST.md):
+  build, versioning and publication. Python 3 is maintainer-only.
+
+From a source checkout, select checks from `tests/tests.yml`. For example,
+`bash cmdscripts/tests.sh phase3` exercises current project contracts;
+`python3 tests/phase5/run_packaging_tests.py --root <test-folder> --keep 0`
+checks packaging and standalone maintenance without personal registrations.
+The documented PowerShell entrypoint supports native Windows test execution;
+live platform verification status is recorded in the installation guide.
+
+Use targeted checks for the changed boundary and retain independent numerical
+coverage. Some historical smoke runners target older project layouts; select
+tests appropriate to the current contract and distinguish setup failures from
+method failures. Tests and detailed references describe their actual scope.
+
+NLSS was developed with AI assistance and maintainer review. Contributions
+should preserve scientific capabilities, transparent evidence and simple use.
+See [contribution guidance](https://github.com/docmh/nlss/blob/main/CONTRIBUTING.md).
+
+## License, Privacy, and Citation
+
+NLSS is licensed under [Apache-2.0](LICENSE); see [NOTICE](NOTICE).
+NLSS™ is a trademark of Mike Hammes; see the
+[trademark notice](https://github.com/docmh/nlss/blob/main/TRADEMARKS.md).
+R packages are installed separately under their own licenses.
+
+Third-party product names and trademarks mentioned here belong to their
+respective owners. They identify compatible tools and formats. NLSS is an
+independently developed project.
+
+R runs locally, but **your chosen agent/model provider may process the context
+you share**. Review its privacy, retention and permission settings before using
+sensitive data. R execution and the agent's data-processing arrangements are
+separate considerations.
+The software is provided without warranties; researchers remain responsible
+for methodological decisions and validation of conclusions.
+
+For publications, cite Mike Hammes, *NLSS — Natural Language Statistics Suite*,
+with the **version actually used** and its release URL. Machine-readable metadata
+are in [CITATION.cff](https://github.com/docmh/nlss/blob/main/CITATION.cff).
+The existing [Zenodo concept DOI](https://doi.org/10.5281/zenodo.18173833)
+identifies the software across archived versions. Cite the specific archived
+version when a corresponding version DOI is available.
+
+Maintainer: Mike Hammes — mike.hammes@mikehammes.name

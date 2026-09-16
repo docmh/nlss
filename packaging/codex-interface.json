@@ -1,0 +1,9 @@
+{
+  "displayName": "NLSS",
+  "shortDescription": "Statistical research with local R",
+  "longDescription": "Analyze researcher-owned data using established R methods, retain auditable evidence, and discuss or write up the findings in context.",
+  "developerName": "Mike Hammes",
+  "category": "Productivity",
+  "capabilities": [],
+  "defaultPrompt": ["Use NLSS to analyze the data in this folder."]
+}

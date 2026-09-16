@@ -1,6 +1,6 @@
 ---
 name: metaskill-runner
-description: Log metaskill activation/finalization (meta name, intent, phase, dataset, notes) to report_canonical.md and analysis_log.jsonl; no analysis is performed.
+description: Log metaskill activation/finalization (meta name, intent, phase, dataset, notes) as explicit utility evidence and in the root protocol; not required for ordinary report delivery.
 license: Apache-2.0
 ---
 
@@ -8,9 +8,21 @@ license: Apache-2.0
 
 ## Overview
 
-Logs the activation or finalization of a metaskill (the agent-run pseudoscript) to the dataset workspace. This subskill does not perform analyses; it records the metaskill name, intent, dataset, and timestamp for traceability.
+Use only when an explicit lifecycle event is wanted, not as a compulsory report workflow.
+For ordinary authored-report delivery use [project-report](../utilities/project-report.md).
+This utility records activation/finalization through the common project publisher. This subskill does not perform analyses; it records the metaskill name, intent, dataset, and timestamp for traceability.
 
 Metaskill specs themselves live under `references/metaskills/`.
+
+Current-project selection uses the common resolver: `--project` wins over the
+invocation directory, and `--dataset` selects registered working data instead of
+the active default. Without either flag, use the nearest ancestor project and
+its active dataset. Invalid explicit selections fail without fallback; a source
+flag cannot be combined with `--dataset`. No old manifest fields or project
+conversion are used. The utility releases its acquired input locks on exit,
+including ordinary errors, but never removes a foreign lock.
+
+Ordinary report delivery still uses `project-report` and does not need this utility.
 
 ## Assistant Researcher Model
 
@@ -20,11 +32,20 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, SAV, or workspace).
 2. Provide the metaskill name (`--meta`), optional phase (`--phase`), and optional intent/notes.
-3. Ensure the metaskill report `report_<YYYYMMDD>_<metaskill>_<intent>.md` exists before finalization; the runner will fail if it is missing.
+3. For explicit finalization, write the substantive UTF-8 report `report_<YYYYMMDD>_<metaskill>_<intent>.md` at the current project root (outside `.nlss/`); standalone input mode retains its dataset output directory. A missing, empty, or invalid-UTF-8 report fails before dataset import. Local and UTC current-date filenames are accepted, with the local date preferred. This utility-specific convention is not required for ordinary report delivery.
 4. Run `scripts/R/metaskill_runner.R`.
-5. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to confirm the activation/finalization log entry.
+5. Use outputs (root `report_canonical.md` and `.nlss/utility-runs/`) to confirm the activation/finalization log entry.
 
 ## Script: `scripts/R/metaskill_runner.R`
+
+### Current project
+
+```bash
+Rscript <path to scripts/R/metaskill_runner.R> --project /path/to/study --dataset sample --meta sample-description
+```
+
+The same invocation works from outside the project or within another project.
+Omit both selectors when running inside the intended project with its active data.
 
 ### CSV Input
 
@@ -47,6 +68,8 @@ Rscript <path to scripts/R/metaskill_runner.R> --interactive
 ### Options
 
 - Defaults are loaded from `scripts/config.yml` (requires R package `yaml`); CLI flags override config values.
+- `--project` selects a current project directory/marker, otherwise nearest-ancestor discovery applies.
+- `--dataset` selects a registered dataset, otherwise the active dataset is used when no source flag is supplied. Explicit data-file input retains its own meaning and uses the selected project's output route.
 - `--meta` sets the metaskill name (required; default: `modules.metaskill_runner.meta_default`).
 - `--phase` records the metaskill phase (for example `activation` or `finalization`; optional).
 - `--intent` records a short intent summary (optional).
@@ -54,9 +77,9 @@ Rscript <path to scripts/R/metaskill_runner.R> --interactive
 - `--synopsis` includes a synopsis section in the finalization report (optional).
 - `--label` overrides the analysis label in the NLSS format report (default: `modules.metaskill_runner.analysis_label`).
 - `--sep` and `--header` use `defaults.csv.sep` and `defaults.csv.header` when omitted.
-- `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
-- `--log` toggles JSONL logging (default: `defaults.log`).
-- `--user-prompt` stores the original AI prompt in the JSONL log (optional).
+- `--template` selects a template key or file path for the lifecycle log. An explicitly missing template is an error; omission uses the configured default. It does not constrain or rewrite the substantive metaskill report.
+- `--log` controls optional standalone logging; current-project evidence/protocol is always published without a parallel JSONL journal.
+- `--user-prompt` stores the original AI prompt in the saved request (optional).
 - `--interactive` prompts for inputs.
 
 ### Parquet Support
@@ -65,13 +88,18 @@ Parquet input/output requires the R package `arrow` (install with `install.packa
 
 ## Outputs
 
-Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills and must exist before logging finalization.
+The common publisher appends the root protocol and saves utility evidence.
+The filename convention above belongs only to this explicit lifecycle utility;
+it is not required for ordinary authored reports saved through `project-report`.
 
-- Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`; not user-overridable).
+- Current projects use `.nlss/utility-runs/` and the root protocol; selection is explicit or via the nearest ancestor marker.
 
 - `report_canonical.md`: NLSS format report containing the activation/finalization log table and narrative.
-- `analysis_log.jsonl`: Machine-readable activation/finalization log entry (appended per run when logging is enabled).
-- Finalization logs include the metaskill report as `metaskill_report_block_b64` for reconstruction and can embed a synopsis in the canonical report when `--synopsis` is provided.
+- Explicit finalization may include a synopsis in the root protocol when requested; it is not a prerequisite for normal report delivery.
+- `.nlss/utility-runs/metaskill_runner-<id>/`: mandatory lifecycle `request.json`, `result.json`, `output.md`, and the selected log template, even with `--log FALSE`. The event binds the exact verified dataset version and explicitly disclaims statistical replay.
+- Finalization additionally preserves the original authored report bytes as `semantic-report.md`, with its SHA-256 in the result and artifact registry. The original file is not modified, including its front matter, line endings, or headings.
+
+Root protocol publication uses the shared publication lock and recovery boundary. Failed publication retains diagnostic evidence without a successful `output.md`; preflight failure appends no success log. Dataset imports, when explicitly requested, retain the separate import-contract commit boundary.
 
 ## NLSS format Templates
 
@@ -103,3 +131,4 @@ Available template tokens include:
 
 - Treat this entry as a traceability log; analyses are reported by the subskills that follow.
 - If the metaskill triggers multiple analyses, keep their statistical details in those subskill outputs.
+- Final reports need semantic interpretation: integrate the research question, design, assumptions, effect estimates, uncertainty, and competing explanations. Neither a lifecycle template nor archived report bytes establish scientific validity. The logger preserves an authored interpretation; it does not regenerate or validate it.

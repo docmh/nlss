@@ -1,6 +1,6 @@
 ---
 name: check-assumptions
-description: Agent-run, model-specific diagnostics (assumptions only) for t-tests, ANOVA, regression, mixed models, or SEM using the assumptions subskill; no inferential tests.
+description: Agent-run model-specific diagnostics for t-tests, ANOVA, regression, mixed models or SEM, followed by contextual interpretation; no substantive hypothesis analysis or data changes.
 license: Apache-2.0
 ---
 
@@ -8,11 +8,14 @@ license: Apache-2.0
 
 ## Overview
 
-This metaskill runs **model-specific** assumptions and diagnostics without executing the inferential test itself. It is used when the user explicitly wants assumption checks (normality, homogeneity, linearity, multicollinearity, influence, etc.) for a specified analysis family. It does **not** modify data or run hypothesis tests.
+This metaskill runs **model-specific** assumptions and diagnostics when the user requests checks for a specified analysis family. Diagnostic tests and the model fits/refits needed to calculate them are in scope; substantive hypothesis testing and data changes are not. Its semantic interpretation is grounded in the recorded diagnostic evidence and research design, not a count of template passes.
 
 ## Assistant Researcher Model
 
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
+Follow the shared [researcher interaction and reporting guidance](../../SKILL.md#semantic-answers-and-authored-reports).
+Match the requested scope; use the analysis workflow below when analysis is
+requested, and write a formal report only when requested. Preserve the scientific
+decisions and permissions described here.
 
 ## Intent/Triggers
 
@@ -31,25 +34,36 @@ Use this metaskill when the user asks for assumption checks or diagnostics **for
 
 ## Core Workflow
 
+For interpretation of an explicitly selected completed run, first inspect that
+run's request/result/output and integrity evidence; do not execute new diagnostics
+or initialize another dataset automatically. If only a conversational explanation
+is requested, answer directly without metaskill activation/finalization. For a
+requested formal discussion, follow the report-delivery steps below while
+referencing the existing evidence. Describe the historical model honestly; do
+not certify a different model or case selection. Ask for the matching run when
+the provided evidence and the request conflict. A new analysis/replay requires
+the user's request to include execution, not merely interpretation.
+
+For a new diagnostic execution:
+
 1. Identify the input type (CSV, RDS, RData data frame, SAV, Parquet, or workspace context).
-2. Ensure a dataset workspace exists (run `init-workspace` if missing).
-3. Log activation with `metaskill-runner`.
+2. Use the selected current project and working data; creation is explicit, never implicit.
+3. Follow the common project/report workflow in `SKILL.md`; no separate lifecycle activation.
 4. Inspect the dataset to infer candidate outcomes, predictors, and grouping variables.
 5. Ask clarifying questions to pin down the analysis family and variable roles.
 6. If the user requests citations for diagnostic criteria or thresholds, run the `research-academia` utility with query variants and curate sources (see utility guidance).
 7. Write a plan to `scratchpad.md`, then run `assumptions` with the appropriate flags.
+   Read its [family-specific scope and run contract](../subskills/assumptions.md),
+   then inspect `result.json` and `output.md`: distinguish check availability,
+   diagnostic flags and actual model/case selection. A completed run is not
+   proof that the planned analysis satisfies every assumption.
 8. Update `scratchpad.md` with decisions and completion notes.
-9. Generate `report_<YYYYMMDD>_check-assumptions_<intent>.md` first, align it using `references/metaskills/format-document.md`, then run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` to `report_canonical.md` (the runner fails if the report is missing).
+9. When a report is requested, write it at a chosen visible Markdown path and preserve it with its actual evidence through `project-report`.
 
 ## Execution (Agent-Run)
 
-There is no dedicated script for this metaskill. The agent runs subskills and logs activation/finalization using `metaskill-runner`.
+There is no dedicated script for this metaskill. The agent runs the existing subskills through the common project route.
 
-### Logging Activation
-
-```bash
-Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta check-assumptions --intent "check model assumptions"
-```
 
 ## Inputs/Clarifications
 
@@ -69,19 +83,26 @@ Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta c
 - Do you want only tests, or also diagnostic plots (QQ, residuals, scatter)?
 
 If the request is vague but still informative, propose a minimal menu:
+
 - Two groups + numeric DV → `ttest`
 - 3+ groups + numeric DV → `anova`
 - Numeric DV + multiple numeric predictors → `regression`
-- Repeated measures / nested IDs → `mixed_models`
+- Repeated measures → clarify repeated-measures ANOVA versus a specified mixed model; do not switch an explicitly requested ANOVA automatically.
+- Nested IDs with a specified random-effects model → `mixed_models`
 - Latent variables / path model → `sem`
 
 ## Procedure (Pseudocode)
 
 ```
-if workspace missing:
-  run init-workspace
+if interpreting an explicitly selected completed result:
+  inspect saved request, results, output and integrity evidence
+  check the actual model/design/case identities against the question
+  if evidence mismatches the question: ask for the matching run, do not refit
+  if conversational: explain and stop
+  if formal discussion requested: write the contextual report and preserve its evidence with project-report
+  stop
 
-run metaskill-runner --meta check-assumptions --intent <user intent>
+select the current project and working dataset using the common workflow
 
 inspect dataset:
   identify candidate DVs, IVs, group variables, ID/time columns
@@ -102,41 +123,49 @@ if plots requested:
   run plot for QQ/residuals/scatter as appropriate
 
 update scratchpad.md with decisions and completion
-write report_<YYYYMMDD>_check-assumptions_<intent>.md
-align report using references/metaskills/format-document.md
-run metaskill-runner --phase finalization --synopsis "<synopsis text>"
+explain the results in the conversation
+if a report is requested:
+  write <chosen-visible-report>.md
+  align report using references/metaskills/format-document.md
+  preserve the delivered report and selected evidence with project-report
 ```
 
 ## Default Rules and Decision Logic
 
 - Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
 - Use config defaults for assumptions unless the user specifies thresholds.
-- Do not run inferential tests; this metaskill is diagnostics only.
+- Run only diagnostic tests and necessary model refits, not the substantive hypothesis analysis.
+- Match diagnostics to the actual model, estimator and cases. If a requested design is unsupported (for example standalone ANCOVA diagnostics), disclose the mismatch and propose a supported diagnostic route; never silently drop covariates or change the model.
+- Interpret small-sample limits, multiplicity, effect/design relevance and visual evidence. Nonsignificant tests do not prove assumptions; unavailable/skipped checks never count as passes. Recommendations require reasoning, and changes to data or the planned analysis require user agreement.
 - Do not modify data (no `missings` or `data-transform`).
 - If the analysis family cannot be determined, request clarification before running any checks.
 - If the user asks for general screening only, route to `screen-data`.
 
 ## Outputs
 
-- `report_canonical.md`: NLSS format-ready assumptions output plus a final `# Synopsis` recorded via `metaskill-runner --synopsis`.
-- `analysis_log.jsonl`: Metaskill activation and finalization entries plus the `assumptions` subskill log.
+- `report_canonical.md`: NLSS format-ready assumptions output.
+- `.nlss/runs/`: saved requests/results/output from the underlying procedures; no additional lifecycle/JSONL journal.
+- Each assumptions run preserves its unrounded results, deterministic output and frozen templates. Utility lifecycle events are not statistical replay.
 - `scratchpad.md`: Plan, clarifications, and completion notes.
-- `report_<YYYYMMDD>_check-assumptions_<intent>.md`: NLSS format-ready, journal-alike narrative report.
+- `<chosen-visible-report>.md`: Only when requested; a freely authored diagnostic report.
 
 ### Final Report Requirements
 
-- Do not copy `report_canonical.md`; write a new narrative report.
-- Use `assets/metaskills/report-template.md` as the default structure; omit Introduction and Keywords if the theoretical context is not available.
-- Synthesize diagnostics with recommendations; do not perform hypothesis testing.
+For a requested report, follow the shared [semantic synthesis and presentation
+guidance](../../SKILL.md#semantic-answers-and-authored-reports). The manuscript
+scaffold is optional; use the structure and depth appropriate to the question.
 
-Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`).
-All artifacts (reports, tables, figures) must be created inside the dataset workspace folder; do not write outside the workspace root.
+- Synthesize diagnostics with the research question, sampling/design, model and estimator. Reference the actual run; separate findings, unavailable evidence, limitations and justified options. Diagnostic p-values are permitted, but do not add substantive hypothesis tests or imply automatic model approval/rejection.
 
-## Finalization
+Use the common project destinations in `SKILL.md`: automatic root protocol,
+run-local evidence, visible working data and freely chosen authored-report paths.
 
-- Write `report_<YYYYMMDD>_check-assumptions_<intent>.md` using an ASCII slug for `<intent>` (finalization fails if this report is missing).
-- Align the report using `references/metaskills/format-document.md` (must be the last step before finalization).
-- Run `metaskill-runner --phase finalization --synopsis "<text>"` to append a `# Synopsis` section to `report_canonical.md`.
+## Report delivery
+
+Use [project-report](../utilities/project-report.md) as part of requested delivery.
+The agent selects the actual evidence; the researcher does not manage internal
+IDs or perform separate finalization. No required filename, synopsis append or
+additional utility event. Preserve semantic interpretation beyond output templates.
 
 ## NLSS format Templates
 
@@ -144,7 +173,6 @@ This metaskill relies on the templates configured for the subskills it invokes:
 
 - `assumptions` uses `assets/assumptions/*-template.md` based on analysis family.
 - `plot` uses `assets/plot/default-template.md` when diagnostics are plotted.
-- `metaskill-runner` uses `assets/metaskill-runner/default-template.md` and `finalization-template.md`.
 
 ## NLSS format Reporting Guidance
 

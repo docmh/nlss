@@ -8,6 +8,11 @@ license: Apache-2.0
 
 ## Overview
 
+This checks explicitly selected standalone checksum logs. Current marked
+projects do not create a parallel JSONL log or record its sequence in the root
+marker. Use [project-inspect](project-inspect.md) for current project navigation;
+this utility does not certify current run/report evidence or statistical validity.
+
 Recover the NLSS checksum embedded in `analysis_log.jsonl` entries by reversing the XOR-based checksum scheme. This is the R port of `cmdscripts/check_log_checksum.py`.
 
 ## Assistant Researcher Model
@@ -38,7 +43,7 @@ Rscript <path to scripts/R/check_integrity.R> <path to analysis_log.jsonl>
 ## Options
 
 - `-h`, `--help`: Print usage and exit.
-- `NLSS_INTEGRITY_LOG`: Optional environment fallback for the log path when the CLI argument is missing or invalid.
+- `NLSS_INTEGRITY_LOG`: Optional log path when no positional path was supplied. An explicit missing path is an error, never permission to inspect a different file.
 - `--diagnose TRUE|FALSE`: Emit per-line diagnostics (default: TRUE).
 
 ## Behavior
@@ -47,12 +52,18 @@ Rscript <path to scripts/R/check_integrity.R> <path to analysis_log.jsonl>
 - Ignores lines without a `checksum` field or invalid JSON.
 - Reconstructs the NLSS checksum by XOR-reverting each entry checksum; when `checksum_version` is 2, it also XOR-reverts the checksum of the previous complete log line to preserve chain integrity; when `checksum_version` is 3, it additionally XOR-reverts the checksum of `log_seq`.
 - The NLSS checksum includes `SKILL.md`, `scripts/` (excluding `scripts/config.yml`), and `references/`, so asset/template edits do not change the recovered checksum.
-- `log_seq` is stored in each entry and tracked in `nlss-workspace.yml` as `analysis_log_seq`; if `analysis_log.jsonl` is missing, the sequence restarts at 1.
+- Standalone entries may contain `log_seq`; current project markers do not track a parallel `analysis_log_seq` journal.
 - Prints each recovered checksum plus its count to stdout.
 - Prints `No checksum entries found.` if no valid checksums are present.
 - Emits a warning to stderr if multiple different recovered checksums are found.
 - When `--diagnose` is enabled, prints `DIAG` lines to stderr with `line`, `log_seq`, `status`, `seq`, `inferred`, and `checksum` fields to help distinguish edits (two-line mismatch) from deletions (seq gaps).
 - `status=mismatch` with `seq=ok` often indicates a codebase checksum change during the log, not a deletion.
+- Uses the mandatory shared bootstrap and Boolean validation, with a small
+  positional compatibility adapter shared with reconstruction. Unknown or
+  duplicate flags, malformed Booleans and extra paths are errors. `--diag`,
+  `--no-diagnose` and `--no-diagnostic` remain supported; help exits successfully.
+- Malformed JSON shapes and unsupported checksum fields do not become trusted
+  checksums. Original bytes and line endings are never rewritten.
 
 ## Outputs
 
@@ -68,6 +79,8 @@ Rscript scripts/R/check_integrity.R outputs/test-runs/20251228181418/workspace/g
 ## Non-Goals
 
 - Does not validate against the current NLSS source tree; it only reports recovered checksums.
+- A recovered MD5/XOR value is neither a cryptographic signature nor the SHA-256
+  input/environment verification performed by statistical `replay-run`.
 - Not a subskill or metaskill; no dataset workspace required.
 
 ## Implementation Notes

@@ -10,17 +10,8 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-render_output_path <- get("render_output_path", mode = "function")
-source_lib <- get("source_lib", mode = "function")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
 
 print_usage <- function() {
   cat("Plots (ggplot2)\n")
@@ -83,1334 +74,613 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    opts$csv <- prompt("CSV path")
+    sep_default <- get_config_value("defaults.csv.sep", ",")
+    header_default <- get_config_value("defaults.csv.header", TRUE)
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
+    opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
+    opts$rds <- prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
+    opts$rdata <- prompt("RData path")
+    opts$df <- prompt("Data frame object name")
   } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
+    opts$parquet <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
 
-  type_default <- resolve_config_value("modules.plot.type", "auto")
-  opts$type <- resolve_prompt("Plot type", type_default)
-  opts$vars <- resolve_prompt("Variables (comma-separated, blank for defaults)", "")
-  opts$x <- resolve_prompt("X variable (blank if using --vars)", "")
-  opts$y <- resolve_prompt("Y variable (blank if using --vars)", "")
-  opts$group <- resolve_prompt("Group variable (optional)", "")
-  opts$stat <- resolve_prompt("Bar stat (count/percent)", resolve_config_value("modules.plot.stat", "count"))
-  opts$percent_base <- resolve_prompt("Percent base (total/group)", resolve_config_value("modules.plot.percent_base", "total"))
-  opts$bins <- resolve_prompt("Histogram bins", as.character(resolve_config_value("modules.plot.bins", 30)))
-  opts$binwidth <- resolve_prompt("Histogram binwidth (blank for default)", "")
-  opts$bw <- resolve_prompt("Density bandwidth (blank for default)", "")
-  opts$smooth <- resolve_prompt("Smooth (none/loess/lm)", resolve_config_value("modules.plot.smooth", "none"))
-  opts$se <- resolve_prompt("Smooth SE TRUE/FALSE", ifelse(isTRUE(resolve_config_value("modules.plot.se", TRUE)), "TRUE", "FALSE"))
-  opts$summary <- resolve_prompt("Line summary (none/mean/median)", resolve_config_value("modules.plot.summary", "none"))
-  opts$na_action <- resolve_prompt("Missing handling (omit/keep)", resolve_config_value("modules.plot.na_action", "omit"))
-  opts$theme <- resolve_prompt("Theme (minimal/classic/bw)", resolve_config_value("modules.plot.theme", "minimal"))
-  opts$palette <- resolve_prompt("Palette (default/viridis/greys)", resolve_config_value("modules.plot.palette", "default"))
-  opts$title <- resolve_prompt("Figure title (optional)", "")
-  opts$subtitle <- resolve_prompt("Figure subtitle (optional)", "")
-  opts$caption <- resolve_prompt("Figure caption (optional)", "")
-  opts$note <- resolve_prompt("Figure note (optional)", "")
-  opts$format <- resolve_prompt("Output format (png/pdf/svg)", resolve_config_value("modules.plot.format", "png"))
-  opts$width <- resolve_prompt("Figure width (inches)", as.character(resolve_config_value("modules.plot.width", 7)))
-  opts$height <- resolve_prompt("Figure height (inches)", as.character(resolve_config_value("modules.plot.height", 5)))
-  opts$dpi <- resolve_prompt("DPI", as.character(resolve_config_value("modules.plot.dpi", 300)))
-  opts$file_prefix <- resolve_prompt("Filename prefix", resolve_config_value("modules.plot.file_prefix", "figure"))
-  opts$file_suffix <- resolve_prompt("Filename suffix (optional)", "")
-  opts$overwrite <- resolve_prompt("Overwrite existing TRUE/FALSE", "FALSE")
-  opts$digits <- resolve_prompt("Rounding digits", as.character(resolve_config_value("defaults.digits", 2)))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  type_default <- get_config_value("modules.plot.type", "auto")
+  opts$type <- prompt("Plot type", type_default)
+  opts$vars <- prompt("Variables (comma-separated, blank for defaults)", "")
+  opts$x <- prompt("X variable (blank if using --vars)", "")
+  opts$y <- prompt("Y variable (blank if using --vars)", "")
+  opts$group <- prompt("Group variable (optional)", "")
+  opts$stat <- prompt("Bar stat (count/percent)", get_config_value("modules.plot.stat", "count"))
+  opts$percent_base <- prompt("Percent base (total/group)", get_config_value("modules.plot.percent_base", "total"))
+  opts$bins <- prompt("Histogram bins", as.character(get_config_value("modules.plot.bins", 30)))
+  opts$binwidth <- prompt("Histogram binwidth (blank for default)", "")
+  opts$bw <- prompt("Density bandwidth (blank for default)", "")
+  opts$smooth <- prompt("Smooth (none/loess/lm)", get_config_value("modules.plot.smooth", "none"))
+  opts$se <- prompt("Smooth SE TRUE/FALSE", ifelse(isTRUE(get_config_value("modules.plot.se", TRUE)), "TRUE", "FALSE"))
+  opts$summary <- prompt("Line summary (none/mean/median)", get_config_value("modules.plot.summary", "none"))
+  opts$na_action <- prompt("Missing handling (omit/keep)", get_config_value("modules.plot.na_action", "omit"))
+  opts$theme <- prompt("Theme (minimal/classic/bw)", get_config_value("modules.plot.theme", "minimal"))
+  opts$palette <- prompt("Palette (default/viridis/greys)", get_config_value("modules.plot.palette", "default"))
+  opts$title <- prompt("Figure title (optional)", "")
+  opts$subtitle <- prompt("Figure subtitle (optional)", "")
+  opts$caption <- prompt("Figure caption (optional)", "")
+  opts$note <- prompt("Figure note (optional)", "")
+  opts$format <- prompt("Output format (png/pdf/svg)", get_config_value("modules.plot.format", "png"))
+  opts$width <- prompt("Figure width (inches)", as.character(get_config_value("modules.plot.width", 7)))
+  opts$height <- prompt("Figure height (inches)", as.character(get_config_value("modules.plot.height", 5)))
+  opts$dpi <- prompt("DPI", as.character(get_config_value("modules.plot.dpi", 300)))
+  opts$file_prefix <- prompt("Filename prefix", get_config_value("modules.plot.file_prefix", "figure"))
+  opts$file_suffix <- prompt("Filename suffix (optional)", "")
+  opts$overwrite <- prompt("Overwrite existing TRUE/FALSE", "FALSE")
+  opts$digits <- prompt("Rounding digits", as.character(get_config_value("defaults.digits", 2)))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log", TRUE)
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts
 }
 
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
+
+# One engine: no alternate renderer may silently change grouping or statistics.
+plot_choice <- function(value, choices, name) {
+  value <- tolower(trimws(as.character(value)))
+  if (length(value) != 1L || is.na(value) || !value %in% choices)
+    stop("--", name, " must be one of: ", paste(choices, collapse = ", "), ".")
+  value
 }
 
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
+plot_number <- function(value, name, lower = 0, upper = Inf, integer = FALSE, optional = FALSE, inclusive = FALSE) {
+  if (is.null(value) || identical(value, "")) {
+    if (optional) return(NULL)
+    stop("--", name, " requires a number.")
   }
-  default
+  number <- suppressWarnings(as.numeric(value))
+  if (is.logical(value) || length(number) != 1L || !is.finite(number) ||
+      number > upper || (if (inclusive) number < lower else number <= lower) ||
+      (integer && number != floor(number))) stop("Invalid numeric value for --", name, ".")
+  if (integer) as.integer(number) else number
 }
 
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
+plot_text <- function(value, default = "") {
   if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_parse_list <- function(value, sep = ",") {
-  if (exists("parse_list", mode = "function")) {
-    return(get("parse_list", mode = "function")(value, sep = sep))
-  }
-  if (is.null(value) || is.logical(value)) return(character(0))
-  value <- as.character(value)
-  if (value == "") return(character(0))
-  trimws(strsplit(value, sep, fixed = TRUE)[[1]])
-}
-
-resolve_parse_number <- function(value, default = NULL) {
-  if (is.null(value)) return(default)
-  if (is.numeric(value)) return(as.numeric(value))
-  val <- as.character(value)
-  if (!nzchar(val)) return(default)
-  num <- suppressWarnings(as.numeric(val))
-  if (is.na(num)) return(default)
-  num
-}
-
-resolve_parse_integer <- function(value, default = NULL) {
-  num <- resolve_parse_number(value, default = default)
-  if (is.null(num) || is.na(num)) return(default)
-  as.integer(round(num))
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-resolve_get_workspace_out_dir <- function(df) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df))
-  }
-  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
-}
-
-resolve_select_variables <- function(df, vars, group_var = NULL, default = "numeric", include_numeric = FALSE) {
-  if (exists("select_variables", mode = "function")) {
-    return(get("select_variables", mode = "function")(
-      df,
-      vars,
-      group_var = group_var,
-      default = default,
-      include_numeric = include_numeric
-    ))
-  }
-  available <- names(df)
-  if (is.null(vars) || vars == "") {
-    if (default == "all") {
-      selected <- available
-    } else if (default == "non-numeric") {
-      if (include_numeric) {
-        selected <- available
-      } else {
-        selected <- available[!sapply(df, is.numeric)]
-        if (length(selected) == 0) selected <- available
-      }
-    } else {
-      selected <- available[sapply(df, is.numeric)]
-    }
-    if (!is.null(group_var)) selected <- setdiff(selected, group_var)
-    return(selected)
-  }
-  requested <- trimws(strsplit(vars, ",", fixed = TRUE)[[1]])
-  missing <- setdiff(requested, available)
-  if (length(missing) > 0) {
-    stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
-  }
-  if (!is.null(group_var)) requested <- setdiff(requested, group_var)
-  requested
-}
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  NULL
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-resolve_append_nlss_figure_report <- function(path, analysis_label, figure_body, analysis_flags = NULL, template_path = NULL, template_context = NULL, figure_start = NULL) {
-  if (exists("append_nlss_figure_report", mode = "function")) {
-    return(get("append_nlss_figure_report", mode = "function")(
-      path,
-      analysis_label,
-      figure_body,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context,
-      figure_start = figure_start
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-resolve_sanitize_file_component <- function(value) {
-  if (exists("sanitize_file_component", mode = "function")) {
-    return(get("sanitize_file_component", mode = "function")(value))
-  }
-  clean <- enc2utf8(as.character(value))
-  clean <- gsub("[^A-Za-z0-9._-]", "_", clean)
-  clean <- gsub("_+", "_", clean)
-  if (!nzchar(clean)) clean <- "figure"
-  clean
-}
-
-require_ggplot2 <- function() {
-  if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("Plotting requires the 'ggplot2' package. Install it: install.packages('ggplot2').")
-  }
-}
-
-add_plot_component <- function(plot, component) {
-  if (is.null(component)) return(plot)
-  ggplot2::ggplot_add(component, plot)
-}
-
-add_plot_layers <- function(plot, ...) {
-  layers <- list(...)
-  for (layer in layers) {
-    plot <- add_plot_component(plot, layer)
-  }
-  plot
-}
-
-resolve_plot_engine <- function() {
-  if (!requireNamespace("ggplot2", quietly = TRUE)) return("base")
-  ok <- TRUE
-  suppressWarnings(tryCatch({
-    df <- data.frame(x = c(1, 2), y = c(1, 2))
-    x <- y <- NULL
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y))
-    p <- p + ggplot2::geom_point()
-  }, error = function(e) {
-    ok <<- FALSE
-  }))
-  if (ok) return("ggplot2")
-  "base"
-}
-
-open_graphics_device <- function(path, format, width, height, dpi) {
-  fmt <- tolower(format)
-  if (fmt == "png") {
-    grDevices::png(path, width = width, height = height, units = "in", res = dpi)
-    return(invisible(TRUE))
-  }
-  if (fmt == "pdf") {
-    grDevices::pdf(path, width = width, height = height)
-    return(invisible(TRUE))
-  }
-  if (fmt == "svg") {
-    grDevices::svg(path, width = width, height = height)
-    return(invisible(TRUE))
-  }
-  stop("Unsupported output format: ", format)
-}
-
-get_palette_colors <- function(n, palette) {
-  if (n <= 0) return(character(0))
-  pal <- tolower(palette)
-  if (pal == "viridis" && requireNamespace("viridisLite", quietly = TRUE)) {
-    return(viridisLite::viridis(n))
-  }
-  if (pal == "greys") return(grDevices::gray.colors(n))
-  grDevices::hcl.colors(n, "Set2")
-}
-
-draw_violin_base <- function(values_list, positions, colors, alpha, ylab) {
-  n <- length(values_list)
-  if (n == 0) return(invisible(NULL))
-  all_values <- unlist(values_list)
-  if (length(all_values) == 0) return(invisible(NULL))
-  ylim <- range(all_values, na.rm = TRUE)
-  graphics::plot(
-    NA,
-    xlim = c(0.5, n + 0.5),
-    ylim = ylim,
-    xaxt = "n",
-    xlab = "",
-    ylab = ylab
-  )
-  graphics::axis(1, at = positions, labels = names(values_list))
-  for (i in seq_along(values_list)) {
-    vals <- values_list[[i]]
-    vals <- vals[is.finite(vals)]
-    if (length(vals) < 2) next
-    dens <- stats::density(vals, na.rm = TRUE)
-    dens$y <- dens$y / max(dens$y) * 0.4
-    col <- grDevices::adjustcolor(colors[i], alpha.f = alpha)
-    graphics::polygon(
-      c(positions[i] - dens$y, rev(positions[i] + dens$y)),
-      c(dens$x, rev(dens$x)),
-      col = col,
-      border = colors[i]
-    )
-  }
-  graphics::boxplot(values_list, add = TRUE, at = positions, boxwex = 0.15, outline = FALSE)
-}
-
-build_plot_base <- function(df, request, opts, digits) {
-  type <- request$type
-  x <- request$x
-  y <- request$y
-  group <- request$group
-  vars <- request$vars
-  na_action <- opts$na_action
-  alpha <- opts$alpha
-  stat <- opts$stat
-  percent_base <- opts$percent_base
-  palette <- opts$palette
-
-  if (type == "corr-heatmap") {
-    num_vars <- vars
-    non_numeric <- num_vars[!vapply(num_vars, function(var) is_numeric_column(df, var), logical(1))]
-    if (length(non_numeric) > 0) {
-      stop("corr-heatmap requires numeric variables. Non-numeric: ", paste(non_numeric, collapse = ", "))
-    }
-    data_info <- prepare_plot_data(df, num_vars, character(0), na_action)
-    plot_df <- data_info$df
-    stats <- data_info$stats
-    draw <- function(file_path, format, width, height, dpi, title, subtitle) {
-      open_graphics_device(file_path, format, width, height, dpi)
-      on.exit(grDevices::dev.off(), add = TRUE)
-      corr <- stats::cor(plot_df[, num_vars, drop = FALSE], use = "pairwise.complete.obs")
-      n <- ncol(corr)
-      cols <- grDevices::colorRampPalette(c("#2166AC", "white", "#B2182B"))(100)
-      graphics::par(mar = c(6, 6, 3, 2))
-      graphics::image(1:n, 1:n, t(corr[n:1, ]), col = cols, axes = FALSE, xlab = "", ylab = "", main = title)
-      graphics::axis(1, at = 1:n, labels = colnames(corr), las = 2)
-      graphics::axis(2, at = 1:n, labels = rev(colnames(corr)), las = 2)
-      for (i in seq_len(n)) {
-        for (j in seq_len(n)) {
-          label <- format(round(corr[j, i], digits), nsmall = digits)
-          graphics::text(i, n - j + 1, labels = label, cex = 0.8)
-        }
-      }
-      if (!is.null(subtitle) && nzchar(subtitle)) {
-        graphics::mtext(subtitle, side = 3, line = 0.2, cex = 0.8)
-      }
-    }
-    return(list(engine = "base", stats = stats, draw = draw))
-  }
-
-  if (type == "scatter" || type == "line") {
-    numeric_vars <- c(x, y)
-    categorical_vars <- if (nzchar(group)) group else character(0)
-    data_info <- prepare_plot_data(df, numeric_vars, categorical_vars, na_action)
-    plot_df <- data_info$df
-    stats <- data_info$stats
-    if (!is_numeric_column(df, x) || !is_numeric_column(df, y)) {
-      stop("Scatter/line plots require numeric --x and --y.")
-    }
-    if (nzchar(group) && group %in% names(plot_df)) {
-      plot_df[[group]] <- coerce_categorical(plot_df[[group]])
-    }
-    draw <- function(file_path, format, width, height, dpi, title, subtitle) {
-      open_graphics_device(file_path, format, width, height, dpi)
-      on.exit(grDevices::dev.off(), add = TRUE)
-      graphics::par(mar = c(5, 5, 3, 2))
-      if (type == "scatter") {
-        if (nzchar(group)) {
-          groups <- factor(plot_df[[group]])
-          colors <- get_palette_colors(length(levels(groups)), palette)
-          colors <- grDevices::adjustcolor(colors, alpha.f = alpha)
-          graphics::plot(plot_df[[x]], plot_df[[y]], col = colors[groups], pch = 19, xlab = x, ylab = y, main = title)
-          graphics::legend("topright", legend = levels(groups), col = colors, pch = 19, bty = "n")
-        } else {
-          graphics::plot(plot_df[[x]], plot_df[[y]], pch = 19, xlab = x, ylab = y, main = title)
-        }
-        if (opts$smooth != "none") {
-          if (opts$smooth == "lm") {
-            fit <- stats::lm(plot_df[[y]] ~ plot_df[[x]])
-            graphics::abline(fit, col = "red")
-          } else {
-            fit <- stats::loess(plot_df[[y]] ~ plot_df[[x]], span = opts$span)
-            ord <- order(plot_df[[x]])
-            graphics::lines(plot_df[[x]][ord], fit$fitted[ord], col = "red")
-          }
-        }
-      } else {
-        if (opts$summary != "none") {
-          summary_fun <- if (opts$summary == "median") stats::median else mean
-          if (nzchar(group)) {
-            agg <- aggregate(plot_df[[y]], by = list(plot_df[[x]], plot_df[[group]]), FUN = summary_fun, na.rm = TRUE)
-            names(agg) <- c(x, group, y)
-            groups <- factor(agg[[group]])
-            colors <- get_palette_colors(length(levels(groups)), palette)
-            colors <- grDevices::adjustcolor(colors, alpha.f = alpha)
-            graphics::plot(NA, xlim = range(agg[[x]], na.rm = TRUE), ylim = range(agg[[y]], na.rm = TRUE), xlab = x, ylab = y, main = title)
-            for (i in seq_along(levels(groups))) {
-              subset <- agg[groups == levels(groups)[i], , drop = FALSE]
-              ord <- order(subset[[x]])
-              graphics::lines(subset[[x]][ord], subset[[y]][ord], col = colors[i])
-            }
-            graphics::legend("topright", legend = levels(groups), col = colors, lty = 1, bty = "n")
-          } else {
-            agg <- aggregate(plot_df[[y]], by = list(plot_df[[x]]), FUN = summary_fun, na.rm = TRUE)
-            names(agg) <- c(x, y)
-            ord <- order(agg[[x]])
-            graphics::plot(agg[[x]][ord], agg[[y]][ord], type = "l", xlab = x, ylab = y, main = title)
-          }
-        } else {
-          ord <- order(plot_df[[x]])
-          graphics::plot(plot_df[[x]][ord], plot_df[[y]][ord], type = "l", xlab = x, ylab = y, main = title)
-        }
-      }
-      if (!is.null(subtitle) && nzchar(subtitle)) {
-        graphics::mtext(subtitle, side = 3, line = 0.2, cex = 0.8)
-      }
-    }
-    return(list(engine = "base", stats = stats, draw = draw))
-  }
-
-  if (type == "box" || type == "violin") {
-    if (!nzchar(x) || !nzchar(y)) stop("Box/violin plots require --y and --group/--x.")
-    numeric_vars <- c(y)
-    categorical_vars <- unique(c(x, if (nzchar(group)) group else character(0)))
-    data_info <- prepare_plot_data(df, numeric_vars, categorical_vars, na_action)
-    plot_df <- data_info$df
-    stats <- data_info$stats
-    plot_df[[x]] <- coerce_categorical(plot_df[[x]])
-    draw <- function(file_path, format, width, height, dpi, title, subtitle) {
-      open_graphics_device(file_path, format, width, height, dpi)
-      on.exit(grDevices::dev.off(), add = TRUE)
-      graphics::par(mar = c(5, 5, 3, 2))
-      groups <- factor(plot_df[[x]])
-      colors <- get_palette_colors(length(levels(groups)), palette)
-      colors <- grDevices::adjustcolor(colors, alpha.f = alpha)
-      if (type == "box") {
-        graphics::boxplot(plot_df[[y]] ~ groups, col = colors, xlab = x, ylab = y, main = title)
-      } else {
-        values_list <- split(plot_df[[y]], groups)
-        positions <- seq_along(values_list)
-        draw_violin_base(values_list, positions, colors, alpha, y)
-        graphics::title(main = title)
-      }
-      if (!is.null(subtitle) && nzchar(subtitle)) {
-        graphics::mtext(subtitle, side = 3, line = 0.2, cex = 0.8)
-      }
-    }
-    return(list(engine = "base", stats = stats, draw = draw))
-  }
-
-  if (type == "bar") {
-    if (!nzchar(x)) stop("Bar plots require --vars or --x.")
-    numeric_vars <- character(0)
-    categorical_vars <- unique(c(x, if (nzchar(group)) group else character(0)))
-    data_info <- prepare_plot_data(df, numeric_vars, categorical_vars, na_action)
-    plot_df <- data_info$df
-    stats <- data_info$stats
-    plot_df[[x]] <- coerce_categorical(plot_df[[x]])
-    if (nzchar(group) && group %in% names(plot_df)) {
-      plot_df[[group]] <- coerce_categorical(plot_df[[group]])
-    }
-    draw <- function(file_path, format, width, height, dpi, title, subtitle) {
-      open_graphics_device(file_path, format, width, height, dpi)
-      on.exit(grDevices::dev.off(), add = TRUE)
-      graphics::par(mar = c(6, 5, 3, 2))
-      if (stat == "percent") {
-        if (nzchar(group)) {
-          tab <- table(plot_df[[x]], plot_df[[group]])
-          if (percent_base == "group") {
-            tab <- apply(tab, 2, function(z) if (sum(z) == 0) z else 100 * z / sum(z))
-          } else {
-            total <- sum(tab)
-            tab <- if (total == 0) tab else 100 * tab / total
-          }
-        } else {
-          tab <- table(plot_df[[x]])
-          total <- sum(tab)
-          tab <- if (total == 0) tab else 100 * tab / total
-        }
-        ylab <- "Percent"
-      } else {
-        tab <- if (nzchar(group)) table(plot_df[[x]], plot_df[[group]]) else table(plot_df[[x]])
-        ylab <- "Count"
-      }
-      if (nzchar(group)) {
-        colors <- get_palette_colors(ncol(tab), palette)
-        colors <- grDevices::adjustcolor(colors, alpha.f = alpha)
-        beside <- opts$position == "dodge"
-        graphics::barplot(tab, beside = beside, col = colors, legend.text = colnames(tab), xlab = x, ylab = ylab, main = title)
-      } else {
-        colors <- get_palette_colors(length(tab), palette)
-        colors <- grDevices::adjustcolor(colors, alpha.f = alpha)
-        graphics::barplot(tab, col = colors, xlab = x, ylab = ylab, main = title)
-      }
-      if (!is.null(subtitle) && nzchar(subtitle)) {
-        graphics::mtext(subtitle, side = 3, line = 0.2, cex = 0.8)
-      }
-    }
-    return(list(engine = "base", stats = stats, draw = draw))
-  }
-
-  if (type == "histogram" || type == "density" || type == "qq") {
-    if (!nzchar(x)) stop("Histogram/density/qq plots require --vars or --x.")
-    numeric_vars <- c(x)
-    categorical_vars <- if (nzchar(group)) group else character(0)
-    data_info <- prepare_plot_data(df, numeric_vars, categorical_vars, na_action)
-    plot_df <- data_info$df
-    stats <- data_info$stats
-    if (!is_numeric_column(df, x)) stop("Histogram/density/qq plots require numeric variables.")
-    if (nzchar(group) && group %in% names(plot_df)) {
-      plot_df[[group]] <- coerce_categorical(plot_df[[group]])
-    }
-    draw <- function(file_path, format, width, height, dpi, title, subtitle) {
-      open_graphics_device(file_path, format, width, height, dpi)
-      on.exit(grDevices::dev.off(), add = TRUE)
-      graphics::par(mar = c(5, 5, 3, 2))
-      if (type == "histogram") {
-        breaks <- NULL
-        values <- plot_df[[x]]
-        if (!is.null(opts$binwidth)) {
-          range_vals <- range(values, na.rm = TRUE)
-          breaks <- seq(range_vals[1], range_vals[2] + opts$binwidth, by = opts$binwidth)
-        }
-        if (nzchar(group)) {
-          groups <- factor(plot_df[[group]])
-          colors <- get_palette_colors(length(levels(groups)), palette)
-          colors <- grDevices::adjustcolor(colors, alpha.f = alpha)
-          if (is.null(breaks)) {
-            graphics::hist(values[groups == levels(groups)[1]], col = colors[1], border = "white", xlab = x, main = title)
-          } else {
-            graphics::hist(values[groups == levels(groups)[1]], breaks = breaks, col = colors[1], border = "white", xlab = x, main = title)
-          }
-          if (length(levels(groups)) > 1) {
-            for (i in 2:length(levels(groups))) {
-              if (is.null(breaks)) {
-                graphics::hist(values[groups == levels(groups)[i]], col = colors[i], border = "white", add = TRUE)
-              } else {
-                graphics::hist(values[groups == levels(groups)[i]], breaks = breaks, col = colors[i], border = "white", add = TRUE)
-              }
-            }
-            graphics::legend("topright", legend = levels(groups), fill = colors, bty = "n")
-          }
-        } else {
-          if (is.null(breaks)) {
-            graphics::hist(values, col = grDevices::adjustcolor("#4C72B0", alpha.f = alpha), border = "white", xlab = x, main = title)
-          } else {
-            graphics::hist(values, breaks = breaks, col = grDevices::adjustcolor("#4C72B0", alpha.f = alpha), border = "white", xlab = x, main = title)
-          }
-        }
-      } else if (type == "density") {
-        values <- plot_df[[x]]
-        if (nzchar(group)) {
-          groups <- factor(plot_df[[group]])
-          colors <- get_palette_colors(length(levels(groups)), palette)
-          colors <- grDevices::adjustcolor(colors, alpha.f = alpha)
-          dens <- stats::density(values[groups == levels(groups)[1]], bw = opts$bw)
-          graphics::plot(dens, col = colors[1], main = title, xlab = x)
-          if (length(levels(groups)) > 1) {
-            for (i in 2:length(levels(groups))) {
-              dens <- stats::density(values[groups == levels(groups)[i]], bw = opts$bw)
-              graphics::lines(dens, col = colors[i])
-            }
-            graphics::legend("topright", legend = levels(groups), col = colors, lty = 1, bty = "n")
-          }
-        } else {
-          dens <- stats::density(values, bw = opts$bw)
-          graphics::plot(dens, col = grDevices::adjustcolor("#4C72B0", alpha.f = alpha), main = title, xlab = x)
-        }
-      } else {
-        stats::qqnorm(plot_df[[x]], main = title)
-        stats::qqline(plot_df[[x]], col = "red")
-      }
-      if (!is.null(subtitle) && nzchar(subtitle)) {
-        graphics::mtext(subtitle, side = 3, line = 0.2, cex = 0.8)
-      }
-    }
-    return(list(engine = "base", stats = stats, draw = draw))
-  }
-
-  stop("Unsupported plot type: ", type)
+  if (is.logical(value) || length(value) != 1L || is.na(value)) stop("Plot text and variable options require a value.")
+  trimws(as.character(value))
 }
 
 normalize_plot_type <- function(value) {
-  if (is.null(value) || !nzchar(value)) return("auto")
-  type <- tolower(trimws(as.character(value)))
-  type <- gsub("_", "-", type)
-  if (type %in% c("hist", "histogram")) return("histogram")
-  if (type %in% c("dens", "density")) return("density")
-  if (type %in% c("boxplot", "box")) return("box")
-  if (type %in% c("violin", "violinplot")) return("violin")
-  if (type %in% c("bar", "bars")) return("bar")
-  if (type %in% c("scatter", "scatterplot")) return("scatter")
-  if (type %in% c("line", "lineplot")) return("line")
-  if (type %in% c("qq", "qqplot", "qq-plot")) return("qq")
-  if (type %in% c("corr", "correlation", "corr-heatmap", "correlation-heatmap", "heatmap")) return("corr-heatmap")
-  type
+  type <- gsub("_", "-", tolower(plot_text(value, "auto")), fixed = TRUE)
+  aliases <- list(histogram = c("hist", "histogram"), density = c("dens", "density"),
+    box = c("boxplot", "box"), violin = c("violin", "violinplot"), bar = c("bar", "bars"),
+    scatter = c("scatter", "scatterplot"), line = c("line", "lineplot"),
+    qq = c("qq", "qqplot", "qq-plot"),
+    "corr-heatmap" = c("corr", "correlation", "corr-heatmap", "correlation-heatmap", "heatmap"))
+  for (name in names(aliases)) if (type %in% aliases[[name]]) return(name)
+  plot_choice(type, c("auto", names(aliases)), "type")
 }
 
-is_numeric_column <- function(df, var) {
-  if (is.null(var) || !nzchar(var)) return(FALSE)
-  if (!var %in% names(df)) return(FALSE)
-  is.numeric(df[[var]])
-}
-
-infer_plot_type <- function(df, x, y, vars, group) {
-  if (nzchar(x) && nzchar(y)) {
-    if (is_numeric_column(df, x) && is_numeric_column(df, y)) return("scatter")
-    if (!is_numeric_column(df, x) && is_numeric_column(df, y)) return("box")
-    return("bar")
+plot_options <- function(opts) {
+  for (name in c("percent-base", "na-action", "file-prefix", "file-suffix")) {
+    alias <- gsub("-", "_", name, fixed = TRUE)
+    if (!is.null(opts[[name]]) && !is.null(opts[[alias]]) &&
+        !identical(as.character(opts[[name]]), as.character(opts[[alias]])))
+      stop("Conflicting --", name, " and --", alias, " values.")
+    if (is.null(opts[[name]])) opts[[name]] <- opts[[alias]]
+    opts[[alias]] <- NULL
   }
-  if (length(vars) > 0) {
-    if (!is_numeric_column(df, vars[1])) return("bar")
-    if (nzchar(group)) return("box")
-    return("histogram")
+  defaults <- get_config_value("modules.plot")
+  value <- function(name) {
+    supplied <- opts[[name]]
+    if (is.null(supplied) || identical(supplied, "")) defaults[[gsub("-", "_", name, fixed = TRUE)]] else supplied
   }
-  "histogram"
-}
-
-coerce_categorical <- function(vec) {
-  if (is.factor(vec)) return(vec)
-  factor(vec, exclude = NULL)
-}
-
-replace_missing_category <- function(vec) {
-  if (is.factor(vec)) {
-    levels(vec) <- unique(c(levels(vec), "Missing"))
-    vec[is.na(vec)] <- "Missing"
-    return(vec)
+  out <- list(type = normalize_plot_type(value("type")),
+    vars = plot_text(opts$vars), x = plot_text(opts$x), y = plot_text(opts$y), group = plot_text(opts$group),
+    stat = plot_choice(value("stat"), c("count", "percent"), "stat"),
+    percent_base = plot_choice(value("percent-base"), c("total", "group"), "percent-base"),
+    bins = plot_number(value("bins"), "bins", integer = TRUE, upper = .Machine$integer.max),
+    binwidth = plot_number(value("binwidth"), "binwidth", optional = TRUE),
+    bw = plot_number(value("bw"), "bw", optional = TRUE),
+    smooth = plot_choice(value("smooth"), c("none", "loess", "lm"), "smooth"),
+    se = parse_bool(value("se")), span = plot_number(value("span"), "span"),
+    summary = plot_choice(value("summary"), c("none", "mean", "median"), "summary"),
+    na_action = plot_choice(value("na-action"), c("omit", "keep"), "na-action"),
+    alpha = plot_number(value("alpha"), "alpha", upper = 1, inclusive = TRUE),
+    position = plot_choice(value("position"), c("dodge", "stack", "fill"), "position"),
+    theme = plot_choice(value("theme"), c("minimal", "classic", "bw"), "theme"),
+    palette = plot_choice(value("palette"), c("default", "viridis", "greys"), "palette"),
+    format = plot_choice(sub("^[.]", "", value("format")), c("png", "pdf", "svg", "jpeg", "jpg", "tiff", "tif", "bmp", "eps", "ps"), "format"),
+    width = plot_number(value("width"), "width"),
+    height = plot_number(value("height"), "height"),
+    dpi = plot_number(value("dpi"), "dpi", integer = TRUE, upper = .Machine$integer.max),
+    file_prefix = plot_text(value("file-prefix")), file_suffix = plot_text(value("file-suffix")),
+    figure_number = plot_number(opts[["figure-number"]], "figure-number", integer = TRUE, optional = TRUE, upper = .Machine$integer.max),
+    figure_digits = plot_number(defaults$figure_digits, "figure-digits", integer = TRUE, upper = 12),
+    overwrite = parse_bool(opts$overwrite, FALSE),
+    digits = plot_number(if (is.null(opts$digits)) get_config_value("defaults.digits") else opts$digits,
+      "digits", lower = 0, upper = 15, inclusive = TRUE, integer = TRUE),
+    title = plot_text(opts$title), subtitle = plot_text(opts$subtitle),
+    caption = plot_text(opts$caption), note = plot_text(opts$note),
+    log = parse_bool(opts$log, get_config_value("defaults.log")))
+  for (name in c("file_prefix", "file_suffix")) {
+    value <- out[[name]]
+    if (grepl("[/\\\\]", value) || value %in% c(".", ".."))
+      stop("Plot filename components must not contain directory paths.")
+    if (nzchar(value)) out[[name]] <- sanitize_file_component(value)
   }
-  out <- as.character(vec)
-  out[is.na(out)] <- "Missing"
+  if (!nzchar(out$file_prefix)) stop("Plot filename prefix must not be empty.")
   out
 }
 
-prepare_plot_data <- function(df, numeric_vars, categorical_vars, na_action) {
-  total_n <- nrow(df)
-  if (total_n == 0) {
-    return(list(df = df, stats = list(
-      total_n = 0,
-      n = 0,
-      missing_n = 0,
-      missing_pct = 0,
-      missing_kept_n = 0
-    )))
+build_plot_requests <- function(df, opts) {
+  type <- opts$type
+  x <- opts$x; y <- opts$y; group <- opts$group
+  explicit <- parse_list(opts$vars)
+  named <- unique(c(explicit, x, y, group))
+  unknown <- setdiff(named[nzchar(named)], names(df))
+  if (length(unknown)) stop("Unknown variables: ", paste(unknown, collapse = ", "))
+  numeric <- function(var) nzchar(var) && is.numeric(df[[var]])
+  vars <- if (length(explicit)) unique(explicit) else character()
+  if (!length(vars) && !nzchar(x) && !nzchar(y)) {
+    default <- if (type == "bar") "all" else get_config_value("modules.plot.vars_default")
+    vars <- select_variables(df, NULL, if (nzchar(group)) group else NULL, default = default, include_numeric = TRUE)
   }
-  missing_num <- rep(FALSE, total_n)
+  if (type == "auto") {
+    if (nzchar(y)) type <- if (nzchar(x) && numeric(x) && numeric(y)) "scatter" else "box"
+    else if (nzchar(x)) type <- if (numeric(x)) "histogram" else "bar"
+    else if (length(vars)) type <- if (!numeric(vars[1])) "bar" else if (nzchar(group)) "box" else "histogram"
+    else stop("No variables available for plotting.")
+  }
+  make <- function(x = "", y = "", vars = character(), group = group)
+    list(type = type, x = x, y = y, group = group, vars = vars)
+  if (type == "corr-heatmap") {
+    if (nzchar(x) || nzchar(y) || nzchar(group)) stop("Correlation heatmaps use --vars; --x, --y and --group are not supported.")
+    if (length(vars) < 2L) stop("corr-heatmap requires at least two numeric variables.")
+    return(list(make(vars = vars, group = "")))
+  }
+  if (type %in% c("scatter", "line")) {
+    if (!nzchar(x) || !nzchar(y)) stop("Scatter/line plots require numeric --x and --y.")
+    if (length(explicit)) stop("Scatter/line plots use --x and --y, not --vars.")
+    return(list(make(x, y, group = group)))
+  }
+  if (type %in% c("box", "violin")) {
+    axis <- if (nzchar(x)) x else group
+    if (!nzchar(axis)) stop("Box and violin plots require --group or --x for the categorical axis.")
+    if (nzchar(y) && length(explicit)) stop("Choose --y or --vars for box/violin responses, not both.")
+    responses <- if (nzchar(y)) y else vars
+    responses <- setdiff(responses, axis)
+    if (!length(responses)) stop("No numeric response selected for box/violin plot.")
+    return(lapply(responses, function(var) make(axis, var, group = group)))
+  }
+  if (nzchar(y)) stop("Univariate plots use --x or --vars, not --y.")
+  if (nzchar(x) && length(explicit)) stop("Choose --x or --vars for a univariate plot, not both.")
+  variables <- if (nzchar(x)) x else vars
+  if (!length(variables)) stop("No variables available for plotting.")
+  lapply(variables, function(var) make(var, group = group))
+}
+
+# Categories are identified before formatting or labelling; duplicate human
+# labels and adjacent floating-point codes can never merge statistical groups.
+plot_categories <- function(values, variable, source_rows, dictionary, keep_missing) {
+  codes <- if (is.factor(values)) levels(values) else sort(unique(values[!is.na(values)]))
+  raw <- if (is.factor(values)) as.character(values) else values
+  ids <- match(raw, codes)
+  display <- if (is.numeric(codes)) sprintf("%.17g", codes) else as.character(codes)
+  value_labels <- dictionary$columns[[variable]]$value_labels
+  for (i in seq_along(codes)) {
+    hits <- vapply(value_labels, function(entry) {
+      !is.null(entry$value) && length(entry$value) == 1L &&
+        identical(as.character(entry$value), as.character(codes[i])) &&
+        (!is.numeric(codes) || identical(as.numeric(entry$value), as.numeric(codes[i])))
+    }, logical(1))
+    if (any(hits)) display[i] <- as.character(value_labels[[which(hits)[1L]]]$label)
+  }
+  missing <- keep_missing && anyNA(values)
+  if (missing) {
+    ids[is.na(values)] <- length(codes) + 1L
+    display <- c(display, "Missing")
+  }
+  duplicates <- duplicated(display) | duplicated(display, fromLast = TRUE)
+  if (any(duplicates)) display[duplicates] <- paste0(display[duplicates], " [category ", which(duplicates), "]")
+  display <- make.unique(display, sep = " [duplicate] ")
+  entries <- lapply(seq_along(display), function(i) list(id = i,
+    raw_value = if (i <= length(codes)) unname(codes[i]) else NULL,
+    is_missing = i > length(codes), label = display[i],
+    source_rows = source_rows[which(ids == i)]))
+  list(values = factor(ids, levels = seq_along(display), labels = display),
+    metadata = list(variable = variable, ordered = is.ordered(values), levels = entries))
+}
+
+prepare_plot_data <- function(df, request, na_action, dictionary) {
+  type <- request$type; x <- request$x; y <- request$y; group <- request$group
+  numeric_vars <- switch(type, "corr-heatmap" = request$vars, bar = character(),
+    box = y, violin = y, scatter = unique(c(x, y)), line = unique(c(x, y)), x)
+  categorical <- unique(c(if (type %in% c("bar", "box", "violin")) x else character(), group[nzchar(group)]))
+  invalid <- numeric_vars[!vapply(df[numeric_vars], is.numeric, logical(1))]
+  if (length(invalid)) stop("Plot requires numeric variables: ", paste(invalid, collapse = ", "))
+  invalid_cat <- categorical[!vapply(df[categorical], function(v) is.atomic(v) && !is.complex(v), logical(1))]
+  if (length(invalid_cat)) stop("Unsupported categorical variable: ", paste(invalid_cat, collapse = ", "))
+  n <- nrow(df); missing_num <- nonfinite <- missing_cat <- rep(FALSE, n)
   for (var in numeric_vars) {
-    if (var %in% names(df)) missing_num <- missing_num | is.na(df[[var]])
+    missing_num <- missing_num | is.na(df[[var]])
+    nonfinite <- nonfinite | (!is.na(df[[var]]) & !is.finite(df[[var]]))
   }
-  missing_cat <- rep(FALSE, total_n)
-  for (var in categorical_vars) {
-    if (var %in% names(df)) missing_cat <- missing_cat | is.na(df[[var]])
+  for (var in categorical) missing_cat <- missing_cat | is.na(df[[var]])
+  keep <- !missing_num & !nonfinite & (na_action == "keep" | !missing_cat)
+  source_rows <- which(keep)
+  if (!length(source_rows)) stop("No usable observations for requested ", type, " plot.")
+  if (any(nonfinite)) warning("Non-finite numeric observations omitted from ", type, " plot (n = ", sum(nonfinite), ").", call. = FALSE)
+  aliases <- if (type == "corr-heatmap") setNames(request$vars, request$vars) else {
+    mapping <- c(.x = x)
+    if (nzchar(y)) mapping <- c(mapping, .y = y)
+    if (nzchar(group)) mapping <- c(mapping, .group = group)
+    mapping
   }
-  na_action <- if (nzchar(na_action)) tolower(na_action) else "omit"
-  missing_kept_n <- if (na_action == "keep") sum(!missing_num & missing_cat) else 0
-  missing_dropped_n <- if (na_action == "keep") sum(missing_num) else sum(missing_num | missing_cat)
-
-  df_plot <- df
-  if (na_action == "keep" && length(categorical_vars) > 0) {
-    for (var in categorical_vars) {
-      if (var %in% names(df_plot)) {
-        df_plot[[var]] <- replace_missing_category(df_plot[[var]])
-      }
-    }
+  data <- data.frame(row.names = seq_along(source_rows))
+  categories <- list()
+  for (alias in names(aliases)) {
+    var <- aliases[[alias]]
+    values <- df[[var]][source_rows]
+    if (alias == ".group" || (alias == ".x" && type %in% c("bar", "box", "violin"))) {
+      converted <- plot_categories(values, var, source_rows, dictionary, na_action == "keep")
+      data[[alias]] <- converted$values
+      categories[[var]] <- converted$metadata
+    } else data[[alias]] <- values
   }
-  vars_required <- unique(c(numeric_vars, categorical_vars))
-  if (length(vars_required) > 0) {
-    complete_rows <- complete.cases(df_plot[, vars_required, drop = FALSE])
-    df_plot <- df_plot[complete_rows, , drop = FALSE]
-  }
-  n_used <- nrow(df_plot)
-  missing_pct <- if (total_n > 0) (missing_dropped_n / total_n) * 100 else 0
-  list(df = df_plot, stats = list(
-    total_n = total_n,
-    n = n_used,
-    missing_n = missing_dropped_n,
-    missing_pct = missing_pct,
-    missing_kept_n = missing_kept_n
-  ))
+  stats <- list(total_n = n, n = sum(keep), missing_n = sum(!keep),
+    missing_pct = 100 * sum(!keep) / n, missing_kept_n = sum(keep & missing_cat),
+    nonfinite_n = sum(nonfinite))
+  list(data = data, aliases = as.list(aliases), categories = categories,
+    cases = list(source_rows = source_rows, excluded_rows = which(!keep),
+      numeric_missing_rows = which(missing_num), nonfinite_rows = which(nonfinite),
+      missing_categorical_rows = which(missing_cat), stats = stats,
+      selection = if (type == "corr-heatmap") "listwise_complete_finite" else "joint_required_variables"))
 }
 
-apply_plot_theme <- function(plot, theme_name) {
-  theme_name <- tolower(theme_name)
-  if (theme_name == "classic") return(add_plot_component(plot, ggplot2::theme_classic()))
-  if (theme_name == "bw") return(add_plot_component(plot, ggplot2::theme_bw()))
-  add_plot_component(plot, ggplot2::theme_minimal())
-}
-
-apply_plot_palette <- function(plot, palette, use_fill = FALSE, use_color = FALSE) {
-  palette <- tolower(palette)
-  if (palette == "viridis" && requireNamespace("viridisLite", quietly = TRUE)) {
-    if (use_fill) plot <- add_plot_component(plot, ggplot2::scale_fill_viridis_d())
-    if (use_color) plot <- add_plot_component(plot, ggplot2::scale_color_viridis_d())
-    return(plot)
-  }
-  if (palette == "greys") {
-    if (use_fill) plot <- add_plot_component(plot, ggplot2::scale_fill_grey())
-    if (use_color) plot <- add_plot_component(plot, ggplot2::scale_color_grey())
+plot_palette <- function(plot, palette, fill = FALSE, color = FALSE) {
+  if (palette == "viridis") {
+    if (fill) plot <- plot + ggplot2::scale_fill_viridis_d()
+    if (color) plot <- plot + ggplot2::scale_color_viridis_d()
+  } else if (palette == "greys") {
+    if (fill) plot <- plot + ggplot2::scale_fill_grey()
+    if (color) plot <- plot + ggplot2::scale_color_grey()
   }
   plot
 }
 
-build_default_title <- function(type, x, y, stat) {
-  if (type == "histogram") return(paste("Distribution of", x))
-  if (type == "density") return(paste("Density of", x))
-  if (type == "qq") return(paste("Q-Q Plot of", x))
-  if (type == "bar") {
-    if (stat == "percent") return(paste("Percent of", x))
-    return(paste("Counts of", x))
-  }
-  if (type == "box") return(paste(y, "by", x))
-  if (type == "violin") return(paste(y, "by", x))
-  if (type == "scatter") return(paste(y, "vs", x))
-  if (type == "line") return(paste(y, "over", x))
-  if (type == "corr-heatmap") return("Correlation heatmap")
-  "Plot"
-}
-
-build_figure_note <- function(stats, na_action, note_override, digits) {
-  if (!is.null(note_override) && nzchar(note_override)) return(note_override)
-  if (is.null(stats) || is.null(stats$total_n)) return("None.")
-  if (stats$total_n == 0) return("No observations available.")
-  na_action <- if (nzchar(na_action)) tolower(na_action) else "omit"
-  if (na_action == "keep" && stats$missing_kept_n > 0 && stats$missing_n == 0) {
-    return(paste("Missing values shown as 'Missing' (n =", stats$missing_kept_n, ")."))
-  }
-  if (stats$missing_n > 0) {
-    pct <- round(stats$missing_pct, digits)
-    return(paste("Missing values omitted (n =", stats$missing_n, ",", pct, "%)."))
-  }
-  if (na_action == "keep" && stats$missing_kept_n > 0) {
-    return(paste("Missing values shown as 'Missing' (n =", stats$missing_kept_n, ")."))
-  }
-  "None."
-}
-
-build_figure_markdown <- function(figure_number, title, path, note) {
-  lines <- c(
-    paste("Figure", figure_number, ".", title),
-    paste0("![Figure ", figure_number, ". ", title, "](", path, ")"),
-    paste("Note.", note)
-  )
-  paste(lines, collapse = "\n")
-}
-
-build_slug <- function(type, x, y, group, suffix) {
-  parts <- c(type, x, y, group)
-  parts <- parts[nzchar(parts)]
-  if (!is.null(suffix) && nzchar(suffix)) parts <- c(parts, suffix)
-  slug <- resolve_sanitize_file_component(paste(parts, collapse = "-"))
-  if (nchar(slug) > 80) slug <- substr(slug, 1, 80)
-  slug
-}
-
-ensure_unique_path <- function(path, overwrite = FALSE) {
-  if (overwrite || !file.exists(path)) return(path)
-  ext <- tools::file_ext(path)
-  base <- sub(paste0("\\.", ext, "$"), "", path)
-  idx <- 1
-  repeat {
-    candidate <- paste0(base, "-", idx, ".", ext)
-    if (!file.exists(candidate)) return(candidate)
-    idx <- idx + 1
-  }
-}
-
-build_plot_requests <- function(df, type, vars, x, y, group) {
-  requests <- list()
+build_plot <- function(info, request, opts, labels) {
+  type <- request$type; data <- info$data; grouped <- nzchar(request$group)
+  summary <- NULL
+  x_label <- resolve_variable_label(labels, request$x)
+  y_label <- resolve_variable_label(labels, request$y)
+  group_label <- resolve_variable_label(labels, request$group)
   if (type == "corr-heatmap") {
-    if (length(vars) < 2) stop("corr-heatmap requires at least two numeric variables.")
-    requests[[1]] <- list(type = type, vars = vars, x = "", y = "", group = "")
-    return(requests)
-  }
-
-  if (nzchar(x) && nzchar(y)) {
-    requests[[1]] <- list(type = type, x = x, y = y, group = group, vars = character(0))
-    return(requests)
-  }
-
-  if (length(vars) == 0) {
-    stop("No variables available for plotting.")
-  }
-
-  for (var in vars) {
-    if (type %in% c("box", "violin")) {
-      if (!nzchar(group) && !nzchar(x)) {
-        stop("Box and violin plots require --group or --x for the categorical axis.")
-      }
-      plot_x <- if (nzchar(x)) x else group
-      requests[[length(requests) + 1]] <- list(type = type, x = plot_x, y = var, group = group, vars = character(0))
-    } else {
-      requests[[length(requests) + 1]] <- list(type = type, x = var, y = "", group = group, vars = character(0))
+    correlation <- stats::cor(data, use = "everything", method = "pearson")
+    if (!any(is.finite(correlation[upper.tri(correlation)]))) stop("Correlation heatmap has no estimable between-variable correlation.")
+    summary <- as.data.frame(as.table(correlation), stringsAsFactors = FALSE)
+    names(summary) <- c("var1", "var2", "r")
+    summary$n <- nrow(data)
+    summary$r_label <- ifelse(is.finite(summary$r), format(round(summary$r, opts$digits), nsmall = opts$digits), "NA")
+    names_display <- vapply(request$vars, function(var) resolve_variable_label(labels, var), character(1))
+    if (anyDuplicated(names_display)) names_display <- paste0(names_display, " [", request$vars, "]")
+    names(names_display) <- request$vars
+    plot <- ggplot2::ggplot(summary, ggplot2::aes(x = var1, y = var2, fill = r)) +
+      ggplot2::geom_tile(color = "white") +
+      ggplot2::scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", midpoint = 0,
+        limits = c(-1, 1), na.value = "grey80") +
+      ggplot2::geom_text(ggplot2::aes(label = r_label), size = 3) +
+      ggplot2::scale_x_discrete(labels = names_display) + ggplot2::scale_y_discrete(labels = names_display) +
+      ggplot2::labs(x = NULL, y = NULL, fill = "Pearson r")
+  } else if (type %in% c("scatter", "line")) {
+    mapping <- if (grouped) ggplot2::aes(x = .x, y = .y, color = .group, group = .group) else ggplot2::aes(x = .x, y = .y)
+    if (type == "line" && opts$summary != "none") {
+      # aggregate() factors numeric grouping columns via rounded strings. Map
+      # exact numeric x identities to integers before grouping, then restore x.
+      x_values <- sort(unique(data$.x))
+      by <- data.frame(.x_id = match(data$.x, x_values))
+      if (grouped) by$.group <- data$.group
+      summary <- stats::aggregate(data$.y, by = by, FUN = if (opts$summary == "median") stats::median else mean)
+      names(summary)[ncol(summary)] <- ".y"
+      summary$.x <- x_values[summary$.x_id]
+      summary$.x_id <- NULL
+      summary <- summary[c(".x", if (grouped) ".group", ".y")]
+      data <- summary
     }
-  }
-  requests
-}
-
-build_plot <- function(df, request, opts, digits, engine = "ggplot2") {
-  if (engine == "base") {
-    return(build_plot_base(df, request, opts, digits))
-  }
-  type <- request$type
-  x <- request$x
-  y <- request$y
-  group <- request$group
-  vars <- request$vars
-  na_action <- opts$na_action
-  alpha <- opts$alpha
-  stat <- opts$stat
-  percent_base <- opts$percent_base
-
-  if (type == "corr-heatmap") {
-    num_vars <- vars
-    non_numeric <- num_vars[!vapply(num_vars, function(var) is_numeric_column(df, var), logical(1))]
-    if (length(non_numeric) > 0) {
-      stop("corr-heatmap requires numeric variables. Non-numeric: ", paste(non_numeric, collapse = ", "))
-    }
-    numeric_vars <- num_vars
-    data_info <- prepare_plot_data(df, numeric_vars, character(0), na_action)
-    plot_df <- data_info$df
-    if (ncol(plot_df) < 2) stop("corr-heatmap requires at least two numeric variables.")
-    corr <- stats::cor(plot_df[, num_vars, drop = FALSE], use = "pairwise.complete.obs")
-    corr_df <- as.data.frame(as.table(corr), stringsAsFactors = FALSE)
-    names(corr_df) <- c("var1", "var2", "r")
-    corr_df$r_label <- format(round(corr_df$r, digits), nsmall = digits)
-    plot <- ggplot2::ggplot(corr_df, ggplot2::aes_string(x = "var1", y = "var2", fill = "r"))
-    plot <- add_plot_layers(
-      plot,
-      ggplot2::geom_tile(color = "white"),
-      ggplot2::scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", midpoint = 0),
-      ggplot2::geom_text(ggplot2::aes_string(label = "r_label"), size = 3),
-      ggplot2::labs(x = NULL, y = NULL, fill = "r"),
-      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
-    )
-    return(list(plot = plot, stats = data_info$stats))
-  }
-
-  if (type == "scatter" || type == "line") {
-    numeric_vars <- c(x, y)
-    categorical_vars <- if (nzchar(group)) group else character(0)
-    data_info <- prepare_plot_data(df, numeric_vars, categorical_vars, na_action)
-    plot_df <- data_info$df
-    if (!is_numeric_column(df, x) || !is_numeric_column(df, y)) {
-      stop("Scatter/line plots require numeric --x and --y.")
-    }
-    if (nzchar(group) && group %in% names(plot_df)) {
-      plot_df[[group]] <- coerce_categorical(plot_df[[group]])
-    }
-    aes_args <- list(x = x, y = y)
-    if (nzchar(group)) aes_args$color <- group
-    plot <- ggplot2::ggplot(plot_df, do.call(ggplot2::aes_string, aes_args))
+    plot <- ggplot2::ggplot(data, mapping)
     if (type == "scatter") {
-      plot <- add_plot_component(plot, ggplot2::geom_point(alpha = alpha))
-      if (opts$smooth != "none") {
-        plot <- add_plot_component(plot, ggplot2::geom_smooth(method = opts$smooth, se = opts$se, span = opts$span))
-      }
-    } else {
-      if (opts$summary != "none") {
-        summary_fun <- if (opts$summary == "median") stats::median else mean
-        if (nzchar(group)) {
-          plot_df <- aggregate(plot_df[[y]], by = list(plot_df[[x]], plot_df[[group]]), FUN = summary_fun, na.rm = TRUE)
-          names(plot_df) <- c(x, group, y)
-        } else {
-          plot_df <- aggregate(plot_df[[y]], by = list(plot_df[[x]]), FUN = summary_fun, na.rm = TRUE)
-          names(plot_df) <- c(x, y)
-        }
-        plot <- ggplot2::ggplot(plot_df, do.call(ggplot2::aes_string, aes_args))
-        plot <- add_plot_component(plot, ggplot2::geom_line())
-      } else {
-        plot <- add_plot_component(plot, ggplot2::geom_line())
-      }
+      plot <- plot + ggplot2::geom_point(alpha = opts$alpha)
+      if (opts$smooth != "none") plot <- plot + ggplot2::geom_smooth(
+        method = opts$smooth, formula = y ~ x, se = opts$se, span = opts$span, n = 80L, level = 0.95)
+    } else plot <- plot + ggplot2::geom_line(alpha = opts$alpha)
+    plot <- plot_palette(plot, opts$palette, color = grouped)
+    plot <- plot + ggplot2::labs(x = x_label, y = y_label, color = group_label)
+  } else if (type %in% c("box", "violin")) {
+    separate_group <- grouped && request$group != request$x
+    mapping <- if (separate_group) ggplot2::aes(x = .x, y = .y, fill = .group) else ggplot2::aes(x = .x, y = .y, fill = .x)
+    plot <- ggplot2::ggplot(data, mapping)
+    if (type == "violin") plot <- plot + ggplot2::geom_violin(alpha = opts$alpha, trim = FALSE)
+    plot <- plot + if (type == "violin") ggplot2::geom_boxplot(alpha = opts$alpha, width = 0.2) else ggplot2::geom_boxplot(alpha = opts$alpha)
+    plot <- plot_palette(plot, opts$palette, fill = TRUE)
+    plot <- plot + ggplot2::labs(x = x_label, y = y_label, fill = if (separate_group) group_label else x_label)
+  } else if (type == "bar") {
+    counts <- if (grouped) as.data.frame(table(.x = data$.x, .group = data$.group), stringsAsFactors = FALSE)
+      else as.data.frame(table(.x = data$.x), stringsAsFactors = FALSE)
+    names(counts)[ncol(counts)] <- "n"
+    counts$.x <- factor(counts$.x, levels = levels(data$.x))
+    if (grouped) counts$.group <- factor(counts$.group, levels = levels(data$.group))
+    denominator <- if (grouped && opts$percent_base == "group") ave(counts$n, counts$.group, FUN = sum) else rep(sum(counts$n), nrow(counts))
+    counts$pct <- ifelse(denominator > 0, 100 * counts$n / denominator, 0)
+    counts$denominator <- denominator
+    counts$.height <- if (opts$stat == "percent") counts$pct else counts$n
+    summary <- counts
+    mapping <- if (grouped) ggplot2::aes(x = .x, y = .height, fill = .group) else ggplot2::aes(x = .x, y = .height)
+    if (opts$stat == "percent") plot <- ggplot2::ggplot(counts, mapping) + ggplot2::geom_col(position = opts$position, alpha = opts$alpha)
+    else {
+      mapping <- if (grouped) ggplot2::aes(x = .x, fill = .group) else ggplot2::aes(x = .x)
+      plot <- ggplot2::ggplot(data, mapping) + ggplot2::geom_bar(position = opts$position, alpha = opts$alpha)
     }
-    plot <- apply_plot_palette(plot, opts$palette, use_color = nzchar(group))
-    return(list(plot = plot, stats = data_info$stats))
-  }
-
-  if (type == "box" || type == "violin") {
-    if (!nzchar(x) || !nzchar(y)) stop("Box/violin plots require --y and --group/--x.")
-    numeric_vars <- c(y)
-    categorical_vars <- unique(c(x, if (nzchar(group)) group else character(0)))
-    data_info <- prepare_plot_data(df, numeric_vars, categorical_vars, na_action)
-    plot_df <- data_info$df
-    plot_df[[x]] <- coerce_categorical(plot_df[[x]])
-    if (nzchar(group) && group %in% names(plot_df)) {
-      plot_df[[group]] <- coerce_categorical(plot_df[[group]])
-    }
-    aes_args <- list(x = x, y = y)
-    fill_var <- if (nzchar(group) && group != x) group else x
-    aes_args$fill <- fill_var
-    plot <- ggplot2::ggplot(plot_df, do.call(ggplot2::aes_string, aes_args))
-    if (type == "box") {
-      plot <- add_plot_component(plot, ggplot2::geom_boxplot(alpha = alpha))
-    } else {
-      plot <- add_plot_component(plot, ggplot2::geom_violin(alpha = alpha, trim = FALSE))
-      plot <- add_plot_component(plot, ggplot2::geom_boxplot(width = 0.2, alpha = alpha))
-    }
-    plot <- apply_plot_palette(plot, opts$palette, use_fill = TRUE)
-    return(list(plot = plot, stats = data_info$stats))
-  }
-
-  if (type == "bar") {
-    if (!nzchar(x)) stop("Bar plots require --vars or --x.")
-    numeric_vars <- character(0)
-    categorical_vars <- unique(c(x, if (nzchar(group)) group else character(0)))
-    data_info <- prepare_plot_data(df, numeric_vars, categorical_vars, na_action)
-    plot_df <- data_info$df
-    plot_df[[x]] <- coerce_categorical(plot_df[[x]])
-    if (nzchar(group) && group %in% names(plot_df)) {
-      plot_df[[group]] <- coerce_categorical(plot_df[[group]])
-    }
-    if (stat == "percent") {
-      tab <- if (nzchar(group)) {
-        counts <- as.data.frame(table(x = plot_df[[x]], group = plot_df[[group]], useNA = "no"))
-        names(counts) <- c(x, group, "n")
-        if (percent_base == "group") {
-          counts$pct <- ave(counts$n, counts[[group]], FUN = function(z) if (sum(z) == 0) 0 else 100 * z / sum(z))
-        } else {
-          total <- sum(counts$n)
-          counts$pct <- if (total == 0) 0 else 100 * counts$n / total
-        }
-        counts
-      } else {
-        counts <- as.data.frame(table(x = plot_df[[x]], useNA = "no"))
-        names(counts) <- c(x, "n")
-        total <- sum(counts$n)
-        counts$pct <- if (total == 0) 0 else 100 * counts$n / total
-        counts
-      }
-      aes_args <- list(x = x, y = "pct")
-      if (nzchar(group)) aes_args$fill <- group
-      plot <- ggplot2::ggplot(tab, do.call(ggplot2::aes_string, aes_args))
-      plot <- add_plot_layers(
-        plot,
-        ggplot2::geom_col(position = opts$position),
-        ggplot2::labs(y = "Percent")
-      )
-    } else {
-      aes_args <- list(x = x)
-      if (nzchar(group)) aes_args$fill <- group
-      plot <- ggplot2::ggplot(plot_df, do.call(ggplot2::aes_string, aes_args))
-      plot <- add_plot_component(plot, ggplot2::geom_bar(position = opts$position))
-    }
-    plot <- apply_plot_palette(plot, opts$palette, use_fill = nzchar(group))
-    return(list(plot = plot, stats = data_info$stats))
-  }
-
-  if (type == "histogram" || type == "density" || type == "qq") {
-    if (!nzchar(x)) stop("Histogram/density/qq plots require --vars or --x.")
-    numeric_vars <- c(x)
-    categorical_vars <- if (nzchar(group)) group else character(0)
-    data_info <- prepare_plot_data(df, numeric_vars, categorical_vars, na_action)
-    plot_df <- data_info$df
-    if (!is_numeric_column(df, x)) stop("Histogram/density/qq plots require numeric variables.")
-    if (nzchar(group) && group %in% names(plot_df)) {
-      plot_df[[group]] <- coerce_categorical(plot_df[[group]])
-    }
+    ylabel <- if (opts$position == "fill") {
+      if (opts$stat == "percent" && grouped && opts$percent_base == "group") "Normalized within-group proportions" else "Proportion within category"
+    } else if (opts$stat == "percent") {
+      if (grouped && opts$percent_base == "group") "Percent within group" else "Percent of retained observations"
+    } else "Count"
+    plot <- plot_palette(plot, opts$palette, fill = grouped)
+    plot <- plot + ggplot2::labs(x = x_label, y = ylabel)
+    if (grouped) plot <- plot + ggplot2::labs(fill = group_label)
+  } else if (type == "qq") {
+    mapping <- if (grouped) ggplot2::aes(sample = .x, color = .group, group = .group) else ggplot2::aes(sample = .x)
+    plot <- ggplot2::ggplot(data, mapping) + ggplot2::stat_qq() + ggplot2::stat_qq_line()
+    plot <- plot_palette(plot, opts$palette, color = grouped)
+    plot <- plot + ggplot2::labs(x = "Theoretical normal quantiles", y = x_label, color = group_label)
+  } else {
+    mapping <- if (grouped) ggplot2::aes(x = .x, fill = .group, group = .group) else ggplot2::aes(x = .x)
+    plot <- ggplot2::ggplot(data, mapping)
     if (type == "histogram") {
-      aes_args <- list(x = x)
-      if (nzchar(group)) aes_args$fill <- group
-      plot <- ggplot2::ggplot(plot_df, do.call(ggplot2::aes_string, aes_args))
-      if (!is.null(opts$binwidth)) {
-        plot <- add_plot_component(plot, ggplot2::geom_histogram(binwidth = opts$binwidth, position = "identity", alpha = alpha))
-      } else {
-        plot <- add_plot_component(plot, ggplot2::geom_histogram(bins = opts$bins, position = "identity", alpha = alpha))
-      }
-    } else if (type == "density") {
-      aes_args <- list(x = x)
-      if (nzchar(group)) aes_args$fill <- group
-      plot <- ggplot2::ggplot(plot_df, do.call(ggplot2::aes_string, aes_args))
-      if (!is.null(opts$bw)) {
-        plot <- add_plot_component(plot, ggplot2::geom_density(bw = opts$bw, alpha = alpha))
-      } else {
-        plot <- add_plot_component(plot, ggplot2::geom_density(alpha = alpha))
-      }
+      plot <- plot + ggplot2::geom_histogram(bins = if (is.null(opts$binwidth)) opts$bins else NULL,
+        binwidth = opts$binwidth, position = "identity", alpha = opts$alpha)
     } else {
-      plot <- ggplot2::ggplot(plot_df, ggplot2::aes_string(sample = x))
-      plot <- add_plot_layers(
-        plot,
-        ggplot2::stat_qq(),
-        ggplot2::stat_qq_line()
-      )
+      plot <- plot + ggplot2::geom_density(bw = if (is.null(opts$bw)) "nrd0" else opts$bw, alpha = opts$alpha)
     }
-    plot <- apply_plot_palette(plot, opts$palette, use_fill = nzchar(group))
-    return(list(plot = plot, stats = data_info$stats))
+    plot <- plot_palette(plot, opts$palette, fill = grouped)
+    plot <- plot + ggplot2::labs(x = x_label, y = if (type == "density") "Density" else "Count", fill = group_label)
   }
+  theme <- switch(opts$theme, minimal = ggplot2::theme_minimal(), classic = ggplot2::theme_classic(), bw = ggplot2::theme_bw())
+  plot <- plot + theme
+  if (type == "corr-heatmap") plot <- plot + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+  list(plot = plot, summary = summary)
+}
 
-  stop("Unsupported plot type: ", type)
+build_default_title <- function(request, stat, labels) {
+  x <- resolve_variable_label(labels, request$x); y <- resolve_variable_label(labels, request$y)
+  switch(request$type, histogram = paste("Distribution of", x), density = paste("Density of", x),
+    qq = paste("Q-Q Plot of", x), bar = paste(if (stat == "percent") "Percent of" else "Counts of", x),
+    box = paste(y, "by", x), violin = paste(y, "by", x), scatter = paste(y, "vs", x),
+    line = paste(y, "over", x), "corr-heatmap" = "Correlation heatmap")
+}
+
+build_figure_note <- function(info, request, opts) {
+  stats <- info$cases$stats
+  notes <- character()
+  if (stats$missing_n > 0) notes <- c(notes, paste0("Missing or non-finite values omitted (n = ",
+    stats$missing_n, ", ", round(stats$missing_pct, opts$digits), "%)."))
+  if (stats$missing_kept_n > 0) notes <- c(notes, paste0("Missing categories retained (n = ",
+    stats$missing_kept_n, "); their labelled category is distinct from literal values."))
+  if (nzchar(request$group)) notes <- c(notes, paste0("Grouped by ", request$group, "."))
+  if (request$type == "corr-heatmap") notes <- c(notes, "Pearson correlations use the same listwise-complete finite observations; colour limits are -1 to 1.")
+  if (request$type == "bar" && opts$stat == "percent")
+    notes <- c(notes, paste0("Percent denominator: ", if (opts$percent_base == "group" && nzchar(request$group)) "retained observations within each group" else "all retained observations", "."))
+  if (request$type == "bar" && opts$stat == "percent" && opts$percent_base == "group" &&
+      nzchar(request$group) && opts$position == "stack")
+    notes <- c(notes, "Stacked segments use separate group denominators; the stack total is not a sample percentage and can exceed 100%.")
+  if (request$type == "bar" && opts$position == "fill")
+    notes <- c(notes, "Fill positioning rescales each x-category stack to proportion 1 after the selected count/percent calculation.")
+  if (request$type == "bar" && opts$stat == "percent" && opts$percent_base == "group" &&
+      nzchar(request$group) && opts$position == "fill")
+    notes <- c(notes, "Within-group percentages are rescaled to sum to 1 within each x-category. With unequal group sizes, these segments do not represent the observed group composition of that category.")
+  if (request$type == "scatter" && opts$smooth != "none")
+    notes <- c(notes, paste0("Smoother: ", opts$smooth, if (opts$se) "; pointwise 95% confidence band." else "; no confidence band."))
+  if (request$type == "line") notes <- c(notes, paste0("Line summary: ", opts$summary,
+    "; points are connected in x order within each group, not interpreted as individual trajectories."))
+  if (nzchar(opts$note)) notes <- c(notes, opts$note)
+  if (!length(notes)) "None." else paste(notes, collapse = " ")
+}
+
+build_figure_markdown <- function(rows) paste(vapply(rows, function(row) paste(
+  paste("Figure", row$figure_number, ".", row$figure_title),
+  paste0("![Figure ", row$figure_number, ". ", row$figure_title, "](", row$figure_path, ")"),
+  paste("Note.", row$figure_note), sep = "\n"), character(1)), collapse = "\n\n")
+
+figure_context <- function(rows) list(tokens = rows[[1L]], narrative_rows = rows)
+
+plot_filename <- function(request, index, settings) {
+  parts <- c(request$type, request$x, request$y, request$group, settings$file_suffix)
+  slug <- substr(sanitize_file_component(paste(parts[nzchar(parts)], collapse = "-")), 1L, 80L)
+  paste0(settings$file_prefix, "-", sprintf("%0*d", settings$figure_digits, index), "-", slug, ".", settings$format)
+}
+
+unique_plot_path <- function(relative, out_dir, overwrite, reserved) {
+  candidate <- relative; index <- 0L
+  while (!overwrite && (file.exists(file.path(out_dir, candidate)) || candidate %in% reserved)) {
+    index <- index + 1L
+    ext <- tools::file_ext(relative)
+    candidate <- paste0(sub(paste0("[.]", ext, "$"), "", relative), "-", index, ".", ext)
+  }
+  candidate
+}
+
+save_plot <- function(built, path, settings) {
+  # Use explicit installed R devices, not ggsave's optional ragg/svglite choice.
+  bitmap_type <- if (is.null(settings$bitmap_type)) getOption("bitmapType") else settings$bitmap_type
+  if (settings$format %in% c("png", "jpeg", "jpg", "tiff", "tif", "bmp")) {
+    device <- switch(settings$format, png = grDevices::png, jpeg = grDevices::jpeg, jpg = grDevices::jpeg,
+      tiff = grDevices::tiff, tif = grDevices::tiff, bmp = grDevices::bmp)
+    device(path, width = settings$width, height = settings$height, units = "in", res = settings$dpi, type = bitmap_type)
+  }
+  else if (settings$format == "pdf") grDevices::pdf(path, width = settings$width, height = settings$height, onefile = TRUE)
+  else if (settings$format == "svg") grDevices::svg(path, width = settings$width, height = settings$height, onefile = TRUE)
+  else grDevices::postscript(path, width = settings$width, height = settings$height,
+    onefile = settings$format == "ps", horizontal = FALSE, paper = "special")
+  on.exit(grDevices::dev.off(), add = TRUE)
+  grid::grid.newpage()
+  grid::grid.draw(ggplot2::ggplot_gtable(built))
+}
+
+# ggplot statistic frames include ragged list columns (e.g. boxplot outliers).
+# Keep native frames in RDS and emit explicit JSON rows, without data-frame
+# simplification trying to recycle differently sized vectors into a column.
+plot_json_table <- function(frame) {
+  if (is.null(frame)) return(NULL)
+  lapply(seq_len(nrow(frame)), function(i) lapply(frame, function(column) {
+    value <- if (is.list(column)) column[[i]] else column[i]
+    if (is.factor(value)) as.character(value) else if (is.numeric(value)) unname(as.numeric(value)) else unname(value)
+  }))
+}
+
+plot_layer_rows <- function(layer) {
+  if (!nrow(layer)) return(0L)
+  columns <- intersect(c("x", "y", "middle", "lower", "upper"), names(layer))
+  if (!length(columns)) return(0L)
+  sum(Reduce(`&`, lapply(layer[columns], function(value) is.finite(as.numeric(value)))))
 }
 
 main <- function() {
-  args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
-
-  if (isTRUE(opts$help)) {
-    print_usage()
-    return(invisible(NULL))
-  }
-
-  if (isTRUE(opts$interactive)) {
-    opts <- interactive_options()
-  }
-
-  engine <- resolve_plot_engine()
-  if (engine == "base") {
-    cat("Note: ggplot2 unavailable or incompatible; using base R plotting.\n")
-  }
-
-  df <- resolve_load_dataframe(opts)
-  out_dir <- resolve_get_workspace_out_dir(df)
-  plots_dir <- resolve_ensure_out_dir(file.path(out_dir, "plots"))
-
-  type_default <- resolve_config_value("modules.plot.type", "auto")
-  type <- normalize_plot_type(if (!is.null(opts$type)) opts$type else type_default)
-  x <- if (!is.null(opts$x)) trimws(as.character(opts$x)) else ""
-  y <- if (!is.null(opts$y)) trimws(as.character(opts$y)) else ""
-  group <- if (!is.null(opts$group)) trimws(as.character(opts$group)) else ""
-
-  vars_default <- resolve_config_value("modules.plot.vars_default", "numeric")
-  if (type == "bar") vars_default <- "non-numeric"
-  vars_raw <- if (!is.null(opts$vars)) as.character(opts$vars) else ""
-  vars <- resolve_select_variables(df, vars_raw, group_var = if (nzchar(group)) group else NULL, default = vars_default, include_numeric = TRUE)
-  vars <- vars[nzchar(vars)]
-
-  if (type == "auto") {
-    type <- infer_plot_type(df, x, y, vars, group)
-  }
-  type <- normalize_plot_type(type)
-  if (type != "corr-heatmap" && (nzchar(x) || nzchar(y)) && !nzchar(vars_raw)) {
-    vars <- character(0)
-  }
-
-  stat <- if (!is.null(opts$stat)) tolower(as.character(opts$stat)) else resolve_config_value("modules.plot.stat", "count")
-  if (!stat %in% c("count", "percent")) stat <- "count"
-  percent_base <- if (!is.null(opts$`percent-base`)) {
-    tolower(as.character(opts$`percent-base`))
-  } else if (!is.null(opts$percent_base)) {
-    tolower(as.character(opts$percent_base))
-  } else {
-    resolve_config_value("modules.plot.percent_base", "total")
-  }
-  if (!percent_base %in% c("total", "group")) percent_base <- "total"
-
-  bins <- resolve_parse_integer(opts$bins, default = resolve_config_value("modules.plot.bins", 30))
-  binwidth <- resolve_parse_number(opts$binwidth, default = resolve_config_value("modules.plot.binwidth", NULL))
-  bw <- resolve_parse_number(opts$bw, default = resolve_config_value("modules.plot.bw", NULL))
-  smooth <- if (!is.null(opts$smooth)) tolower(as.character(opts$smooth)) else resolve_config_value("modules.plot.smooth", "none")
-  if (!smooth %in% c("none", "loess", "lm")) smooth <- "none"
-  se <- resolve_parse_bool(opts$se, default = resolve_config_value("modules.plot.se", TRUE))
-  span <- resolve_parse_number(opts$span, default = resolve_config_value("modules.plot.span", 0.75))
-  summary <- if (!is.null(opts$summary)) tolower(as.character(opts$summary)) else resolve_config_value("modules.plot.summary", "none")
-  if (!summary %in% c("none", "mean", "median")) summary <- "none"
-  na_action <- if (!is.null(opts$`na-action`)) tolower(as.character(opts$`na-action`)) else NULL
-  if (is.null(na_action) || !nzchar(na_action)) {
-    na_action <- if (!is.null(opts$na_action)) tolower(as.character(opts$na_action)) else resolve_config_value("modules.plot.na_action", "omit")
-  }
-  if (!na_action %in% c("omit", "keep")) na_action <- "omit"
-  alpha <- resolve_parse_number(opts$alpha, default = resolve_config_value("modules.plot.alpha", 0.7))
-  position <- if (!is.null(opts$position)) tolower(as.character(opts$position)) else resolve_config_value("modules.plot.position", "dodge")
-  if (!position %in% c("dodge", "stack", "fill")) position <- "dodge"
-  theme_name <- if (!is.null(opts$theme)) tolower(as.character(opts$theme)) else resolve_config_value("modules.plot.theme", "minimal")
-  palette <- if (!is.null(opts$palette)) tolower(as.character(opts$palette)) else resolve_config_value("modules.plot.palette", "default")
-  format <- if (!is.null(opts$format)) tolower(as.character(opts$format)) else resolve_config_value("modules.plot.format", "png")
-  format <- gsub("^\\.", "", format)
-  width <- resolve_parse_number(opts$width, default = resolve_config_value("modules.plot.width", 7))
-  height <- resolve_parse_number(opts$height, default = resolve_config_value("modules.plot.height", 5))
-  dpi <- resolve_parse_integer(opts$dpi, default = resolve_config_value("modules.plot.dpi", 300))
-  file_prefix <- if (!is.null(opts$`file-prefix`)) as.character(opts$`file-prefix`) else NULL
-  if (is.null(file_prefix) || !nzchar(file_prefix)) {
-    file_prefix <- if (!is.null(opts$file_prefix)) as.character(opts$file_prefix) else resolve_config_value("modules.plot.file_prefix", "figure")
-  }
-  file_suffix <- if (!is.null(opts$`file-suffix`)) as.character(opts$`file-suffix`) else NULL
-  if (is.null(file_suffix) || !nzchar(file_suffix)) {
-    file_suffix <- if (!is.null(opts$file_suffix)) as.character(opts$file_suffix) else ""
-  }
-  overwrite <- resolve_parse_bool(opts$overwrite, default = FALSE)
-  digits <- resolve_parse_integer(opts$digits, default = resolve_config_value("defaults.digits", 2))
-
-  opts$stat <- stat
-  opts$percent_base <- percent_base
-  opts$bins <- bins
-  opts$binwidth <- binwidth
-  opts$bw <- bw
-  opts$smooth <- smooth
-  opts$se <- se
-  opts$span <- span
-  opts$summary <- summary
-  opts$na_action <- na_action
-  opts$alpha <- alpha
-  opts$position <- position
-  opts$theme <- theme_name
-  opts$palette <- palette
-
-  requests <- build_plot_requests(df, type, vars, x, y, group)
-  if (length(requests) == 0) stop("No plot requests generated.")
-
-  figure_digits <- resolve_parse_integer(resolve_config_value("modules.plot.figure_digits", 3), default = 3)
-  figure_start <- resolve_parse_integer(opts$`figure-number`, default = NULL)
-  if (is.null(figure_start)) {
-    if (exists("get_next_figure_number", mode = "function")) {
-      figure_start <- get("get_next_figure_number", mode = "function")(file.path(out_dir, "report_canonical.md"))
-    } else {
-      figure_start <- 1
-    }
-  }
-
-  figure_rows <- list()
-  figure_blocks <- character(0)
+  opts <- nlss_run_options(commandArgs(trailingOnly = TRUE), "plot")
+  if (isTRUE(opts$help)) { print_usage(); return(invisible(NULL)) }
+  if (isTRUE(opts$interactive)) opts <- interactive_options()
+  df <- nlss_load_input(opts)
+  out_dir <- get_workspace_out_dir(df)
+  nlss_begin_run("plot", df, opts)
+  if (!requireNamespace("ggplot2", quietly = TRUE))
+    stop("Plotting requires the 'ggplot2' package. Install it: install.packages('ggplot2').")
+  settings <- plot_options(opts)
+  settings$bitmap_type <- if (is.null(nlss_run_context$replay)) getOption("bitmapType") else nlss_run_context$replay$request$options$bitmap_type
+  for (name in c("title", "subtitle", "caption", "note"))
+    settings[[name]] <- nlss_mask_prose_paths(settings[[name]], nlss_run_context$root)
+  requests <- build_plot_requests(df, settings)
+  dictionary <- attr(df, "nlss_import_contract", exact = TRUE)
+  if (is.null(dictionary)) dictionary <- read_import_json(nlss_project_file(attr(df, "nlss_dataset_ref")$dictionary_path, nlss_run_context$root))
+  labels <- resolve_label_metadata(df)
+  prepared <- lapply(requests, function(request) prepare_plot_data(df, request, settings$na_action, dictionary))
+  design <- list(engine = "ggplot2", figure_requests = requests,
+    variables = lapply(unique(unlist(lapply(prepared, function(info) info$aliases))), function(var)
+      list(variable = var, classes = class(df[[var]]), label = resolve_variable_label(labels, var))),
+    labels = labels, cases = lapply(prepared, function(info) info$cases),
+    categories = lapply(prepared, function(info) info$categories),
+    device = list(name = paste0("grDevices::", switch(settings$format, jpg = "jpeg", tif = "tiff", eps = "postscript", ps = "postscript", settings$format)), bitmap_type = settings$bitmap_type,
+      cairo = unname(capabilities("cairo")), width = settings$width, height = settings$height, dpi = settings$dpi),
+    numbering = list(run_local = "starts_at_one", legacy_start = settings$figure_number),
+    image_replay = "Preserved image bytes are verified; numerical layers and Markdown are deterministic in the recorded environment. PDF/SVG device metadata need not be byte-identical.")
+  settings$engine <- "ggplot2"
+  settings$effective_types <- vapply(requests, function(request) request$type, character(1))
+  nlss_resolve_request(settings, design)
+  template <- resolve_template_override(opts$template, module = "plot")
+  if (is.null(template)) template <- resolve_template_path("plot.default", "plot/default-template.md")
+  template <- nlss_freeze_template(template, "plot")
+  canonical_start <- if (is.null(settings$figure_number)) get_next_figure_number(file.path(out_dir, "report_canonical.md")) else settings$figure_number
+  rows <- legacy_rows <- audits <- list()
+  reserved <- character()
   for (i in seq_along(requests)) {
-    req <- requests[[i]]
-    plot_result <- build_plot(df, req, opts, digits, engine = engine)
-
-    fig_num <- figure_start + i - 1
-    fig_label <- sprintf("%0*d", figure_digits, fig_num)
-    slug <- build_slug(req$type, req$x, req$y, req$group, file_suffix)
-    filename <- paste0(file_prefix, "-", fig_label, "-", slug, ".", format)
-    file_path <- ensure_unique_path(file.path(plots_dir, filename), overwrite = overwrite)
-    figure_rel_path <- file.path("plots", basename(file_path))
-    figure_rel_path <- gsub("\\\\", "/", figure_rel_path)
-
-    title_default <- build_default_title(req$type, req$x, req$y, stat)
-    title <- if (!is.null(opts$title) && nzchar(opts$title)) opts$title else title_default
-    caption <- if (!is.null(opts$caption) && nzchar(opts$caption)) opts$caption else title
-    note <- build_figure_note(plot_result$stats, na_action, opts$note, digits)
-
-    if (!is.null(plot_result$engine) && plot_result$engine == "base") {
-      plot_result$draw(file_path, format, width, height, dpi, title, opts$subtitle)
-    } else {
-      plot_obj <- plot_result$plot
-      plot_obj <- apply_plot_theme(plot_obj, theme_name)
-      ggplot2::ggsave(filename = file_path, plot = plot_obj, width = width, height = height, dpi = dpi, units = "in")
+    request <- requests[[i]]; info <- prepared[[i]]
+    figure_warnings <- character()
+    capture <- function(expr) withCallingHandlers(expr, warning = function(w) {
+      figure_warnings <<- c(figure_warnings, conditionMessage(w))
+    })
+    generated <- capture(build_plot(info, request, settings, labels))
+    title <- if (nzchar(settings$title)) settings$title else build_default_title(request, settings$stat, labels)
+    caption <- if (nzchar(settings$caption)) settings$caption else title
+    generated$plot <- generated$plot + ggplot2::labs(title = title,
+      subtitle = if (nzchar(settings$subtitle)) settings$subtitle else NULL,
+      caption = if (nzchar(settings$caption)) settings$caption else NULL)
+    built <- capture(ggplot2::ggplot_build(generated$plot))
+    layers <- lapply(built$data, as.data.frame)
+    status <- lapply(seq_along(layers), function(k) list(layer = k,
+      geom = class(generated$plot$layers[[k]]$geom)[1L], stat = class(generated$plot$layers[[k]]$stat)[1L],
+      status = if (plot_layer_rows(layers[[k]]) > 0L) "available" else "unavailable",
+      rows = nrow(layers[[k]]), usable_rows = plot_layer_rows(layers[[k]])))
+    if (!length(layers) || !any(vapply(layers, plot_layer_rows, integer(1)) > 0L)) stop("Requested plot has no estimable graphical layer.")
+    for (entry in status) if (entry$status == "unavailable")
+      capture(warning("Figure ", i, " layer ", entry$layer, " (", entry$stat, ") is unavailable.", call. = FALSE))
+    name <- paste0("plots/", plot_filename(request, i, settings))
+    staged <- file.path(nlss_run_context$staging, name)
+    ensure_out_dir(dirname(staged))
+    capture(save_plot(built, staged, settings))
+    legacy_name <- unique_plot_path(paste0("plots/", plot_filename(request, canonical_start + i - 1L, settings)),
+      out_dir, settings$overwrite, reserved)
+    reserved <- c(reserved, legacy_name)
+    nlss_save_run_file(name, source = staged, legacy_path = legacy_name, overwrite = settings$overwrite)
+    note <- build_figure_note(info, request, settings)
+    figure_warnings <- unique(nlss_mask_prose_paths(figure_warnings, nlss_run_context$root))
+    if (length(figure_warnings)) note <- paste(note, "Warnings:", paste(figure_warnings, collapse = "; "))
+    rows[[i]] <- list(figure_number = i, figure_title = caption, figure_caption = caption,
+      figure_note = note, figure_path = name, plot_type = request$type,
+      vars = paste(request$vars, collapse = ", "), x = request$x, y = request$y,
+      group = request$group, n = info$cases$stats$n, missing_n = info$cases$stats$missing_n,
+      missing_pct = info$cases$stats$missing_pct)
+    legacy_rows[[i]] <- rows[[i]]
+    legacy_rows[[i]]$figure_number <- canonical_start + i - 1L
+    legacy_rows[[i]]$figure_path <- legacy_name
+    audits[[i]] <- list(request = request, aliases = info$aliases, cases = info$cases,
+      categories = info$categories, data = info$data, summary = generated$summary,
+      layers = layers, layer_status = status, warnings = figure_warnings,
+      labels = list(title = title, subtitle = settings$subtitle, caption = settings$caption,
+        x = generated$plot$labels$x, y = generated$plot$labels$y,
+        fill = generated$plot$labels$fill, colour = generated$plot$labels$colour))
+  }
+  nlss_save_run_rds(audits, "plot-data.rds")
+  plot_types <- unique(settings$effective_types)
+  analysis_flags <- settings[c("engine", "vars", "x", "y", "group", "na_action", "theme", "palette", "width", "height", "dpi")]
+  analysis_flags$plot_type <- paste(plot_types, collapse = ", ")
+  analysis_flags$output_format <- settings$format
+  if (any(!plot_types %in% c("qq", "corr-heatmap"))) analysis_flags$opacity <- settings$alpha
+  if ("histogram" %in% plot_types) {
+    binning <- if (is.null(settings$binwidth)) "bins" else "binwidth"
+    analysis_flags[[binning]] <- settings[[binning]]
+  }
+  if ("density" %in% plot_types) analysis_flags$bw <- if (is.null(settings$bw)) "nrd0 (automatic)" else settings$bw
+  if ("scatter" %in% plot_types) {
+    analysis_flags$smooth <- settings$smooth
+    if (settings$smooth != "none") analysis_flags$smoother_confidence_band <- settings$se
+    if (settings$smooth == "loess") analysis_flags$span <- settings$span
+  }
+  if ("bar" %in% plot_types) {
+    analysis_flags$stat <- settings$stat
+    if (settings$stat == "percent") analysis_flags$percent_base <- settings$percent_base
+    analysis_flags$position <- settings$position
+  }
+  if ("line" %in% plot_types) analysis_flags$summary <- settings$summary
+  nlss_stage_figure_report(file.path(out_dir, "report_canonical.md"), "Plots", build_figure_markdown(rows),
+    analysis_flags = analysis_flags, template_path = template, template_context = figure_context(rows), figure_start = 1L,
+    legacy = list(figure_body = build_figure_markdown(legacy_rows), template_context = figure_context(legacy_rows), figure_start = canonical_start))
+  json_audits <- lapply(audits, function(audit) {
+    audit$data <- plot_json_table(audit$data)
+    audit$summary <- plot_json_table(audit$summary)
+    audit$layers <- lapply(audit$layers, plot_json_table)
+    audit
+  })
+  nlss_set_result(list(figures = rows, plots = json_audits))
+  if (settings$log) {
+    context <- get_run_context()
+    legacy_options <- settings
+    legacy_options$type <- unique(settings$effective_types)
+    legacy_options$vars <- if (nzchar(settings$vars)) parse_list(settings$vars) else {
+      if (!nzchar(settings$x) && !nzchar(settings$y)) unique(unlist(lapply(requests, function(request) {
+        if (length(request$vars)) request$vars else if (request$type %in% c("box", "violin")) request$y else request$x
+      }), use.names = FALSE)) else character()
     }
-
-    figure_rows[[length(figure_rows) + 1]] <- list(
-      figure_number = fig_num,
-      figure_title = caption,
-      figure_caption = caption,
-      figure_note = note,
-      figure_path = figure_rel_path,
-      plot_type = req$type,
-      vars = if (length(req$vars) > 0) paste(req$vars, collapse = ", ") else "",
-      x = req$x,
-      y = req$y,
-      group = req$group,
-      n = plot_result$stats$n,
-      missing_n = plot_result$stats$missing_n,
-      missing_pct = round(plot_result$stats$missing_pct, digits)
-    )
-
-    figure_blocks <- c(figure_blocks, build_figure_markdown(fig_num, caption, figure_rel_path, note))
-  }
-
-  figure_body <- paste(figure_blocks, collapse = "\n\n")
-  first_row <- figure_rows[[1]]
-  template_override <- resolve_template_override(opts$template, module = "plot")
-  template_path <- if (!is.null(template_override)) {
-    template_override
-  } else {
-    resolve_get_template_path("plot.default", "plot/default-template.md")
-  }
-  template_context <- list(
-    tokens = list(
-      figure_number = first_row$figure_number,
-      figure_title = first_row$figure_title,
-      figure_caption = first_row$figure_caption,
-      figure_note = first_row$figure_note,
-      figure_path = first_row$figure_path,
-      plot_type = first_row$plot_type,
-      n = first_row$n,
-      missing_n = first_row$missing_n,
-      missing_pct = first_row$missing_pct
-    ),
-    narrative_rows = figure_rows
-  )
-
-  analysis_flags <- list(
-    type = type,
-    engine = engine,
-    vars = if (length(vars) > 0) paste(vars, collapse = ", ") else "None",
-    x = if (nzchar(x)) x else "None",
-    y = if (nzchar(y)) y else "None",
-    group = if (nzchar(group)) group else "None",
-    stat = stat,
-    percent_base = percent_base,
-    bins = bins,
-    binwidth = if (!is.null(binwidth)) binwidth else "auto",
-    bw = if (!is.null(bw)) bw else "auto",
-    smooth = smooth,
-    se = se,
-    span = span,
-    summary = summary,
-    na_action = na_action,
-    alpha = alpha,
-    position = position,
-    theme = theme_name,
-    palette = palette,
-    format = format,
-    size = paste0(width, "x", height, " in"),
-    dpi = dpi
-  )
-
-  resolve_append_nlss_figure_report(
-    file.path(out_dir, "report_canonical.md"),
-    "Plots",
-    figure_body,
-    analysis_flags = analysis_flags,
-    template_path = template_path,
-    template_context = template_context,
-    figure_start = figure_start
-  )
-
-  cat("Wrote:\n")
-  cat("- ", render_output_path(file.path(out_dir, "report_canonical.md"), out_dir), "\n", sep = "")
-  for (row in figure_rows) {
-    cat("- ", render_output_path(file.path(out_dir, row$figure_path), out_dir), "\n", sep = "")
-  }
-
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
-      out_dir,
-      module = "plot",
-      prompt = ctx$prompt,
-      commands = ctx$commands,
-      results = list(figures = figure_rows),
-      options = list(
-        type = type,
-        engine = engine,
-        vars = vars,
-        x = x,
-        y = y,
-        group = group,
-        stat = stat,
-        percent_base = percent_base,
-        bins = bins,
-        binwidth = binwidth,
-        bw = bw,
-        smooth = smooth,
-        se = se,
-        span = span,
-        summary = summary,
-        na_action = na_action,
-        alpha = alpha,
-        position = position,
-        theme = theme_name,
-        palette = palette,
-        format = format,
-        width = width,
-        height = height,
-        dpi = dpi,
-        file_prefix = file_prefix,
-        file_suffix = file_suffix
-      ),
-      user_prompt = resolve_get_user_prompt(opts)
-    )
+    nlss_stage_log(out_dir, "plot", context$prompt, context$commands,
+      results = list(figures = legacy_rows), options = legacy_options, user_prompt = get_user_prompt(opts))
   }
 }
 
-main()
+nlss_run_main("plot", main)

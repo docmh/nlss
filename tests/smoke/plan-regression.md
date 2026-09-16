@@ -6,7 +6,7 @@
 - Exercise hierarchical blocks, interaction terms, centering, standardization, grouping, bootstrap CIs, and template rendering.
 - Cover input variants (workspace manifest, RDS, RData, CSV with custom separator/header) and option overrides (link, conf-level, digits, logging).
 - Verify logging behavior (`analysis_log.jsonl`) for both successful runs and invalid inputs.
-- Cover edge cases (bootstrap samples = 0, small-group failures) and negative cases (missing/unknown variables, invalid DV types, invalid link).
+- Cover explicit rejection of zero bootstrap samples, small-group failures, and negative cases (missing/unknown variables, invalid DV types, invalid link).
 - Numeric value tests: compare `analysis_log.jsonl` outputs against `tests/values/regression_*_golden.csv` (regenerate with `tests/values/regression_compute_golden.R`).
 
 ## Data Sources
@@ -38,7 +38,7 @@ Positive coverage:
 - Interaction terms with centering and appended interaction block (OLS and binomial).
 - Grouped regressions across `site` levels (OLS and binomial).
 - Standardized betas for OLS (`--standardize predictors`).
-- Bootstrap confidence intervals with seed control and bootstrap edge case (0 samples).
+- Bootstrap confidence intervals with seed control; zero samples must fail with `invalid_input` rather than claim a bootstrap analysis without resampling.
 - Logistic regression with numeric DV (`binary_outcome`), factor DV (two-level `group2`), custom link, and bootstrap.
 - Poisson regression with block comparisons (count DV).
 - Config overrides logged (`--conf-level`, `--digits`, `--user-prompt`).

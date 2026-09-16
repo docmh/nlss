@@ -10,14 +10,9 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("config.R")
-source_lib("io.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-normalize_input_path <- get("normalize_input_path", mode = "function")
-source_lib <- get("source_lib", mode = "function")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
+source_lib("log_utilities.R")
 
 print_usage <- function() {
   cat("Usage: check_integrity.R <analysis_log.jsonl> [--diagnose TRUE|FALSE]\n", file = stderr())
@@ -30,22 +25,11 @@ ensure_jsonlite <- function() {
   }
 }
 
-parse_bool <- function(value, default = FALSE) {
-  if (is.null(value)) return(default)
-  text <- tolower(trimws(as.character(value)))
-  if (!nzchar(text)) return(default)
-  if (text %in% c("true", "t", "1", "yes", "y")) return(TRUE)
-  if (text %in% c("false", "f", "0", "no", "n")) return(FALSE)
-  default
-}
-
 safe_seq_value <- function(value) {
-  if (is.null(value)) return(NA_integer_)
-  parsed <- suppressWarnings(as.integer(value))
-  if (length(parsed) == 0) return(NA_integer_)
-  parsed <- parsed[1]
-  if (is.na(parsed) || parsed < 0) return(NA_integer_)
-  parsed
+  if (is.null(value) || length(value) != 1L || !is.atomic(value)) return(NA_integer_)
+  parsed <- suppressWarnings(as.numeric(value))
+  if (!is.finite(parsed) || parsed < 0 || parsed > .Machine$integer.max || parsed != floor(parsed)) return(NA_integer_)
+  as.integer(parsed)
 }
 
 decode_bytes <- function(raw_vec) {
@@ -106,90 +90,14 @@ find_last_raw_pattern <- function(haystack, needle) {
   last
 }
 
-args <- commandArgs(trailingOnly = TRUE)
-diagnose <- TRUE
-positional <- character(0)
-bool_tokens <- c("true", "t", "1", "yes", "y", "false", "f", "0", "no", "n")
-i <- 1L
-while (i <= length(args)) {
-  arg <- args[i]
-  if (arg %in% c("-h", "--help")) {
-    print_usage()
-    quit(status = 2)
-  }
-  if (grepl("^--diagnose=", arg)) {
-    value <- sub("^--diagnose=", "", arg)
-    diagnose <- parse_bool(value, default = TRUE)
-    i <- i + 1L
-    next
-  }
-  if (arg %in% c("--diagnose", "--diag")) {
-    next_value <- if (i + 1L <= length(args)) args[i + 1L] else ""
-    if (nzchar(next_value) && tolower(next_value) %in% bool_tokens) {
-      diagnose <- parse_bool(next_value, default = TRUE)
-      i <- i + 2L
-      next
-    }
-    diagnose <- TRUE
-    i <- i + 1L
-    next
-  }
-  if (arg %in% c("--no-diagnose", "--no-diagnostic")) {
-    diagnose <- FALSE
-    i <- i + 1L
-    next
-  }
-  positional <- c(positional, arg)
-  i <- i + 1L
-}
-
-ensure_jsonlite()
-
-env_log <- Sys.getenv("NLSS_INTEGRITY_LOG", unset = "")
-if (length(positional) < 1 && !nzchar(env_log)) {
+opts <- nlss_log_arguments(commandArgs(TRUE), "check_integrity", "NLSS_INTEGRITY_LOG")
+if (isTRUE(opts$help)) {
   print_usage()
-  quit(status = 2)
+  quit(status = 0)
 }
-
-arg_log <- ""
-if (length(positional) >= 1 && nzchar(positional[1])) {
-  arg_log <- normalize_input_path(positional[1])
-}
-if ((is.null(arg_log) || !nzchar(arg_log) || !file.exists(arg_log)) && length(positional) >= 2) {
-  first <- positional[1]
-  second <- positional[2]
-  reconstructed <- ""
-  if (grepl("^[A-Za-z]$", first) && grepl("^[\\\\/]", second)) {
-    rest <- paste(positional[2:length(positional)], collapse = " ")
-    reconstructed <- paste0(first, ":", rest)
-  } else if (grepl("^[A-Za-z]:$", first) && grepl("^[\\\\/]", second)) {
-    rest <- paste(positional[2:length(positional)], collapse = " ")
-    reconstructed <- paste0(first, rest)
-  }
-  if (nzchar(reconstructed)) {
-    reconstructed <- normalize_input_path(reconstructed)
-    if (file.exists(reconstructed)) {
-      arg_log <- reconstructed
-    }
-  }
-}
-env_log_norm <- ""
-if (nzchar(env_log)) {
-  env_log_norm <- normalize_input_path(env_log)
-}
-
-log_path <- ""
-if (nzchar(arg_log) && file.exists(arg_log)) {
-  log_path <- arg_log
-} else if (nzchar(env_log_norm) && file.exists(env_log_norm)) {
-  log_path <- env_log_norm
-}
-
-if (!nzchar(log_path)) {
-  fallback <- if (nzchar(arg_log)) arg_log else env_log_norm
-  cat("Missing log: ", fallback, "\n", sep = "", file = stderr())
-  quit(status = 2)
-}
+ensure_jsonlite()
+diagnose <- if (is.null(opts$diagnose)) TRUE else opts$diagnose
+log_path <- opts$path
 
 file_size <- file.info(log_path)$size
 if (is.na(file_size) || file_size <= 0) {
@@ -241,6 +149,7 @@ while (pos <= total_len) {
   )
 
   entry <- tryCatch(jsonlite::fromJSON(line_text, simplifyVector = FALSE), error = function(e) NULL)
+  if (!is.list(entry) || is.null(names(entry))) entry <- NULL
   if (!is.null(entry)) {
     seq_value <- safe_seq_value(entry$log_seq)
     if (!is.na(seq_value)) {
@@ -259,7 +168,9 @@ while (pos <= total_len) {
     }
 
     combined <- entry$checksum
-    if (is.character(combined) && length(combined) > 0 && nzchar(combined)) {
+    version <- if (is.null(entry$checksum_version)) 1L else safe_seq_value(entry$checksum_version)
+    if (is.character(combined) && length(combined) == 1L && !is.na(combined) &&
+        grepl("^[0-9a-fA-F]{32}$", combined) && !is.na(version) && version %in% 1:3) {
       if (length(line_raw) >= 2 &&
           line_raw[length(line_raw)] == as.raw(0x7D) &&
           line_raw[length(line_raw) - 1L] == as.raw(0x22)) {
@@ -272,8 +183,6 @@ while (pos <= total_len) {
           }
           entry_checksum <- hashlib_md5_bytes(c(base_raw, line_ending))
           reverted <- xor_hex(combined, entry_checksum)
-          version <- suppressWarnings(as.integer(entry$checksum_version))
-          if (is.na(version)) version <- 1L
           if (version >= 2L && !is.null(prev_line_raw)) {
             prev_checksum <- hashlib_md5_bytes(c(prev_line_raw, prev_line_ending))
             reverted <- xor_hex(reverted, prev_checksum)

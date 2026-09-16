@@ -1,6 +1,6 @@
 ---
 name: metaskill-report
-description: NLSS format report scaffold for metaskill outputs with standard paper sections and reusable table/figure block tokens.
+description: Optional NLSS Markdown manuscript example with standard paper sections and reusable table/figure block tokens; not a required report structure.
 tokens:
   table_block: |
     **Table {{table_number}}**
@@ -28,17 +28,14 @@ tokens:
 ---
 
 <!--
-Default metaskill report template.
+Optional manuscript example, not a default obligation or report-saving schema.
 
-- Omit Keywords and Introduction if theoretical context is not available.
-- Do not replace title-page placeholders (user, affiliation, email).
-- Replace {{date-today}} with actual date.
-- Copy {{title}} to the second title header.
-- Adjust, replace or remove elements or subsections when warranted by the study design or metaskill.
-- Tables and figures should be purpose-built for the report (no copy/paste from report_canonical.md).
-- Tables and figures can be added anywhere in the report body as needed using the table_block and figure_block tokens.
-- Use tables to display repetitive information patterns (e.g., descriptive statistics, matrices, hypothesis test results).
-- Use figures to visualize key results (e.g., distributions, model fits, effect sizes) or to illustrate concepts or models.
+- Use only if helpful for the requested manuscript or explicitly selected by the user; conversational answers and selected sections need no scaffold.
+- Choose, rename, reorder or omit sections according to the research question and user requirements. Never invent study details or literature to fill placeholders.
+- If a title page is used, supply known author details, title and date; omit unknown fields or leave clearly marked placeholders only in an intended draft.
+- Tables/figures support the synthesis when useful; the block tokens are optional presentation examples, not a required numerical or semantic schema.
+- Preserve source/model identity, values and uncertainty; link existing run-local figures instead of copying artifacts. The automatic protocol remains separate from an authored report.
+- Scientific content and evidence do not depend on this layout. Future output formats must not turn the example into mandatory report structure.
 
 -->
 

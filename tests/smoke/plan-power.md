@@ -5,7 +5,7 @@
 - Validate power analysis in `scripts/R/power.R` for t-tests, ANOVA, correlations, regression, and SEM (RMSEA).
 - Cover a priori, post hoc, and sensitivity modes.
 - Exercise effect-size inputs, effect estimation from data, and conversions (eta² -> f, r² -> f²).
-- Verify `analysis_log.jsonl` logging for both successful runs and invalid inputs.
+- Verify successful `analysis_log.jsonl` projections and preserve existing report/log bytes on invalid input (nonzero exit with diagnostic feedback).
 - Confirm numeric outputs against goldens in `tests/values/power_golden.csv` (see `tests/values/power_compute_golden.R` and `tests/values/check_power_golden.py`).
 
 ## Data Sources
@@ -57,7 +57,7 @@ Prereqs:
 
 Negative coverage:
 
-- Missing effect size for a priori t-test (expect `invalid_input`).
+- Missing effect size for a priori t-test (expect nonzero exit; no success-shaped legacy projection).
 - Unsupported effect metric for analysis.
 - Missing `--n` for correlation post hoc.
 - Missing paired variables for t-test effect estimation.
@@ -80,4 +80,17 @@ Or run the full deliberate suite:
 
 ```bash
 bash cmdscripts/tests.sh deliberate
+```
+
+The Wave 8 [independent numerical suite](../phase2/power-README.md) expands this
+legacy smoke coverage to signed effects, all design/mode combinations, explicit
+RMSEA null/tail semantics, model rank, labels and source-row audits. Its separate
+planning-boundary companion verifies parameter-only publication and replay.
+The 19 legacy golden cases remain, with corrected observed ANOVA group count and
+nonzero-null SEM expectations documented in that numerical suite.
+
+For a private run without retention cleanup:
+
+```bash
+NLSS_TEST_ROOT=/tmp/nlss-power-legacy NLSS_KEEP_RUNS=0 bash tests/smoke/run_power_tests.sh
 ```

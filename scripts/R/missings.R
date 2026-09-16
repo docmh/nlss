@@ -10,21 +10,9 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-render_output_path <- get("render_output_path", mode = "function")
-add_variable_label_column <- get("add_variable_label_column", mode = "function")
-resolve_label_metadata <- get("resolve_label_metadata", mode = "function")
-resolve_row_display <- get("resolve_row_display", mode = "function")
-resolve_variable_label <- get("resolve_variable_label", mode = "function")
-source_lib <- get("source_lib", mode = "function")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
+source_lib("data_change.R")
 
 print_usage <- function() {
   cat("Missing data assessment and handling (base R)\n")
@@ -62,345 +50,79 @@ print_usage <- function() {
   cat("  --log TRUE/FALSE         Write analysis_log.jsonl (default: TRUE)\n")
   cat("  --interactive            Prompt for inputs\n")
   cat("  --help                   Show this help\n")
+  cat("  Mandatory run bundles remain enabled with --log FALSE.\n")
+  print_import_usage()
 }
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    opts$csv <- prompt("CSV path")
+    sep_default <- get_config_value("defaults.csv.sep")
+    header_default <- get_config_value("defaults.csv.header")
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
+    opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
+    opts$rds <- prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
+    opts$rdata <- prompt("RData path")
+    opts$df <- prompt("Data frame object name")
   } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
+    opts$parquet <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
 
-  opts$vars <- resolve_prompt("Variables (comma-separated, blank for all)", "")
-  method_default <- resolve_config_value("modules.missings.method", "auto")
-  opts$method <- resolve_prompt("Method (auto/listwise/impute/indicator/drop)", method_default)
-  low_default <- resolve_config_value("modules.missings.low_threshold", 0.05)
-  moderate_default <- resolve_config_value("modules.missings.moderate_threshold", 0.2)
-  high_default <- resolve_config_value("modules.missings.high_threshold", 0.4)
-  drop_default <- resolve_config_value("modules.missings.drop_threshold", 0.6)
-  indicator_default <- resolve_config_value("modules.missings.indicator_threshold", 0.3)
-  indicator_suffix_default <- resolve_config_value("modules.missings.indicator_suffix", "_miss")
-  skew_default <- resolve_config_value("modules.missings.skew_threshold", 1.0)
-  max_patterns_default <- resolve_config_value("modules.missings.max_patterns", 10)
-  digits_default <- resolve_config_value("defaults.digits", 2)
+  opts$vars <- prompt("Variables (comma-separated, blank for all)", "")
+  method_default <- get_config_value("modules.missings.method")
+  opts$method <- prompt("Method (auto/listwise/impute/indicator/drop)", method_default)
+  low_default <- get_config_value("modules.missings.low_threshold")
+  moderate_default <- get_config_value("modules.missings.moderate_threshold")
+  high_default <- get_config_value("modules.missings.high_threshold")
+  drop_default <- get_config_value("modules.missings.drop_threshold")
+  indicator_default <- get_config_value("modules.missings.indicator_threshold")
+  indicator_suffix_default <- get_config_value("modules.missings.indicator_suffix")
+  skew_default <- get_config_value("modules.missings.skew_threshold")
+  max_patterns_default <- get_config_value("modules.missings.max_patterns")
+  digits_default <- get_config_value("defaults.digits")
 
-  opts$`low-threshold` <- resolve_prompt("Low threshold (0-1)", as.character(low_default))
-  opts$`moderate-threshold` <- resolve_prompt("Moderate threshold (0-1)", as.character(moderate_default))
-  opts$`high-threshold` <- resolve_prompt("High threshold (0-1)", as.character(high_default))
-  opts$`drop-threshold` <- resolve_prompt("Drop threshold (0-1)", as.character(drop_default))
-  opts$`indicator-threshold` <- resolve_prompt("Indicator threshold (0-1)", as.character(indicator_default))
-  opts$`indicator-suffix` <- resolve_prompt("Indicator suffix", indicator_suffix_default)
-  opts$`skew-threshold` <- resolve_prompt("Skew threshold", as.character(skew_default))
-  opts$`max-patterns` <- resolve_prompt("Max patterns", as.character(max_patterns_default))
-  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  opts$`low-threshold` <- prompt("Low threshold (0-1)", as.character(low_default))
+  opts$`moderate-threshold` <- prompt("Moderate threshold (0-1)", as.character(moderate_default))
+  opts$`high-threshold` <- prompt("High threshold (0-1)", as.character(high_default))
+  opts$`drop-threshold` <- prompt("Drop threshold (0-1)", as.character(drop_default))
+  opts$`indicator-threshold` <- prompt("Indicator threshold (0-1)", as.character(indicator_default))
+  opts$`indicator-suffix` <- prompt("Indicator suffix", indicator_suffix_default)
+  opts$`skew-threshold` <- prompt("Skew threshold", as.character(skew_default))
+  opts$`max-patterns` <- prompt("Max patterns", as.character(max_patterns_default))
+  opts$digits <- prompt("Rounding digits", as.character(digits_default))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log")
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts
 }
 
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
+missing_number <- function(opts, key, config, lower = -Inf, upper = Inf, integer = FALSE) {
+  value <- opts[[key]]
+  if (is.null(value)) value <- get_config_value(config)
+  number <- suppressWarnings(as.numeric(value))
+  if (length(value) != 1L || is.logical(value) || length(number) != 1L ||
+      !is.finite(number) || number < lower || number > upper ||
+      (integer && number != floor(number))) {
+    stop("--", key, " must be a finite ", if (integer) "integer" else "number",
+      " between ", lower, " and ", upper, ".")
   }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts, lock_safe = TRUE))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-
-resolve_get_workspace_out_dir <- function(df) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df))
-  }
-  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
-}
-
-resolve_write_parquet_data <- function(df, path) {
-  if (exists("write_parquet_data", mode = "function")) {
-    return(get("write_parquet_data", mode = "function")(df, path))
-  }
-  stop("Missing write_parquet_data. Ensure lib/io.R is sourced.")
-}
-
-resolve_backup_workspace_parquet <- function(path) {
-  if (exists("backup_workspace_parquet", mode = "function")) {
-    return(get("backup_workspace_parquet", mode = "function")(path))
-  }
-  ""
-}
-
-resolve_select_variables <- function(df, vars, group_var = NULL, default = "all", include_numeric = FALSE) {
-  if (exists("select_variables", mode = "function")) {
-    return(get("select_variables", mode = "function")(
-      df,
-      vars,
-      group_var = group_var,
-      default = default,
-      include_numeric = include_numeric
-    ))
-  }
-  available <- names(df)
-  if (is.null(vars) || vars == "") {
-    selected <- available
-    if (!is.null(group_var)) selected <- setdiff(selected, group_var)
-    return(selected)
-  }
-  requested <- trimws(strsplit(vars, ",", fixed = TRUE)[[1]])
-  missing <- setdiff(requested, available)
-  if (length(missing) > 0) {
-    stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
-  }
-  if (!is.null(group_var)) requested <- setdiff(requested, group_var)
-  requested
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-resolve_round_numeric <- function(df, digits) {
-  if (exists("round_numeric", mode = "function")) {
-    return(get("round_numeric", mode = "function")(df, digits))
-  }
-  out <- df
-  numeric_cols <- sapply(out, is.numeric)
-  out[numeric_cols] <- lapply(out[numeric_cols], function(x) round(x, digits))
-  out
-}
-
-resolve_format_percent <- function(value, digits) {
-  if (exists("format_percent", mode = "function")) {
-    return(get("format_percent", mode = "function")(value, digits))
-  }
-  if (is.na(value)) return("")
-  format(round(value, digits), nsmall = digits, trim = TRUE)
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  NULL
-}
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (is.null(value) || length(value) == 0 || is.na(value)) return("")
-  as.character(value)
-}
-
-resolve_get_next_table_number <- function(path) {
-  if (exists("get_next_table_number", mode = "function")) {
-    return(get("get_next_table_number", mode = "function")(path))
-  }
-  1
-}
-
-parse_numeric <- function(value, default = NULL) {
-  if (is.null(value) || is.logical(value) || value == "") return(default)
-  num <- suppressWarnings(as.numeric(value))
-  if (is.na(num)) stop("Invalid numeric value: ", value)
-  num
-}
-
-parse_method <- function(value, default = "auto") {
-  if (is.null(value) || is.logical(value) || value == "") return(default)
-  method <- tolower(as.character(value))
-  valid <- c("auto", "listwise", "impute", "indicator", "drop")
-  if (!method %in% valid) {
-    stop("Invalid --method. Use one of: ", paste(valid, collapse = ", "))
-  }
-  method
-}
-
-validate_threshold <- function(value, label) {
-  if (is.na(value)) return(invisible(TRUE))
-  if (value < 0 || value > 1) {
-    stop(label, " must be between 0 and 1.")
-  }
-  invisible(TRUE)
+  if (integer) as.integer(number) else number
 }
 
 detect_type <- function(vec) {
-  if (inherits(vec, "Date") || inherits(vec, "POSIXct") || inherits(vec, "POSIXlt")) {
-    return("datetime")
-  }
+  if (inherits(vec, c("Date", "POSIXct", "POSIXlt", "difftime"))) return("datetime")
   if (is.numeric(vec)) return("numeric")
   if (is.logical(vec)) return("logical")
   if (is.factor(vec)) return("factor")
@@ -408,13 +130,39 @@ detect_type <- function(vec) {
   class(vec)[1]
 }
 
+validate_missing_column <- function(vec, name) {
+  allowed <- is.null(dim(vec)) && (
+    (is.numeric(vec) && !is.object(vec)) ||
+    (is.logical(vec) && !is.object(vec)) ||
+    (is.character(vec) && !is.object(vec)) ||
+    identical(class(vec), "factor") || identical(class(vec), c("ordered", "factor")) ||
+    identical(class(vec), "Date") || identical(class(vec), c("POSIXct", "POSIXt")) ||
+    identical(class(vec), "difftime") || identical(class(vec), c("hms", "difftime")))
+  if (!allowed) stop("Unsupported missing-data column '", name, "' (",
+    paste(class(vec), collapse = "/"), "). Select ordinary numeric, logical, categorical or temporal vectors; matrix/list/custom classes require an explicit prior transformation.")
+}
+
 compute_skewness <- function(values) {
   vals <- values[!is.na(values)]
-  if (length(vals) < 3) return(NA_real_)
+  if (length(vals) < 3L) return(NA_real_)
+  if (all(vals == vals[1L])) return(0)
   s <- sd(vals)
-  if (is.na(s) || s == 0) return(0)
-  m <- mean(vals)
-  mean((vals - m)^3) / (s^3)
+  centered <- vals - mean(vals)
+  skew <- if (is.finite(s) && s > 0) mean((centered / s)^3) else NA_real_
+  # Standardize before cubing: the algebraic statistic is unchanged, while raw
+  # cubes can underflow even when their ratio is finite but numerically wrong.
+  # A nonconstant column is not constant merely because its squared deviations
+  # underflow to zero. Rescale before SD calculation when squared deviations
+  # approach underflow, or whenever the initial calculation is non-finite.
+  small_deviations <- max(abs(centered)) < sqrt(.Machine$double.xmin)
+  if (!is.finite(skew) || small_deviations) {
+    scale <- max(abs(vals))
+    scaled <- vals / scale
+    s <- sd(scaled)
+    skew <- if (is.finite(s) && s > 0) mean(((scaled - mean(scaled)) / s)^3) else NA_real_
+  }
+  if (!is.finite(skew)) stop("Numeric skewness is not finite; rescale the selected variable explicitly.")
+  skew
 }
 
 format_num <- function(value, digits) {
@@ -423,50 +171,46 @@ format_num <- function(value, digits) {
 }
 
 format_impute_value <- function(value, digits) {
-  if (is.null(value) || length(value) == 0 || is.na(value)) return("")
-  if (inherits(value, "Date") || inherits(value, "POSIXct") || inherits(value, "POSIXlt")) {
-    return(format(value))
-  }
+  if (is.null(value) || length(value) == 0L || is.na(value)) return("")
+  if (inherits(value, c("Date", "POSIXt", "difftime"))) return(format(value))
   if (is.numeric(value)) return(format_num(value, digits))
   as.character(value)
 }
 
 impute_numeric <- function(vec, skew_threshold) {
   values <- vec[!is.na(vec)]
-  if (length(values) == 0) {
-    return(list(vec = vec, method = "", value = NA, note = "all missing"))
+  if (!length(values)) return(list(vec = vec, method = "", value = NULL,
+    skewness = NA_real_, note = "all missing"))
+  numbers <- as.numeric(values)
+  if (any(!is.finite(numbers))) stop("Cannot impute from non-finite observed values; infinities are not treated as missing. Resolve them explicitly first.")
+  skew <- compute_skewness(numbers)
+  method <- if (!is.na(skew) && abs(skew) > skew_threshold) "median" else "mean"
+  fill <- if (method == "median") median(numbers) else mean(numbers)
+  if (!is.finite(fill)) stop("The numeric imputation value is not finite; no data were published.")
+  impute_val <- fill
+  if (inherits(vec, c("Date", "POSIXt", "difftime"))) {
+    impute_val <- structure(fill, class = class(vec))
+    for (key in c("tzone", "units")) attr(impute_val, key) <- attr(vec, key, exact = TRUE)
   }
-  is_date <- inherits(vec, "Date")
-  is_time <- inherits(vec, "POSIXct") || inherits(vec, "POSIXlt")
-  numeric_vals <- if (is_date || is_time) as.numeric(values) else values
-  skew <- compute_skewness(numeric_vals)
-  use_median <- !is.na(skew) && abs(skew) > skew_threshold
-  method <- if (use_median) "median" else "mean"
-  impute_val <- if (use_median) median(numeric_vals) else mean(numeric_vals)
-  if (is_date) impute_val <- as.Date(impute_val, origin = "1970-01-01")
-  if (is_time) impute_val <- as.POSIXct(impute_val, origin = "1970-01-01", tz = attr(vec, "tzone"))
   out <- vec
   out[is.na(out)] <- impute_val
-  list(vec = out, method = method, value = impute_val, note = "")
+  list(vec = out, method = method, value = impute_val, skewness = skew, note = "")
 }
 
 impute_mode <- function(vec) {
   values <- vec[!is.na(vec)]
-  if (length(values) == 0) {
-    return(list(vec = vec, method = "", value = NA, note = "all missing"))
-  }
+  if (!length(values)) return(list(vec = vec, method = "", value = NULL,
+    skewness = NA_real_, note = "all missing"))
+  # Stable table order breaks ties: factor levels for factors, sorted values
+  # under the captured locale otherwise. Ordered factors retain their order.
   counts <- sort(table(values), decreasing = TRUE)
   mode_val <- names(counts)[1]
   out <- vec
-  if (is.logical(out)) {
-    mode_val <- tolower(mode_val) %in% c("true", "t", "1", "yes", "y")
-  }
+  if (is.logical(out)) mode_val <- identical(mode_val, "TRUE")
   if (is.factor(out)) out <- as.character(out)
   out[is.na(out)] <- mode_val
-  if (is.factor(vec)) {
-    out <- factor(out, levels = levels(vec), ordered = is.ordered(vec))
-  }
-  list(vec = out, method = "mode", value = mode_val, note = "")
+  if (is.factor(vec)) out <- factor(out, levels = levels(vec), ordered = is.ordered(vec))
+  list(vec = out, method = "mode", value = mode_val, skewness = NA_real_, note = "")
 }
 
 ensure_unique_name <- function(name, existing) {
@@ -544,7 +288,7 @@ build_patterns_df <- function(df, vars, max_patterns) {
 }
 
 build_missing_table_body <- function(summary_df, digits, table_spec = NULL) {
-  display <- resolve_round_numeric(summary_df, digits)
+  display <- round_numeric(summary_df, digits)
   default_columns <- list(
     list(key = "variable", label = "Variable"),
     list(key = "type", label = "Type"),
@@ -555,14 +299,15 @@ build_missing_table_body <- function(summary_df, digits, table_spec = NULL) {
     list(key = "impute_value", label = "Impute value", drop_if_empty = TRUE),
     list(key = "indicator", label = "Indicator", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(
+  columns <- normalize_table_columns(
     if (!is.null(table_spec$columns)) table_spec$columns else NULL,
     default_columns
   )
 
   rows <- list()
   if (nrow(display) == 0) {
-    rows <- list(list("No variables", "", "", "", "", "", "", ""))
+    row <- rep("", length(columns)); row[1] <- "No variables"
+    rows <- list(row)
   } else {
     for (i in seq_len(nrow(display))) {
       row_vals <- character(0)
@@ -573,17 +318,17 @@ build_missing_table_body <- function(summary_df, digits, table_spec = NULL) {
         if (key %in% c("variable", "indicator")) {
           val <- resolve_row_display(row, key)
         } else if (key %in% c("type", "decision", "impute_method", "impute_value")) {
-          val <- resolve_as_cell_text(row[[key]][1])
+          val <- as_cell_text(row[[key]][1])
         } else if (key %in% c("missing_n", "total_n")) {
           val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
         } else if (key %in% c("missing_pct")) {
-          val <- resolve_format_percent(row[[key]][1], digits)
+          val <- format_percent(row[[key]][1], digits)
         } else if (key %in% names(row)) {
           cell <- row[[key]][1]
           if (is.numeric(cell)) {
             val <- format_num(cell, digits)
           } else {
-            val <- resolve_as_cell_text(cell)
+            val <- as_cell_text(cell)
           }
         }
         row_vals <- c(row_vals, val)
@@ -592,20 +337,20 @@ build_missing_table_body <- function(summary_df, digits, table_spec = NULL) {
     }
   }
 
-  filtered <- resolve_drop_empty_columns(columns, rows)
+  filtered <- drop_empty_columns(columns, rows)
   columns <- filtered$columns
   rows <- filtered$rows
   headers <- vapply(columns, function(col) {
     if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
   }, character(1))
   list(
-    body = resolve_render_markdown_table(headers, rows),
+    body = render_markdown_table(headers, rows),
     columns = vapply(columns, function(col) col$key, character(1))
   )
 }
 
 build_patterns_table_body <- function(patterns_df, digits, table_spec = NULL) {
-  display <- resolve_round_numeric(patterns_df, digits)
+  display <- round_numeric(patterns_df, digits)
   default_columns <- list(
     list(key = "pattern", label = "Pattern"),
     list(key = "missing_vars", label = "Missing variables"),
@@ -613,14 +358,15 @@ build_patterns_table_body <- function(patterns_df, digits, table_spec = NULL) {
     list(key = "pct_total", label = "%"),
     list(key = "missing_count", label = "Missing count", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(
+  columns <- normalize_table_columns(
     if (!is.null(table_spec$columns)) table_spec$columns else NULL,
     default_columns
   )
 
   rows <- list()
   if (nrow(display) == 0) {
-    rows <- list(list("No patterns", "", "", "", ""))
+    row <- rep("", length(columns)); row[1] <- "No patterns"
+    rows <- list(row)
   } else {
     for (i in seq_len(nrow(display))) {
       row <- display[i, , drop = FALSE]
@@ -629,19 +375,19 @@ build_patterns_table_body <- function(patterns_df, digits, table_spec = NULL) {
         key <- col$key
         val <- ""
         if (key == "pattern") {
-          val <- resolve_as_cell_text(row[[key]][1])
+          val <- as_cell_text(row[[key]][1])
         } else if (key == "missing_vars") {
           val <- resolve_row_display(row, "missing_vars")
         } else if (key == "n" || key == "missing_count") {
           val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
         } else if (key == "pct_total") {
-          val <- resolve_format_percent(row[[key]][1], digits)
+          val <- format_percent(row[[key]][1], digits)
         } else if (key %in% names(row)) {
           cell <- row[[key]][1]
           if (is.numeric(cell)) {
             val <- format_num(cell, digits)
           } else {
-            val <- resolve_as_cell_text(cell)
+            val <- as_cell_text(cell)
           }
         }
         row_vals <- c(row_vals, val)
@@ -650,14 +396,14 @@ build_patterns_table_body <- function(patterns_df, digits, table_spec = NULL) {
     }
   }
 
-  filtered <- resolve_drop_empty_columns(columns, rows)
+  filtered <- drop_empty_columns(columns, rows)
   columns <- filtered$columns
   rows <- filtered$rows
   headers <- vapply(columns, function(col) {
     if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
   }, character(1))
   list(
-    body = resolve_render_markdown_table(headers, rows),
+    body = render_markdown_table(headers, rows),
     columns = vapply(columns, function(col) col$key, character(1))
   )
 }
@@ -669,7 +415,7 @@ build_narrative_rows <- function(summary_df, digits) {
     row <- summary_df[i, , drop = FALSE]
     var_display <- resolve_row_display(row, "variable")
     indicator_display <- resolve_row_display(row, "indicator")
-    missing_text <- ifelse(is.na(row$missing_pct), "NA", resolve_format_percent(row$missing_pct, digits))
+    missing_text <- ifelse(is.na(row$missing_pct), "NA", format_percent(row$missing_pct, digits))
     line <- paste0(
       var_display,
       ": missing = ",
@@ -701,58 +447,136 @@ build_narrative_rows <- function(summary_df, digits) {
   rows
 }
 
+missing_nonfinite_rows <- function(vec) {
+  if (is.numeric(vec) || inherits(vec, c("Date", "POSIXt", "difftime"))) {
+    return(which(is.infinite(as.numeric(vec))))
+  }
+  integer()
+}
+
+missing_label_conflicts <- function(before, audit) {
+  dictionary <- attr(before, "nlss_import_contract", exact = TRUE)
+  conflicts <- list()
+  for (name in names(audit)) {
+    item <- audit[[name]]
+    value <- item$value_raw
+    column <- dictionary$columns[[name]]
+    if (!length(item$imputed_input_rows) || length(value) != 1L || is.na(value) ||
+        !length(column$value_labels)) next
+    definitions <- column$missing
+    explicit <- unlist(definitions$na_values, use.names = FALSE)
+    range <- unlist(definitions$na_range, use.names = FALSE)
+    if (!import_missing_mask(value, explicit, range)) next
+    for (entry in column$value_labels) {
+      if (length(entry$value) == 1L && !is.na(entry$value) && entry$value == value) {
+        conflicts[[length(conflicts) + 1L]] <- list(variable = name, code = value,
+          label = entry$label, original_label_entry = entry,
+          missing_definition = if (value %in% explicit) "na_values" else "na_range",
+          reason = "imputed_value_collides_with_original_user_missing_code",
+          imputed_input_rows = item$imputed_input_rows)
+      }
+    }
+  }
+  conflicts
+}
+
+clean_missing_metadata <- function(df, before, source_rows, indicator_map, audit, label_conflicts) {
+  old <- attr(before, "nlss_import_contract", exact = TRUE)
+  labels <- resolve_label_metadata(before)
+  labels$variables <- labels$variables[intersect(names(labels$variables), names(df))]
+  labels$values <- labels$values[intersect(names(labels$values), names(df))]
+  for (name in names(indicator_map)) {
+    indicator <- indicator_map[[name]]
+    labels$variables[[indicator]] <- paste0("Missingness indicator for ", resolve_variable_label(labels, name))
+    labels$values[[indicator]] <- list("0" = "Observed", "1" = "Missing")
+  }
+  for (conflict in label_conflicts) {
+    name <- conflict$variable
+    map <- labels$values[[name]]
+    codes <- names(map)
+    if (is.numeric(conflict$code)) codes <- suppressWarnings(as.numeric(codes))
+    keep <- is.na(codes) | codes != conflict$code
+    labels$values[[name]] <- if (any(keep)) map[keep] else NULL
+  }
+  # Arrow serializes frame attributes. Runtime paths and load-route attributes
+  # are not data semantics; retain one canonical set for ordinary runs/replay.
+  attributes(df) <- attributes(df)[c("names", "row.names", "class")]
+  rownames(df) <- NULL
+  attr(df, "nlss_labels") <- normalize_label_metadata(labels)
+  dictionary <- import_capture_dictionary(df)
+  dictionary$source_rows <- old$source_rows
+  for (name in intersect(names(df), names(old$columns))) dictionary$columns[[name]] <- old$columns[[name]]
+  for (conflict in label_conflicts) {
+    name <- conflict$variable
+    dictionary$columns[[name]]$value_labels <- Filter(function(entry) {
+      length(entry$value) != 1L || is.na(entry$value) || entry$value != conflict$code
+    }, dictionary$columns[[name]]$value_labels)
+  }
+  # Existing definitions and observations describe original-source values,
+  # including user-missing codes now filled. Never reinterpret their row IDs
+  # as positions in this output or reapply their masks after imputation.
+  dictionary$missing_handling <- list(
+    input_version_id = attr(before, "nlss_dataset_ref")$version_id,
+    observation_basis = "input_version_rows", source_rows = source_rows,
+    output_n = nrow(df), indicator_map = indicator_map, label_conflicts = label_conflicts,
+    original_missing_provenance = "Retained column missing observations refer only to original_source_rows; they are not output-row masks.",
+    imputed_input_rows = lapply(audit, function(item) item$imputed_input_rows))
+  attr(df, "nlss_import_contract") <- dictionary
+  attr(df, "nlss_import_contract") <- attr(import_prepare_storage(df), "nlss_import_contract")
+  df
+}
+
 main <- function() {
-  args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
-
-  if (!is.null(opts$help)) {
-    print_usage()
-    quit(status = 0)
-  }
-
-  if (!is.null(opts$interactive)) {
+  opts <- nlss_run_options(commandArgs(trailingOnly = TRUE), "missings")
+  if (!is.null(opts[["help"]])) { print_usage(); return(invisible(NULL)) }
+  if (parse_bool(opts[["interactive"]], FALSE)) {
     opts <- modifyList(opts, interactive_options())
+    opts[["interactive"]] <- TRUE
   }
-
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  vars_default <- resolve_config_value("modules.missings.vars_default", "all")
-  method_default <- resolve_config_value("modules.missings.method", "auto")
-  low_default <- resolve_config_value("modules.missings.low_threshold", 0.05)
-  moderate_default <- resolve_config_value("modules.missings.moderate_threshold", 0.2)
-  high_default <- resolve_config_value("modules.missings.high_threshold", 0.4)
-  drop_default <- resolve_config_value("modules.missings.drop_threshold", 0.6)
-  indicator_default <- resolve_config_value("modules.missings.indicator_threshold", 0.3)
-  indicator_suffix_default <- resolve_config_value("modules.missings.indicator_suffix", "_miss")
-  skew_default <- resolve_config_value("modules.missings.skew_threshold", 1.0)
-  max_patterns_default <- resolve_config_value("modules.missings.max_patterns", 10)
-
-  digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  method <- parse_method(opts$method, method_default)
-  low_threshold <- parse_numeric(opts$`low-threshold`, low_default)
-  moderate_threshold <- parse_numeric(opts$`moderate-threshold`, moderate_default)
-  high_threshold <- parse_numeric(opts$`high-threshold`, high_default)
-  drop_threshold <- parse_numeric(opts$`drop-threshold`, drop_default)
-  indicator_threshold <- parse_numeric(opts$`indicator-threshold`, indicator_default)
-  indicator_suffix <- if (!is.null(opts$`indicator-suffix`)) as.character(opts$`indicator-suffix`) else indicator_suffix_default
-  skew_threshold <- parse_numeric(opts$`skew-threshold`, skew_default)
-  max_patterns <- if (!is.null(opts$`max-patterns`)) as.integer(opts$`max-patterns`) else max_patterns_default
-
-  validate_threshold(low_threshold, "low-threshold")
-  validate_threshold(moderate_threshold, "moderate-threshold")
-  validate_threshold(high_threshold, "high-threshold")
-  validate_threshold(drop_threshold, "drop-threshold")
-  validate_threshold(indicator_threshold, "indicator-threshold")
-
-  if (is.na(max_patterns) || max_patterns < 1) {
-    stop("--max-patterns must be a positive integer.")
+  df <- nlss_load_input(opts)
+  out_dir <- get_workspace_out_dir(df)
+  nlss_begin_run("missings", df, opts, out_dir)
+  digits <- missing_number(opts, "digits", "defaults.digits", 0, 15, integer = TRUE)
+  method <- opts[["method"]]
+  if (is.null(method)) method <- get_config_value("modules.missings.method")
+  if (length(method) != 1L || is.logical(method) || is.na(method) ||
+      !tolower(method) %in% c("auto", "listwise", "impute", "indicator", "drop")) {
+    stop("Invalid --method. Use auto, listwise, impute, indicator or drop.")
   }
-
-  df <- resolve_load_dataframe(opts)
-  out_dir <- resolve_get_workspace_out_dir(df)
-  workspace_parquet_path <- attr(df, "workspace_parquet_path")
-  vars <- resolve_select_variables(df, opts$vars, default = vars_default)
-  if (length(vars) == 0) stop("No variables available for missingness analysis.")
+  method <- tolower(method)
+  thresholds <- lapply(c("low", "moderate", "high", "drop", "indicator"), function(key) {
+    missing_number(opts, paste0(key, "-threshold"), paste0("modules.missings.", key, "_threshold"), 0, 1)
+  })
+  names(thresholds) <- c("low", "moderate", "high", "drop", "indicator")
+  low_threshold <- thresholds$low
+  moderate_threshold <- thresholds$moderate
+  high_threshold <- thresholds$high
+  drop_threshold <- thresholds$drop
+  indicator_threshold <- thresholds$indicator
+  if (low_threshold > moderate_threshold || moderate_threshold > high_threshold) {
+    stop("Thresholds must satisfy low-threshold <= moderate-threshold <= high-threshold.")
+  }
+  indicator_suffix <- opts[["indicator-suffix"]]
+  if (is.null(indicator_suffix)) indicator_suffix <- get_config_value("modules.missings.indicator_suffix")
+  if (!is.character(indicator_suffix) || length(indicator_suffix) != 1L || is.na(indicator_suffix)) {
+    stop("--indicator-suffix must be one text value.")
+  }
+  skew_threshold <- missing_number(opts, "skew-threshold", "modules.missings.skew_threshold", 0)
+  max_patterns <- missing_number(opts, "max-patterns", "modules.missings.max_patterns", 1, .Machine$integer.max, integer = TRUE)
+  vars <- unique(select_variables(df, opts[["vars"]], default = get_config_value("modules.missings.vars_default")))
+  if (!length(vars)) stop("No variables available for missingness analysis.")
+  for (name in vars) validate_missing_column(df[[name]], name)
+  settings <- list(vars = vars, method = method, low_threshold = low_threshold,
+    moderate_threshold = moderate_threshold, high_threshold = high_threshold,
+    drop_threshold = drop_threshold, indicator_threshold = indicator_threshold,
+    indicator_suffix = indicator_suffix, skew_threshold = skew_threshold,
+    max_patterns = max_patterns, digits = digits)
+  design <- list(source_n = nrow(df), source_classes = lapply(df[vars], class),
+    source_rows = seq_len(nrow(df)), observation_basis = "input_version_rows",
+    replay = list(eligible = TRUE, reason = "Deterministic missingness rules on validated ordinary vectors."),
+    skewness_definition = "mean((x-mean(x))^3)/sd(x)^3; sd uses n-1; fewer than three observations gives unavailable skewness and mean fill.",
+    mode_tie_break = "First category in decreasing-count table order; factor levels or locale-sorted values.")
+  nlss_resolve_request(settings, design)
 
   summary_rows <- list()
   for (var in vars) {
@@ -804,6 +628,10 @@ main <- function() {
   }
 
   output_df <- df
+  source_rows <- seq_len(nrow(df))
+  handling_audit <- setNames(vector("list", length(vars)), vars)
+  fills <- list()
+  notices <- character()
   rows_removed <- 0
   indicator_map <- list()
   summary_df$decision <- ""
@@ -814,6 +642,7 @@ main <- function() {
   if (method_selected == "listwise") {
     keep <- if (length(vars) > 0) complete.cases(df[, vars, drop = FALSE]) else rep(TRUE, nrow(df))
     rows_removed <- sum(!keep)
+    source_rows <- which(keep)
     output_df <- df[keep, , drop = FALSE]
     summary_df$decision <- ifelse(summary_df$missing_n > 0, "listwise deletion", "no missing")
   } else {
@@ -841,6 +670,7 @@ main <- function() {
       } else {
         imputed <- impute_mode(vec)
       }
+      fills[[var]] <- imputed
       output_df[[var]] <- imputed$vec
       summary_df$impute_method[i] <- imputed$method
       summary_df$impute_value[i] <- format_impute_value(imputed$value, digits)
@@ -871,8 +701,60 @@ main <- function() {
     }
   }
 
-  label_meta <- resolve_label_metadata(df)
-  summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "variable")
+  if (!ncol(output_df)) stop("A dataset must retain at least one variable; no data were published.")
+  if (!nrow(output_df)) notices <- c(notices, "No rows remain in the handled dataset; percentages with zero denominators are unavailable and no inference is supported.")
+  for (var in vars) {
+    fill <- fills[[var]]
+    after <- output_df[[var]]
+    present <- var %in% names(output_df)
+    missing_after <- if (present) which(is.na(after)) else integer()
+    filled <- if (is.null(fill)) integer() else which(is.na(df[[var]]) & !is.na(fill$vec))
+    value <- if (is.null(fill)) NULL else fill$value
+    temporal <- !is.null(value) && inherits(value, c("Date", "POSIXt", "difftime"))
+    value_storage <- if (temporal) attr(import_prepare_storage(data.frame(value = value)), "nlss_import_contract")$storage$value else NULL
+    handling_audit[[var]] <- list(variable = var, source_type = detect_type(df[[var]]),
+      observation_basis = "input_version_rows; missing_after_rows indexes the output",
+      missing_before_n = sum(is.na(df[[var]])), missing_before_rows = which(is.na(df[[var]])),
+      missing_after_n = if (present) length(missing_after) else NULL,
+      missing_after_rows = if (present) missing_after else NULL,
+      missing_after_input_rows = if (present) source_rows[missing_after] else NULL,
+      observed_before_n = sum(!is.na(df[[var]])), imputed_n = length(filled),
+      imputed_input_rows = filled, method = if (is.null(fill)) NULL else fill$method,
+      value_raw = if (temporal) as.numeric(value) else value, value_storage = value_storage,
+      skewness = if (is.null(fill)) NULL else fill$skewness,
+      nonfinite_before_rows = missing_nonfinite_rows(df[[var]]),
+      nonfinite_after_rows = if (present) missing_nonfinite_rows(after) else NULL,
+      status = if (!present) "dropped" else if (!is.null(fill) && identical(fill$note, "all missing")) "unavailable_all_missing"
+        else if (length(filled)) "imputed" else if (method_selected == "listwise") "listwise_selected" else "unchanged",
+      indicator = indicator_map[[var]])
+    if (!is.null(fill) && identical(fill$note, "all missing")) {
+      notices <- c(notices, paste0(var, ": all values are missing; no imputation value is available and the missing values remain."))
+    }
+    if (length(filled) && identical(detect_type(df[[var]]), "numeric") &&
+        length(attr(df, "nlss_import_contract")$columns[[var]]$value_labels)) {
+      notices <- c(notices, paste0(var, ": numeric-coded value labels do not establish a measurement level. Arithmetic imputation may create an unlabeled value; declare categorical variables explicitly before handling if category-mode imputation is intended."))
+    }
+    if (length(missing_nonfinite_rows(df[[var]]))) {
+      notices <- c(notices, paste0(var, ": infinite observed values are retained, not classified as missing."))
+    }
+  }
+  label_conflicts <- missing_label_conflicts(df, handling_audit)
+  for (conflict in label_conflicts) {
+    notices <- c(notices, paste0(conflict$variable, ": imputed value ", conflict$code,
+      " equals an original user-missing code; removed conflicting active label '", conflict$label,
+      "'. The original label and missing definitions remain in versioned provenance."))
+  }
+  unchanged <- identical(names(df), names(output_df)) && identical(nrow(df), nrow(output_df)) &&
+    all(vapply(names(df), function(name) nlss_data_column_equal(df[[name]], output_df[[name]]), logical(1)))
+  if (!unchanged) output_df <- clean_missing_metadata(output_df, df, source_rows, indicator_map, handling_audit, label_conflicts)
+  design$source_rows <- source_rows
+  design$method_selected <- method_selected
+  design$indicator_map <- indicator_map
+  design$label_conflicts <- label_conflicts
+  nlss_resolve_request(settings, design)
+
+  label_meta <- resolve_label_metadata(output_df)
+  summary_df <- add_variable_label_column(summary_df, resolve_label_metadata(df), var_col = "variable")
   summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "indicator")
 
   patterns_info <- build_patterns_df(df, vars, max_patterns)
@@ -882,7 +764,7 @@ main <- function() {
       patterns_df$missing_vars,
       map_variable_list_label,
       character(1),
-      labels = label_meta
+      labels = resolve_label_metadata(df)
     )
   }
 
@@ -903,23 +785,23 @@ main <- function() {
     method_selected
   )
 
-  vars_display <- map_variable_labels(vars, label_meta)
-  drop_vars_display <- map_variable_labels(drop_vars, label_meta)
+  vars_display <- map_variable_labels(vars, resolve_label_metadata(df))
+  drop_vars_display <- map_variable_labels(drop_vars, resolve_label_metadata(df))
   indicator_vars_display <- map_variable_labels(indicator_vars, label_meta)
 
   sentences <- c()
   if (!is.na(min_missing) && !is.na(max_missing)) {
-    sentences <- c(sentences, sprintf("Missingness ranged from %s%% to %s%%.", resolve_format_percent(min_missing, digits), resolve_format_percent(max_missing, digits)))
+    sentences <- c(sentences, sprintf("Missingness ranged from %s%% to %s%%.", format_percent(min_missing, digits), format_percent(max_missing, digits)))
   }
   if (total_n > 0) {
-    sentences <- c(sentences, sprintf("Complete cases: %d of %d (%s%%).", complete_cases_n, total_n, resolve_format_percent(complete_cases_pct, digits)))
+    sentences <- c(sentences, sprintf("Complete cases: %d of %d (%s%%).", complete_cases_n, total_n, format_percent(complete_cases_pct, digits)))
   }
   sentences <- c(sentences, sprintf("Selected handling method: %s.", method_label))
   if (method_selected == "listwise" && total_n > 0) {
-    sentences <- c(sentences, sprintf("Listwise deletion removed %d rows (%s%%).", rows_removed, resolve_format_percent(rows_removed / total_n * 100, digits)))
+    sentences <- c(sentences, sprintf("Listwise deletion removed %d rows (%s%%).", rows_removed, format_percent(rows_removed / total_n * 100, digits)))
   }
   if (length(drop_vars) > 0) {
-    sentences <- c(sentences, paste0("Dropped variables (missing >= ", resolve_format_percent(drop_threshold * 100, digits), "%): ", paste(drop_vars_display, collapse = ", "), "."))
+    sentences <- c(sentences, paste0("Dropped variables (missing >= ", format_percent(drop_threshold * 100, digits), "%): ", paste(drop_vars_display, collapse = ", "), "."))
   }
   if (length(indicator_vars) > 0) {
     sentences <- c(sentences, paste0("Missingness indicators added for: ", paste(indicator_vars_display, collapse = ", "), "."))
@@ -939,23 +821,31 @@ main <- function() {
     ifelse(patterns_info$truncated, " Other patterns grouped.", "")
   )
 
-  template_override <- resolve_template_override(opts$template, module = "missings")
+  template_override <- resolve_template_override(opts[["template"]], module = "missings")
   template_path <- if (!is.null(template_override)) {
     template_override
   } else {
-    resolve_get_template_path("missings.default", "missings/default-template.md")
+    resolve_template_path("missings.default", "missings/default-template.md")
   }
-  template_meta <- resolve_get_template_meta(template_path)
-  summary_table <- build_missing_table_body(summary_df, digits, template_meta$table)
+  template_path <- nlss_freeze_template(template_path, "missings.main")
+  template_meta <- get_template_meta(template_path)
+  report_summary <- summary_df
+  for (name in names(report_summary)) if (is.character(report_summary[[name]])) {
+    report_summary[[name]] <- nlss_mask_prose_paths(report_summary[[name]], nlss_run_context$root)
+  }
+  summary_table <- build_missing_table_body(report_summary, digits, template_meta$table)
   pattern_spec <- template_meta$patterns_table
   if (is.null(pattern_spec) && !is.null(template_meta$tables$patterns)) {
     pattern_spec <- template_meta$tables$patterns
   }
   patterns_table <- build_patterns_table_body(patterns_df, digits, pattern_spec)
+  patterns_table$body <- nlss_mask_prose_paths(patterns_table$body, nlss_run_context$root)
+  nlss_text <- nlss_mask_prose_paths(nlss_text, nlss_run_context$root)
+  pattern_note <- nlss_mask_prose_paths(pattern_note, nlss_run_context$root)
 
   nlss_report_path <- file.path(out_dir, "report_canonical.md")
-  table_start <- as.integer(resolve_get_next_table_number(nlss_report_path))
-  narrative_rows <- build_narrative_rows(summary_df, digits)
+  table_start <- as.integer(get_next_table_number(nlss_report_path))
+  narrative_rows <- build_narrative_rows(report_summary, digits)
   template_context <- list(
     tokens = list(
       summary_table_body = summary_table$body,
@@ -994,63 +884,54 @@ main <- function() {
     digits = digits
   )
 
-  resolve_append_nlss_report(
-    nlss_report_path,
-    "Missing data assessment",
-    nlss_table,
-    nlss_text,
-    analysis_flags = analysis_flags,
-    template_path = template_path,
-    template_context = template_context
-  )
-
-  backup_path <- ""
-  output_path <- file.path(out_dir, "missing_handled_data.rds")
-  if (!is.null(workspace_parquet_path) && nzchar(workspace_parquet_path)) {
-    backup_path <- resolve_backup_workspace_parquet(workspace_parquet_path)
-    resolve_write_parquet_data(output_df, workspace_parquet_path)
-    output_path <- workspace_parquet_path
-  } else {
-    saveRDS(output_df, output_path)
+  caveats <- c(
+    "Missingness proportions and the automatic threshold rule do not diagnose MCAR, MAR or MNAR or justify an inferential missing-data strategy.",
+    "Single mean/median/mode imputation and missingness indicators do not propagate imputation uncertainty and do not guarantee unbiased estimates or valid standard errors.",
+    "Listwise deletion and dropping variables can change the analysis population and estimand. Research context and sensitivity analyses remain necessary.")
+  if (method == "auto") warning(caveats[1], call. = FALSE)
+  if (method_selected %in% c("impute", "indicator", "drop")) warning(caveats[2], call. = FALSE)
+  for (notice in notices) warning(notice, call. = FALSE)
+  data_change <- nlss_prepare_data_change(df, output_df, source_rows = source_rows)
+  json_df <- import_prepare_storage(output_df)
+  results <- list(summary_df = summary_df, patterns_df = patterns_df,
+    transformed_df = json_df, transformed_df_storage = attr(json_df, "nlss_import_contract")$storage,
+    method_requested = method, method_selected = method_selected, drop_vars = drop_vars,
+    indicator_vars = indicator_vars, indicator_map = indicator_map, rows_removed = rows_removed,
+    source_rows = source_rows, source_n = nrow(df), output_n = nrow(output_df),
+    complete_cases_n = complete_cases_n, complete_cases_pct = complete_cases_pct,
+    handling_audit = handling_audit, label_conflicts = label_conflicts, caveats = caveats, notices = notices,
+    labels = resolve_label_metadata(output_df), data_change = data_change,
+    output_path = data_change$output_path, backup_path = data_change$backup_path)
+  nlss_set_result(results)
+  for (name in names(analysis_flags)) if (is.character(analysis_flags[[name]])) {
+    analysis_flags[[name]] <- nlss_mask_prose_paths(analysis_flags[[name]], nlss_run_context$root)
   }
-
-  cat("Wrote:\n")
-  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
-  cat("- ", render_output_path(output_path, out_dir), "\n", sep = "")
-
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
-      out_dir,
-      module = "missings",
-      prompt = ctx$prompt,
-      commands = ctx$commands,
-      results = list(
-        summary_df = summary_df,
-        patterns_df = patterns_df,
-        transformed_df = output_df,
-        method_selected = method_selected,
-        drop_vars = drop_vars,
-        indicator_vars = indicator_vars,
-        rows_removed = rows_removed,
-        output_path = render_output_path(output_path, out_dir),
-        backup_path = backup_path
-      ),
-      options = list(
-        vars = vars,
-        method = method_selected,
-        low_threshold = low_threshold,
-        moderate_threshold = moderate_threshold,
-        high_threshold = high_threshold,
-        drop_threshold = drop_threshold,
-        indicator_threshold = indicator_threshold,
-        indicator_suffix = indicator_suffix,
-        skew_threshold = skew_threshold,
-        max_patterns = max_patterns
-      ),
-      user_prompt = resolve_get_user_prompt(opts)
-    )
+  nlss_stage_report(nlss_report_path, "Missing data assessment", nlss_table, nlss_text,
+    analysis_flags = analysis_flags, template_path = template_path, template_context = template_context)
+  # Keep scientific cautions visible even when an authored template omits notes
+  # or replaces the numerical narrative. This is output evidence, not a final
+  # research report or a claim to have justified a strategy semantically.
+  nlss_stage_report(nlss_report_path, "Missing-data handling safeguards", "",
+    nlss_mask_prose_paths(paste(c(caveats, notices), collapse = "\n\n"), nlss_run_context$root))
+  if (parse_bool(opts[["log"]], get_config_value("defaults.log"))) {
+    ctx <- get_run_context()
+    redact <- function(value) {
+      if (is.factor(value)) value <- as.character(value)
+      if (is.character(value)) return(nlss_mask_prose_paths(value, nlss_run_context$root))
+      if (is.data.frame(value)) {
+        for (name in names(value)) value[[name]] <- redact(value[[name]])
+        return(value)
+      }
+      if (is.list(value)) return(lapply(value, redact))
+      value
+    }
+    legacy <- redact(results)
+    legacy$display_note <- "External textual paths are masked in this legacy projection; private run results and immutable data preserve exact values."
+    legacy_options <- redact(settings)
+    legacy_options$method <- method_selected
+    nlss_stage_log(out_dir, "missings", ctx$prompt, ctx$commands, legacy,
+      legacy_options, get_user_prompt(opts))
   }
 }
 
-main()
+nlss_run_main("missings", main)

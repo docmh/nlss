@@ -142,7 +142,12 @@ def main():
 
     for key in numeric_keys:
         expected_val = parse_float(expected.get(key))
-        compare_numeric(row.get(key), expected_val, key)
+        if expected_val is not None and math.isinf(expected_val):
+            wanted = "positive_infinity" if expected_val > 0 else "negative_infinity"
+            if row.get(key) is not None or row.get(f"{key}_status") != wanted:
+                fail(f"Missing explicit unbounded status for {key}")
+        else:
+            compare_numeric(row.get(key), expected_val, key, abs_tol=0 if key in ("p", "p_adj") else 1e-6)
 
 
 if __name__ == "__main__":

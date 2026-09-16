@@ -10,19 +10,9 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("formatting.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-get_user_prompt <- get("get_user_prompt", mode = "function")
-parse_args <- get("parse_args", mode = "function")
-parse_bool <- get("parse_bool", mode = "function")
-resolve_template_path <- get("resolve_template_path", mode = "function")
-source_lib <- get("source_lib", mode = "function")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
+source_lib("utility_contract.R")
 
 print_usage <- function() {
   cat("Calc utility (base R)\n")
@@ -41,53 +31,32 @@ print_usage <- function() {
   cat("  --template REF         Template path or key (optional)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
   cat("  --log TRUE/FALSE       Write analysis_log.jsonl (default: TRUE)\n")
-  cat("  --unsafe TRUE/FALSE    Allow full R evaluation in global env (default: FALSE)\n")
+  cat("  --unsafe TRUE/FALSE    Allow full R evaluation in global env (default: config FALSE)\n")
+  cat("  Calculation reports and immutable utility audits are written without a dataset.\n")
+  cat("  --log FALSE disables JSONL, not the report or audit; utilities are not automatic replay requests.\n")
   cat("  --interactive          Prompt for inputs\n")
   cat("  --help                 Show this help\n")
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
 }
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
   opts <- list()
-  opts$expr <- resolve_prompt("Expressions (use | to separate)")
-  opts$set <- resolve_prompt("Constants (name=value|...)", "")
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
-  opts$format <- resolve_prompt("Output format (plain/json/csv)", "plain")
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
-  opts$unsafe <- resolve_prompt("Unsafe eval TRUE/FALSE", "FALSE")
+  opts$expr <- prompt("Expressions (use | to separate)")
+  opts$set <- prompt("Constants (name=value|...)", "")
+  digits_default <- get_config_value("defaults.digits")
+  opts$digits <- prompt("Rounding digits", as.character(digits_default))
+  opts$format <- prompt("Output format (plain/json/csv)", get_config_value("modules.calc.format"))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log")
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  opts$unsafe <- prompt("Unsafe eval TRUE/FALSE", ifelse(get_config_value("modules.calc.unsafe"), "TRUE", "FALSE"))
   opts
 }
 
 normalize_option <- function(value, name) {
   if (is.null(value)) return("")
-  if (is.logical(value)) {
-    if (isTRUE(value)) stop("Missing value for --", name)
-    return("")
-  }
+  if (length(value) != 1L || is.logical(value) || is.na(value)) stop("Missing or invalid value for --", name)
   as.character(value)
 }
 
@@ -127,6 +96,7 @@ build_eval_env <- function(unsafe = FALSE) {
   if (isTRUE(unsafe)) return(globalenv())
   env <- new.env(parent = emptyenv())
   allowed <- list(
+    "(" = base::`(`,
     "+" = base::`+`,
     "-" = base::`-`,
     "*" = base::`*`,
@@ -241,7 +211,7 @@ json_escape <- function(text) {
 format_value_json <- function(value, digits) {
   fmt <- function(val) {
     if (is.na(val) || !is.finite(val)) return("null")
-    format(round(val, digits), nsmall = digits, trim = TRUE, scientific = FALSE)
+    format(round(val, digits), nsmall = digits, trim = TRUE, scientific = FALSE, decimal.mark = ".")
   }
   if (length(value) == 1) return(fmt(value))
   vals <- vapply(value, fmt, character(1))
@@ -290,119 +260,13 @@ output_results <- function(results, format, digits) {
   invisible(NULL)
 }
 
-resolve_get_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
-  as.character(value)
-}
-
 build_calc_table_body <- function(rows, digits, table_spec = NULL) {
   default_specs <- list(
     list(key = "name", label = "Name"),
     list(key = "expression", label = "Expression"),
     list(key = "value", label = "Value")
   )
-  columns <- resolve_normalize_table_columns(if (!is.null(table_spec)) table_spec$columns else NULL, default_specs)
+  columns <- normalize_table_columns(if (!is.null(table_spec)) table_spec$columns else NULL, default_specs)
   table_rows <- list()
   for (row in rows) {
     values <- character(0)
@@ -413,137 +277,171 @@ build_calc_table_body <- function(rows, digits, table_spec = NULL) {
         if (key == "value") {
           cell <- format_value_plain(row[[key]], digits)
         } else {
-          cell <- resolve_as_cell_text(row[[key]])
+          cell <- as_cell_text(row[[key]])
         }
       }
       values <- c(values, cell)
     }
     table_rows[[length(table_rows) + 1]] <- values
   }
-  adjusted <- resolve_drop_empty_columns(columns, table_rows)
+  adjusted <- drop_empty_columns(columns, table_rows)
   headers <- vapply(adjusted$columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, adjusted$rows)
+  body <- render_markdown_table(headers, adjusted$rows)
   list(body = body, columns = adjusted$columns)
 }
 
-args <- commandArgs(trailingOnly = TRUE)
-opts <- parse_args(args)
-
-if (isTRUE(opts$help) || length(args) == 0) {
-  print_usage()
-  quit(status = 0)
+calc_mask_expressions <- function(text, root) {
+  masked <- nlss_mask_expression_paths(text, root)
+  vapply(masked, function(value) {
+    parsed <- tryCatch(utils::getParseData(parse(text = value, keep.source = TRUE), includeText = TRUE), error = function(e) NULL)
+    comments <- unique(parsed$text[parsed$token == "COMMENT"])
+    for (comment in comments[order(nchar(comments), decreasing = TRUE)]) {
+      positions <- gregexpr(comment, value, fixed = TRUE)
+      found <- regmatches(value, positions)[[1]]
+      if (length(found)) regmatches(value, positions) <- list(rep(nlss_mask_prose_paths(comment, root), length(found)))
+    }
+    value
+  }, character(1), USE.NAMES = FALSE)
 }
 
-if (parse_bool(opts$interactive, FALSE)) {
-  opts <- interactive_options()
+calc_value_status <- function(value) {
+  value <- as.numeric(value)
+  ifelse(is.nan(value), "NaN", ifelse(is.na(value), "NA",
+    ifelse(is.infinite(value), ifelse(value > 0, "positive_infinity", "negative_infinity"), "finite")))
 }
 
-expr_text <- normalize_option(opts$expr, "expr")
-if (!nzchar(expr_text)) stop("Missing --expr. Use --help for usage.")
-
-set_text <- normalize_option(opts$set, "set")
-digits_default <- resolve_config_value("defaults.digits", 2)
-digits_text <- normalize_option(opts$digits, "digits")
-digits <- if (nzchar(digits_text)) suppressWarnings(as.integer(digits_text)) else as.integer(digits_default)
-if (is.na(digits) || digits < 0) stop("Invalid --digits value.")
-
-format_text <- normalize_option(opts$format, "format")
-format <- tolower(if (nzchar(format_text)) format_text else "plain")
-if (!format %in% c("plain", "json", "csv")) {
-  stop("Invalid --format value. Use plain, json, or csv.")
+main <- function() {
+  args <- commandArgs(trailingOnly = TRUE)
+  opts <- parse_args(args, module = "calc")
+  if (parse_bool(opts[["help"]], FALSE) || length(args) == 0L) { print_usage(); return(invisible(NULL)) }
+  if (parse_bool(opts[["interactive"]], FALSE)) opts <- modifyList(opts, interactive_options())
+  expr_text <- normalize_option(opts[["expr"]], "expr")
+  if (!nzchar(expr_text)) stop("Missing --expr. Use --help for usage.")
+  set_text <- normalize_option(opts[["set"]], "set")
+  digits_value <- opts[["digits"]]
+  if (is.null(digits_value)) digits_value <- get_config_value("defaults.digits")
+  digits <- suppressWarnings(as.numeric(digits_value))
+  if (length(digits_value) != 1L || is.logical(digits_value) || length(digits) != 1L ||
+      !is.finite(digits) || digits < 0 || digits > 15 || digits != floor(digits)) {
+    stop("--digits must be a finite integer between 0 and 15.")
+  }
+  digits <- as.integer(digits)
+  format_text <- normalize_option(opts[["format"]], "format")
+  format <- tolower(if (nzchar(format_text)) format_text else get_config_value("modules.calc.format"))
+  if (!format %in% c("plain", "json", "csv")) stop("Invalid --format value. Use plain, json, or csv.")
+  unsafe <- parse_bool(opts[["unsafe"]], get_config_value("modules.calc.unsafe"))
+  log_enabled <- parse_bool(opts[["log"]], get_config_value("defaults.log"))
+  # Bind the normal utility output location before unrestricted R can change the
+  # process working directory. Unsafe external side effects remain unrestricted.
+  out_dir <- get_default_out()
+  nlss_utility_check_directory(out_dir)
+  out_dir <- normalizePath(out_dir, winslash = "/", mustWork = FALSE)
+  context <- get_run_context()
+  template_ref <- normalize_option(opts[["template"]], "template")
+  template_path <- resolve_template_override(template_ref, module = "calc")
+  if (nzchar(template_ref) && (is.null(template_path) || !file.exists(template_path) || dir.exists(template_path))) {
+    stop("--template must identify an existing template file or configured template key.")
+  }
+  if (is.null(template_path)) template_path <- resolve_template_path("calc.default")
+  artifacts <- list()
+  if (!is.null(template_path) && file.exists(template_path)) {
+    if (dir.exists(template_path)) stop("Configured Calc template must be a file.")
+    artifacts[["template.md"]] <- readBin(template_path, "raw", n = file.info(template_path)$size)
+    frozen <- tempfile("nlss-calc-template-", fileext = ".md")
+    writeBin(artifacts[["template.md"]], frozen)
+    on.exit(unlink(frozen), add = TRUE)
+    template_path <- frozen
+  } else template_path <- NULL
+  template_meta <- get_template_meta(template_path)
+  set_items <- split_pipe(set_text)
+  expr_items <- split_pipe(expr_text)
+  if (!length(expr_items)) stop("No expressions to evaluate.")
+  env <- build_eval_env(unsafe)
+  warnings <- character()
+  computed <- withCallingHandlers({
+    constants <- apply_assignments(set_items, env, "--set")
+    evaluation <- evaluate_expressions(expr_items, env)
+    list(constants = constants, evaluation = evaluation)
+  }, warning = function(w) warnings <<- c(warnings, conditionMessage(w)))
+  set_entries <- computed$constants
+  evaluation <- computed$evaluation
+  reproducibility <- list(deterministic_given_recorded_inputs = !unsafe, automatic_replay = FALSE,
+    reason = if (unsafe) "Unrestricted R may use randomness, external state, side effects and arbitrary packages. This audit is not an automatic replay request or a rollback of those side effects." else
+      "Restricted numeric calculations use recorded expressions/constants and the recorded R environment. Utility audits are evidence, not supported automatic replay requests.")
+  results_payload <- list(status = "success", count = length(evaluation$rows), values = evaluation$results,
+    constants = if (length(set_entries)) set_entries else NULL, rows = evaluation$rows,
+    value_status = lapply(evaluation$results, calc_value_status),
+    value_shape = lapply(evaluation$results, function(value) list(length = length(value), class = class(value), dimensions = dim(value))),
+    warnings = warnings, reproducibility = reproducibility)
+  options_payload <- list(expr = expr_items, set = if (length(set_items)) set_items else NULL,
+    digits = digits, format = format, unsafe = unsafe)
+  artifacts[["values.rds"]] <- serialize(list(constants = set_entries, evaluation = evaluation), NULL, version = 3L)
+  table_rows <- lapply(evaluation$rows, function(row) {
+    row$expression <- calc_mask_expressions(row$expression, out_dir)
+    row
+  })
+  table_result <- build_calc_table_body(table_rows, digits, template_meta$table)
+  note <- paste0("Values are rounded to ", digits, " decimal places.")
+  if (any(unlist(results_payload$value_status) != "finite")) note <- paste(note,
+    "Nonfinite values display as NA (plain/CSV) or null (JSON); the audit distinguishes NA, NaN and signed infinity.")
+  if (unsafe) note <- paste(note, "Unsafe R evaluation was explicitly enabled; external side effects are not protected or automatically reproducible.")
+  nlss_table <- paste0("Table 1\n\n", table_result$body, "\nNote. ", note)
+  narrative <- paste0("Computed ", length(table_rows), " expression", if (length(table_rows) == 1L) "" else "s", ".")
+  narrative_rows <- lapply(table_rows, function(row) list(name = row$name, expression = row$expression,
+    value = format_value_plain(row$value, digits), full_sentence = paste0(row$name, " = ", format_value_plain(row$value, digits))))
+  template_context <- list(tokens = list(table_body = table_result$body, expression_count = length(table_rows)),
+    narrative_rows = narrative_rows)
+  flags <- list(expr = calc_mask_expressions(expr_items, out_dir),
+    set = if (length(set_items)) calc_mask_expressions(set_items, out_dir) else NULL,
+    digits = digits, `output-format` = format, unsafe = unsafe)
+  output <- format_nlss_report("Calc", nlss_table, narrative, analysis_flags = flags,
+    template_path = template_path, table_start = 1L, template_context = template_context)
+  safeguard <- paste0("## Calculation scope\n\n", reproducibility$reason,
+    if (any(unlist(results_payload$value_status) != "finite")) "\n\nNonfinite values are retained explicitly in the audit; an unavailable value is not a finite estimate." else "")
+  output <- paste(output, safeguard, sep = "\n\n")
+  stdout <- capture.output(output_results(evaluation$results, format, digits))
+  artifacts[["stdout.txt"]] <- paste0(paste(stdout, collapse = "\n"), "\n")
+  request <- list(options = options_payload, reproducibility = reproducibility,
+    expressions = expr_items, constants = set_items,
+    user_prompt = nlss_mask_prose_paths(get_user_prompt(opts), out_dir),
+    configuration = list(digits = get_config_value("defaults.digits"), log = get_config_value("defaults.log"),
+      calc = get_config_value("modules.calc")))
+  nlss_publish_utility("calc", out_dir, request, results_payload, output,
+    artifacts = artifacts, publish = function(run_id, staging) {
+      report <- file.path(out_dir, "report_canonical.md")
+      frozen_template <- if ("template.md" %in% names(artifacts)) file.path(staging, "template.md") else NULL
+      append_nlss_report(report, "Calc", nlss_table, narrative, analysis_flags = flags,
+        template_path = frozen_template, template_context = template_context)
+      append_nlss_report(report, "Calculation scope", "", sub("^## Calculation scope\\n\\n", "", safeguard))
+      if (log_enabled) {
+        legacy <- results_payload
+        legacy$rows <- table_rows
+        if (length(legacy$constants)) legacy$constants <- lapply(legacy$constants, function(row) {
+          row$expression <- calc_mask_expressions(row$expression, out_dir); row
+        })
+        legacy$warnings <- nlss_mask_prose_paths(legacy$warnings, out_dir)
+        options <- options_payload
+        options$expr <- flags$expr
+        options$set <- flags$set
+        options$utility_run_id <- run_id
+        commands <- context$commands
+        for (i in seq_along(commands)) {
+          inline <- grepl("^--(expr|set)=", commands[[i]])
+          if (inline) {
+            prefix <- sub("^(--(expr|set)=).*", "\\1", commands[[i]])
+            commands[[i]] <- paste0(prefix, calc_mask_expressions(substring(commands[[i]], nchar(prefix) + 1L), out_dir))
+          } else {
+            code <- i > 1L && commands[[i - 1L]] %in% c("--expr", "--set")
+            commands[[i]] <- if (code) calc_mask_expressions(commands[[i]], out_dir) else nlss_mask_prose_paths(commands[[i]], out_dir)
+          }
+        }
+        logged <- append_analysis_log(out_dir, "calc", paste(commands, collapse = " "), commands, legacy, options,
+          user_prompt = nlss_mask_prose_paths(get_user_prompt(opts), out_dir))
+        if (resolve_logging_bool("enabled", TRUE) && !isTRUE(logged)) stop("Required calculation JSONL projection was not written.")
+      }
+    })
+  cat(paste(stdout, collapse = "\n"), "\n", sep = "")
+  invisible(results_payload)
 }
 
-unsafe <- parse_bool(opts$unsafe, FALSE)
-env <- build_eval_env(unsafe = unsafe)
-
-set_items <- split_pipe(set_text)
-set_entries <- apply_assignments(set_items, env, "--set")
-
-expr_items <- split_pipe(expr_text)
-if (length(expr_items) == 0) stop("No expressions to evaluate.")
-
-evaluation <- evaluate_expressions(expr_items, env)
-output_results(evaluation$results, format, digits)
-
-analysis_flags <- list(
-  expr = expr_items,
-  set = if (length(set_items) > 0) set_items else NULL,
-  digits = digits,
-  `output-format` = format,
-  unsafe = unsafe
-)
-
-analysis_label <- "Calc"
-out_dir <- resolve_get_default_out()
-out_dir <- resolve_ensure_out_dir(out_dir)
-report_path <- file.path(out_dir, "report_canonical.md")
-
-template_override <- resolve_template_override(opts$template, module = "calc")
-template_path <- template_override
-if (is.null(template_path)) {
-  template_path <- resolve_template_path("calc.default", "calc/default-template.md")
-}
-template_meta <- resolve_get_template_meta(template_path)
-
-table_rows <- evaluation$rows
-table_result <- build_calc_table_body(table_rows, digits, if (!is.null(template_meta$table)) template_meta$table else NULL)
-note_text <- paste0("Note. Values are rounded to ", digits, " decimal places.")
-nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_text)
-
-narrative_default <- paste0("Computed ", length(table_rows), " expression", ifelse(length(table_rows) == 1, "", "s"), ".")
-narrative_rows <- lapply(table_rows, function(row) {
-  value_text <- format_value_plain(row$value, digits)
-  list(
-    name = row$name,
-    expression = row$expression,
-    value = value_text,
-    full_sentence = paste0(row$name, " = ", value_text)
-  )
-})
-
-template_context <- list(
-  tokens = list(
-    table_body = table_result$body,
-    expression_count = length(table_rows)
-  ),
-  narrative_rows = narrative_rows
-)
-
-resolve_append_nlss_report(
-  report_path,
-  analysis_label,
-  nlss_table,
-  narrative_default,
-  analysis_flags = analysis_flags,
-  template_path = template_path,
-  template_context = template_context
-)
-
-log_default <- resolve_config_value("defaults.log", TRUE)
-log_enabled <- parse_bool(opts$log, default = log_default)
-if (isTRUE(log_enabled)) {
-  run_context <- resolve_get_run_context()
-  results_payload <- list(
-    status = "success",
-    count = length(table_rows),
-    values = evaluation$results,
-    constants = if (length(set_entries) > 0) set_entries else NULL
-  )
-  options_payload <- list(
-    expr = expr_items,
-    set = if (length(set_items) > 0) set_items else NULL,
-    digits = digits,
-    format = format,
-    unsafe = unsafe,
-    template = if (!is.null(template_override) && nzchar(template_override)) template_override else NULL
-  )
-  resolve_append_analysis_log(
-    out_dir,
-    "calc",
-    run_context$prompt,
-    run_context$commands,
-    results_payload,
-    options = options_payload,
-    user_prompt = get_user_prompt(opts)
-  )
-}
+main()

@@ -490,9 +490,7 @@ run_ok "ols bootstrap CI" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PA
 check_log "${start}" "-" "gaussian" "t" "1" "-" "-" "-" "-" "true" "-" "true" "bootstrap_samples=50"
 run_ok "regression coefficients golden (bootstrap)" check_regression_coef_golden "${LOG_PATH}" "${start}" "ols_bootstrap_x1"
 
-start=$(log_count "${LOG_PATH}")
-run_ok "ols bootstrap zero samples" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_reg --ivs x1,x2 --bootstrap TRUE --bootstrap-samples 0 --seed 123
-check_log "${start}" "-" "gaussian" "t" "1" "-" "-" "-" "-" "false" "-" "true" "bootstrap_samples=0"
+run_expect_invalid "ols bootstrap zero samples" "invalid_input" Rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_GOLDEN}" --dv outcome_reg --ivs x1,x2 --bootstrap TRUE --bootstrap-samples 0 --seed 123
 
 start=$(log_count "${LOG_PATH_SMALL}")
 run_ok "ols auto ivs (numeric default)" Rscript "${R_SCRIPT_DIR}/regression.R" --csv "${DATA_REGRESSION_SMALL}" --dv y

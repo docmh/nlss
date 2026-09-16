@@ -67,6 +67,14 @@ get_tests_value() {
   get_config_value "${path}" "$1"
 }
 
+PSYCHOMETRIC_SMOKE_MATCH="$(get_tests_value tests.suites.smoke.psychometric_match)"
+INFERENCE_SMOKE_MATCH="$(get_tests_value tests.suites.smoke.inference_match)"
+PLOT_SMOKE_MATCH="$(get_tests_value tests.suites.smoke.plot_match)"
+if [ -z "${PSYCHOMETRIC_SMOKE_MATCH}" ] || [ -z "${INFERENCE_SMOKE_MATCH}" ] || [ -z "${PLOT_SMOKE_MATCH}" ]; then
+  echo "Missing independent smoke selection in tests.yml; refusing an implicit full or empty suite." >&2
+  exit 2
+fi
+
 set_config_value() {
   "${PYTHON_BIN}" - "$CONFIG_PATH" "$1" "$2" <<'PY'
 import sys
@@ -355,12 +363,12 @@ assert_marker() {
   for ((i = 1; i <= attempts; i++)); do
     if [ -f "${file}" ]; then
       if [ "${HAS_RG}" -eq 1 ]; then
-        if rg -n "${marker}" "${file}" >/dev/null 2>&1; then
+        if rg -n -F -- "${marker}" "${file}" >/dev/null 2>&1; then
           found=1
           break
         fi
       else
-        if grep -n "${marker}" "${file}" >/dev/null 2>&1; then
+        if grep -n -F -- "${marker}" "${file}" >/dev/null 2>&1; then
           found=1
           break
         fi
@@ -675,6 +683,48 @@ run_expect_log() {
   exit 1
 }
 
+run_expect_failed_run() {
+  local label="$1"; shift
+  local dataset="$1"; shift
+  local module="$1"; shift
+  local expected_exit="$1"; shift
+  local before
+  before=$("${PYTHON_BIN}" - "${dataset}" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+print(json.dumps({"runs": [str(p) for p in (root / "runs").glob("*/request.json")],
+                  "projections": {n: hashlib.sha256((root/n).read_bytes()).hexdigest() if (root/n).exists() else None
+                                  for n in ("report_canonical.md", "analysis_log.jsonl")}}))
+PY
+  )
+  echo "[RUN-EXPECT] ${label}" | tee -a "${LOG_PATH}"
+  set +e
+  "$@" >>"${LOG_PATH}" 2>&1
+  local exit_status=$?
+  set -e
+  "${PYTHON_BIN}" - "${dataset}" "${module}" "${expected_exit}" "${exit_status}" "${before}" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+root, module, expected, actual, before = sys.argv[1:]
+root, before, actual = Path(root), json.loads(before), int(actual)
+assert (actual != 0 if expected == "nonzero" else actual == int(expected)), "Unexpected process exit"
+added = [p for p in (root / "runs").glob("*/request.json") if str(p) not in before["runs"]]
+assert len(added) == 1, "Expected one terminal failed run"
+request = json.loads(added[0].read_text())
+result = json.loads((added[0].parent / "result.json").read_text())
+assert not added[0].parent.name.startswith("."), "Failed run remained pending"
+assert request["module"] == module and result["status"] == "failed" and result.get("error"), "Wrong failed-run state"
+assert result["artifacts"]["request"]["sha256"] == hashlib.sha256(added[0].read_bytes()).hexdigest(), "Request hash mismatch"
+assert not (added[0].parent / "output.md").exists(), "Failed run published normal Markdown"
+assert not (root / ".analysis-lock").exists(), "Failed run retained analysis lock"
+for name, digest in before["projections"].items():
+    current = hashlib.sha256((root/name).read_bytes()).hexdigest() if (root/name).exists() else None
+    assert current == digest, "Failed run modified " + name
+PY
+  echo "[PASS] ${label} (failed bundle, protected projections)" | tee -a "${LOG_PATH}"
+}
+
 check_integrity_expect() {
   local label="$1"; shift
   local target_path="$1"; shift
@@ -825,7 +875,7 @@ template_test_base() {
   local target
 
   reset_to_base
-  if [[ "${key}" == init_workspace.* ]]; then
+  if [[ "${key}" == init_workspace.default ]]; then
     reset_parquet
   fi
   source="$(resolve_template_source "${key}")"
@@ -941,6 +991,33 @@ else
 fi
 RESEARCH_REPORT_PATH="${RESEARCH_OUT_DIR}/report_canonical.md"
 RESEARCH_LOG_PATH="${RESEARCH_OUT_DIR}/analysis_log.jsonl"
+if [ "${NLSS_RESEARCH_LIVE_TESTS:-0}" == "1" ]; then
+  unset NLSS_RESEARCH_FIXTURES
+  echo "[INFO] Research smoke uses explicitly requested live services." | tee -a "${LOG_PATH}"
+else
+  RESEARCH_FIXTURE_PATH="${TMP_BASE}/research-smoke.json"
+  Rscript - "$(to_win_path "${RESEARCH_FIXTURE_PATH}")" <<'RS'
+path <- commandArgs(TRUE)[[1]]
+packet <- function(body) list(status = 200L, body = body)
+fixtures <- list(schema_version = 1L, sources = list(
+  openalex = list(packet(list(results = list(list(id = "https://openalex.org/W1",
+    title = "Effect size, power analysis and research methods", publication_year = 2020L,
+    cited_by_count = 9L, relevance_score = 1,
+    authorships = list(list(author = list(display_name = "Jane Doe"))),
+    primary_location = list(source = list(display_name = "Journal One")),
+    abstract_inverted_index = list(Research = list(0L), methods = list(1L)))),
+    meta = list(next_cursor = NULL)))),
+  crossref = list(packet(list(message = list(items = list(list(
+    title = list("Stress experience and coping methods"), DOI = "10.1234/smoke-fixture",
+    issued = list(`date-parts` = list(list(2022L))), score = 1, `is-referenced-by-count` = 3L,
+    author = list(list(family = "Smith", given = "Alex")), `container-title` = list("Journal Two"),
+    abstract = "Research methods evidence.")))))),
+  semantic_scholar = list(packet(list(data = list())))))
+jsonlite::write_json(fixtures, path, auto_unbox = TRUE, null = "null", pretty = TRUE)
+RS
+  export NLSS_RESEARCH_FIXTURES="$(to_win_path "${RESEARCH_FIXTURE_PATH}")"
+  echo "[INFO] Research smoke uses explicit offline fixture transport; live service availability is not tested." | tee -a "${LOG_PATH}"
+fi
 rm -f "${RESEARCH_REPORT_PATH}" "${RESEARCH_LOG_PATH}"
 run_ok "research_academia smoke" run_rscript "${R_SCRIPT_DIR}/research_academia.R" \
   --query "effect size" --sources openalex,crossref --top-n 3 --max-per-source 3 --max-total 6
@@ -1054,8 +1131,9 @@ reset_to_base
 set_config_value "logging.enabled" "true"
 set_config_value "logging.include_outputs" "maybe"
 start_count="$(log_count "${ANALYSIS_LOG_PATH}")"
-run_ok "logging outputs broken" run_rscript "${R_SCRIPT_DIR}/descriptive_stats.R" --parquet "${PARQUET_PATH_WIN}" --vars x3
-assert_log_field "logging outputs broken results" "${ANALYSIS_LOG_PATH}" "${start_count}" "descriptive_stats" "results" "absent"
+run_fail "logging outputs invalid Boolean" run_rscript "${R_SCRIPT_DIR}/descriptive_stats.R" --parquet "${PARQUET_PATH_WIN}" --vars x3
+end_count="$(log_count "${ANALYSIS_LOG_PATH}")"
+assert_log_unchanged "${start_count}" "${end_count}" "logging outputs invalid Boolean"
 
 reset_to_base
 set_config_value "logging.enabled" "false"
@@ -1067,7 +1145,7 @@ assert_log_unchanged "${start_count}" "${end_count}" "logging disabled"
 reset_to_base
 set_config_value "logging.enabled" "maybe"
 start_count="$(log_count "${ANALYSIS_LOG_PATH}")"
-run_ok "logging enabled broken" run_rscript "${R_SCRIPT_DIR}/descriptive_stats.R" --parquet "${PARQUET_PATH_WIN}" --vars x1 --log TRUE
+run_fail "logging enabled invalid Boolean" run_rscript "${R_SCRIPT_DIR}/descriptive_stats.R" --parquet "${PARQUET_PATH_WIN}" --vars x1 --log TRUE
 end_count="$(log_count "${ANALYSIS_LOG_PATH}")"
 assert_log_unchanged "${start_count}" "${end_count}" "logging enabled broken"
 
@@ -1361,7 +1439,9 @@ if [ "${HAS_PSYCH}" -eq 1 ]; then
   run_ok "efa edge" run_rscript "${R_SCRIPT_DIR}/efa.R" --parquet "${PARQUET_PATH_WIN}" --vars f1_1,f1_2,f1_3_rev,f1_4,f2_1,f2_2,f2_3,f2_4_rev --method minres --n-factors 2 --missing pairwise --cor spearman --loading-cutoff 0.4 --sort-loadings FALSE
 fi
 run_ok "reliability edge kappa" run_rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${PARQUET_PATH_WIN}" --analysis kappa --vars cat_var,cat_var2 --kappa-weight none
-run_ok "assumptions edge" run_rscript "${R_SCRIPT_DIR}/assumptions.R" --parquet "${PARQUET_PATH_WIN}" --analysis anova --dv outcome_anova --between group3 --within pre_score,mid_score,post_score --subject-id id
+run_ok "assumptions edge" run_rscript "${R_SCRIPT_DIR}/assumptions.R" --parquet "${PARQUET_PATH_WIN}" --analysis anova --between group3 --within pre_score,mid_score,post_score --subject-id id
+run_expect_failed_run "assumptions contradictory wide response roles" "$(dirname "$(resolve_log_path)")" "assumptions" "nonzero" \
+  run_rscript "${R_SCRIPT_DIR}/assumptions.R" --parquet "${PARQUET_PATH_WIN}" --analysis anova --dv outcome_anova --between group3 --within pre_score,mid_score,post_score --subject-id id
 run_ok "regression edge bootstrap" run_rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_PATH_WIN}" --dv outcome_reg --ivs x1,x2,x3 --bootstrap TRUE --bootstrap-samples 200 --seed 42
 if [ "${HAS_LAVAAN}" -eq 1 ]; then
   run_ok "sem edge path" run_rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_PATH_WIN}" --analysis path --dv outcome_reg --ivs skewed_var,outlier_var
@@ -1390,10 +1470,15 @@ run_ok "data_transform clean" run_rscript "${R_SCRIPT_DIR}/data_transform.R" --p
 run_init_workspace "init workspace (transform edge)"
 run_ok "data_transform edge" run_rscript "${R_SCRIPT_DIR}/data_transform.R" --parquet "${PARQUET_PATH_WIN}" --transform "skewed_var=log" --percentile-bins "outlier_var=4" --recode "group3=A:1,B:2,C:3" --drop zero_var --confirm-drop TRUE
 
+printf '\nResearcher-written smoke note: preserve this text and its existing bytes.\n' >> "${SCRATCHPAD_PATH}"
+SCRATCHPAD_BEFORE_REINIT="${TMP_BASE}/scratchpad-before-reinit.md"
+cp "${SCRATCHPAD_PATH}" "${SCRATCHPAD_BEFORE_REINIT}"
 template_test "template init_workspace nlss" "init_workspace.default" "${NLSS_REPORT_PATH}" \
   run_rscript "${R_SCRIPT_DIR}/init_workspace.R" --csv "${DATA_PATH_WIN}"
-template_test "template init_workspace scratchpad" "init_workspace.scratchpad" "${SCRATCHPAD_PATH}" \
-  run_rscript "${R_SCRIPT_DIR}/init_workspace.R" --csv "${DATA_PATH_WIN}"
+run_ok "init workspace preserves researcher scratchpad bytes" cmp -s "${SCRATCHPAD_BEFORE_REINIT}" "${SCRATCHPAD_PATH}"
+SCRATCHPAD_TEMPLATE_DATASET="scratchpad_template_${RUN_ID}"
+template_test "template init_workspace scratchpad on fresh dataset" "init_workspace.scratchpad" "${WORKSPACE_DIR}/${SCRATCHPAD_TEMPLATE_DATASET}/scratchpad.md" \
+  run_rscript "${R_SCRIPT_DIR}/init_workspace.R" --csv "${DATA_PATH_WIN}" --dataset-name "${SCRATCHPAD_TEMPLATE_DATASET}"
 template_test "template metaskill_runner default" "metaskill_runner.default" "${NLSS_REPORT_PATH}" \
   run_rscript "${R_SCRIPT_DIR}/metaskill_runner.R" --parquet "${PARQUET_PATH_WIN}" --meta sample-description --intent "describe the sample"
 
@@ -1500,13 +1585,13 @@ template_test "template nonparametric default" "nonparametric.default" "${NLSS_R
 template_test "template nonparametric posthoc" "nonparametric.posthoc" "${NLSS_REPORT_PATH}" \
   run_rscript "${R_SCRIPT_DIR}/nonparametric.R" --parquet "${PARQUET_PATH_WIN}" --vars outcome_anova --group group3 --test kruskal --posthoc pairwise --p-adjust holm
 
-run_expect_log "t_test invalid group levels" "$(resolve_log_path)" "t_test" "expected_invalid_input" \
+run_expect_failed_run "t_test invalid group levels" "$(dirname "$(resolve_log_path)")" "t_test" "0" \
   run_rscript "${R_SCRIPT_DIR}/t_test.R" --parquet "${PARQUET_PATH_WIN}" --vars outcome_anova --group group3 --expect-two-groups TRUE
-run_expect_log "t_test paired with group" "$(resolve_log_path)" "t_test" "invalid_input" \
+run_expect_failed_run "t_test paired with group" "$(dirname "$(resolve_log_path)")" "t_test" "nonzero" \
   run_rscript "${R_SCRIPT_DIR}/t_test.R" --parquet "${PARQUET_PATH_WIN}" --x pre_score --y post_score --group group3
-run_expect_log "nonparametric invalid group levels" "$(resolve_log_path)" "nonparametric" "invalid_input" \
+run_expect_failed_run "nonparametric invalid group levels" "$(dirname "$(resolve_log_path)")" "nonparametric" "nonzero" \
   run_rscript "${R_SCRIPT_DIR}/nonparametric.R" --parquet "${PARQUET_PATH_WIN}" --vars outcome_anova --group group3 --test mann_whitney
-run_expect_log "anova missing subject-id" "$(resolve_log_path)" "anova" "invalid_input" \
+run_expect_failed_run "anova missing subject-id" "$(dirname "$(resolve_log_path)")" "anova" "nonzero" \
   run_rscript "${R_SCRIPT_DIR}/anova.R" --parquet "${PARQUET_PATH_WIN}" --within pre_score,post_score
 run_expect_log "regression missing dv" "$(resolve_log_path)" "regression" "invalid_input" \
   run_rscript "${R_SCRIPT_DIR}/regression.R" --parquet "${PARQUET_PATH_WIN}" --ivs x1,x2
@@ -1524,6 +1609,98 @@ check_integrity_expect "check_integrity tamper delete" "${CHECK_INTEGRITY_DELETE
 NLSS_RECONSTRUCT_LOG="${ANALYSIS_LOG_REL_PATH}" run_ok "reconstruct reports" run_rscript "${RECONSTRUCT_REPORTS_SCRIPT}"
 assert_marker "# Descriptive Statistics" "${RECONSTRUCT_REPORT_PATH}"
 assert_marker "# Dummy Metaskill Report" "${METASKILL_REPORT_RECON_PATH}"
+
+run_ok "mi_regression independent pooling and CLI" bash "${ROOT_DIR}/$(get_tests_value tests.scripts.modules.mi_regression)" --root "${RUN_ROOT}/mi-regression" --keep 0
+run_ok "frequencies independent values and replay" bash "${ROOT_DIR}/$(get_tests_value tests.scripts.modules.frequencies)" --root "${RUN_ROOT}/frequencies" --keep 0
+
+if [ "${HAS_PSYCH}" -eq 1 ] && [ "${HAS_HAVEN}" -eq 1 ]; then
+  run_ok "scale and reliability independent smoke values and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_psychometric_r)" --root "${RUN_ROOT}/psychometric" --keep 0 --match "${PSYCHOMETRIC_SMOKE_MATCH}"
+else
+  echo "[WARN] skipping independent psychometric acceptance (test references require psych and haven)" | tee -a "${LOG_PATH}"
+fi
+
+if [ "${HAS_HAVEN}" -eq 1 ]; then
+  run_ok "t-tests and correlations independent smoke values and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_inference_r)" --root "${RUN_ROOT}/inference" --keep 0 --match "${INFERENCE_SMOKE_MATCH}"
+else
+  echo "[WARN] skipping independent t-test/correlation acceptance (import fixtures require haven)" | tee -a "${LOG_PATH}"
+fi
+
+if has_r_package "car" && [ "${HAS_EMMEANS}" -eq 1 ] && [ "${HAS_HAVEN}" -eq 1 ]; then
+  run_ok "ANOVA and rank tests independent smoke values and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_design_r)" --root "${RUN_ROOT}/design" --keep 0 --match smoke
+else
+  echo "[WARN] skipping independent ANOVA/rank smoke acceptance (requires car, emmeans and haven)" | tee -a "${LOG_PATH}"
+fi
+
+if [ "${HAS_LME4}" -eq 1 ] && [ "${HAS_EMMEANS}" -eq 1 ] && [ "${HAS_HAVEN}" -eq 1 ] && has_r_package "lmerTest" && has_r_package "pbkrtest" && has_r_package "car" && has_r_package "performance"; then
+  run_ok "mixed models independent smoke values and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_mixed_model_r)" --root "${RUN_ROOT}/mixed-model" --keep 0 --match smoke
+else
+  echo "[WARN] skipping independent mixed-model smoke acceptance (requires lme4, lmerTest, pbkrtest, car, emmeans, performance and haven)" | tee -a "${LOG_PATH}"
+fi
+
+if [ "${HAS_LME4}" -eq 1 ] && has_r_package "performance" && has_r_package "influence.ME"; then
+  run_ok "legacy mixed diagnostics independent smoke values" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_mixed_diagnostic_r)" --root "${RUN_ROOT}/mixed-diagnostic" --keep 0 --match smoke
+else
+  echo "[WARN] skipping independent mixed-diagnostic smoke acceptance (requires lme4, performance and influence.ME)" | tee -a "${LOG_PATH}"
+fi
+
+if has_r_package "psych" && has_r_package "GPArotation" && [ "${HAS_HAVEN}" -eq 1 ]; then
+  run_ok "EFA independent smoke values and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_efa_r)" --root "${RUN_ROOT}/efa" --keep 0 --match '_smoke$'
+else
+  echo "[WARN] skipping independent EFA smoke acceptance (requires psych, GPArotation and haven)" | tee -a "${LOG_PATH}"
+fi
+
+if has_r_package "lavaan" && [ "${HAS_HAVEN}" -eq 1 ]; then
+  run_ok "SEM independent smoke values and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_sem_r)" --root "${RUN_ROOT}/sem" --keep 0 --match '_smoke$'
+else
+  echo "[WARN] skipping independent SEM smoke acceptance (requires lavaan and haven)" | tee -a "${LOG_PATH}"
+fi
+
+if has_r_package "lavaan" && has_r_package "MVN" && [ "${HAS_HAVEN}" -eq 1 ]; then
+  run_ok "legacy SEM diagnostics independent smoke values" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_sem_diagnostic_r)" --root "${RUN_ROOT}/sem-diagnostic" --keep 0 --match '_smoke$'
+else
+  echo "[WARN] skipping independent SEM-diagnostic smoke acceptance (requires lavaan, MVN and haven)" | tee -a "${LOG_PATH}"
+fi
+
+if has_r_package "pwr" && has_r_package "semPower" && [ "${HAS_HAVEN}" -eq 1 ]; then
+  run_ok "Power independent smoke values" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_power_r)" --root "${RUN_ROOT}/power" --keep 0 --match '_smoke$'
+  run_ok "parameter-only planning smoke and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_planning_r)" --root "${RUN_ROOT}/planning" --keep 0 --match '_smoke$'
+else
+  echo "[WARN] skipping independent Power/planning smoke acceptance (requires pwr, semPower and haven)" | tee -a "${LOG_PATH}"
+fi
+
+if [ "${HAS_HAVEN}" -eq 1 ] && has_r_package "car" && has_r_package "lme4" && has_r_package "lavaan"; then
+  run_ok "assumptions independent smoke values and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_assumptions_r)" --root "${RUN_ROOT}/assumptions" --keep 0 --match '_smoke$'
+else
+  echo "[WARN] skipping independent assumptions smoke acceptance (requires haven, car, lme4 and lavaan)" | tee -a "${LOG_PATH}"
+fi
+
+if [ "${HAS_HAVEN}" -eq 1 ] && has_r_package "ggplot2"; then
+  run_ok "plot independent smoke values and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_plot_r)" --root "${RUN_ROOT}/plot" --keep 0 --match "${PLOT_SMOKE_MATCH}"
+else
+  echo "[WARN] skipping independent plot smoke acceptance (requires ggplot2 and haven)" | tee -a "${LOG_PATH}"
+fi
+
+if [ "${HAS_HAVEN}" -eq 1 ]; then
+  TRANSFORM_SMOKE_MATCH="$(get_tests_value tests.suites.smoke.transform_match)"
+  if [ -z "${TRANSFORM_SMOKE_MATCH}" ]; then
+    echo "Missing transformation smoke selection in tests/tests.yml" >&2
+    exit 2
+  fi
+  run_ok "data transformation independent smoke values, labels and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_transform_r)" --root "${RUN_ROOT}/transform" --keep 0 --match "${TRANSFORM_SMOKE_MATCH}"
+else
+  echo "[WARN] skipping independent transformation smoke acceptance (requires haven)" | tee -a "${LOG_PATH}"
+fi
+
+if [ "${HAS_HAVEN}" -eq 1 ]; then
+  MISSINGS_SMOKE_MATCH="$(get_tests_value tests.suites.smoke.missings_match)"
+  if [ -z "${MISSINGS_SMOKE_MATCH}" ]; then
+    echo "Missing missingness smoke selection in tests/tests.yml" >&2
+    exit 2
+  fi
+  run_ok "missingness independent smoke values, labels and replay" run_rscript "${ROOT_DIR}/$(get_tests_value tests.scripts.phase2_missings_r)" --root "${RUN_ROOT}/missings" --keep 0 --match "${MISSINGS_SMOKE_MATCH}"
+else
+  echo "[WARN] skipping independent missingness smoke acceptance (requires haven)" | tee -a "${LOG_PATH}"
+fi
 
 echo "[DONE] smoke tests finished" | tee -a "${LOG_PATH}"
 cleanup_runs

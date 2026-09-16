@@ -116,15 +116,22 @@ def main():
         backup_path = results.get("backup_path")
         if not backup_path:
             fail("Expected backup_path in results")
-        if not Path(backup_path).exists():
+        backup_file = Path(backup_path)
+        if results.get("data_change") and not backup_file.is_absolute():
+            backup_file = log_path.parent / backup_file
+        if not backup_file.exists():
             fail(f"Missing backup file: {backup_path}")
     elif expect_backup is False:
         if results.get("backup_path"):
             fail("Did not expect backup_path")
 
     output_path = results.get("output_path")
-    if output_path and not Path(output_path).exists():
-        fail(f"Missing output file: {output_path}")
+    if output_path:
+        output_file = Path(output_path)
+        if results.get("data_change") and not output_file.is_absolute():
+            output_file = log_path.parent.parent / output_file
+        if not output_file.exists():
+            fail(f"Missing output file: {output_path}")
 
     for key, expected in extra.items():
         if expected in ("", "-", None):

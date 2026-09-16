@@ -19,7 +19,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose numeric variables and optional grouping variable.
 3. Run `scripts/R/descriptive_stats.R` with the correct flags.
-4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
+4. Use outputs (`report_canonical.md`, `result.json`) to craft the response.
 
 ## Script: `scripts/R/descriptive_stats.R`
 
@@ -66,17 +66,25 @@ Rscript <path to scripts/R/descriptive_stats.R> --interactive
 - `--iqr-multiplier` sets the Tukey IQR multiplier for outlier counts (default: `modules.descriptive_stats.iqr_multiplier`).
 - `--outlier-z` sets the z-threshold for outlier counts (default: `modules.descriptive_stats.outlier_z`).
 - `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
-- `--log` toggles JSONL logging (default: `defaults.log`).
-- `--user-prompt` stores the original AI prompt in the JSONL log (optional).
+- `--log` controls optional standalone logging; project run evidence and the root protocol remain enabled (default: `defaults.log`).
+- `--user-prompt` stores the original AI prompt in the saved request, subject to configured prompt-privacy settings.
 
 ## Outputs
 
-Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
+Current [projects](../utilities/project-create.md) use `--project`, optional
+`--dataset`, or ordinary explicit source selectors. There is no note-capture
+option. Shared publication reuses frozen input objects and leaves working data
+unchanged; every supported input format uses the same project output route.
 
-- Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`; not user-overridable).
+This migrated module also publishes a fixed `.nlss/runs/<run-id>/request.json`, `result.json`, and deterministic `output.md`; see the [run/replay contract](../run-contract.md). `--log FALSE` only disables optional standalone logging. It continues appending canonical output; authored semantic reports use freely chosen visible Markdown paths.
+
+Outputs in a current project follow the [shared run contract](../run-contract.md):
+`.nlss/runs/<run-id>/` holds request/result/output and artifacts; the automatic
+`report_canonical.md` stays at the project root. No additional project JSONL log
+is produced. `--log` affects optional standalone logging, not this evidence.
 
 - `report_canonical.md`: NLSS format report containing analysis type, table, and narrative text.
-- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
+- `result.json`: Machine-readable results and options, always retained in the saved run.
 
 ## NLSS format Template (YAML)
 

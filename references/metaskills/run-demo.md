@@ -57,13 +57,18 @@ if permission denied:
 
 if permission granted:
   briefly explain the next steps and note that setup can take a little time
-  run init-workspace --csv assets/sample-data/golden_dataset.csv --user-prompt <last user message>
+  create a fresh demo project folder under the user's chosen working location
+  resolve assets/sample-data/golden_dataset.csv relative to the installed skill
+  leave the bundled CSV untouched; do not create an intermediate conversion/workspace
+  copy the bundled CSV into that folder as demo.csv; preserve the installed sample
+  run project-create --project <demo> --source <demo>/demo.csv --working data/current.parquet --name demo
+  use the returned dataset name for the following analysis (demo for a fresh project)
   write a short demo plan to scratchpad.md
-  inspect dataset (data-explorer)
+  inspect dataset (data-explorer --project <demo> --dataset demo --user-prompt <last user message>)
   summarize progress updates in scratchpad.md
 
   provide friendly guidance:
-    - where files live (scratchpad.md, report_canonical.md, analysis_log.jsonl, parquet)
+    - where files live (visible working data, root report_canonical.md, .nlss/ evidence, optional scratchpad)
     - how to run common tasks
     - provide natural language starter prompts that invite experimentation with NLSS:
       - 3 should cover subskills
@@ -84,18 +89,23 @@ if permission granted:
 
 When permission is granted and the demo runs:
 
-- `report_canonical.md`: NLSS format entries from `init-workspace` and optional `data-explorer`.
-- `analysis_log.jsonl`: JSONL entries for `init-workspace` and optional `data-explorer`.
+- Root `report_canonical.md`: automatically appended NLSS-format output from `data-explorer`.
+- `.nlss/runs/`: the saved exploration request/results; no extra JSONL log.
+- `data/current.parquet`: the independent, visible working dataset; original source unchanged.
 - `scratchpad.md`: Demo plan, dataset notes, and completion summary.
 
 If permission is **not** granted, the response is conversational only (no files are created or modified).
 
 ### Final Report Requirements
 
-This metaskill does **not** create a standalone metaskill report file. All onboarding guidance is delivered conversationally, and the only persistent artifacts (if permission is granted) are the standard workspace files created by `init-workspace` and `data-explorer`.
+This metaskill does **not** create a standalone metaskill report file. All onboarding guidance is delivered conversationally, and the only persistent artifacts (if permission is granted) are the current project files created by `project-create` and `data-explorer`.
 
-Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`).
-All artifacts (reports, tables, figures) must be created inside the dataset workspace folder; do not write outside the workspace root.
+Use the common project locations in `SKILL.md`. `project-create` imports the
+bundled CSV directly; its working Parquet needs `arrow`. The common preflight
+reports missing packages and the agent requests approval for their installation.
+No manual conversion is needed. Do not use the retired
+`init-workspace` writer, adopt an existing marker or create nested demo projects.
+No compatibility reader or automatic cleanup is part of onboarding.
 
 ## Finalization
 
@@ -105,7 +115,6 @@ No metaskill finalization step. Do **not** run `metaskill-runner` and do **not**
 
 This metaskill does not define its own NLSS format template. It relies on the templates configured for the subskills it invokes:
 
-- `init-workspace` uses `assets/init-workspace/default-template.md`.
 - `data-explorer` uses `assets/data-explorer/default-template.md` (if run).
 
 ## NLSS format Reporting Guidance

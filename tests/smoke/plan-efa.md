@@ -7,6 +7,7 @@
 - Cover input formats, templates, logging, labels, and interactive prompts.
 - Verify sorted loadings and NLSS format outputs.
 - Validate numeric outputs against golden value files (summary/loadings/eigen).
+- Include an independent oblique ULS golden: communalities include Phi and common-factor variance is not the retained PCA eigenvalue sum. The generator calls psych directly, without NLSS helpers, with seed 1.
 
 ## Data Sources
 
@@ -15,10 +16,12 @@
   - semicolon delimiter, no header, polychoric (ordinal), tetrachoric (binary), tetrachoric invalid, nonnumeric coerce, template, interactive.
 - Labeled RDS/RData/SAV created by `tests/smoke/prepare_labeled_dataset.R`.
 - Value-test goldens under `tests/values/` (summary/loadings/eigen).
+- Seeded migration-specific numerical, category/row identity, unavailable-estimate and replay checks are maintained separately under `tests/phase2/run_efa_tests.R`.
 
 ## Workspace and Outputs
 
 - Test runner writes to `outputs/test-runs/<timestamp>/efa_workspace`.
+- `NLSS_TEST_ROOT` selects an isolated run root; `NLSS_KEEP_RUNS=0` preserves evidence. The runner never edits canonical configuration and its fixture names keep format/source bindings distinct.
 - Outputs:
   - `outputs/test-runs/<timestamp>/efa_workspace/golden_dataset/report_canonical.md`
   - `outputs/test-runs/<timestamp>/efa_workspace/golden_dataset/analysis_log.jsonl`
@@ -40,6 +43,7 @@ Positive coverage:
 Negative coverage:
 
 - Missing vars, missing group, nonnumeric with coerce FALSE, tetrachoric with non-binary inputs, RData missing `--df`.
+- Expected input statuses are checked in the failed run request/result, not by appending error entries to a protected legacy JSONL. Previously published legacy logs must remain unchanged after failure.
 
 ## How to Run
 

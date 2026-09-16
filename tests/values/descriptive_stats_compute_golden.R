@@ -207,8 +207,8 @@ for (case in cases) {
       idx <- is.na(group_vec)
       group_label <- "NA"
     } else {
-      idx <- group_vec == group_value
-      # Preserve NA indices to mirror descriptive_stats group subsetting behavior.
+      # Integer observed-row indices exclude unknown group membership.
+      idx <- which(group_vec == group_value)
       group_label <- as.character(group_value)
     }
     df_sub <- df[idx, , drop = FALSE]

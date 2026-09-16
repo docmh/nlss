@@ -2,11 +2,18 @@
 
 ## Scope
 
-- Validate correlations (Pearson/Spearman), grouped correlations, and cross-correlations in `scripts/R/correlations.R`.
+- Validate correlations (Pearson/Spearman/Kendall), grouped correlations, and cross-correlations in `scripts/R/correlations.R`.
 - Exercise bootstrap confidence intervals, Fisher r-to-z tests vs. r0, and Fisher r-to-z group comparisons.
 - Check matrix-template output (r below diagonal, p above diagonal) and comparison-template output.
 - Cover partial correlations with controls, p-adjust options, missing handling, input variants, and logging toggles.
 - Numeric value tests: compare `analysis_log.jsonl` outputs against `tests/values/correlations_golden.csv`, `tests/values/correlations_diagnostics_golden.csv`, and `tests/values/correlations_comparison_golden.csv` (regenerate with `tests/values/correlations_compute_golden.R`).
+- Partial-correlation p-values use an independent `stats::lm` coefficient test
+  with the actual control-design rank. Fisher intervals use that rank as well.
+  Small p-values are checked with relative tolerance, not an absolute threshold
+  that would accept zero. Group reference subsets exclude missing group rows.
+- The additional [Phase 2 inference suite](../phase2/inference-README.md) covers
+  resolved requests, failed bundles, deterministic replay, all alternatives,
+  rank/constant/boundary cases and bootstrap bookkeeping through the public CLI.
 
 ## Data Sources
 
@@ -35,7 +42,7 @@ Positive coverage:
 - Fisher r-to-z tests against r0.
 - Compare-groups output with `group2` (comparison table and narrative).
 - Matrix template via `--template matrix` with report check.
-- Input variants: RDS, RData, and SAV (if `haven` or `foreign` is installed).
+- Input variants: RDS, RData, and SAV (requires `haven` under the import contract).
 - Logging toggle (`--log FALSE`) to ensure no JSONL append.
 
 Negative coverage:

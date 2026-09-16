@@ -120,6 +120,8 @@ compute_within <- function(df, subject_id, within_vars) {
   data_subset <- df[, required, drop = FALSE]
   data_subset <- data_subset[complete.cases(data_subset), , drop = FALSE]
   if (nrow(data_subset) == 0) stop("No complete cases for within ANOVA")
+  # Subject identity is categorical, never a numeric trend in Error().
+  data_subset[[subject_id]] <- factor(data_subset[[subject_id]])
   for (var in within_vars) {
     if (!is.numeric(data_subset[[var]])) {
       data_subset[[var]] <- suppressWarnings(as.numeric(as.character(data_subset[[var]])))
@@ -214,6 +216,7 @@ compute_mixed_rows <- function(df, subject_id, within_vars, between_vars, covari
   data_subset <- df[, required, drop = FALSE]
   data_subset <- data_subset[complete.cases(data_subset), , drop = FALSE]
   if (nrow(data_subset) == 0) stop("No complete cases for mixed ANOVA")
+  data_subset[[subject_id]] <- factor(data_subset[[subject_id]])
   for (var in between_vars) {
     data_subset[[var]] <- as.factor(data_subset[[var]])
   }
@@ -646,7 +649,7 @@ compute_assumptions <- function(df) {
   wide <- df[, c("pre_score", "mid_score", "post_score"), drop = FALSE]
   wide <- wide[complete.cases(wide), , drop = FALSE]
   fit <- lm(cbind(pre_score, mid_score, post_score) ~ 1, data = wide)
-  mauchly <- mauchly.test(fit)
+  mauchly <- mauchly.test(fit, X = ~1)
   mauchly_row <- data.frame(
     case_id = "assumption_within_mauchly_within",
     assumption = "Sphericity",

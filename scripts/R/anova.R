@@ -10,24 +10,9 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
 source_lib("contrast_utils.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-render_output_path <- get("render_output_path", mode = "function")
-add_term_label_column <- get("add_term_label_column", mode = "function")
-add_value_label_column <- get("add_value_label_column", mode = "function")
-build_contrast_method <- get("build_contrast_method", mode = "function")
-format_contrast_label <- get("format_contrast_label", mode = "function")
-resolve_contrast_spec <- get("resolve_contrast_spec", mode = "function")
-resolve_label_metadata <- get("resolve_label_metadata", mode = "function")
-source_lib <- get("source_lib", mode = "function")
 
 print_usage <- function() {
   cat("ANOVA (base R)\n")
@@ -65,6 +50,7 @@ print_usage <- function() {
   cat("  --sphericity MODE      auto/none (default: auto)\n")
   cat("  --bootstrap TRUE/FALSE Bootstrap confidence intervals (default: FALSE)\n")
   cat("  --bootstrap-samples N  Bootstrap resamples (default: 1000)\n")
+  cat("  --seed N               Resampling/emmeans seed (default: modules.anova.seed)\n")
   cat("  --digits N             Rounding digits (default: 2)\n")
   cat("  --template REF         Template path or template key (optional)\n")
   cat("  --user-prompt TEXT     Original AI user prompt for logging (optional)\n")
@@ -75,304 +61,83 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    opts$csv <- prompt("CSV path")
+    sep_default <- get_config_value("defaults.csv.sep")
+    header_default <- get_config_value("defaults.csv.header")
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
+    opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
+    opts$rds <- prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
+    opts$rdata <- prompt("RData path")
+    opts$df <- prompt("Data frame object name")
   } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
+    opts$parquet <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
 
-  mode <- resolve_prompt("Design (between/within/mixed)", "between")
+  mode <- prompt("Design (between/within/mixed)", "between")
   mode <- tolower(mode)
 
   if (mode %in% c("between", "mixed")) {
-    opts$dv <- resolve_prompt("Dependent variable", "")
-    opts$between <- resolve_prompt("Between-subjects factors (comma-separated)", "")
-    opts$covariates <- resolve_prompt("Covariates (comma-separated, optional)", "")
+    if (mode == "between") opts$dv <- prompt("Dependent variable", "")
+    opts$between <- prompt("Between-subjects factors (comma-separated)", "")
+    opts$covariates <- prompt("Covariates (comma-separated, optional)", "")
   }
 
   if (mode %in% c("within", "mixed")) {
-    opts$within <- resolve_prompt("Within-subjects variables (comma-separated, wide format)", "")
-    opts$`subject-id` <- resolve_prompt("Subject ID", "")
+    opts$within <- prompt("Within-subjects variables (comma-separated, wide format)", "")
+    opts$`subject-id` <- prompt("Subject ID", "")
     if (mode == "mixed" && (is.null(opts$between) || opts$between == "")) {
-      opts$between <- resolve_prompt("Between-subjects factors (comma-separated)", "")
+      opts$between <- prompt("Between-subjects factors (comma-separated)", "")
     }
   }
 
-  type_default <- resolve_config_value("modules.anova.type", "II")
-  effect_default <- resolve_config_value("modules.anova.effect_size", "partial_eta")
-  posthoc_default <- resolve_config_value("modules.anova.posthoc", "tukey")
-  emmeans_default <- resolve_config_value("modules.anova.emmeans", "none")
-  contrasts_default <- resolve_config_value("modules.anova.contrasts", "none")
-  p_adjust_default <- resolve_config_value("modules.anova.p_adjust", "holm")
-  conf_default <- resolve_config_value("modules.anova.conf_level", 0.95)
-  sphericity_default <- resolve_config_value("modules.anova.sphericity", "auto")
-  bootstrap_default <- resolve_config_value("modules.anova.bootstrap", FALSE)
-  bootstrap_samples_default <- resolve_config_value("modules.anova.bootstrap_samples", 1000)
-  digits_default <- resolve_config_value("defaults.digits", 2)
+  type_default <- get_config_value("modules.anova.type")
+  if (mode %in% c("within", "mixed")) {
+    type_default <- "I"
+    cat("Repeated/mixed ANOVA uses sequential Type I sums of squares.\n")
+  }
+  effect_default <- get_config_value("modules.anova.effect_size")
+  posthoc_default <- get_config_value("modules.anova.posthoc")
+  emmeans_default <- get_config_value("modules.anova.emmeans")
+  contrasts_default <- get_config_value("modules.anova.contrasts")
+  p_adjust_default <- get_config_value("modules.anova.p_adjust")
+  conf_default <- get_config_value("modules.anova.conf_level")
+  sphericity_default <- get_config_value("modules.anova.sphericity")
+  bootstrap_default <- get_config_value("modules.anova.bootstrap")
+  bootstrap_samples_default <- get_config_value("modules.anova.bootstrap_samples")
+  digits_default <- get_config_value("defaults.digits")
 
-  opts$type <- resolve_prompt("Sum of squares type (I/II/III)", type_default)
-  opts$`effect-size` <- resolve_prompt("Effect size (eta_sq/partial_eta/omega_sq/partial_omega)", effect_default)
-  opts$posthoc <- resolve_prompt("Post-hoc method (none/tukey/pairwise)", posthoc_default)
-  opts$emmeans <- resolve_prompt("Planned contrasts term (none or term)", emmeans_default)
-  opts$contrasts <- resolve_prompt("Planned contrasts (none/pairwise/custom/<method>)", contrasts_default)
+  opts$type <- prompt("Sum of squares type (I/II/III)", type_default)
+  opts$`effect-size` <- prompt("Effect size (eta_sq/partial_eta/omega_sq/partial_omega)", effect_default)
+  opts$posthoc <- prompt("Post-hoc method (none/tukey/pairwise)", posthoc_default)
+  opts$emmeans <- prompt("Planned contrasts term (none or term)", emmeans_default)
+  opts$contrasts <- prompt("Planned contrasts (none/pairwise/custom/<method>)", contrasts_default)
   contrast_mode <- normalize_contrasts(opts$contrasts, contrasts_default)
   if (contrast_mode == "custom") {
-    opts$`contrast-file` <- resolve_prompt("Contrast JSON file", "")
+    opts$`contrast-file` <- prompt("Contrast JSON file", "")
   }
-  opts$`p-adjust` <- resolve_prompt("P-value adjustment", p_adjust_default)
-  opts$`conf-level` <- resolve_prompt("Confidence level", as.character(conf_default))
-  opts$sphericity <- resolve_prompt("Sphericity (auto/none)", sphericity_default)
-  opts$bootstrap <- resolve_prompt("Bootstrap TRUE/FALSE", ifelse(isTRUE(bootstrap_default), "TRUE", "FALSE"))
-  opts$`bootstrap-samples` <- resolve_prompt("Bootstrap samples", as.character(bootstrap_samples_default))
-  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  opts$`p-adjust` <- prompt("P-value adjustment", p_adjust_default)
+  opts$`conf-level` <- prompt("Confidence level", as.character(conf_default))
+  opts$sphericity <- prompt("Sphericity (auto/none)", sphericity_default)
+  opts$bootstrap <- prompt("Bootstrap TRUE/FALSE", ifelse(isTRUE(bootstrap_default), "TRUE", "FALSE"))
+  opts$`bootstrap-samples` <- prompt("Bootstrap samples", as.character(bootstrap_samples_default))
+  opts$digits <- prompt("Rounding digits", as.character(digits_default))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log")
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
 
   opts
-}
-
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_parse_list <- function(value, sep = ",") {
-  if (exists("parse_list", mode = "function")) {
-    return(get("parse_list", mode = "function")(value, sep = sep))
-  }
-  if (is.null(value) || is.logical(value)) return(character(0))
-  value <- as.character(value)
-  if (value == "") return(character(0))
-  trimws(strsplit(value, sep, fixed = TRUE)[[1]])
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-
-resolve_get_workspace_out_dir <- function(df) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df))
-  }
-  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
-}
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  if (is.null(default_relative) || !nzchar(default_relative)) return(NULL)
-  if (exists("get_assets_dir", mode = "function")) {
-    return(file.path(get("get_assets_dir", mode = "function")(), default_relative))
-  }
-  file.path(getwd(), "nlss", "assets", default_relative)
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
-  as.character(value)
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-emit_input_issue <- function(out_dir, opts, message, details = list(), status = "invalid_input") {
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
-      out_dir,
-      module = "anova",
-      prompt = ctx$prompt,
-      commands = ctx$commands,
-      results = list(
-        status = status,
-        message = message,
-        details = details
-      ),
-      options = details,
-      user_prompt = resolve_get_user_prompt(opts)
-    )
-  }
-  stop(message)
 }
 
 normalize_type <- function(value, default = "II") {
@@ -381,12 +146,12 @@ normalize_type <- function(value, default = "II") {
   if (val %in% c("1", "I")) return("I")
   if (val %in% c("2", "II")) return("II")
   if (val %in% c("3", "III")) return("III")
-  default
+  stop("Invalid --type; use I, II or III.")
 }
 
 normalize_effect_size <- function(value, default = "partial_eta") {
   val <- if (!is.null(value) && value != "") value else default
-  val <- tolower(gsub("[^a-z0-9]", "", val))
+  val <- gsub("[^a-z0-9]", "", tolower(val))
   if (val %in% c("eta", "etasq", "eta2", "etasquared")) return("eta_sq")
   if (val %in% c("partialeta", "partialetasq", "partialeta2", "partialetasquared", "peta", "petasq")) {
     return("partial_eta_sq")
@@ -399,7 +164,7 @@ normalize_effect_size <- function(value, default = "partial_eta") {
   if (val == "eta_sq") return("eta_sq")
   if (val == "omega_sq") return("omega_sq")
   if (val == "partial_omega") return("partial_omega_sq")
-  default
+  stop("Invalid --effect-size.")
 }
 
 normalize_posthoc <- function(value, default = "tukey") {
@@ -408,7 +173,7 @@ normalize_posthoc <- function(value, default = "tukey") {
   if (val %in% c("none", "no")) return("none")
   if (val %in% c("pairwise", "pairs")) return("pairwise")
   if (val %in% c("tukey", "tukeyhsd")) return("tukey")
-  default
+  stop("Invalid --posthoc; use none, tukey or pairwise.")
 }
 
 normalize_emmeans <- function(value, default = "none") {
@@ -418,23 +183,14 @@ normalize_emmeans <- function(value, default = "none") {
   val
 }
 
-normalize_contrasts <- function(value, default = "none") {
-  if (exists("normalize_contrast_mode", mode = "function")) {
-    return(get("normalize_contrast_mode", mode = "function")(value, default))
-  }
-  val <- if (!is.null(value) && value != "") value else default
-  val <- tolower(val)
-  if (val %in% c("none", "no")) return("none")
-  if (val %in% c("pairwise", "pairs")) return("pairwise")
-  if (val %in% c("custom", "json")) return("custom")
-  val
-}
+normalize_contrasts <- normalize_contrast_mode
 
 normalize_sphericity <- function(value, default = "auto") {
   val <- if (!is.null(value) && value != "") value else default
   val <- tolower(val)
   if (val %in% c("none", "no")) return("none")
-  "auto"
+  if (val == "auto") return("auto")
+  stop("Invalid --sphericity; use auto or none.")
 }
 
 format_num <- function(value, digits) {
@@ -478,8 +234,8 @@ get_effect_value <- function(row, effect_size) {
 }
 
 calc_boot_ci <- function(values, conf_level) {
-  values <- values[!is.na(values)]
-  if (length(values) == 0) return(c(NA_real_, NA_real_))
+  values <- values[is.finite(values)]
+  if (length(values) < 2L) return(c(NA_real_, NA_real_))
   alpha <- (1 - conf_level) / 2
   low <- as.numeric(stats::quantile(values, probs = alpha, names = FALSE, na.rm = TRUE))
   high <- as.numeric(stats::quantile(values, probs = 1 - alpha, names = FALSE, na.rm = TRUE))
@@ -490,7 +246,7 @@ build_term_ids <- function(summary_df) {
   paste(summary_df$model, summary_df$term, sep = "|")
 }
 
-bootstrap_effect_sizes_between <- function(data_subset, dv, between_vars, covariates, type, effect_size, bootstrap_samples, term_ids) {
+bootstrap_effect_sizes_between <- function(data_subset, dv, between_vars, covariates, type, effect_size, bootstrap_samples, term_ids, expected_df) {
   boot_vals <- vector("list", length(term_ids))
   names(boot_vals) <- term_ids
   n <- nrow(data_subset)
@@ -508,7 +264,7 @@ bootstrap_effect_sizes_between <- function(data_subset, dv, between_vars, covari
     for (j in seq_len(nrow(boot_summary))) {
       term_id <- boot_summary$term_id[j]
       idx_match <- match(term_id, term_ids)
-      if (is.na(idx_match)) next
+      if (is.na(idx_match) || boot_summary$df1[j] != expected_df[idx_match]) next
       val <- get_effect_value(boot_summary[j, ], effect_size)
       boot_vals[[idx_match]] <- c(boot_vals[[idx_match]], val)
     }
@@ -516,7 +272,7 @@ bootstrap_effect_sizes_between <- function(data_subset, dv, between_vars, covari
   boot_vals
 }
 
-bootstrap_effect_sizes_within <- function(data_within, within_vars, between_vars, covariates, subject_id, effect_size, bootstrap_samples, term_ids) {
+bootstrap_effect_sizes_within <- function(data_within, within_vars, between_vars, covariates, subject_id, effect_size, bootstrap_samples, term_ids, expected_df) {
   boot_vals <- vector("list", length(term_ids))
   names(boot_vals) <- term_ids
   n <- nrow(data_within$wide)
@@ -525,18 +281,18 @@ bootstrap_effect_sizes_within <- function(data_within, within_vars, between_vars
   for (i in seq_len(bootstrap_samples)) {
     idx <- sample(seq_len(n), size = n, replace = TRUE)
     sample_wide <- data_within$wide[idx, , drop = FALSE]
-    sample_wide[[subject_id]] <- seq_len(nrow(sample_wide))
+    sample_wide[[subject_id]] <- factor(seq_len(nrow(sample_wide)))
     sample_long <- reshape(
       sample_wide,
       varying = within_vars,
-      v.names = "dv",
+      v.names = data_within$response_name,
       timevar = within_name,
       times = within_vars,
       idvar = subject_id,
       direction = "long"
     )
     sample_long[[within_name]] <- factor(sample_long[[within_name]], levels = within_vars)
-    fit <- tryCatch(build_within_model(sample_long, subject_id, within_name, between_vars, covariates), error = function(e) NULL)
+    fit <- tryCatch(build_within_model(sample_long, subject_id, within_name, between_vars, covariates, data_within$response_name), error = function(e) NULL)
     if (is.null(fit)) next
     summary_result <- tryCatch(extract_within_summary(fit$aov, subject_id, within_name), error = function(e) NULL)
     if (is.null(summary_result)) next
@@ -546,7 +302,7 @@ bootstrap_effect_sizes_within <- function(data_within, within_vars, between_vars
     for (j in seq_len(nrow(boot_summary))) {
       term_id <- boot_summary$term_id[j]
       idx_match <- match(term_id, term_ids)
-      if (is.na(idx_match)) next
+      if (is.na(idx_match) || boot_summary$df1[j] != expected_df[idx_match]) next
       val <- get_effect_value(boot_summary[j, ], effect_size)
       boot_vals[[idx_match]] <- c(boot_vals[[idx_match]], val)
     }
@@ -554,9 +310,13 @@ bootstrap_effect_sizes_within <- function(data_within, within_vars, between_vars
   boot_vals
 }
 
-apply_bootstrap_ci <- function(summary_df, boot_vals, conf_level) {
+apply_bootstrap_ci <- function(summary_df, boot_vals, conf_level, bootstrap_samples) {
   summary_df$boot_ci_low <- NA_real_
   summary_df$boot_ci_high <- NA_real_
+  summary_df$boot_valid <- vapply(boot_vals, function(x) sum(is.finite(x)), integer(1))
+  summary_df$boot_discarded <- bootstrap_samples - summary_df$boot_valid
+  summary_df$boot_ci_status <- ifelse(summary_df$boot_valid < 2L, "unavailable", ifelse(summary_df$boot_discarded > 0L, "conditional_on_estimable_resamples", "available"))
+  if (any(summary_df$boot_discarded > 0L)) warning("Bootstrap omitted unavailable effect estimates; inspect per-term boot_valid/boot_discarded and interval status.")
   if (length(boot_vals) == 0) return(summary_df)
   for (i in seq_len(nrow(summary_df))) {
     vals <- boot_vals[[i]]
@@ -630,120 +390,133 @@ calc_fligner <- function(values, group) {
 }
 
 coerce_numeric <- function(vec, name) {
-  if (is.numeric(vec)) return(vec)
-  out <- suppressWarnings(as.numeric(as.character(vec)))
-  if (all(is.na(out))) {
-    stop(paste("Covariate", name, "could not be coerced to numeric."))
-  }
+  out <- if (is.numeric(vec)) vec else suppressWarnings(as.numeric(as.character(vec)))
+  lost <- which(!is.na(vec) & is.na(out))
+  if (length(lost)) warning("Numeric conversion of ", name, " introduced missing values at source rows: ", paste(lost, collapse = ", "))
+  if (any(!is.na(out) & !is.finite(out))) stop("Non-finite numeric observations in ", name, ".")
   out
 }
 
-prepare_between_data <- function(df, dv, between_vars, covariates) {
-  if (!(dv %in% names(df))) {
-    stop(paste("Dependent variable not found:", dv))
-  }
-  required <- c(dv, between_vars, covariates)
+anova_factor <- function(x) {
+  if (is.factor(x)) return(droplevels(x))
+  raw <- sort(unique(x[!is.na(x)]))
+  labels <- as.character(raw)
+  if (anyDuplicated(labels)) labels <- paste0(labels, " [level ", seq_along(labels), "]")
+  factor(match(x, raw), levels = seq_along(raw), labels = labels)
+}
+
+anova_names <- function(x) if (length(x)) paste0("`", gsub("`", "\\`", x, fixed = TRUE), "`") else character(0)
+
+anova_value_hex <- function(x) {
+  if (is.numeric(x) || inherits(x, c("Date", "POSIXt", "difftime"))) sprintf("%a", as.double(x)) else NULL
+}
+
+anova_constant_in_cells <- function(response, data, between_vars) {
+  response <- as.matrix(response)
+  cells <- if (length(between_vars)) do.call(paste, c(lapply(data[between_vars], as.integer), sep = ":")) else rep("overall", nrow(data))
+  all(vapply(split(seq_len(nrow(data)), cells), function(rows)
+    all(vapply(seq_len(ncol(response)), function(j) length(unique(response[rows, j])) < 2L, logical(1))), logical(1)))
+}
+
+prepare_anova_cases <- function(df, numeric_vars, factor_vars, required) {
   missing <- setdiff(required, names(df))
-  if (length(missing) > 0) {
-    stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
+  if (length(missing)) stop("Unknown variables: ", paste(missing, collapse = ", "))
+  data <- df[, required, drop = FALSE]
+  for (var in numeric_vars) data[[var]] <- coerce_numeric(data[[var]], var)
+  rows <- which(complete.cases(data))
+  data <- data[rows, , drop = FALSE]
+  if (!nrow(data)) stop("No complete cases available for analysis.")
+  for (var in factor_vars) {
+    data[[var]] <- anova_factor(data[[var]])
+    if (nlevels(data[[var]]) < 2L) stop("Factor ", var, " must have at least two observed levels.")
   }
-  data_subset <- df[, required, drop = FALSE]
-  data_subset <- data_subset[complete.cases(data_subset), , drop = FALSE]
-  if (nrow(data_subset) == 0) stop("No complete cases available for analysis.")
-  if (!is.numeric(data_subset[[dv]])) {
-    data_subset[[dv]] <- suppressWarnings(as.numeric(as.character(data_subset[[dv]])))
-  }
-  if (all(is.na(data_subset[[dv]]))) {
-    stop("Dependent variable must be numeric.")
-  }
-  for (var in between_vars) {
-    data_subset[[var]] <- as.factor(data_subset[[var]])
-  }
-  for (var in covariates) {
-    data_subset[[var]] <- coerce_numeric(data_subset[[var]], var)
-  }
-  data_subset
+  attr(data, "source_rows") <- rows
+  data
+}
+
+prepare_between_data <- function(df, dv, between_vars, covariates) {
+  prepare_anova_cases(df, c(dv, covariates), between_vars, c(dv, between_vars, covariates))
 }
 
 prepare_within_data <- function(df, within_vars, subject_id, between_vars, covariates) {
   required <- c(subject_id, within_vars, between_vars, covariates)
-  missing <- setdiff(required, names(df))
-  if (length(missing) > 0) {
-    stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
-  }
-  data_subset <- df[, required, drop = FALSE]
-  data_subset <- data_subset[complete.cases(data_subset), , drop = FALSE]
-  if (nrow(data_subset) == 0) stop("No complete cases available for analysis.")
-  for (var in between_vars) {
-    data_subset[[var]] <- as.factor(data_subset[[var]])
-  }
-  for (var in covariates) {
-    data_subset[[var]] <- coerce_numeric(data_subset[[var]], var)
-  }
-  for (var in within_vars) {
-    if (!is.numeric(data_subset[[var]])) {
-      data_subset[[var]] <- suppressWarnings(as.numeric(as.character(data_subset[[var]])))
-    }
-    if (all(is.na(data_subset[[var]]))) {
-      stop(paste("Within variable must be numeric:", var))
-    }
-  }
+  data_subset <- prepare_anova_cases(df, c(within_vars, covariates), between_vars, required)
+  if (anyDuplicated(data_subset[[subject_id]])) stop("Wide repeated-measures data require one unique row per subject ID.")
+  data_subset[[subject_id]] <- anova_factor(data_subset[[subject_id]])
   within_name <- "within"
+  while (within_name %in% required) within_name <- paste0(within_name, "_")
+  response_name <- "dv"
+  while (response_name %in% required) response_name <- paste0(response_name, "_")
   long_data <- reshape(
     data_subset,
     varying = within_vars,
-    v.names = "dv",
+    v.names = response_name,
     timevar = within_name,
     times = within_vars,
     idvar = subject_id,
     direction = "long"
   )
   long_data[[within_name]] <- factor(long_data[[within_name]], levels = within_vars)
-  list(wide = data_subset, long = long_data, within_name = within_name)
+  list(wide = data_subset, long = long_data, within_name = within_name, response_name = response_name)
 }
 
 build_between_model <- function(data_subset, dv, between_vars, covariates) {
-  between_term <- if (length(between_vars) > 0) paste(between_vars, collapse = " * ") else "1"
-  cov_term <- if (length(covariates) > 0) paste(covariates, collapse = " + ") else ""
+  if (length(unique(data_subset[[dv]])) < 2L) stop("ANOVA requires variation in the observed dependent variable.")
+  if (anova_constant_in_cells(data_subset[[dv]], data_subset, between_vars))
+    stop("ANOVA has exactly zero residual variation: responses are identical within every observed between-factor cell.")
+  between_term <- if (length(between_vars) > 0) paste(anova_names(between_vars), collapse = " * ") else "1"
+  cov_term <- if (length(covariates) > 0) paste(anova_names(covariates), collapse = " + ") else ""
   rhs <- between_term
   if (nzchar(cov_term)) rhs <- paste(rhs, "+", cov_term)
-  formula <- as.formula(paste(dv, "~", rhs))
-  list(lm = lm(formula, data = data_subset), aov = aov(formula, data = data_subset), formula = formula)
+  formula <- as.formula(paste(anova_names(dv), "~", rhs))
+  fit <- lm(formula, data = data_subset, na.action = na.fail)
+  if (fit$rank < ncol(model.matrix(fit))) stop("ANOVA design is rank deficient; remove redundant covariates or resolve empty/confounded cells.")
+  if (df.residual(fit) <= 0 || sum(resid(fit)^2) <= 0) stop("ANOVA requires positive residual degrees of freedom and residual variance.")
+  list(lm = fit, aov = aov(formula, data = data_subset, na.action = na.fail), formula = formula)
 }
 
-build_within_model <- function(long_data, subject_id, within_name, between_vars, covariates) {
-  between_term <- if (length(between_vars) > 0) paste(between_vars, collapse = " * ") else ""
-  fixed_term <- if (nzchar(between_term)) paste(between_term, "*", within_name) else within_name
+build_within_model <- function(long_data, subject_id, within_name, between_vars, covariates, response_name = "dv") {
+  if (length(unique(long_data[[response_name]])) < 2L) stop("Repeated-measures ANOVA requires variation in the observed responses.")
+  long_data[[subject_id]] <- anova_factor(long_data[[subject_id]])
+  ordered <- long_data[order(long_data[[subject_id]], long_data[[within_name]]), , drop = FALSE]
+  k <- nlevels(ordered[[within_name]])
+  responses <- matrix(ordered[[response_name]], ncol = k, byrow = TRUE)
+  profiles <- responses - responses[, 1L]
+  subjects <- ordered[seq.int(1L, nrow(ordered), by = k), , drop = FALSE]
+  if (anova_constant_in_cells(profiles, subjects, between_vars))
+    stop("Repeated-measures ANOVA has exactly zero within-error variation: within-difference profiles are identical in every between-factor cell.")
+  between_term <- if (length(between_vars) > 0) paste(anova_names(between_vars), collapse = " * ") else ""
+  fixed_term <- if (nzchar(between_term)) paste(between_term, "*", anova_names(within_name)) else anova_names(within_name)
   if (length(covariates) > 0) {
-    fixed_term <- paste(fixed_term, "+", paste(covariates, collapse = " + "))
+    fixed_term <- paste(fixed_term, "+", paste(anova_names(covariates), collapse = " + "))
   }
-  formula <- as.formula(paste("dv ~", fixed_term, "+ Error(", subject_id, "/", within_name, ")"))
-  list(aov = aov(formula, data = long_data), formula = formula)
+  formula <- as.formula(paste(anova_names(response_name), "~", fixed_term, "+ Error(", anova_names(subject_id), "/", anova_names(within_name), ")"))
+  fixed <- as.formula(paste(anova_names(response_name), "~", fixed_term))
+  matrix <- model.matrix(fixed, long_data)
+  if (qr(matrix)$rank < ncol(matrix)) stop("Repeated-measures fixed design is rank deficient.")
+  fit <- aov(formula, data = long_data, na.action = na.fail)
+  # emmeans may refit aovlist with orthogonal contrasts outside this function.
+  # Its saved call must contain the actual formula/data, not local symbols.
+  fit_call <- attr(fit, "call")
+  fit_call$formula <- formula
+  fit_call$data <- long_data
+  attr(fit, "call") <- fit_call
+  list(aov = fit, formula = formula, model_matrix = matrix)
 }
 
 extract_between_summary <- function(lm_fit, type) {
   use_type <- normalize_type(type, "II")
-  use_car <- use_type != "I" && requireNamespace("car", quietly = TRUE)
-  table <- NULL
   used_type <- use_type
-  if (use_car) {
-    anova_tbl <- tryCatch(car::Anova(lm_fit, type = ifelse(use_type == "III", 3, 2)), error = function(e) NULL)
-    if (!is.null(anova_tbl)) {
-      table <- as.data.frame(anova_tbl)
-      table$term <- rownames(table)
-    }
-  }
-  if (is.null(table)) {
-    used_type <- "I"
-    anova_tbl <- anova(lm_fit)
-    table <- as.data.frame(anova_tbl)
-    table$term <- rownames(table)
-  }
+  if (use_type != "I" && !requireNamespace("car", quietly = TRUE)) stop("Type II/III ANOVA requires the 'car' package; no fallback to Type I is performed.")
+  anova_tbl <- if (use_type == "I") anova(lm_fit) else car::Anova(lm_fit, type = if (use_type == "III") 3 else 2, singular.ok = FALSE)
+  table <- as.data.frame(anova_tbl)
+  table$term <- rownames(table)
 
   table <- table[!(table$term %in% c("(Intercept)", "Residuals")), , drop = FALSE]
   residual_df <- df.residual(lm_fit)
   residual_ss <- sum(resid(lm_fit)^2, na.rm = TRUE)
-  ss_total <- sum(table$`Sum Sq`, na.rm = TRUE) + residual_ss
+  response <- model.response(model.frame(lm_fit))
+  ss_total <- sum((response - mean(response))^2)
   ms_error <- if (!is.na(residual_df) && residual_df > 0) residual_ss / residual_df else NA_real_
 
   f_col <- if ("F value" %in% names(table)) "F value" else if ("F" %in% names(table)) "F" else NULL
@@ -809,10 +582,18 @@ extract_summary_table <- function(summary_obj) {
 
 label_stratum <- function(stratum_name, subject_id, within_name) {
   if (is.null(stratum_name) || !nzchar(stratum_name)) return("")
-  label <- gsub("^Error:\\s*", "", stratum_name)
+  label <- sub("^Error:\\s*", "", stratum_name)
   if (!is.null(subject_id) && nzchar(subject_id)) {
-    if (grepl(paste0(subject_id, ":", within_name), label, fixed = TRUE)) return("Within")
-    if (grepl(subject_id, label, fixed = TRUE)) return("Between")
+    if (identical(label, subject_id)) return("Between")
+    quoted_subject <- anova_names(subject_id)
+    if (identical(label, substring(quoted_subject, 2L, nchar(quoted_subject) - 1L))) return("Between")
+    if (identical(label, paste0(subject_id, ":", within_name))) return("Within")
+    # Parse names only (never evaluate): escaped backticks are part of an ID,
+    # whereas formula quotes are not. R sometimes omits quotes for bare strata.
+    parsed <- tryCatch(str2lang(label), error = function(e) NULL)
+    if (is.symbol(parsed) && identical(as.character(parsed), subject_id)) return("Between")
+    if (is.call(parsed) && length(parsed) == 3L && identical(parsed[[1]], as.name(":")) &&
+        identical(parsed[[2]], as.name(subject_id)) && identical(parsed[[3]], as.name(within_name))) return("Within")
   }
   label
 }
@@ -887,18 +668,20 @@ extract_within_summary <- function(aov_fit, subject_id, within_name) {
   list(summary = do.call(rbind, rows), ss_total = ss_total)
 }
 
-build_between_posthoc_tukey <- function(aov_fit) {
-  tukey <- tryCatch(TukeyHSD(aov_fit), error = function(e) NULL)
-  if (is.null(tukey)) return(data.frame())
+build_between_posthoc_tukey <- function(aov_fit, conf_level = 0.95) {
+  tukey <- TukeyHSD(aov_fit, conf.level = conf_level)
+  means <- model.tables(aov_fit, "means")$tables
   rows <- list()
   for (term in names(tukey)) {
     table <- as.data.frame(tukey[[term]])
     table$contrast <- rownames(table)
     for (i in seq_len(nrow(table))) {
       row <- table[i, ]
-      parts <- strsplit(row$contrast, "-", fixed = TRUE)[[1]]
-      group_1 <- if (length(parts) >= 1) parts[1] else ""
-      group_2 <- if (length(parts) >= 2) parts[2] else ""
+      dims <- dimnames(means[[term]])
+      labels <- if (length(dims) == 1L) dims[[1]] else apply(expand.grid(dims, stringsAsFactors = FALSE), 1, paste, collapse = ":")
+      pair_index <- which(lower.tri(matrix(0, length(labels), length(labels))), arr.ind = TRUE)
+      group_1 <- labels[pair_index[i, 1]]
+      group_2 <- labels[pair_index[i, 2]]
       rows[[length(rows) + 1]] <- data.frame(
         term = term,
         group = "",
@@ -922,143 +705,80 @@ build_between_posthoc_tukey <- function(aov_fit) {
   do.call(rbind, rows)
 }
 
+anova_pairwise_row <- function(x, y, term, group, first, second, paired, conf_level) {
+  test <- tryCatch(t.test(x, y, paired = paired, conf.level = conf_level), error = identity)
+  unavailable <- inherits(test, "error") || !is.finite(test$p.value)
+  reason <- if (inherits(test, "error")) conditionMessage(test) else if (unavailable) "Non-finite test inference." else ""
+  if (unavailable) warning("Unavailable comparison ", term, " ", group, ": ", first, " versus ", second, ": ", reason)
+  data.frame(term = term, group = group, group_1 = first, group_2 = second,
+    contrast = paste(first, second, sep = "-"),
+    mean_diff = mean(x) - mean(y), se = if (unavailable) NA_real_ else unname(test$stderr),
+    t = if (unavailable) NA_real_ else unname(test$statistic),
+    df = if (unavailable) NA_real_ else unname(test$parameter),
+    p = if (unavailable) NA_real_ else test$p.value, p_adj = NA_real_,
+    ci_low = if (unavailable) NA_real_ else test$conf.int[1],
+    ci_high = if (unavailable) NA_real_ else test$conf.int[2],
+    method = if (paired) "paired" else "pairwise",
+    status = if (unavailable) "unavailable" else "available", reason = reason, stringsAsFactors = FALSE)
+}
+
+anova_adjust_family <- function(rows, p_adjust) {
+  if (!length(rows)) return(data.frame())
+  result <- do.call(rbind, rows)
+  result$family_size <- nrow(result)
+  result$p_adj <- p.adjust(result$p, method = p_adjust, n = nrow(result))
+  result
+}
+
 build_between_posthoc_pairwise <- function(data_subset, dv, between_vars, p_adjust, conf_level) {
-  rows <- list()
-  if (length(between_vars) == 0) return(data.frame())
-  for (factor_name in between_vars) {
-    levels <- unique(data_subset[[factor_name]])
-    levels <- levels[!is.na(levels)]
-    if (length(levels) < 2) next
-    pairs <- combn(as.character(levels), 2, simplify = FALSE)
-    p_vals <- numeric(0)
-    row_buffer <- list()
-    for (pair in pairs) {
-      g1 <- pair[1]
-      g2 <- pair[2]
-      x <- data_subset[[dv]][data_subset[[factor_name]] == g1]
-      y <- data_subset[[dv]][data_subset[[factor_name]] == g2]
-      test <- tryCatch(t.test(x, y, paired = FALSE, conf.level = conf_level), error = function(e) NULL)
-      if (is.null(test)) next
-      mean_diff <- mean(x, na.rm = TRUE) - mean(y, na.rm = TRUE)
-      row_buffer[[length(row_buffer) + 1]] <- list(
-        term = factor_name,
-        group = "",
-        group_1 = g1,
-        group_2 = g2,
-        contrast = paste(g1, g2, sep = "-") ,
-        mean_diff = mean_diff,
-        se = NA_real_,
-        t = unname(test$statistic),
-        df = unname(test$parameter),
-        p = test$p.value,
-        p_adj = NA_real_,
-        ci_low = test$conf.int[1],
-        ci_high = test$conf.int[2],
-        method = "pairwise",
-        stringsAsFactors = FALSE
-      )
-      p_vals <- c(p_vals, test$p.value)
-    }
-    if (length(row_buffer) == 0) next
-    p_adj_vals <- p.adjust(p_vals, method = p_adjust)
-    for (i in seq_along(row_buffer)) {
-      row_buffer[[i]]$p_adj <- p_adj_vals[i]
-      rows[[length(rows) + 1]] <- as.data.frame(row_buffer[[i]], stringsAsFactors = FALSE)
-    }
-  }
-  if (length(rows) == 0) return(data.frame())
-  do.call(rbind, rows)
+  families <- lapply(between_vars, function(var) {
+    values <- unique(as.character(data_subset[[var]]))
+    pairs <- combn(values, 2L, simplify = FALSE)
+    rows <- lapply(pairs, function(pair) anova_pairwise_row(
+      data_subset[[dv]][data_subset[[var]] == pair[1]],
+      data_subset[[dv]][data_subset[[var]] == pair[2]],
+      var, "", pair[1], pair[2], FALSE, conf_level))
+    anova_adjust_family(rows, p_adjust)
+  })
+  if (!length(families)) return(data.frame())
+  do.call(rbind, families)
 }
 
 build_within_posthoc_pairwise <- function(data_wide, within_vars, between_vars, conf_level, p_adjust) {
-  rows <- list()
-  pairs <- combn(within_vars, 2, simplify = FALSE)
-  if (length(pairs) == 0) return(data.frame())
+  pairs <- combn(within_vars, 2L, simplify = FALSE)
+  combos <- if (length(between_vars)) unique(data_wide[, between_vars, drop = FALSE]) else data.frame(overall = 1L)
+  families <- lapply(seq_len(nrow(combos)), function(i) {
+    selected <- rep(TRUE, nrow(data_wide))
+    for (var in between_vars) selected <- selected & data_wide[[var]] == combos[[var]][i]
+    data <- data_wide[selected, , drop = FALSE]
+    label <- if (length(between_vars)) paste(paste0(between_vars, "=", vapply(combos[i, between_vars, drop = FALSE], as.character, character(1))), collapse = ", ") else "Overall"
+    rows <- lapply(pairs, function(pair) anova_pairwise_row(data[[pair[1]]], data[[pair[2]]],
+      "within", label, pair[1], pair[2], TRUE, conf_level))
+    family <- anova_adjust_family(rows, p_adjust)
+    family$group_id <- i
+    family
+  })
+  do.call(rbind, families)
+}
 
-  if (length(between_vars) == 0) {
-    p_vals <- numeric(0)
-    row_buffer <- list()
-    for (pair in pairs) {
-      v1 <- pair[1]
-      v2 <- pair[2]
-      test <- tryCatch(t.test(data_wide[[v1]], data_wide[[v2]], paired = TRUE, conf.level = conf_level), error = function(e) NULL)
-      if (is.null(test)) next
-      mean_diff <- mean(data_wide[[v1]] - data_wide[[v2]], na.rm = TRUE)
-      row_buffer[[length(row_buffer) + 1]] <- list(
-        term = "within",
-        group = "Overall",
-        group_1 = v1,
-        group_2 = v2,
-        contrast = paste(v1, v2, sep = "-") ,
-        mean_diff = mean_diff,
-        se = NA_real_,
-        t = unname(test$statistic),
-        df = unname(test$parameter),
-        p = test$p.value,
-        p_adj = NA_real_,
-        ci_low = test$conf.int[1],
-        ci_high = test$conf.int[2],
-        method = "paired",
-        stringsAsFactors = FALSE
-      )
-      p_vals <- c(p_vals, test$p.value)
-    }
-    if (length(row_buffer) > 0) {
-      p_adj_vals <- p.adjust(p_vals, method = p_adjust)
-      for (i in seq_along(row_buffer)) {
-        row_buffer[[i]]$p_adj <- p_adj_vals[i]
-        rows[[length(rows) + 1]] <- as.data.frame(row_buffer[[i]], stringsAsFactors = FALSE)
-      }
-    }
-  } else {
-    combos <- unique(data_wide[, between_vars, drop = FALSE])
-    for (i in seq_len(nrow(combos))) {
-      combo <- combos[i, , drop = FALSE]
-      subset_idx <- rep(TRUE, nrow(data_wide))
-      for (var in between_vars) {
-        subset_idx <- subset_idx & data_wide[[var]] == combo[[var]]
-      }
-      subset_data <- data_wide[subset_idx, , drop = FALSE]
-      if (nrow(subset_data) == 0) next
-      group_label <- paste(paste0(between_vars, "=", combo[1, ]), collapse = ", ")
-      p_vals <- numeric(0)
-      row_buffer <- list()
-      for (pair in pairs) {
-        v1 <- pair[1]
-        v2 <- pair[2]
-        test <- tryCatch(t.test(subset_data[[v1]], subset_data[[v2]], paired = TRUE, conf.level = conf_level), error = function(e) NULL)
-        if (is.null(test)) next
-        mean_diff <- mean(subset_data[[v1]] - subset_data[[v2]], na.rm = TRUE)
-        row_buffer[[length(row_buffer) + 1]] <- list(
-          term = "within",
-          group = group_label,
-          group_1 = v1,
-          group_2 = v2,
-          contrast = paste(v1, v2, sep = "-") ,
-          mean_diff = mean_diff,
-          se = NA_real_,
-          t = unname(test$statistic),
-          df = unname(test$parameter),
-          p = test$p.value,
-          p_adj = NA_real_,
-          ci_low = test$conf.int[1],
-          ci_high = test$conf.int[2],
-          method = "paired",
-          stringsAsFactors = FALSE
-        )
-        p_vals <- c(p_vals, test$p.value)
-      }
-      if (length(row_buffer) > 0) {
-        p_adj_vals <- p.adjust(p_vals, method = p_adjust)
-        for (j in seq_along(row_buffer)) {
-          row_buffer[[j]]$p_adj <- p_adj_vals[j]
-          rows[[length(rows) + 1]] <- as.data.frame(row_buffer[[j]], stringsAsFactors = FALSE)
-        }
-      }
-    }
-  }
-  if (length(rows) == 0) return(data.frame())
-  do.call(rbind, rows)
+compute_sphericity <- function(data, within_vars, between_vars, covariates) {
+  between <- if (length(between_vars)) paste(anova_names(between_vars), collapse = " * ") else "1"
+  rhs <- paste(c(between, anova_names(covariates)), collapse = " + ")
+  response <- paste0("cbind(", paste(anova_names(within_vars), collapse = ", "), ")")
+  fit <- lm(as.formula(paste(response, "~", rhs)), data = data, na.action = na.fail)
+  test <- tryCatch(mauchly.test(fit, X = ~1), error = function(e) NULL)
+  k <- length(within_vars) - 1L
+  q <- qr.Q(qr(contr.helmert(k + 1L)))
+  covariance <- crossprod(resid(fit) %*% q)
+  eigenvalues <- eigen(covariance, symmetric = TRUE, only.values = TRUE)$values
+  estimable <- df.residual(fit) >= k && min(eigenvalues) > max(eigenvalues) * .Machine$double.eps * (k + 1L)
+  gg <- if (estimable) sum(eigenvalues)^2 / (k * sum(eigenvalues^2)) else NA_real_
+  hf <- if (estimable) min(1, ((df.residual(fit) + 1) * k * gg - 2) / (k * (df.residual(fit) - k * gg))) else NA_real_
+  note <- if (!estimable || is.null(test)) "Sphericity test/corrections unavailable: singular residual contrast covariance or insufficient subjects." else ""
+  if (nzchar(note)) warning(note)
+  list(w = if (!is.null(test) && estimable) unname(test$statistic) else NA_real_,
+    p = if (!is.null(test) && estimable) test$p.value else NA_real_,
+    epsilon_gg = gg, epsilon_hf = hf, error_df = df.residual(fit), model_rank = fit$rank, note = note)
 }
 
 build_assumptions <- function(mode, data_between, data_within, dv, between_vars, within_vars, covariates, subject_id, alpha, max_shapiro_n, sphericity) {
@@ -1126,9 +846,9 @@ build_assumptions <- function(mode, data_between, data_within, dv, between_vars,
 
   if (mode %in% c("within", "mixed")) {
     within_name <- data_within$within_name
-    terms <- c(within_name, between_vars, covariates)
-    rhs <- if (length(terms) > 0) paste(terms, collapse = " + ") else "1"
-    form <- as.formula(paste("dv ~", rhs))
+    fixed <- if (length(between_vars)) paste(paste(anova_names(between_vars), collapse = " * "), "*", anova_names(within_name)) else anova_names(within_name)
+    rhs <- paste(c(anova_names(subject_id), fixed, anova_names(covariates)), collapse = " + ")
+    form <- as.formula(paste(anova_names(data_within$response_name), "~", rhs))
     lm_fit <- tryCatch(lm(form, data = data_within$long), error = function(e) NULL)
     if (!is.null(lm_fit)) {
       residuals <- resid(lm_fit)
@@ -1167,44 +887,10 @@ build_assumptions <- function(mode, data_between, data_within, dv, between_vars,
     }
 
     if (sphericity == "auto" && length(within_vars) >= 3) {
-      response_formula <- paste0("cbind(", paste(within_vars, collapse = ", "), ")")
-      rhs <- if (length(between_vars) > 0) {
-        paste(between_vars, collapse = " + ")
-      } else {
-        "1"
-      }
-      form <- as.formula(paste(response_formula, "~", rhs))
-      fit <- tryCatch(lm(form, data = data_within$wide), error = function(e) NULL)
-      if (!is.null(fit)) {
-        test <- tryCatch(mauchly.test(fit), error = function(e) NULL)
-        if (!is.null(test)) {
-          rows[[length(rows) + 1]] <- data.frame(
-            assumption = "Sphericity",
-            test = "Mauchly",
-            target = "Within",
-            group = "",
-            statistic = unname(test$statistic),
-            df1 = NA_real_,
-            df2 = NA_real_,
-            p = test$p.value,
-            note = "",
-            stringsAsFactors = FALSE
-          )
-        } else {
-          rows[[length(rows) + 1]] <- data.frame(
-            assumption = "Sphericity",
-            test = "Mauchly",
-            target = "Within",
-            group = "",
-            statistic = NA_real_,
-            df1 = NA_real_,
-            df2 = NA_real_,
-            p = NA_real_,
-            note = "Mauchly test failed.",
-            stringsAsFactors = FALSE
-          )
-        }
-      }
+      sph <- compute_sphericity(data_within$wide, within_vars, between_vars, covariates)
+      rows[[length(rows) + 1]] <- data.frame(assumption = "Sphericity", test = "Mauchly",
+        target = "Within", group = "", statistic = sph$w, df1 = NA_real_, df2 = NA_real_,
+        p = sph$p, note = sph$note, stringsAsFactors = FALSE)
     }
   }
 
@@ -1215,9 +901,11 @@ build_assumptions <- function(mode, data_between, data_within, dv, between_vars,
 summarize_assumptions <- function(assumptions_df, alpha) {
   if (is.null(assumptions_df) || nrow(assumptions_df) == 0) return("")
   violations <- assumptions_df[!is.na(assumptions_df$p) & assumptions_df$p < alpha, , drop = FALSE]
-  if (nrow(violations) == 0) return(paste0("No assumption violations flagged at alpha = ", alpha, "."))
+  missing <- assumptions_df[!is.finite(assumptions_df$p), , drop = FALSE]
+  unavailable <- if (nrow(missing)) paste0(" Unavailable diagnostics: ", paste(paste0(missing$test, " (", missing$target, "): ", missing$note), collapse = "; "), ".") else ""
+  if (nrow(violations) == 0) return(paste0("No violations detected among available diagnostics at alpha = ", alpha, ".", unavailable))
   labels <- unique(paste(violations$assumption, "(", violations$test, ")", sep = ""))
-  paste0("Potential violations: ", paste(labels, collapse = "; "), ".")
+  paste0("Potential violations: ", paste(labels, collapse = "; "), ".", unavailable)
 }
 
 format_nlss_table <- function(summary_df, digits, note_text, effect_size, effect_size_label) {
@@ -1297,6 +985,9 @@ format_nlss_text <- function(summary_df, digits, effect_size, effect_size_label)
       effect_size_label,
       format_stat(es, digits)
     )
+    if ("boot_valid" %in% names(row)) line <- paste0(line,
+      " Bootstrap: ", row$boot_valid, " valid and ", row$boot_discarded,
+      " discarded resamples; interval status: ", row$boot_ci_status, ".")
     lines <- c(lines, line)
   }
   paste(lines, collapse = "\n")
@@ -1319,7 +1010,7 @@ build_anova_table_body <- function(summary_df, digits, table_meta, effect_size) 
     list(key = "boot_ci_low", label = "Boot CI low", drop_if_empty = TRUE),
     list(key = "boot_ci_high", label = "Boot CI high", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  columns <- normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
@@ -1351,15 +1042,15 @@ build_anova_table_body <- function(summary_df, digits, table_meta, effect_size) 
       p_hf = format_p(row$p_hf)
     )
     row_vals <- vapply(columns, function(col) {
-      resolve_as_cell_text(row_map[[col$key]])
+      as_cell_text(row_map[[col$key]])
     }, character(1))
     rows[[length(rows) + 1]] <- row_vals
   }
-  drop_result <- resolve_drop_empty_columns(columns, rows)
+  drop_result <- drop_empty_columns(columns, rows)
   columns <- drop_result$columns
   rows <- drop_result$rows
   headers <- vapply(columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, rows)
+  body <- render_markdown_table(headers, rows)
   list(body = body, columns = columns)
 }
 
@@ -1383,7 +1074,7 @@ build_posthoc_table_body <- function(posthoc_df, digits, table_meta) {
     list(key = "ci_low", label = "CI low", drop_if_empty = TRUE),
     list(key = "ci_high", label = "CI high", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  columns <- normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
@@ -1403,15 +1094,15 @@ build_posthoc_table_body <- function(posthoc_df, digits, table_meta) {
       ci_high = format_stat(row$ci_high, digits)
     )
     row_vals <- vapply(columns, function(col) {
-      resolve_as_cell_text(row_map[[col$key]])
+      as_cell_text(row_map[[col$key]])
     }, character(1))
     rows[[length(rows) + 1]] <- row_vals
   }
-  drop_result <- resolve_drop_empty_columns(columns, rows)
+  drop_result <- drop_empty_columns(columns, rows)
   columns <- drop_result$columns
   rows <- drop_result$rows
   headers <- vapply(columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, rows)
+  body <- render_markdown_table(headers, rows)
   list(body = body, columns = columns)
 }
 
@@ -1420,7 +1111,7 @@ build_anova_note_tokens <- function(type, effect_size_label, conf_level, posthoc
     paste0("Sum of squares type ", type, "."),
     paste0("Effect size: ", effect_size_label, "."),
     paste0("Confidence level: ", round(conf_level * 100), "%."),
-    ifelse(posthoc != "none", paste0("Post-hoc: ", posthoc, " (p adjust: ", p_adjust, ")."), ""),
+    ifelse(posthoc != "none", paste0("Post-hoc: ", posthoc, " (p adjust: ", if (posthoc == "tukey") "Tukey simultaneous" else p_adjust, ")."), ""),
     ifelse(bootstrap, paste0("Bootstrap CIs use ", bootstrap_samples, " resamples."), "")
   )
   parts <- parts[nzchar(parts)]
@@ -1435,7 +1126,7 @@ build_anova_note_tokens <- function(type, effect_size_label, conf_level, posthoc
 }
 
 build_posthoc_note_tokens <- function(posthoc, p_adjust) {
-  note_default <- if (posthoc == "none") "" else paste0("Post-hoc method: ", posthoc, ". P-value adjustment: ", p_adjust, ".")
+  note_default <- if (posthoc == "none") "" else paste0("Post-hoc method: ", posthoc, ". P-value adjustment: ", if (posthoc == "tukey") "Tukey simultaneous" else p_adjust, ". Pairwise adjustment retains the full planned family including unavailable tests; paired/Welch CIs are pointwise.")
   list(note_default = note_default)
 }
 
@@ -1519,6 +1210,9 @@ build_posthoc_narrative_rows <- function(posthoc_df, digits) {
       format_num(row$mean_diff, digits),
       if (!is.na(row$p_adj)) format_p(row$p_adj) else format_p(row$p)
     )
+    if ("status" %in% names(row) && row$status == "unavailable") line <- paste0(
+      row$term_display, " ", row$group, ": ", row$group_1_display, " versus ",
+      row$group_2_display, " unavailable: ", row$reason)
     rows[[length(rows) + 1]] <- list(
       full_sentence = line,
       term = row$term_display,
@@ -1536,8 +1230,8 @@ build_posthoc_narrative_rows <- function(posthoc_df, digits) {
 }
 
 build_contrast_rows <- function(contrast_summary, term_label, p_adjust, method_label) {
-  p_adj_vals <- ifelse(p_adjust != "none", contrast_summary$p.value, NA_real_)
-  p_vals <- ifelse(p_adjust == "none", contrast_summary$p.value, NA_real_)
+  p_adj_vals <- if (p_adjust != "none") contrast_summary$p.value else NA_real_
+  p_vals <- if (p_adjust == "none") contrast_summary$p.value else NA_real_
   method <- if (!is.null(method_label) && nzchar(method_label)) method_label else p_adjust
   data.frame(
     term = term_label,
@@ -1571,7 +1265,7 @@ build_contrast_table_body <- function(contrast_df, digits, table_meta) {
     list(key = "ci_high", label = "CI high", drop_if_empty = TRUE),
     list(key = "method", label = "Method", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  columns <- normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
@@ -1589,15 +1283,15 @@ build_contrast_table_body <- function(contrast_df, digits, table_meta) {
       method = row$method
     )
     row_vals <- vapply(columns, function(col) {
-      resolve_as_cell_text(row_map[[col$key]])
+      as_cell_text(row_map[[col$key]])
     }, character(1))
     rows[[length(rows) + 1]] <- row_vals
   }
-  drop_result <- resolve_drop_empty_columns(columns, rows)
+  drop_result <- drop_empty_columns(columns, rows)
   columns <- drop_result$columns
   rows <- drop_result$rows
   headers <- vapply(columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, rows)
+  body <- render_markdown_table(headers, rows)
   list(body = body, columns = columns)
 }
 
@@ -1634,45 +1328,51 @@ build_contrast_narrative_rows <- function(contrast_df, digits) {
 }
 
 main <- function() {
-  args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
+  opts <- nlss_run_options(commandArgs(trailingOnly = TRUE), "anova")
 
   if (!is.null(opts$help)) {
     print_usage()
-    quit(status = 0)
+    return(invisible(NULL))
   }
 
-  if (!is.null(opts$interactive)) {
+  if (parse_bool(opts$interactive, FALSE)) {
     opts <- modifyList(opts, interactive_options())
   }
 
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  type_default <- resolve_config_value("modules.anova.type", "II")
-  effect_default <- resolve_config_value("modules.anova.effect_size", "partial_eta")
-  posthoc_default <- resolve_config_value("modules.anova.posthoc", "tukey")
-  emmeans_default <- resolve_config_value("modules.anova.emmeans", "none")
-  contrasts_default <- resolve_config_value("modules.anova.contrasts", "none")
-  p_adjust_default <- resolve_config_value("modules.anova.p_adjust", "holm")
-  conf_default <- resolve_config_value("modules.anova.conf_level", 0.95)
-  sphericity_default <- resolve_config_value("modules.anova.sphericity", "auto")
-  bootstrap_default <- resolve_config_value("modules.anova.bootstrap", FALSE)
-  bootstrap_samples_default <- resolve_config_value("modules.anova.bootstrap_samples", 1000)
-  alpha_default <- resolve_config_value("modules.assumptions.alpha", 0.05)
-  max_shapiro_n <- resolve_config_value("modules.assumptions.max_shapiro_n", 5000)
+  digits_default <- get_config_value("defaults.digits")
+  log_default <- get_config_value("defaults.log")
+  type_default <- get_config_value("modules.anova.type")
+  effect_default <- get_config_value("modules.anova.effect_size")
+  posthoc_default <- get_config_value("modules.anova.posthoc")
+  emmeans_default <- get_config_value("modules.anova.emmeans")
+  contrasts_default <- get_config_value("modules.anova.contrasts")
+  p_adjust_default <- get_config_value("modules.anova.p_adjust")
+  conf_default <- get_config_value("modules.anova.conf_level")
+  sphericity_default <- get_config_value("modules.anova.sphericity")
+  bootstrap_default <- get_config_value("modules.anova.bootstrap")
+  bootstrap_samples_default <- get_config_value("modules.anova.bootstrap_samples")
+  alpha_default <- get_config_value("modules.assumptions.alpha")
+  max_shapiro_n <- get_config_value("modules.assumptions.max_shapiro_n")
 
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  df <- resolve_load_dataframe(opts)
-  out_dir <- resolve_get_workspace_out_dir(df)
+  df <- nlss_load_input(opts)
+  out_dir <- get_workspace_out_dir(df)
+  nlss_begin_run("anova", df, opts, out_dir)
+  emit_input_issue <- function(out_dir, opts, message, details = list()) {
+    nlss_run_context$request$validation_issue <- list(message = message, details = details)
+    stop(message)
+  }
 
   dv <- if (!is.null(opts$dv)) as.character(opts$dv) else ""
-  between_vars <- resolve_parse_list(opts$between)
-  within_vars <- resolve_parse_list(opts$within)
+  between_vars <- parse_list(opts$between)
+  within_vars <- parse_list(opts$within)
   subject_id <- if (!is.null(opts$`subject-id`)) as.character(opts$`subject-id`) else ""
-  covariates <- resolve_parse_list(opts$covariates)
+  covariates <- parse_list(opts$covariates)
 
   has_between <- length(between_vars) > 0
   has_within <- length(within_vars) > 0
+  if (has_within && nzchar(dv)) stop("Repeated/mixed designs use --within, not a separate --dv.")
+  if (!has_within && nzchar(subject_id)) stop("--subject-id is only used by repeated/mixed designs.")
 
   if (!has_between && !has_within) {
     emit_input_issue(out_dir, opts, "Specify --between or --within for ANOVA.")
@@ -1695,7 +1395,10 @@ main <- function() {
   emmeans_term <- normalize_emmeans(opts$emmeans, emmeans_default)
   contrast_file <- if (!is.null(opts$`contrast-file`)) as.character(opts$`contrast-file`) else ""
   contrasts_input <- normalize_contrasts(opts$contrasts, contrasts_default)
-  contrast_spec <- tryCatch(resolve_contrast_spec(contrasts_input, contrast_file), error = function(e) e)
+  contrast_spec <- if (!is.null(nlss_run_context$replay)) nlss_run_context$replay$request$design$contrast_spec else
+    tryCatch(resolve_contrast_spec(contrasts_input, contrast_file), error = function(e) e)
+  if (!is.null(contrast_spec$source)) contrast_spec$source <- basename(contrast_spec$source)
+  contrast_file <- if (nzchar(contrast_file)) basename(contrast_file) else ""
   if (inherits(contrast_spec, "error")) {
     emit_input_issue(out_dir, opts, contrast_spec$message, details = list(contrasts = contrasts_input, contrast_file = contrast_file))
   }
@@ -1716,6 +1419,8 @@ main <- function() {
   contrasts_active <- !is.null(contrast_spec) && contrast_spec$mode != "none"
   has_emmeans <- requireNamespace("emmeans", quietly = TRUE)
   contrast_note <- ""
+  contrast_adjustment <- NULL
+  emmeans_messages <- character(0)
 
   type <- normalize_type(opts$type, type_default)
   effect_size <- normalize_effect_size(opts$`effect-size`, effect_default)
@@ -1723,12 +1428,27 @@ main <- function() {
   p_adjust <- if (!is.null(opts$`p-adjust`) && opts$`p-adjust` != "") opts$`p-adjust` else p_adjust_default
   conf_level <- if (!is.null(opts$`conf-level`)) as.numeric(opts$`conf-level`) else conf_default
   sphericity <- normalize_sphericity(opts$sphericity, sphericity_default)
-  bootstrap <- resolve_parse_bool(opts$bootstrap, default = bootstrap_default)
+  bootstrap <- parse_bool(opts$bootstrap, default = bootstrap_default)
   bootstrap_samples <- if (!is.null(opts$`bootstrap-samples`)) as.numeric(opts$`bootstrap-samples`) else bootstrap_samples_default
-  if (is.na(bootstrap_samples) || bootstrap_samples <= 0) bootstrap_samples <- bootstrap_samples_default
+  check_number <- function(value, name, min, max, integer = FALSE, open = FALSE) {
+    if (length(value) != 1L || !is.finite(value) || value < min || value > max ||
+        (integer && value != floor(value)) || (open && (value == min || value == max)))
+      stop("Invalid numeric option --", name, ".")
+    value
+  }
+  check_number(digits, "digits", 0, 15, TRUE)
+  check_number(conf_level, "conf-level", 0, 1, open = TRUE)
+  check_number(bootstrap_samples, "bootstrap-samples", 2, .Machine$integer.max, TRUE)
+  if (!p_adjust %in% c(p.adjust.methods, "tukey", "scheffe", "sidak", "mvt", "dunnettx")) stop("Invalid --p-adjust method.")
+  roles <- c(if (!has_within) dv, between_vars, within_vars, covariates, if (has_within) subject_id)
+  if (anyDuplicated(roles)) stop("Analysis variable roles must be distinct and must not contain duplicates.")
+  seed <- nlss_run_seed(opts$seed, stochastic = bootstrap || contrasts_active || nzchar(emmeans_term))
+  nlss_run_context$request$configuration$modules$assumptions <- list(alpha = alpha_default, max_shapiro_n = max_shapiro_n)
 
   mode <- if (has_within && has_between) "mixed" else if (has_within) "within" else "between"
   posthoc_used <- if (mode == "between") posthoc else if (posthoc == "none") "none" else "pairwise"
+  if (posthoc_used == "pairwise" && !p_adjust %in% p.adjust.methods)
+    stop("Pairwise post-hoc tests require a stats::p.adjust method; use --posthoc none for emmeans-only adjustments.")
 
   if (contrasts_active && !nzchar(emmeans_term)) {
     if (mode == "between" && length(between_vars) == 1) {
@@ -1748,13 +1468,14 @@ main <- function() {
   if (!contrasts_active) {
     contrast_label <- "none"
   }
-  if (contrasts_active && !has_emmeans) {
-    contrast_note <- "Planned contrasts requested but the 'emmeans' package is not installed."
+  if ((contrasts_active || nzchar(emmeans_term)) && !has_emmeans) {
+    stop("Planned contrasts require the 'emmeans' package.")
   }
 
   summary_df <- data.frame()
   posthoc_df <- data.frame()
   contrasts_df <- data.frame()
+  emmeans_df <- data.frame()
   assumptions_df <- data.frame()
   used_type <- type
   data_between <- NULL
@@ -1763,6 +1484,7 @@ main <- function() {
 
   if (mode == "between") {
     data_between <- prepare_between_data(df, dv, between_vars, covariates)
+    if (type == "III") for (var in between_vars) contrasts(data_between[[var]]) <- contr.sum(nlevels(data_between[[var]]))
     fits <- build_between_model(data_between, dv, between_vars, covariates)
     contrast_fit <- fits$lm
     summary_result <- extract_between_summary(fits$lm, type)
@@ -1771,7 +1493,7 @@ main <- function() {
 
     if (posthoc_used != "none" && length(between_vars) > 0) {
       if (posthoc_used == "tukey") {
-        posthoc_df <- build_between_posthoc_tukey(fits$aov)
+        posthoc_df <- build_between_posthoc_tukey(fits$aov, conf_level)
       } else {
         posthoc_df <- build_between_posthoc_pairwise(data_between, dv, between_vars, p_adjust, conf_level)
       }
@@ -1792,11 +1514,23 @@ main <- function() {
     )
   } else {
     data_within <- prepare_within_data(df, within_vars, subject_id, between_vars, covariates)
-    fits <- build_within_model(data_within$long, subject_id, data_within$within_name, between_vars, covariates)
+    fits <- build_within_model(data_within$long, subject_id, data_within$within_name, between_vars, covariates, data_within$response_name)
     contrast_fit <- fits$aov
     summary_result <- extract_within_summary(fits$aov, subject_id, data_within$within_name)
     summary_df <- summary_result$summary
     used_type <- "I"
+    if (!is.null(opts$type) && type != "I") stop("Type II/III sums of squares are supported for between-subjects models only; use --type I for repeated/mixed ANOVA.")
+    if (type != "I") warning("Repeated/mixed ANOVA uses sequential Type I sums of squares; the configured Type II/III default applies only to between-subjects analyses.")
+    if (sphericity == "auto" && length(within_vars) >= 3) {
+      sph <- compute_sphericity(data_within$wide, within_vars, between_vars, covariates)
+      rows <- summary_df$model == "Within"
+      summary_df$df1_gg[rows] <- summary_df$df1[rows] * sph$epsilon_gg
+      summary_df$df2_gg[rows] <- summary_df$df2[rows] * sph$epsilon_gg
+      summary_df$p_gg[rows] <- pf(summary_df$f[rows], summary_df$df1_gg[rows], summary_df$df2_gg[rows], lower.tail = FALSE)
+      summary_df$df1_hf[rows] <- summary_df$df1[rows] * sph$epsilon_hf
+      summary_df$df2_hf[rows] <- summary_df$df2[rows] * sph$epsilon_hf
+      summary_df$p_hf[rows] <- pf(summary_df$f[rows], summary_df$df1_hf[rows], summary_df$df2_hf[rows], lower.tail = FALSE)
+    }
 
     if (posthoc_used != "none") {
       posthoc_df <- build_within_posthoc_pairwise(data_within$wide, within_vars, between_vars, conf_level, p_adjust)
@@ -1817,10 +1551,13 @@ main <- function() {
     )
   }
 
-  if (contrasts_active && has_emmeans && !is.null(contrast_fit)) {
+  if (nzchar(emmeans_term) && has_emmeans && !is.null(contrast_fit)) {
     specs <- as.formula(paste("~", emmeans_term))
-    emm <- tryCatch(emmeans::emmeans(contrast_fit, specs = specs), error = function(e) NULL)
-    if (!is.null(emm)) {
+    emm <- emmeans::emmeans(contrast_fit, specs = specs)
+    means_summary <- summary(emm, infer = c(TRUE, FALSE), level = conf_level)
+    emmeans_messages <- attr(means_summary, "mesg")
+    emmeans_df <- as.data.frame(means_summary)
+    if (contrasts_active) {
       contrast_method <- tryCatch(build_contrast_method(contrast_spec, emm, emmeans_term), error = function(e) e)
       if (inherits(contrast_method, "error")) {
         emit_input_issue(
@@ -1830,19 +1567,71 @@ main <- function() {
           details = list(contrasts = contrast_label, contrast_file = contrast_file)
         )
       }
-      cont <- tryCatch(do.call(emmeans::contrast, c(list(emm, method = contrast_method$method), contrast_method$args)), error = function(e) NULL)
+      if (is.list(contrast_method$method) && any(!is.finite(unlist(contrast_method$method)))) stop("Custom contrast weights must be finite.")
+      cont <- do.call(emmeans::contrast, c(list(emm, method = contrast_method$method), contrast_method$args))
       if (!is.null(cont)) {
         cont_summary <- summary(cont, infer = c(TRUE, TRUE), adjust = p_adjust, level = conf_level)
-        contrasts_df <- build_contrast_rows(cont_summary, emmeans_term, p_adjust, contrast_label)
+        contrast_adjustment <- list(requested = p_adjust, effective = attr(cont_summary, "adjust"), messages = attr(cont_summary, "mesg"))
+        if (is.null(contrast_adjustment$effective)) contrast_adjustment$effective <- p_adjust
+        contrast_note <- paste0("Requested contrast adjustment: ", p_adjust, "; effective: ", contrast_adjustment$effective, ". ",
+          paste(contrast_adjustment$messages, collapse = "; "))
+        contrasts_df <- build_contrast_rows(cont_summary, emmeans_term, contrast_adjustment$effective, contrast_label)
+        contrasts_df$p_adjust_requested <- p_adjust
+        contrasts_df$p_adjust_effective <- contrast_adjustment$effective
       } else {
         contrast_note <- "Planned contrasts could not be computed."
       }
-    } else {
-      contrast_note <- "Planned contrasts could not be computed."
     }
   }
 
   if (nrow(summary_df) == 0) stop("No ANOVA results could be computed.")
+  if (any(!is.finite(summary_df$f) | !is.finite(summary_df$p) | summary_df$df2 <= 0))
+    stop("ANOVA primary effects require estimable F tests with positive error degrees of freedom.")
+  if (contrasts_active && (!nrow(contrasts_df) || any(!is.finite(contrasts_df$estimate) | !is.finite(contrasts_df$t))))
+    stop("Requested contrasts are not estimable.")
+  prepared <- if (mode == "between") data_between else data_within$wide
+  source_rows <- attr(prepared, "source_rows")
+  factors <- c(between_vars, if (has_within) subject_id)
+  design <- list(mode = mode, included_rows = source_rows, excluded_rows = setdiff(seq_len(nrow(df)), source_rows),
+    missing = "joint complete cases after explicit numeric conversion", contrast_spec = contrast_spec,
+    factor_levels = lapply(prepared[factors], levels),
+    factor_contrasts = lapply(prepared[between_vars], contrasts),
+    factor_mapping = lapply(factors, function(var) {
+      raw <- df[[var]][source_rows]
+      ids <- as.integer(prepared[[var]])
+      lapply(seq_along(levels(prepared[[var]])), function(i) list(level_id = i,
+        label = levels(prepared[[var]])[i], raw_value = raw[which(ids == i)[1]], value_hex = anova_value_hex(raw[which(ids == i)[1]]),
+        source_rows = source_rows[ids == i]))
+    }),
+    source_classes = lapply(df[roles], class),
+    model_formula = paste(deparse(fits$formula), collapse = " "),
+    model_matrix_columns = if (mode == "between") colnames(model.matrix(fits$lm)) else colnames(fits$model_matrix),
+    model_rank = if (mode == "between") fits$lm$rank else qr(fits$model_matrix)$rank,
+    effect_definitions = list(eta_sq = "SS_effect / centered total response SS",
+      omega_sq = "(SS_effect - df_effect * MSE) / (centered total response SS + MSE)",
+      partial_eta_sq = "SS_effect / (SS_effect + SS_error_stratum)",
+      partial_omega_sq = "(SS_effect - df_effect * MSE) / (SS_effect + SS_error_stratum + MSE)"),
+    bootstrap_unit = if (has_within) "complete subject rows, jointly across repeated measures; new factor ID per draw" else "complete rows jointly across all variables",
+    posthoc_family = "all planned comparisons per between factor or within each between-cell, including unavailable tests in adjustment n; pairwise CIs unadjusted; Tukey simultaneous",
+    within_levels = if (has_within) within_vars else NULL,
+    subject_mapping = if (has_within) lapply(seq_along(source_rows), function(i) list(subject_index = i,
+      source_row = source_rows[i], raw_id = df[[subject_id]][source_rows[i]], value_hex = anova_value_hex(df[[subject_id]][source_rows[i]]),
+      analysis_id = as.character(prepared[[subject_id]][i]))) else NULL,
+    sphericity = if (exists("sph", inherits = FALSE)) sph else NULL,
+    error_strata = if (has_within) lapply(fits$aov, function(x) list(rank = x$rank, residual_df = x$df.residual)) else NULL)
+  names(design$factor_mapping) <- factors
+  if (nrow(emmeans_df)) {
+    design$emmeans_grid <- as.data.frame(emm)
+    design$emmeans_messages <- emmeans_messages
+  }
+  if (contrasts_active) design$contrast_method <- contrast_method
+  design$contrast_adjustment <- contrast_adjustment
+  resolved <- list(mode = mode, dv = if (!has_within) dv else NULL, between = between_vars,
+    within = within_vars, subject_id = if (has_within) subject_id else NULL, covariates = covariates,
+    type_requested = type, type = used_type, effect_size = effect_size, posthoc = posthoc_used,
+    emmeans = emmeans_term, contrasts = contrast_label, p_adjust = p_adjust, conf_level = conf_level,
+    sphericity = sphericity, bootstrap = bootstrap, bootstrap_samples = bootstrap_samples, seed = seed, digits = digits)
+  nlss_resolve_request(resolved, design)
 
   effect_size_label <- format_effect_label(effect_size)
   summary_df$boot_ci_low <- NA_real_
@@ -1858,7 +1647,7 @@ main <- function() {
         type,
         effect_size,
         bootstrap_samples,
-        term_ids
+        term_ids, summary_df$df1
       )
     } else {
       boot_vals <- bootstrap_effect_sizes_within(
@@ -1869,11 +1658,14 @@ main <- function() {
         subject_id,
         effect_size,
         bootstrap_samples,
-        term_ids
+        term_ids, summary_df$df1
       )
     }
-    summary_df <- apply_bootstrap_ci(summary_df, boot_vals, conf_level)
+    summary_df <- apply_bootstrap_ci(summary_df, boot_vals, conf_level, bootstrap_samples)
   }
+  summary_df$status <- "available"
+  if (nrow(posthoc_df) && !"status" %in% names(posthoc_df)) posthoc_df$status <- "available"
+  if (nrow(contrasts_df)) contrasts_df$status <- "available"
   label_meta <- resolve_label_metadata(df)
   summary_df <- add_term_label_column(summary_df, label_meta, term_col = "term")
   posthoc_df <- add_term_label_column(posthoc_df, label_meta, term_col = "term")
@@ -1892,15 +1684,21 @@ main <- function() {
     assumption_note,
     contrast_note
   )
+  if (length(nlss_run_context$warnings)) {
+    warning_messages <- unique(vapply(nlss_run_context$warnings, function(x) x$message, character(1)))
+    warning_messages <- render_paths_for_log(warning_messages, workspace_root = nlss_run_context$root)
+    note_tokens$note_default <- paste(note_tokens$note_default, "Warnings:", paste(warning_messages, collapse = "; "))
+  }
 
   nlss_report_path <- file.path(out_dir, "report_canonical.md")
   template_override <- resolve_template_override(opts$template, module = "anova")
   template_path <- if (!is.null(template_override)) {
     template_override
   } else {
-    resolve_get_template_path("anova.default", "anova/default-template.md")
+    resolve_template_path("anova.default", "anova/default-template.md")
   }
-  template_meta <- resolve_get_template_meta(template_path)
+  template_path <- nlss_freeze_template(template_path, "default")
+  template_meta <- get_template_meta(template_path)
 
   analysis_flags <- list(
     mode = mode,
@@ -1944,7 +1742,7 @@ main <- function() {
       ),
       narrative_rows = narrative_rows
     )
-    resolve_append_nlss_report(
+    nlss_stage_report(
       nlss_report_path,
       analysis_label,
       nlss_table,
@@ -1961,9 +1759,10 @@ main <- function() {
     posthoc_template_path <- if (!is.null(template_override)) {
       template_override
     } else {
-      resolve_get_template_path("anova.posthoc", "anova/posthoc-template.md")
+      resolve_template_path("anova.posthoc", "anova/posthoc-template.md")
     }
-    posthoc_meta <- resolve_get_template_meta(posthoc_template_path)
+    posthoc_template_path <- nlss_freeze_template(posthoc_template_path, "posthoc")
+    posthoc_meta <- get_template_meta(posthoc_template_path)
     posthoc_table <- build_posthoc_table_body(posthoc_df, digits, posthoc_meta$table)
     posthoc_narrative_rows <- build_posthoc_narrative_rows(posthoc_df, digits)
     posthoc_text <- paste(vapply(posthoc_narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
@@ -1977,7 +1776,7 @@ main <- function() {
       ),
       narrative_rows = posthoc_narrative_rows
     )
-    resolve_append_nlss_report(
+    nlss_stage_report(
       nlss_report_path,
       "ANOVA post-hoc",
       posthoc_nlss_table,
@@ -1988,10 +1787,21 @@ main <- function() {
     )
   }
 
+  if (nrow(emmeans_df)) {
+    mean_rows <- lapply(seq_len(nrow(emmeans_df)), function(i)
+      vapply(emmeans_df[i, , drop = FALSE], function(x) if (is.numeric(x)) format_num(x, digits) else as.character(x), character(1)))
+    mean_body <- render_markdown_table(names(emmeans_df), mean_rows)
+    mean_note <- paste0("Estimated marginal means; equal weighting over factor levels, covariates at reference-grid values. ",
+      round(conf_level * 100), "% pointwise confidence intervals; grid and weights are saved in the request.")
+    mean_note <- paste(mean_note, paste(emmeans_messages, collapse = "; "))
+    nlss_stage_report(nlss_report_path, "ANOVA estimated marginal means",
+      paste0("Table 1\n\n", mean_body, "\n", mean_note), mean_note, analysis_flags = analysis_flags)
+  }
+
   if (nrow(contrasts_df) > 0) {
     contrast_note_tokens <- build_contrast_note_tokens(
       format_contrast_label(contrast_spec),
-      p_adjust,
+      contrast_adjustment$effective,
       conf_level,
       contrast_file,
       contrast_note
@@ -1999,9 +1809,10 @@ main <- function() {
     contrast_template_path <- if (!is.null(template_override)) {
       template_override
     } else {
-      resolve_get_template_path("anova.contrasts", "anova/contrasts-template.md")
+      resolve_template_path("anova.contrasts", "anova/contrasts-template.md")
     }
-    contrast_meta <- resolve_get_template_meta(contrast_template_path)
+    contrast_template_path <- nlss_freeze_template(contrast_template_path, "contrasts")
+    contrast_meta <- get_template_meta(contrast_template_path)
     contrast_table <- build_contrast_table_body(contrasts_df, digits, contrast_meta$table)
     contrast_narrative_rows <- build_contrast_narrative_rows(contrasts_df, digits)
     contrast_text <- paste(vapply(contrast_narrative_rows, function(row) row$full_sentence, character(1)), collapse = "\n")
@@ -2016,7 +1827,7 @@ main <- function() {
       ),
       narrative_rows = contrast_narrative_rows
     )
-    resolve_append_nlss_report(
+    nlss_stage_report(
       nlss_report_path,
       "ANOVA contrasts",
       contrast_nlss_table,
@@ -2030,9 +1841,10 @@ main <- function() {
   cat("Wrote:\n")
   cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+  nlss_set_result(list(summary_df = summary_df, posthoc_df = posthoc_df, contrasts_df = contrasts_df, assumptions_df = assumptions_df, emmeans_df = emmeans_df, contrast_adjustment = contrast_adjustment))
+  if (parse_bool(opts$log, default = log_default)) {
+    ctx <- get_run_context()
+    nlss_stage_log(
       out_dir,
       module = "anova",
       prompt = ctx$prompt,
@@ -2041,6 +1853,8 @@ main <- function() {
         summary_df = summary_df,
         posthoc_df = posthoc_df,
         contrasts_df = contrasts_df,
+        emmeans_df = emmeans_df,
+        contrast_adjustment = contrast_adjustment,
         assumptions_df = assumptions_df
       ),
       options = list(
@@ -2063,9 +1877,9 @@ main <- function() {
         bootstrap_samples = if (bootstrap) bootstrap_samples else NULL,
         digits = digits
       ),
-      user_prompt = resolve_get_user_prompt(opts)
+      user_prompt = get_user_prompt(opts)
     )
   }
 }
 
-main()
+nlss_run_main("anova", main)

@@ -20,6 +20,8 @@ CONFIG_PATH="${ROOT_DIR}/scripts/config.yml"
 TESTS_CONFIG_PATH="${NLSS_TESTS_CONFIG:-${ROOT_DIR}/tests/tests.yml}"
 R_SCRIPT_DIR="${ROOT_DIR}/scripts/R"
 CHECK_SCRIPT="${ROOT_DIR}/tests/smoke/check_data_transform_log.py"
+GOLDEN_CHECK_SCRIPT="${ROOT_DIR}/tests/values/check_data_transform_golden.py"
+GOLDEN_VALUES="${ROOT_DIR}/tests/values/data_transform_golden.csv"
 CHECK_PKG_SCRIPT="${ROOT_DIR}/tests/smoke/check_r_package.R"
 
 get_config_value() {
@@ -375,5 +377,17 @@ run_expect_fail "drop requires confirm" "${INVALID_LOG}" Rscript "${R_SCRIPT_DIR
 run_expect_fail "unknown transform var" "${INVALID_LOG}" Rscript "${R_SCRIPT_DIR}/data_transform.R" \
   --parquet "${INVALID_PARQUET}" \
   --transform "missing_var=log"
+
+golden_info="$(prepare_dataset "data_transform_values")"
+IFS="|" read -r GOLDEN_CSV GOLDEN_DIR GOLDEN_PARQUET <<< "${golden_info}"
+run_ok "data_transform independent values" Rscript "${R_SCRIPT_DIR}/data_transform.R" \
+  --parquet "${GOLDEN_PARQUET}" \
+  --calc 'gain=post_score-pre_score|constant=7' \
+  --transform 'age=log|income=log10|education=sqrt|x1=exp|x2=abs|outcome_reg=center|outcome_anova=scale' \
+  --standardize pre_score --recode 'ordinal_var=1:2,2:3,NA:0' \
+  --percentile-bins 'satisfaction=4' --bins 'age=18,30,45,80' \
+  --rename gain:change --drop x3 --confirm-drop TRUE
+run_ok "data_transform independent golden JSONL" "${PYTHON_BIN}" "${GOLDEN_CHECK_SCRIPT}" \
+  "${GOLDEN_DIR}/analysis_log.jsonl" 0 "${GOLDEN_VALUES}" all_operations
 
 echo "[DONE] data_transform deliberate tests finished" | tee -a "${LOG_FILE}"

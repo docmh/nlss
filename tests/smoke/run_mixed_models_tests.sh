@@ -143,6 +143,14 @@ if [ -z "${RUNS_BASE_CFG}" ]; then
   RUNS_BASE_CFG="outputs/test-runs"
 fi
 
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --root) export NLSS_TEST_ROOT="$2"; shift 2 ;;
+    --keep) export NLSS_KEEP_RUNS="$2"; shift 2 ;;
+    *) echo "Unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+
 RUN_ID="$(date +%Y%m%d%H%M%S)"
 RUNS_BASE="$(to_abs_path "${RUNS_BASE_CFG}")"
 if [ -n "${NLSS_TEST_ROOT:-}" ]; then
@@ -240,14 +248,12 @@ if [ ! -f "${CHECK_DIAGNOSTICS_SCRIPT}" ]; then
   exit 1
 fi
 
-CONFIG_BAK="$(mktemp)"
-cp "${CONFIG_PATH}" "${CONFIG_BAK}"
-
+# All template overrides are private; never mutate the installed canonical config.
+CONFIG_PRIVATE="${TMP_BASE}/config.yml"
+cp "${CONFIG_PATH}" "${CONFIG_PRIVATE}"
+CONFIG_PATH="${CONFIG_PRIVATE}"
+export NLSS_CONFIG_PATH="${CONFIG_PRIVATE}"
 cleanup() {
-  if [ -f "${CONFIG_BAK}" ]; then
-    cp "${CONFIG_BAK}" "${CONFIG_PATH}"
-    rm -f "${CONFIG_BAK}"
-  fi
   rm -f "${WORKSPACE_MANIFEST_PATH}"
 }
 trap cleanup EXIT
@@ -553,25 +559,7 @@ check_mixed_models_diagnostics_golden() {
 }
 
 run_expect_invalid() {
-  local label="$1"; shift
-  local status="$1"; shift
-  echo "[RUN-EXPECT] ${label}" | tee -a "${LOG_FILE}"
-  local start_count
-  start_count="$(log_count "${LOG_PATH}")"
-  set +e
-  "$@" >>"${LOG_FILE}" 2>&1
-  local exit_status=$?
-  set -e
-  if [ "${exit_status}" -eq 0 ]; then
-    echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
-  if expect_log_main "${start_count}" --status "${status}"; then
-    echo "[PASS] ${label} (${status})" | tee -a "${LOG_FILE}"
-  else
-    echo "[FAIL] ${label} (status ${status} not logged)" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
+  run_expect_invalid_log "${LOG_PATH}" "$@"
 }
 
 run_expect_invalid_log() {
@@ -579,8 +567,17 @@ run_expect_invalid_log() {
   local label="$1"; shift
   local status="$1"; shift
   echo "[RUN-EXPECT] ${label}" | tee -a "${LOG_FILE}"
-  local start_count
-  start_count="$(log_count "${log_path}")"
+  local dataset_dir
+  dataset_dir="$(dirname "${log_path}")"
+  local before="${TMP_BASE}/protected-before.json"
+  "${PYTHON_BIN}" - "${dataset_dir}" "${WORKSPACE_MANIFEST_PATH}" "${before}" <<'PY'
+import hashlib, json, pathlib, sys
+dataset, manifest, target = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), pathlib.Path(sys.argv[3])
+paths = [dataset / "report_canonical.md", dataset / "analysis_log.jsonl", manifest]
+digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
+target.write_text(json.dumps({"protected": {str(p): digest(p) for p in paths},
+                            "runs": [p.name for p in (dataset / "runs").glob("*")]}))
+PY
   set +e
   "$@" >>"${LOG_FILE}" 2>&1
   local exit_status=$?
@@ -589,12 +586,19 @@ run_expect_invalid_log() {
     echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
     exit 1
   fi
-  if expect_log "${log_path}" "${start_count}" --status "${status}"; then
-    echo "[PASS] ${label} (${status})" | tee -a "${LOG_FILE}"
-  else
-    echo "[FAIL] ${label} (status ${status} not logged)" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
+  "${PYTHON_BIN}" - "${dataset_dir}" "${before}" <<'PY'
+import hashlib, json, pathlib, sys
+dataset, saved = pathlib.Path(sys.argv[1]), json.loads(pathlib.Path(sys.argv[2]).read_text())
+for name, expected in saved["protected"].items():
+    p = pathlib.Path(name)
+    actual = hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
+    assert actual == expected, f"Protected projection changed: {name}"
+runs = [p for p in (dataset / "runs").glob("*") if p.name not in saved["runs"]]
+assert len(runs) == 1, "Expected one new failed run"
+assert json.loads((runs[0] / "result.json").read_text())["status"] == "failed"
+assert not (runs[0] / "output.md").exists(), "Failed run has normal output"
+PY
+  echo "[PASS] ${label} (failed run; protected projections unchanged)" | tee -a "${LOG_FILE}"
 }
 
 run_expect_fail() {
@@ -778,7 +782,7 @@ expect_log_main "${start_count}" \
   --maxfun 20000 \
   --reml FALSE \
   --fixed-rows gt0 \
-  --diagnostics-rows 0 \
+  --diagnostics-rows 2 \
   --std-beta present
 
 echo "[PASS] mixed_models fixed/random standardize (log)" | tee -a "${LOG_FILE}"
@@ -860,6 +864,9 @@ echo "[PASS] mixed_models emmeans contrasts (log)" | tee -a "${LOG_FILE}"
 if [ "${HAS_LMERTEST}" -eq 1 ] && [ "${HAS_EMMEANS}" -eq 1 ]; then
   run_ok "mixed_models emmeans golden" check_mixed_models_emmeans_golden "${LOG_PATH}" "${start_count}" "emmeans_mid_A"
   run_ok "mixed_models contrasts golden" check_mixed_models_contrasts_golden "${LOG_PATH}" "${start_count}" "contrast_midA_postA"
+  for contrast_index in $(seq 1 35); do
+    run_ok "mixed_models contrasts family golden ${contrast_index}" check_mixed_models_contrasts_golden "${LOG_PATH}" "${start_count}" "contrast_family_${contrast_index}"
+  done
 fi
 
 if [ "${HAS_EMMEANS}" -eq 1 ]; then
@@ -991,33 +998,11 @@ expect_log_main "${start_count}" \
 
 echo "[PASS] mixed_models emmeans only (log)" | tee -a "${LOG_FILE}"
 
-start_count="$(log_count "${LOG_PATH}")"
-run_ok "mixed_models contrasts without emmeans" \
+run_expect_invalid "mixed_models contrasts without emmeans" invalid_input \
   Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
   --parquet "${PARQUET_PATH}" \
   --formula "score ~ time + group3 + (1|id)" \
   --contrasts pairwise
-expect_log_main "${start_count}" \
-  --formula "score ~ time + group3 + (1|id)" \
-  --random "(1|id)" \
-  --type III \
-  --df-method "${DF_METHOD_EXPECT}" \
-  --standardize none \
-  --diagnostics TRUE \
-  --emmeans none \
-  --contrasts none \
-  --p-adjust none \
-  --conf-level 0.95 \
-  --optimizer bobyqa \
-  --maxfun 100000 \
-  --reml TRUE \
-  --fixed-rows gt0 \
-  --emmeans-rows 0 \
-  --contrast-rows 0 \
-  --diagnostics-rows gt0 \
-  --std-beta absent
-
-echo "[PASS] mixed_models contrasts without emmeans (log)" | tee -a "${LOG_FILE}"
 
 start_count="$(log_count "${CSV_SEMI_LOG_PATH}")"
 run_ok "mixed_models csv semicolon" \
@@ -1123,41 +1108,12 @@ if [ "${HAS_SAV}" -eq 1 ]; then
   echo "[PASS] mixed_models sav input (log)" | tee -a "${LOG_FILE}"
 fi
 
-start_count="$(log_count "${LOG_PATH}")"
-run_ok "mixed_models option normalization" \
-  Rscript "${R_SCRIPT_DIR}/mixed_models.R" \
-  --parquet "${PARQUET_PATH}" \
-  --formula "score ~ time + group3 + x1 + (1|id)" \
-  --type IV \
-  --df-method bogus \
-  --standardize weird \
-  --conf-level 2 \
-  --maxfun -10 \
-  --max-shapiro-n 2 \
-  --digits 4 \
-  --user-prompt "edge prompt"
-expect_log_main "${start_count}" \
-  --formula "score ~ time + group3 + x1 + (1|id)" \
-  --random "(1|id)" \
-  --type III \
-  --df-method "${DF_METHOD_EXPECT}" \
-  --standardize none \
-  --diagnostics TRUE \
-  --emmeans none \
-  --contrasts none \
-  --p-adjust none \
-  --conf-level 0.95 \
-  --optimizer bobyqa \
-  --maxfun 100000 \
-  --reml TRUE \
-  --fixed-rows gt0 \
-  --diagnostics-rows gt0 \
-  --std-beta absent \
-  --digits 4 \
-  --user-prompt "edge prompt" \
-  --shapiro absent
-
-echo "[PASS] mixed_models option normalization (log)" | tee -a "${LOG_FILE}"
+# Invalid scientific options must fail, not silently become canonical defaults.
+for invalid_option in "type=IV" "df-method=bogus" "standardize=weird" "conf-level=2" "maxfun=-10" "max-shapiro-n=2"; do
+  run_expect_invalid "mixed_models invalid ${invalid_option}" invalid_input \
+    Rscript "${R_SCRIPT_DIR}/mixed_models.R" --parquet "${PARQUET_PATH}" \
+    --formula "score ~ time + group3 + x1 + (1|id)" "--${invalid_option}"
+done
 
 reset_report() {
   rm -f "${NLSS_REPORT_PATH}"

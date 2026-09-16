@@ -1,6 +1,6 @@
 ---
 name: explain-results
-description: Conversational, researcher-friendly explanations of the meaning of statistical results using the numbers provided in tables or outputs, without running analyses.
+description: Conversational, researcher-friendly interpretation of selected statistical outputs in context, without rerunning analyses.
 license: Apache-2.0
 ---
 
@@ -8,98 +8,66 @@ license: Apache-2.0
 
 ## Overview
 
-This metaskill explains the meaning of statistical results that the user references (tables, model outputs, summaries). It focuses on interpreting the numbers in context (direction, magnitude, uncertainty, and practical meaning) without running analyses. It is conversational by default and intentionally skips `metaskill-runner` activation/finalization logs unless the user explicitly requests documentation.
-
-## Assistant Researcher Model
-
-NLSS assumes a senior researcher (user) and assistant researcher (agent) workflow. Requests may be vague or jargon-heavy; the agent should inspect the data, ask clarifying questions before choosing analyses, document decisions and assumptions in `scratchpad.md`, and produce a detailed, NLSS format-aligned, journal-alike report.
+Explain the results the researcher actually selected, at the depth their question
+needs. Follow the shared [semantic answer/report guidance](../../SKILL.md#semantic-answers-and-authored-reports).
+A short answer, a detailed interpretation and a requested Results section need
+not share a structure. No data load, project setup, lifecycle event or new
+analysis is required merely to explain existing evidence.
 
 ## Intent/Triggers
 
-Use this metaskill when the user asks for the meaning of results or output, for example:
+Examples include “What does this table mean?”, “How should I interpret these
+coefficients?”, “Is this effect meaningful?” or “Why do these models disagree?”
+For concept-focused teaching, use [explain-statistics](explain-statistics.md).
 
-- "What does this table mean?"
-- "How should I interpret these coefficients?"
-- "What does this p-value and CI imply?"
-- "Is this effect meaningful?"
-- "What is the practical meaning of this ANOVA result?"
+## Inputs and Consequential Gaps
 
-## Inputs/Clarifications
+Use the selected table, screenshot, excerpt or saved output and available study
+context. Relevant context may include the model/contrast, outcome and predictor
+coding, reference category, units, scale direction, analysis sample and design.
+Read the relevant saved request/result/dictionary when needed to interpret NLSS
+output; do not substitute a newer run or today's working data.
 
-### Inputs
+Clarify only gaps that affect the answer. If the selected evidence is readable
+but incomplete, explain what it supports and qualify the remaining uncertainty.
+A pasted table is supplied material, not a verified NLSS run. Do not require
+project IDs, all dataset details or an audience questionnaire before answering.
 
-- The specific output to interpret (paste, screenshot description, or file excerpt).
-- The analysis or model type (t-test, ANOVA, regression, mixed model, SEM, etc.).
-- Variable roles and coding (outcome, predictors, group labels, reference category).
-- Scale direction and units (e.g., higher scores = better, or reversed items).
-- Hypotheses or contrasts the result relates to.
-- Optional: sample size, alpha level, and study design details.
+## Interpretation Decisions
 
-### Clarifying Questions
+- Address the actual question with the relevant estimates and uncertainty.
+  Choose depth, notation and organization for the researcher; no prescribed
+  recap length, paragraph sequence or closing question.
+- Keep effect direction tied to coding and the actual comparison. Practical
+  importance depends on the scale and scientific context, not just a p-value.
+  Nonsignificance does not establish equivalence or absence of an effect.
+- Use design and available diagnostics to judge the scope of inference. Do not
+  infer causality from association or describe an unavailable check as passed.
+  Explain material limits, not a universal list of caveats.
+- When comparing models, retain each model's sample, covariates, estimand and
+  uncertainty. Discuss disagreements and plausible explanations as such; do
+  not claim to have demonstrated their cause. Significance in one model but not
+  another does not by itself establish a difference between their estimates.
+  Do not fabricate a pooled result or a formal comparison.
+- Use literature support when needed for the requested interpretation or
+  explicitly requested. Read and assess adequate supplied sources; use
+  [research-academia](../utilities/research-academia.md) for missing relevant
+  support. Disclose unavailable support instead of inventing citations.
+- If the question actually requires a new estimate, test or diagnostic, distinguish
+  that from explaining the selected output. Use the appropriate existing NLSS
+  procedure when execution is within the request; otherwise describe the gap
+  and ask before expanding to an analysis.
 
-- Which table or section should I interpret (model summary, post hoc, coefficients, fit indices)?
-- What are the outcome and predictors or group labels, and how are they coded?
-- What do higher scores mean for each variable?
-- Which row(s) or comparison(s) matter most for your research question?
-- Do you want focus on statistical significance, effect size, practical meaning, or all three?
+## Delivery
 
-If the user does not specify a level, default to a clear, research-grade explanation with minimal math and explicit ties to the numbers shown.
+Answer in the conversation unless documentation is requested. Do not append to
+the root protocol, update a scratchpad or save a report revision merely for an
+explanation. A requested note can be written directly; no plan/completion log is
+required just to retain the explanation.
 
-## Procedure (Pseudocode)
-
-```
-identify the result type and user goal
-if output or context is ambiguous:
-  ask 1-3 clarifying questions
-choose depth based on audience and request
-explain in a structured, conversational way:
-  restate the comparison or parameter in plain language
-  interpret direction and magnitude using the reported numbers
-  interpret uncertainty (SE/CI) and evidence (p-value/test statistic)
-  connect to practical meaning and the research question
-  note assumptions, limitations, and avoid causal claims when not justified
-summarize in 1-3 sentences
-invite follow-up questions or deeper dives
-
-if the user requests literature context or citations:
-  run research-academia (multiple query variants; curate sources)
-
-if the user requests a new analysis or re-computation:
-  pivot to the appropriate NLSS subskill or metaskill
-```
-
-## Default Rules and Decision Logic
-
-- Make step choices based on observed data limitations (e.g., small sample size, non-normality, outliers, missingness, group imbalance); adapt analyses or caveats and record the rationale in `scratchpad.md` (and in the final report if one is produced).
-- Use only the numbers provided; do not invent values.
-- Keep explanations accurate but accessible; avoid oversimplifying or trivializing.
-- Distinguish statistical significance from practical importance.
-- Avoid causal language unless the design supports it.
-- Define jargon on first use and keep notation minimal unless requested.
-- If results are ambiguous or missing key context, ask clarifying questions.
-
-## Outputs
-
-- Primary output: a conversational explanation in the chat.
-- `scratchpad.md`: only if the user requests documentation in a workspace context.
-- `report_canonical.md`: only if the user explicitly asks to log the explanation; append a short "Explanation" entry manually (do not use `metaskill-runner`).
-- `analysis_log.jsonl`: not used for conversational-only requests unless explicitly requested.
-- `report_<YYYYMMDD>_explain-results_<intent>.md`: optional, only if the user asks for a formal write-up.
-
-## Scratchpad Updates
-
-- If documentation is requested, write a brief plan (result type, key comparisons, interpretation focus), then note completion after the explanation is delivered.
-- Otherwise, do not update `scratchpad.md`.
-
-## Finalization
-
-- No finalization step is required for conversational use.
-- If a formal report is requested, write `report_<YYYYMMDD>_explain-results_<intent>.md` (ASCII slug for `<intent>`), align it using `references/metaskills/format-document.md`, then append a brief `# Synopsis` to `report_canonical.md` manually (no `metaskill-runner`).
-
-## NLSS format Templates
-
-This metaskill does not define NLSS format templates. It is conversational and does not run subskills by default.
-
-## Parquet Support
-
-Not applicable unless the user requests a data-based example. If a dataset must be loaded, follow workspace parquet conventions and note that Parquet support requires the R package `arrow`.
+For a requested formal write-up, use a chosen visible Markdown path and
+[format-document](format-document.md) as appropriate. If based on saved NLSS
+results, preserve the actual selected evidence through
+[project-report](../utilities/project-report.md). Supplied-only material needs
+honest source attribution, not fabricated run IDs or a statistical run to make
+it saveable. No new report template or separate finalization step.

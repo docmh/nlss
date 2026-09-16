@@ -10,24 +10,9 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
 source_lib("contrast_utils.R")
-
-
-# Static analysis aliases for source_lib-defined functions.
-render_output_path <- get("render_output_path", mode = "function")
-add_term_label_column <- get("add_term_label_column", mode = "function")
-add_value_label_column <- get("add_value_label_column", mode = "function")
-build_contrast_method <- get("build_contrast_method", mode = "function")
-format_contrast_label <- get("format_contrast_label", mode = "function")
-resolve_contrast_spec <- get("resolve_contrast_spec", mode = "function")
-resolve_label_metadata <- get("resolve_label_metadata", mode = "function")
-source_lib <- get("source_lib", mode = "function")
 
 print_usage <- function() {
   cat("Mixed Models (lme4)\n")
@@ -62,6 +47,7 @@ print_usage <- function() {
   cat("  --p-adjust METHOD      P-value adjustment (default: holm)\n")
   cat("  --conf-level VALUE     Confidence level (default: 0.95)\n")
   cat("  --optimizer NAME       Optimizer (default: bobyqa)\n")
+  cat("  --seed N               Seed for stochastic emmeans adjustments (canonical default)\n")
   cat("  --maxfun N             Optimizer maxfun (default: 100000)\n")
   cat("  --diagnostics TRUE/FALSE Diagnostics (default: TRUE)\n")
   cat("  --max-shapiro-n N      Max n for Shapiro test (default: 5000)\n")
@@ -75,298 +61,74 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    opts$csv <- prompt("CSV path")
+    sep_default <- get_config_value("defaults.csv.sep")
+    header_default <- get_config_value("defaults.csv.header")
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
+    opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
+    opts$rds <- prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
+    opts$rdata <- prompt("RData path")
+    opts$df <- prompt("Data frame object name")
   } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
+    opts$parquet <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
 
-  use_formula <- resolve_prompt("Use full formula? (yes/no)", "yes")
+  use_formula <- prompt("Use full formula? (yes/no)", "yes")
   if (tolower(use_formula) %in% c("yes", "y")) {
-    opts$formula <- resolve_prompt("Model formula (e.g., score ~ time + (1|id))", "")
+    opts$formula <- prompt("Model formula (e.g., score ~ time + (1|id))", "")
   } else {
-    opts$dv <- resolve_prompt("Dependent variable", "")
-    opts$fixed <- resolve_prompt("Fixed effects (comma-separated)", "")
-    opts$random <- resolve_prompt("Random terms (comma-separated; e.g., 1|id,time|id)", "")
+    opts$dv <- prompt("Dependent variable", "")
+    opts$fixed <- prompt("Fixed effects (comma-separated)", "")
+    opts$random <- prompt("Random terms (comma-separated; e.g., 1|id,time|id)", "")
   }
 
-  reml_default <- resolve_config_value("modules.mixed_models.reml", TRUE)
-  type_default <- resolve_config_value("modules.mixed_models.type", "III")
-  df_method_default <- resolve_config_value("modules.mixed_models.df_method", "satterthwaite")
-  standardize_default <- resolve_config_value("modules.mixed_models.standardize", "none")
-  emmeans_default <- resolve_config_value("modules.mixed_models.emmeans", "none")
-  contrasts_default <- resolve_config_value("modules.mixed_models.contrasts", "none")
-  p_adjust_default <- resolve_config_value("modules.mixed_models.p_adjust", "holm")
-  conf_default <- resolve_config_value("modules.mixed_models.conf_level", 0.95)
-  optimizer_default <- resolve_config_value("modules.mixed_models.optimizer", "bobyqa")
-  maxfun_default <- resolve_config_value("modules.mixed_models.maxfun", 100000)
-  diagnostics_default <- resolve_config_value("modules.mixed_models.diagnostics", TRUE)
-  max_shapiro_n_default <- resolve_config_value("modules.mixed_models.max_shapiro_n", 5000)
-  digits_default <- resolve_config_value("defaults.digits", 2)
+  reml_default <- get_config_value("modules.mixed_models.reml")
+  type_default <- get_config_value("modules.mixed_models.type")
+  df_method_default <- get_config_value("modules.mixed_models.df_method")
+  standardize_default <- get_config_value("modules.mixed_models.standardize")
+  emmeans_default <- get_config_value("modules.mixed_models.emmeans")
+  contrasts_default <- get_config_value("modules.mixed_models.contrasts")
+  p_adjust_default <- get_config_value("modules.mixed_models.p_adjust")
+  conf_default <- get_config_value("modules.mixed_models.conf_level")
+  optimizer_default <- get_config_value("modules.mixed_models.optimizer")
+  maxfun_default <- get_config_value("modules.mixed_models.maxfun")
+  diagnostics_default <- get_config_value("modules.mixed_models.diagnostics")
+  max_shapiro_n_default <- get_config_value("modules.mixed_models.max_shapiro_n")
+  digits_default <- get_config_value("defaults.digits")
 
-  opts$reml <- resolve_prompt("REML TRUE/FALSE", ifelse(isTRUE(reml_default), "TRUE", "FALSE"))
-  opts$type <- resolve_prompt("Type (I/II/III)", type_default)
-  opts$`df-method` <- resolve_prompt("DF method (satterthwaite/kenward-roger/none)", df_method_default)
-  opts$standardize <- resolve_prompt("Standardize (none/predictors)", standardize_default)
-  opts$emmeans <- resolve_prompt("Marginal means term (none or term)", emmeans_default)
-  opts$contrasts <- resolve_prompt("Contrasts (none/pairwise/custom/<method>)", contrasts_default)
+  opts$reml <- prompt("REML TRUE/FALSE", ifelse(isTRUE(reml_default), "TRUE", "FALSE"))
+  opts$type <- prompt("Type (I/II/III)", type_default)
+  opts$`df-method` <- prompt("DF method (satterthwaite/kenward-roger/none)", df_method_default)
+  opts$standardize <- prompt("Standardize (none/predictors)", standardize_default)
+  opts$emmeans <- prompt("Marginal means term (none or term)", emmeans_default)
+  opts$contrasts <- prompt("Contrasts (none/pairwise/custom/<method>)", contrasts_default)
   contrast_mode <- normalize_contrasts(opts$contrasts, contrasts_default)
   if (contrast_mode == "custom") {
-    opts$`contrast-file` <- resolve_prompt("Contrast JSON file", "")
+    opts$`contrast-file` <- prompt("Contrast JSON file", "")
   }
-  opts$`p-adjust` <- resolve_prompt("P-value adjustment", p_adjust_default)
-  opts$`conf-level` <- resolve_prompt("Confidence level", as.character(conf_default))
-  opts$optimizer <- resolve_prompt("Optimizer", optimizer_default)
-  opts$maxfun <- resolve_prompt("Optimizer maxfun", as.character(maxfun_default))
-  opts$diagnostics <- resolve_prompt("Diagnostics TRUE/FALSE", ifelse(isTRUE(diagnostics_default), "TRUE", "FALSE"))
-  opts$`max-shapiro-n` <- resolve_prompt("Max Shapiro n", as.character(max_shapiro_n_default))
-  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  opts$`p-adjust` <- prompt("P-value adjustment", p_adjust_default)
+  opts$`conf-level` <- prompt("Confidence level", as.character(conf_default))
+  opts$optimizer <- prompt("Optimizer", optimizer_default)
+  opts$maxfun <- prompt("Optimizer maxfun", as.character(maxfun_default))
+  opts$diagnostics <- prompt("Diagnostics TRUE/FALSE", ifelse(isTRUE(diagnostics_default), "TRUE", "FALSE"))
+  opts$`max-shapiro-n` <- prompt("Max Shapiro n", as.character(max_shapiro_n_default))
+  opts$digits <- prompt("Rounding digits", as.character(digits_default))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log")
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts
-}
-
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_parse_list <- function(value, sep = ",") {
-  if (exists("parse_list", mode = "function")) {
-    return(get("parse_list", mode = "function")(value, sep = sep))
-  }
-  if (is.null(value) || is.logical(value)) return(character(0))
-  value <- as.character(value)
-  if (value == "") return(character(0))
-  trimws(strsplit(value, sep, fixed = TRUE)[[1]])
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-resolve_get_workspace_out_dir <- function(df) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df))
-  }
-  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
-}
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  if (is.null(default_relative) || !nzchar(default_relative)) return(NULL)
-  if (exists("get_assets_dir", mode = "function")) {
-    return(file.path(get("get_assets_dir", mode = "function")(), default_relative))
-  }
-  file.path(getwd(), "nlss", "assets", default_relative)
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
-  as.character(value)
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-emit_input_issue <- function(out_dir, opts, message, details = list(), status = "invalid_input") {
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
-      out_dir,
-      module = "mixed_models",
-      prompt = ctx$prompt,
-      commands = ctx$commands,
-      results = list(
-        status = status,
-        message = message,
-        details = details
-      ),
-      options = details,
-      user_prompt = resolve_get_user_prompt(opts)
-    )
-  }
-  stop(message)
 }
 
 format_num <- function(value, digits) {
@@ -410,15 +172,14 @@ get_complete_rows <- function(df) {
 }
 
 normalize_reml <- function(value, default = TRUE) {
-  resolve_parse_bool(value, default = default)
+  parse_bool(value, default = default)
 }
 
 normalize_standardize <- function(value, default = "none") {
-  val <- if (!is.null(value) && value != "") value else default
-  val <- tolower(val)
+  val <- tolower(if (is.null(value) || value == "") default else value)
   if (val %in% c("none", "no", "false")) return("none")
   if (val %in% c("predictors", "pred", "x")) return("predictors")
-  default
+  stop("standardize must be none or predictors.")
 }
 
 normalize_type <- function(value, default = "III") {
@@ -427,7 +188,7 @@ normalize_type <- function(value, default = "III") {
   if (val %in% c("1", "I")) return("I")
   if (val %in% c("2", "II")) return("II")
   if (val %in% c("3", "III")) return("III")
-  default
+  stop("type must be I, II or III.")
 }
 
 normalize_df_method <- function(value, default = "satterthwaite") {
@@ -436,20 +197,10 @@ normalize_df_method <- function(value, default = "satterthwaite") {
   if (val %in% c("satterthwaite", "satter")) return("satterthwaite")
   if (val %in% c("kenward-roger", "kenwardroger", "kr")) return("kenward-roger")
   if (val %in% c("none", "no", "false")) return("none")
-  default
+  stop("df-method must be satterthwaite, kenward-roger or none.")
 }
 
-normalize_contrasts <- function(value, default = "none") {
-  if (exists("normalize_contrast_mode", mode = "function")) {
-    return(get("normalize_contrast_mode", mode = "function")(value, default))
-  }
-  val <- if (!is.null(value) && value != "") value else default
-  val <- tolower(val)
-  if (val %in% c("none", "no", "false")) return("none")
-  if (val %in% c("pairwise", "pairs")) return("pairwise")
-  if (val %in% c("custom", "json")) return("custom")
-  val
-}
+normalize_contrasts <- function(value, default = "none") normalize_contrast_mode(value, default)
 
 normalize_emmeans <- function(value, default = "none") {
   val <- if (!is.null(value) && value != "") value else default
@@ -459,16 +210,16 @@ normalize_emmeans <- function(value, default = "none") {
 }
 
 normalize_conf_level <- function(value, default = 0.95) {
-  if (is.null(value) || value == "") return(default)
+  if (is.null(value) || value == "") value <- default
   val <- suppressWarnings(as.numeric(value))
-  if (is.na(val) || val <= 0 || val >= 1) return(default)
+  if (length(val) != 1L || !is.finite(val) || val <= 0 || val >= 1) stop("conf-level must be between 0 and 1.")
   val
 }
 
 normalize_maxfun <- function(value, default = 100000) {
-  if (is.null(value) || value == "") return(default)
+  if (is.null(value) || value == "") value <- default
   val <- suppressWarnings(as.numeric(value))
-  if (is.na(val) || val <= 0) return(default)
+  if (length(val) != 1L || !is.finite(val) || val <= 0 || val != floor(val) || val > .Machine$integer.max) stop("maxfun must be a positive R integer.")
   as.integer(val)
 }
 
@@ -490,11 +241,8 @@ normalize_random_terms <- function(terms) {
 }
 
 extract_random_terms_from_formula <- function(formula_text) {
-  if (is.null(formula_text) || !nzchar(formula_text)) return(character(0))
-  matches <- gregexpr("\\([^\\)]+\\|[^\\)]+\\)", formula_text, perl = TRUE)
-  if (matches[[1]][1] == -1) return(character(0))
-  terms <- regmatches(formula_text, matches)[[1]]
-  trimws(terms)
+  vapply(reformulas::findbars(as.formula(formula_text)), function(x)
+    paste0("(", gsub(" *\\| *", "|", paste(deparse(x), collapse = " ")), ")"), character(1))
 }
 
 build_model_formula <- function(dv, fixed_terms, random_terms) {
@@ -515,15 +263,8 @@ coerce_model_factors <- function(df, vars, dv) {
 }
 
 build_lmer_control <- function(optimizer, maxfun) {
-  if (!requireNamespace("lme4", quietly = TRUE)) return(NULL)
-  if (is.null(optimizer) || !nzchar(optimizer)) {
-    if (is.null(maxfun) || is.na(maxfun)) return(lme4::lmerControl())
-    return(lme4::lmerControl(optCtrl = list(maxfun = maxfun)))
-  }
-  if (is.null(maxfun) || is.na(maxfun)) {
-    return(lme4::lmerControl(optimizer = optimizer))
-  }
-  lme4::lmerControl(optimizer = optimizer, optCtrl = list(maxfun = maxfun))
+  option <- if (optimizer == "nloptwrap") "maxeval" else if (optimizer %in% c("optim", "optimx")) "maxit" else "maxfun"
+  lme4::lmerControl(optimizer = optimizer, optCtrl = setNames(list(maxfun), option))
 }
 
 get_coef_column <- function(mat, names) {
@@ -632,7 +373,8 @@ extract_random_effects <- function(fit) {
       }
     }
   }
-  if (length(rows) == 0) return(data.frame())
+  rows[[length(rows) + 1L]] <- data.frame(group = "Residual", term = "Residual",
+    variance = sigma(fit)^2, stddev = sigma(fit), corr = NA_real_)
   do.call(rbind, rows)
 }
 
@@ -643,132 +385,75 @@ extract_fit_stats <- function(fit) {
     bic = suppressWarnings(BIC(fit)),
     logLik = suppressWarnings(as.numeric(logLik(fit))),
     deviance = suppressWarnings(deviance(fit)),
+    criterion = if (lme4::isREML(fit)) "REML criterion (legacy deviance field)" else "ML deviance",
+    reml = lme4::isREML(fit),
     stringsAsFactors = FALSE
   )
 }
 
 extract_r2_df <- function(fit) {
-  if (!requireNamespace("performance", quietly = TRUE)) return(data.frame())
-  res <- tryCatch(performance::r2(fit), error = function(e) NULL)
-  if (is.null(res)) return(data.frame())
-  data.frame(
-    r2_marginal = res$R2_marginal,
-    r2_conditional = res$R2_conditional,
-    stringsAsFactors = FALSE
-  )
+  res <- tryCatch(performance::r2(fit), error = function(e) { warning("R-squared unavailable: ", conditionMessage(e)); NULL })
+  val <- function(key) if (is.list(res) && length(res[[key]])) as.numeric(res[[key]][1]) else NA_real_
+  out <- data.frame(r2_marginal = val("R2_marginal"), r2_conditional = val("R2_conditional"))
+  out$status <- ifelse(is.finite(out$r2_marginal) & is.finite(out$r2_conditional), "available", "unavailable_or_partial")
+  out$reason <- if (out$status == "available") "" else "performance did not return both estimable R-squared components (for example, singular random effects)."
+  out
 }
 
 extract_icc_df <- function(fit) {
-  if (!requireNamespace("performance", quietly = TRUE)) return(data.frame())
-  res <- tryCatch(performance::icc(fit), error = function(e) NULL)
-  if (is.null(res)) return(data.frame())
-  icc_val <- resolve_icc_value(res)
-  if (is.na(icc_val)) return(data.frame())
-  data.frame(
-    icc = icc_val,
-    stringsAsFactors = FALSE
-  )
-}
-
-resolve_icc_value <- function(res) {
-  if (!(is.data.frame(res) || is.list(res))) return(NA_real_)
-  keys <- names(res)
-  if (is.null(keys) || length(keys) == 0) return(NA_real_)
-  preferred <- c("ICC", "ICC_adjusted", "ICC_unadjusted", "ICC_conditional", "ICC_marginal")
-  for (key in preferred) {
-    if (key %in% keys) {
-      val <- res[[key]]
-      if (length(val) > 0) return(as.numeric(val[1]))
-    }
-  }
-  for (key in keys) {
-    if (grepl("^ICC", key, ignore.case = TRUE)) {
-      val <- res[[key]]
-      if (length(val) > 0) return(as.numeric(val[1]))
-    }
-  }
-  for (key in keys) {
-    val <- suppressWarnings(as.numeric(res[[key]]))
-    if (length(val) > 0 && !all(is.na(val))) return(val[1])
-  }
-  NA_real_
+  res <- tryCatch(performance::icc(fit), error = function(e) { warning("ICC unavailable: ", conditionMessage(e)); NULL })
+  val <- function(key) if (is.list(res) && length(res[[key]])) as.numeric(res[[key]][1]) else NA_real_
+  adjusted <- val("ICC_adjusted")
+  data.frame(icc = adjusted, icc_adjusted = adjusted, icc_unadjusted = val("ICC_unadjusted"),
+    status = if (is.finite(adjusted)) "available" else "unavailable",
+    reason = if (is.finite(adjusted)) "" else "performance did not return an estimable adjusted ICC (for example, singular random effects).")
 }
 
 build_anova_df <- function(fit, type, df_method, has_lmerTest) {
-  out <- NULL
-  used_type <- type
-  fallback_used <- FALSE
-  if (type == "I") {
-    out <- tryCatch(stats::anova(fit), error = function(e) NULL)
-  } else if (has_lmerTest && df_method != "none") {
-    type_val <- ifelse(type == "III", 3, 2)
-    ddf_label <- if (df_method == "kenward-roger") "Kenward-Roger" else "Satterthwaite"
-    out <- tryCatch(stats::anova(fit, type = type_val, ddf = ddf_label), error = function(e) NULL)
+  if (df_method != "none") {
+    ddf <- if (df_method == "kenward-roger") "Kenward-Roger" else "Satterthwaite"
+    out <- stats::anova(fit, type = match(type, c("I", "II", "III")), ddf = ddf)
+    method <- paste("lmerTest F", ddf)
+  } else if (type == "I") {
+    out <- stats::anova(fit)
+    method <- "lme4 sequential F without denominator df or p-values"
+  } else {
+    out <- car::Anova(fit, type = type, test.statistic = "Chisq")
+    method <- "car Wald chi-squared"
   }
-  if (is.null(out) && requireNamespace("car", quietly = TRUE)) {
-    out <- tryCatch(car::Anova(fit, type = type), error = function(e) NULL)
-  }
-  if (is.null(out)) {
-    out <- tryCatch(stats::anova(fit), error = function(e) NULL)
-    if (!is.null(out) && type != "I") {
-      fallback_used <- TRUE
-      used_type <- "I"
-    }
-  }
-  if (is.null(out)) return(data.frame())
   df <- as.data.frame(out)
   df$term <- rownames(df)
   rownames(df) <- NULL
-  attr(df, "type_used") <- used_type
-  attr(df, "fallback_used") <- fallback_used
+  attr(df, "type_used") <- type
+  attr(df, "method") <- method
   df
 }
 
-build_diagnostics <- function(fit, max_shapiro_n) {
-  rows <- list()
-  is_singular <- tryCatch(lme4::isSingular(fit), error = function(e) NA)
-  rows[[length(rows) + 1]] <- data.frame(
-    metric = "singular_fit",
-    value = ifelse(is.na(is_singular), "", ifelse(isTRUE(is_singular), "TRUE", "FALSE")),
-    statistic = NA_real_,
-    p = NA_real_,
-    note = "",
-    stringsAsFactors = FALSE
-  )
-
-  conv_note <- ""
-  conv_msgs <- tryCatch(fit@optinfo$conv$lme4$messages, error = function(e) NULL)
-  if (!is.null(conv_msgs) && length(conv_msgs) > 0) {
-    conv_note <- paste(conv_msgs, collapse = "; ")
+build_diagnostics <- function(fit, max_shapiro_n, residual_checks = TRUE) {
+  singular <- lme4::isSingular(fit)
+  opt_code <- suppressWarnings(as.numeric(unlist(fit@optinfo$conv$opt)))
+  code_available <- length(opt_code) > 0L && all(is.finite(opt_code))
+  messages <- unique(c(unlist(fit@optinfo$conv$lme4$messages), unlist(fit@optinfo$warnings)))
+  # lme4 also sends singular-boundary messages through its convergence channel:
+  # retain them, but distinguish that diagnosis from optimizer convergence.
+  convergence_messages <- messages[!grepl("boundary .*singular", messages, ignore.case = TRUE)]
+  conv_note <- paste(c(if (!code_available) "Optimizer convergence code unavailable." else
+      if (any(opt_code != 0)) paste("Optimizer convergence code:", paste(opt_code, collapse = ", ")),
+    convergence_messages), collapse = "; ")
+  rows <- data.frame(metric = c("singular_fit", "convergence"), value = c(as.character(singular),
+    if (!code_available) "unavailable" else if (nzchar(conv_note)) "warning" else "ok"), statistic = NA_real_, p = NA_real_,
+    note = c(if (singular) "Random-effects covariance is on or near its boundary; inferential reliability needs review." else "", conv_note))
+  if (residual_checks) {
+    residual <- residuals(fit)
+    eligible <- length(residual) >= 3L && length(residual) <= min(max_shapiro_n, 5000L) && length(unique(residual)) > 1L
+    test <- if (eligible) tryCatch(shapiro.test(residual), error = function(e) NULL) else NULL
+    rows <- rbind(rows, data.frame(metric = "shapiro_wilk", value = if (is.null(test)) "unavailable" else "available",
+      statistic = if (is.null(test)) NA_real_ else unname(test$statistic),
+      p = if (is.null(test)) NA_real_ else test$p.value,
+      note = if (is.null(test)) "Shapiro-Wilk requires 3 to min(max-shapiro-n, 5000) nonconstant residuals." else
+        "Conditional residual normality screen; does not test random-effect normality or independent residuals."))
   }
-  rows[[length(rows) + 1]] <- data.frame(
-    metric = "convergence",
-    value = ifelse(nzchar(conv_note), "warning", "ok"),
-    statistic = NA_real_,
-    p = NA_real_,
-    note = conv_note,
-    stringsAsFactors = FALSE
-  )
-
-  resid_vals <- tryCatch(residuals(fit), error = function(e) NULL)
-  if (!is.null(resid_vals)) {
-    n <- length(resid_vals)
-    if (n > 2 && n <= max_shapiro_n) {
-      shap <- tryCatch(shapiro.test(resid_vals), error = function(e) NULL)
-      if (!is.null(shap)) {
-        rows[[length(rows) + 1]] <- data.frame(
-          metric = "shapiro_wilk",
-          value = "",
-          statistic = unname(shap$statistic),
-          p = shap$p.value,
-          note = "",
-          stringsAsFactors = FALSE
-        )
-      }
-    }
-  }
-
-  do.call(rbind, rows)
+  rows
 }
 
 build_fixed_effects_table_body <- function(fixed_df, digits, table_meta) {
@@ -786,7 +471,7 @@ build_fixed_effects_table_body <- function(fixed_df, digits, table_meta) {
     list(key = "ci_high", label = "CI high", drop_if_empty = TRUE),
     list(key = "std_beta", label = "beta", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  columns <- normalize_table_columns(table_meta$columns, default_specs)
   show_model <- length(unique(display$model)) > 1
   rows <- list()
   for (i in seq_len(nrow(display))) {
@@ -804,15 +489,15 @@ build_fixed_effects_table_body <- function(fixed_df, digits, table_meta) {
       std_beta = format_stat(row$std_beta, digits)
     )
     row_vals <- vapply(columns, function(col) {
-      resolve_as_cell_text(row_map[[col$key]])
+      as_cell_text(row_map[[col$key]])
     }, character(1))
     rows[[length(rows) + 1]] <- row_vals
   }
-  drop_result <- resolve_drop_empty_columns(columns, rows)
+  drop_result <- drop_empty_columns(columns, rows)
   columns <- drop_result$columns
   rows <- drop_result$rows
   headers <- vapply(columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, rows)
+  body <- render_markdown_table(headers, rows)
   list(body = body, columns = columns)
 }
 
@@ -850,7 +535,7 @@ build_mixed_anova_table_body <- function(anova_df, digits, table_meta) {
     list(key = "chisq", label = "Chi²", drop_if_empty = TRUE),
     list(key = "p", label = "p", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  columns <- normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
@@ -867,15 +552,15 @@ build_mixed_anova_table_body <- function(anova_df, digits, table_meta) {
       p = format_p(if (!is.null(cols$p)) row[[cols$p]] else NA_real_)
     )
     row_vals <- vapply(columns, function(col) {
-      resolve_as_cell_text(row_map[[col$key]])
+      as_cell_text(row_map[[col$key]])
     }, character(1))
     rows[[length(rows) + 1]] <- row_vals
   }
-  drop_result <- resolve_drop_empty_columns(columns, rows)
+  drop_result <- drop_empty_columns(columns, rows)
   columns <- drop_result$columns
   rows <- drop_result$rows
   headers <- vapply(columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, rows)
+  body <- render_markdown_table(headers, rows)
   list(body = body, columns = columns)
 }
 
@@ -940,22 +625,10 @@ build_mixed_anova_narrative_rows <- function(anova_df, digits) {
   rows
 }
 
-build_mixed_models_anova_note_tokens <- function(type, df_method_used, fallback_used = FALSE) {
-  notes <- character(0)
-  type_label <- type
-  if (fallback_used) {
-    type_label <- "I (fallback)"
-  }
-  if (nzchar(type_label)) {
-    notes <- c(notes, paste0("Type ", type_label, " tests of fixed effects."))
-  }
-  if (!is.null(df_method_used) && df_method_used != "none") {
-    notes <- c(notes, paste0("df method: ", df_method_used, "."))
-  }
-  if (fallback_used) {
-    notes <- c(notes, "Fallback used because Type II/III tests were unavailable.")
-  }
-  list(note_default = paste(notes, collapse = " "))
+build_mixed_models_anova_note_tokens <- function(type, df_method_used, method) {
+  list(note_default = paste0("Type ", type, " tests of fixed effects. Method: ", method,
+    ". Factor coding is preserved in the request; Type III hypotheses must be interpreted with that coding.",
+    if (df_method_used == "none" && type == "I") " No denominator df or p-values are supplied by this sequential lme4 table." else ""))
 }
 
 build_emmeans_table_body <- function(emmeans_df, digits, table_meta) {
@@ -975,9 +648,10 @@ build_emmeans_table_body <- function(emmeans_df, digits, table_meta) {
     list(key = "p_adj", label = "p_adj", drop_if_empty = TRUE),
     list(key = "ci_low", label = "CI low", drop_if_empty = TRUE),
     list(key = "ci_high", label = "CI high", drop_if_empty = TRUE),
-    list(key = "method", label = "Method", drop_if_empty = TRUE)
+    list(key = "method", label = "Method", drop_if_empty = TRUE),
+    list(key = "status", label = "Status", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(table_meta$columns, default_specs)
+  columns <- normalize_table_columns(table_meta$columns, default_specs)
   rows <- list()
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
@@ -994,18 +668,19 @@ build_emmeans_table_body <- function(emmeans_df, digits, table_meta) {
       p_adj = format_p(row$p_adj),
       ci_low = format_stat(row$ci_low, digits),
       ci_high = format_stat(row$ci_high, digits),
-      method = row$method
+      method = row$method,
+      status = row$status
     )
     row_vals <- vapply(columns, function(col) {
-      resolve_as_cell_text(row_map[[col$key]])
+      as_cell_text(row_map[[col$key]])
     }, character(1))
     rows[[length(rows) + 1]] <- row_vals
   }
-  drop_result <- resolve_drop_empty_columns(columns, rows)
+  drop_result <- drop_empty_columns(columns, rows)
   columns <- drop_result$columns
   rows <- drop_result$rows
   headers <- vapply(columns, function(col) col$label, character(1))
-  body <- resolve_render_markdown_table(headers, rows)
+  body <- render_markdown_table(headers, rows)
   list(body = body, columns = columns)
 }
 
@@ -1016,7 +691,7 @@ build_fixed_effects_narrative_rows <- function(fixed_df, digits) {
   if (nrow(display) == 0) return(rows)
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
-    if (row$term == "(Intercept)") next
+    if (row$term == "(Intercept)" || !is.finite(row$estimate)) next
     term_label <- row$term_display
     b_text <- format_stat(row$estimate, digits)
     se_text <- format_stat(row$se, digits)
@@ -1087,7 +762,8 @@ build_emmeans_narrative_rows <- function(emmeans_df, digits) {
     if (nzchar(ci_text)) {
       sentence <- paste0(sentence, ", CI ", ci_text)
     }
-    sentence <- paste0(sentence, ".")
+    sentence <- if (is.finite(estimate)) paste0(sentence, ".") else
+      paste0(label, ": unavailable (non-estimable marginal mean or contrast); the planned row is retained.")
     rows[[length(rows) + 1]] <- list(
       full_sentence = sentence,
       term = row$term,
@@ -1194,90 +870,110 @@ build_emmeans_note_tokens <- function(conf_level, contrast_label, p_adjust, cont
   list(note_default = paste(notes, collapse = " "))
 }
 
-summarize_emmeans <- function(emm, conf_level) {
-  summary(emm, infer = c(TRUE, TRUE), level = conf_level)
+mixed_summary_value <- function(x, keys) {
+  for (key in keys) if (key %in% names(x)) return(as.numeric(x[[key]]))
+  rep(NA_real_, nrow(x))
 }
 
-build_emmeans_rows <- function(emm_summary, term_label) {
-  base_cols <- c("emmean", "SE", "df", "lower.CL", "upper.CL", "t.ratio", "p.value")
-  factor_cols <- setdiff(names(emm_summary), base_cols)
-  level <- ""
-  if (length(factor_cols) > 0) {
-    level <- apply(emm_summary[, factor_cols, drop = FALSE], 1, function(row) {
-      paste(paste0(factor_cols, "=", row), collapse = ", ")
-    })
-  }
-  data.frame(
-    term = term_label,
-    level = level,
-    contrast = "",
-    emmean = emm_summary$emmean,
-    estimate = NA_real_,
-    se = emm_summary$SE,
-    df = emm_summary$df,
-    t = emm_summary$t.ratio,
-    p = emm_summary$p.value,
-    p_adj = NA_real_,
-    ci_low = emm_summary$lower.CL,
-    ci_high = emm_summary$upper.CL,
-    method = "emmeans",
-    stringsAsFactors = FALSE
-  )
+build_emmeans_rows <- function(emm_summary, term_label, grid_names) {
+  columns <- intersect(grid_names, names(emm_summary))
+  level <- if (length(columns)) apply(emm_summary[, columns, drop = FALSE], 1, function(row)
+    paste(paste0(columns, "=", row), collapse = ", ")) else rep("", nrow(emm_summary))
+  data.frame(term = term_label, level = level, contrast = "", emmean = emm_summary$emmean, estimate = NA_real_,
+    se = emm_summary$SE, df = emm_summary$df, t = mixed_summary_value(emm_summary, c("t.ratio", "z.ratio")),
+    p = mixed_summary_value(emm_summary, "p.value"), p_adj = NA_real_,
+    ci_low = mixed_summary_value(emm_summary, c("lower.CL", "asymp.LCL")),
+    ci_high = mixed_summary_value(emm_summary, c("upper.CL", "asymp.UCL")), method = "emmeans",
+    p_adjust_requested = "none", p_adjust_effective = attr(emm_summary, "adjust"),
+    status = ifelse(is.finite(emm_summary$emmean), "available", "unavailable"), stringsAsFactors = FALSE)
 }
 
 build_contrasts_rows <- function(contrast_summary, term_label, p_adjust, method_label) {
-  p_adj_vals <- ifelse(p_adjust != "none", contrast_summary$p.value, NA_real_)
-  p_vals <- ifelse(p_adjust == "none", contrast_summary$p.value, NA_real_)
-  method <- if (!is.null(method_label) && nzchar(method_label)) method_label else p_adjust
-  data.frame(
-    term = term_label,
-    level = "",
-    contrast = contrast_summary$contrast,
-    emmean = NA_real_,
-    estimate = contrast_summary$estimate,
-    se = contrast_summary$SE,
-    df = contrast_summary$df,
-    t = contrast_summary$t.ratio,
-    p = p_vals,
-    p_adj = p_adj_vals,
-    ci_low = contrast_summary$lower.CL,
-    ci_high = contrast_summary$upper.CL,
-    method = method,
-    stringsAsFactors = FALSE
-  )
+  effective <- attr(contrast_summary, "adjust")
+  data.frame(term = term_label, level = "", contrast = contrast_summary$contrast, emmean = NA_real_,
+    estimate = contrast_summary$estimate, se = contrast_summary$SE, df = contrast_summary$df,
+    t = mixed_summary_value(contrast_summary, c("t.ratio", "z.ratio")),
+    p = if (effective == "none") contrast_summary$p.value else rep(NA_real_, nrow(contrast_summary)),
+    p_adj = if (effective != "none") contrast_summary$p.value else rep(NA_real_, nrow(contrast_summary)),
+    ci_low = mixed_summary_value(contrast_summary, c("lower.CL", "asymp.LCL")),
+    ci_high = mixed_summary_value(contrast_summary, c("upper.CL", "asymp.UCL")), method = method_label,
+    p_adjust_requested = p_adjust, p_adjust_effective = effective,
+    status = ifelse(is.finite(contrast_summary$estimate), "available", "unavailable"), stringsAsFactors = FALSE)
+}
+
+mixed_value_hex <- function(value) paste(sprintf("%02x", as.integer(charToRaw(enc2utf8(as.character(value))))), collapse = "")
+
+mixed_frame_contract <- function(frame) lapply(frame, function(x) list(
+  class = class(x), values = if (is.factor(x)) as.character(x) else unname(x),
+  levels = if (is.factor(x)) levels(x) else NULL,
+  columns = if (is.matrix(x)) colnames(x) else NULL))
+
+
+mixed_group_identity <- function(formula, data) {
+  group_vars <- unique(unlist(lapply(reformulas::findbars(formula), function(bar) all.vars(bar[[3]]))))
+  aliases <- list()
+  for (name in group_vars) {
+    raw <- data[[name]]
+    if (!is.numeric(raw)) next
+    values <- sort(unique(raw[!is.na(raw)]))
+    if (length(levels(factor(raw))) == length(values)) next
+    alias <- ".nlss_group_identity"
+    while (alias %in% names(data)) alias <- paste0(alias, "_")
+    labels <- sprintf("%.17g", values)
+    if (anyDuplicated(labels)) labels <- paste0(labels, " [", seq_along(labels), "]")
+    data[[alias]] <- factor(match(raw, values), levels = seq_along(values), labels = labels)
+    aliases[[name]] <- alias
+  }
+  substitute_group <- function(node) {
+    if (is.symbol(node) && as.character(node) %in% names(aliases)) return(as.name(aliases[[as.character(node)]]))
+    if (is.call(node)) for (i in seq_along(node)[-1L]) node[[i]] <- substitute_group(node[[i]])
+    node
+  }
+  walk <- function(node) {
+    if (!is.call(node)) return(node)
+    if (is.symbol(node[[1]]) && as.character(node[[1]]) %in% c("|", "||")) node[[3]] <- substitute_group(node[[3]]) else
+      for (i in seq_along(node)[-1L]) node[[i]] <- walk(node[[i]])
+    node
+  }
+  formula[[3]] <- walk(formula[[3]])
+  list(formula = formula, data = data, aliases = aliases)
 }
 
 main <- function() {
-  args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
+  opts <- nlss_run_options(commandArgs(trailingOnly = TRUE), "mixed_models")
 
   if (!is.null(opts$help)) {
     print_usage()
-    quit(status = 0)
+    return(invisible(NULL))
   }
 
-  if (!is.null(opts$interactive)) {
+  if (parse_bool(opts$interactive, FALSE)) {
     opts <- modifyList(opts, interactive_options())
   }
 
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  reml_default <- resolve_config_value("modules.mixed_models.reml", TRUE)
-  type_default <- resolve_config_value("modules.mixed_models.type", "III")
-  df_method_default <- resolve_config_value("modules.mixed_models.df_method", "satterthwaite")
-  standardize_default <- resolve_config_value("modules.mixed_models.standardize", "none")
-  emmeans_default <- resolve_config_value("modules.mixed_models.emmeans", "none")
-  contrasts_default <- resolve_config_value("modules.mixed_models.contrasts", "none")
-  p_adjust_default <- resolve_config_value("modules.mixed_models.p_adjust", "holm")
-  conf_default <- resolve_config_value("modules.mixed_models.conf_level", 0.95)
-  optimizer_default <- resolve_config_value("modules.mixed_models.optimizer", "bobyqa")
-  maxfun_default <- resolve_config_value("modules.mixed_models.maxfun", 100000)
-  diagnostics_default <- resolve_config_value("modules.mixed_models.diagnostics", TRUE)
-  max_shapiro_n_default <- resolve_config_value("modules.mixed_models.max_shapiro_n", 5000)
+  digits_default <- get_config_value("defaults.digits")
+  log_default <- get_config_value("defaults.log")
+  reml_default <- get_config_value("modules.mixed_models.reml")
+  type_default <- get_config_value("modules.mixed_models.type")
+  df_method_default <- get_config_value("modules.mixed_models.df_method")
+  standardize_default <- get_config_value("modules.mixed_models.standardize")
+  emmeans_default <- get_config_value("modules.mixed_models.emmeans")
+  contrasts_default <- get_config_value("modules.mixed_models.contrasts")
+  p_adjust_default <- get_config_value("modules.mixed_models.p_adjust")
+  conf_default <- get_config_value("modules.mixed_models.conf_level")
+  optimizer_default <- get_config_value("modules.mixed_models.optimizer")
+  maxfun_default <- get_config_value("modules.mixed_models.maxfun")
+  diagnostics_default <- get_config_value("modules.mixed_models.diagnostics")
+  max_shapiro_n_default <- get_config_value("modules.mixed_models.max_shapiro_n")
 
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  df <- resolve_load_dataframe(opts)
-  out_dir <- resolve_get_workspace_out_dir(df)
+  df <- nlss_load_input(opts)
+  out_dir <- get_workspace_out_dir(df)
+  nlss_begin_run("mixed_models", df, opts, out_dir)
+  emit_input_issue <- function(out_dir, opts, message, details = list(), status = "invalid_input") {
+    nlss_run_context$request$validation_issue <- list(message = message, details = details, status = status)
+    stop(message)
+  }
 
   if (!requireNamespace("lme4", quietly = TRUE)) {
     emit_input_issue(out_dir, opts, "Mixed models require the 'lme4' package.", details = list(package = "lme4"), status = "missing_dependency")
@@ -1295,7 +991,9 @@ main <- function() {
   emmeans_note <- ""
   contrast_file <- if (!is.null(opts$`contrast-file`)) as.character(opts$`contrast-file`) else ""
   contrasts_input <- normalize_contrasts(opts$contrasts, contrasts_default)
-  contrast_spec <- tryCatch(resolve_contrast_spec(contrasts_input, contrast_file), error = function(e) e)
+  contrast_spec <- if (!is.null(nlss_run_context$replay)) nlss_run_context$replay$request$design$contrast_spec else
+    tryCatch(resolve_contrast_spec(contrasts_input, contrast_file), error = function(e) e)
+  if (!is.null(contrast_spec$source)) contrast_spec$source <- basename(contrast_spec$source)
   if (inherits(contrast_spec, "error")) {
     emit_input_issue(out_dir, opts, contrast_spec$message, details = list(contrasts = contrasts_input, contrast_file = contrast_file))
   }
@@ -1314,24 +1012,23 @@ main <- function() {
     }
   }
   contrasts_active <- !is.null(contrast_spec) && contrast_spec$mode != "none"
-  if (!nzchar(emmeans_term)) {
-    contrasts_active <- FALSE
-    contrast_label <- "none"
-  }
-  if (nzchar(emmeans_term) && !has_emmeans) {
-    emmeans_note <- "emmeans requested but the 'emmeans' package is not installed."
-  }
+  if (contrasts_active && !nzchar(emmeans_term)) stop("Contrasts require --emmeans or a term in the contrast JSON.")
+  if (nzchar(emmeans_term) && !has_emmeans) stop("Requested marginal means require the 'emmeans' package.")
   p_adjust <- if (!is.null(opts$`p-adjust`) && nzchar(opts$`p-adjust`)) as.character(opts$`p-adjust`) else p_adjust_default
   conf_level <- normalize_conf_level(opts$`conf-level`, conf_default)
   optimizer <- if (!is.null(opts$optimizer) && nzchar(opts$optimizer)) as.character(opts$optimizer) else optimizer_default
   maxfun <- normalize_maxfun(opts$maxfun, maxfun_default)
-  diagnostics <- resolve_parse_bool(opts$diagnostics, default = diagnostics_default)
+  diagnostics <- parse_bool(opts$diagnostics, default = diagnostics_default)
   max_shapiro_n <- if (!is.null(opts$`max-shapiro-n`)) as.numeric(opts$`max-shapiro-n`) else max_shapiro_n_default
 
+  if (length(digits) != 1L || !is.finite(digits) || digits < 0 || digits > 15 || digits != floor(digits)) stop("digits must be an integer from 0 to 15.")
+  if (length(max_shapiro_n) != 1L || !is.finite(max_shapiro_n) || max_shapiro_n < 3 || max_shapiro_n != floor(max_shapiro_n)) stop("max-shapiro-n must be an integer of at least 3.")
+  if (!p_adjust %in% c(p.adjust.methods, "tukey", "sidak", "mvt", "dunnettx", "scheffe")) stop("Unsupported p-adjust method.")
+  seed <- nlss_run_seed(opts$seed, stochastic = nzchar(emmeans_term))
   formula_text <- if (!is.null(opts$formula) && nzchar(opts$formula)) as.character(opts$formula) else ""
   dv <- if (!is.null(opts$dv) && nzchar(opts$dv)) as.character(opts$dv) else ""
-  fixed_terms <- resolve_parse_list(opts$fixed)
-  random_terms_raw <- resolve_parse_list(opts$random)
+  fixed_terms <- parse_list(opts$fixed)
+  random_terms_raw <- parse_list(opts$random)
   random_terms <- normalize_random_terms(random_terms_raw)
 
   model_formula <- NULL
@@ -1339,10 +1036,9 @@ main <- function() {
     model_formula <- tryCatch(as.formula(formula_text), error = function(e) {
       emit_input_issue(out_dir, opts, paste0("Invalid formula: ", e$message), details = list(formula = formula_text))
     })
+    if (!is.symbol(model_formula[[2]])) stop("LMM response must name one numeric column; prepare transformed responses explicitly.")
     dv <- as.character(model_formula[[2]])
-    if (length(random_terms) == 0) {
-      random_terms <- extract_random_terms_from_formula(formula_text)
-    }
+    random_terms <- extract_random_terms_from_formula(formula_text)
   } else {
     if (!nzchar(dv)) {
       emit_input_issue(out_dir, opts, "Mixed models require --formula or --dv.", details = list(dv = opts$dv))
@@ -1369,8 +1065,19 @@ main <- function() {
   if (!is.numeric(df[[dv]])) {
     emit_input_issue(out_dir, opts, "Dependent variable must be numeric for LMM.", details = list(dv = dv))
   }
+  infinite_vars <- model_vars[vapply(df[model_vars], function(x) is.numeric(x) && any(is.infinite(x)), logical(1))]
+  if (length(infinite_vars)) {
+    emit_input_issue(out_dir, opts, paste0("Selected model variables contain infinite values: ", paste(infinite_vars, collapse = ", ")),
+      details = list(variables = infinite_vars, source_rows = lapply(df[infinite_vars], function(x) which(is.infinite(x)))))
+  }
 
+  source_classes <- lapply(df[model_vars], class)
   df <- coerce_model_factors(df, model_vars, dv)
+  requested_formula <- model_formula
+  identities <- mixed_group_identity(model_formula, df)
+  model_formula <- identities$formula
+  df <- identities$data
+  rownames(df) <- as.character(seq_len(nrow(df)))
   complete_idx <- get_complete_rows(df[, model_vars, drop = FALSE])
   data_model <- df[complete_idx, , drop = FALSE]
   if (nrow(data_model) == 0) {
@@ -1380,16 +1087,18 @@ main <- function() {
 
   has_lmerTest <- requireNamespace("lmerTest", quietly = TRUE)
   df_method_used <- df_method
-  if (df_method != "none" && !has_lmerTest) {
-    df_method_used <- "none"
-  }
+  if (df_method != "none" && !has_lmerTest) stop("Requested df-method requires the 'lmerTest' package.")
+  if (df_method == "kenward-roger" && !requireNamespace("pbkrtest", quietly = TRUE)) stop("Kenward-Roger inference requires the 'pbkrtest' package.")
+  if (df_method == "kenward-roger" && !reml) stop("Kenward-Roger inference requires REML; request --reml TRUE or another df-method.")
+  if (df_method == "none" && type != "I" && !requireNamespace("car", quietly = TRUE)) stop("Type II/III Wald tests with df-method none require 'car'.")
+  if (length(unique(data_model[[dv]])) < 2L) stop("LMM response must vary across retained observations.")
 
   control <- build_lmer_control(optimizer, maxfun)
   fit <- tryCatch({
     if (df_method_used != "none" && has_lmerTest) {
-      lmerTest::lmer(model_formula, data = data_model, REML = reml, control = control)
+      lmerTest::lmer(model_formula, data = data_model, REML = reml, control = control, na.action = na.omit)
     } else {
-      lme4::lmer(model_formula, data = data_model, REML = reml, control = control)
+      lme4::lmer(model_formula, data = data_model, REML = reml, control = control, na.action = na.omit)
     }
   }, error = function(e) e)
 
@@ -1397,6 +1106,13 @@ main <- function() {
     emit_input_issue(out_dir, opts, paste0("Model fit failed: ", fit$message), status = "fit_failed")
   }
 
+  frame <- model.frame(fit)
+  if (any(!get_complete_rows(frame))) stop("Fitted model frame contains non-finite transformed values.")
+  included_rows <- as.integer(rownames(frame))
+  data_model <- droplevels(df[included_rows, , drop = FALSE])
+  if (length(unique(model.response(frame))) < 2L || !is.finite(sigma(fit)) || sigma(fit) <= 0)
+    stop("LMM requires a varying response and positive finite residual standard deviation.")
+  if (any(!is.finite(lme4::fixef(fit)))) stop("LMM fixed effects are not finite.")
   summary_obj <- if (df_method_used != "none" && has_lmerTest) {
     ddf_label <- if (df_method_used == "kenward-roger") "Kenward-Roger" else "Satterthwaite"
     summary(fit, ddf = ddf_label)
@@ -1414,14 +1130,115 @@ main <- function() {
   fit_df <- extract_fit_stats(fit)
   r2_df <- extract_r2_df(fit)
   icc_df <- extract_icc_df(fit)
-  diagnostics_df <- if (diagnostics) build_diagnostics(fit, max_shapiro_n) else data.frame()
+  diagnostics_df <- build_diagnostics(fit, max_shapiro_n, residual_checks = diagnostics)
   anova_df <- build_anova_df(fit, type, df_method_used, has_lmerTest)
   anova_type_used <- attr(anova_df, "type_used")
   if (is.null(anova_type_used) || !nzchar(anova_type_used)) {
     anova_type_used <- type
   }
-  anova_fallback_used <- isTRUE(attr(anova_df, "fallback_used"))
+  anova_method <- attr(anova_df, "method")
 
+  emmeans_df <- data.frame()
+  contrasts_df <- data.frame()
+  contrast_adjustment <- NULL
+  emmeans_messages <- character()
+  emmeans_grid <- NULL
+  contrast_method <- NULL
+  emmeans_df_method <- if (df_method == "none") "asymptotic" else df_method
+  if (nzchar(emmeans_term)) {
+    # Do not let emmeans' default KR method or size limit silently replace the
+    # requested inference. Its own selected method is checked and recorded.
+    emm <- emmeans::emmeans(fit, specs = as.formula(paste("~", emmeans_term)),
+      lmer.df = emmeans_df_method, lmerTest.limit = Inf, pbkrtest.limit = Inf,
+      disable.lmerTest = FALSE, disable.pbkrtest = FALSE)
+    actual_df_method <- attr(emm@dffun, "mesg")
+    if (!identical(actual_df_method, emmeans_df_method))
+      stop("emmeans could not honor requested df method: ", emmeans_df_method, " (effective: ", actual_df_method, ").")
+    emm_summary <- summary(emm, infer = c(TRUE, TRUE), level = conf_level, adjust = "none")
+    emmeans_grid <- as.data.frame(emm@grid)
+    emmeans_df <- build_emmeans_rows(emm_summary, emmeans_term, setdiff(names(emm@grid), ".wgt."))
+    emmeans_messages <- unique(attr(emm_summary, "mesg"))
+    if (contrasts_active) {
+      contrast_method <- build_contrast_method(contrast_spec, emm, emmeans_term)
+      if (is.list(contrast_method$method) && any(!is.finite(unlist(contrast_method$method))))
+        stop("Custom contrast weights must all be finite.")
+      cont <- do.call(emmeans::contrast, c(list(emm, method = contrast_method$method), contrast_method$args))
+      cont_summary <- summary(cont, infer = c(TRUE, TRUE), adjust = p_adjust, level = conf_level)
+      contrasts_df <- build_contrasts_rows(cont_summary, emmeans_term, p_adjust, contrast_label)
+      contrast_adjustment <- list(requested = p_adjust, effective = attr(cont_summary, "adjust"),
+        messages = attr(cont_summary, "mesg"), family_size = nrow(cont_summary))
+      emmeans_messages <- unique(c(emmeans_messages, attr(cont_summary, "mesg")))
+    }
+  }
+
+  emmeans_df <- add_term_label_column(emmeans_df, label_meta, term_col = "term")
+  emmeans_df <- add_value_label_column(emmeans_df, label_meta, var_col = "term", value_col = "level")
+  contrasts_df <- add_term_label_column(contrasts_df, label_meta, term_col = "term")
+  contrasts_df <- add_value_label_column(contrasts_df, label_meta, var_col = "term", value_col = "level")
+
+  x <- lme4::getME(fit, "X")
+  dropped <- attr(x, "col.dropped")
+  if (length(dropped)) {
+    absent <- fixed_df[rep(1L, length(dropped)), , drop = FALSE]
+    absent[] <- lapply(absent, function(col) if (is.numeric(col)) rep(NA_real_, length(dropped)) else rep("", length(dropped)))
+    absent$term <- names(dropped)
+    absent$term_label <- names(dropped)
+    absent$model <- "Model 1"
+    fixed_df <- rbind(fixed_df, absent)
+  }
+  fixed_df$status <- ifelse(is.finite(fixed_df$estimate), "available", "unavailable")
+  fixed_df$reason <- ifelse(fixed_df$status == "available", "", "Dropped non-estimable fixed-effect column.")
+  fixed_df$ci_method <- if (df_method == "none") "normal Wald" else paste("t Wald", df_method)
+  groups <- lme4::getME(fit, "flist")
+  design <- list(formula = paste(deparse(requested_formula), collapse = " "),
+    effective_formula = paste(deparse(model_formula), collapse = " "),
+    grouping_aliases = identities$aliases,
+    fixed_formula = paste(deparse(reformulas::nobars(model_formula)), collapse = " "),
+    random_terms = random_terms, model_variables = model_vars, response = dv,
+    included_rows = included_rows, excluded_rows = setdiff(seq_len(nrow(df)), included_rows),
+    raw_complete_rows = which(complete_idx), transformed_excluded_rows = setdiff(which(complete_idx), included_rows),
+    missing = "joint complete finite source cases, then model-frame NA omission after transformations",
+    source_classes = source_classes, analysis_classes = lapply(data_model[model_vars], class),
+    coercion = "Numeric codes retain numeric roles; nonnumeric model predictors become factors; grouping factors use lme4's actual fitted assignments.",
+    model_frame = mixed_frame_contract(frame),
+    grouping = lapply(names(groups), function(name) {
+      group <- groups[[name]]
+      list(name = name, row_group_ids = as.integer(group), levels = lapply(seq_along(levels(group)), function(i)
+        list(level_id = i, label = levels(group)[i], value_hex = mixed_value_hex(levels(group)[i]),
+          source_rows = included_rows[as.integer(group) == i])))
+    }),
+    factor_levels = lapply(data_model[model_vars[vapply(data_model[model_vars], is.factor, logical(1))]], levels),
+    factor_contrasts = attr(x, "contrasts"),
+    model_matrix = list(columns = colnames(x), rank = qr(x)$rank, dropped = as.list(dropped)),
+    inference = list(type_requested = type, type_effective = anova_type_used, omnibus_method = anova_method,
+      df_requested = df_method, df_effective = df_method_used,
+      fixed_ci = if (df_method == "none") "normal Wald; fixed-effect p and denominator df unavailable" else paste("t Wald", df_method),
+      emmeans_df = if (nzchar(emmeans_term)) emmeans_df_method else NULL),
+    fit_status = list(reml_requested = reml, reml_effective = lme4::isREML(fit),
+      singular = lme4::isSingular(fit), singular_tolerance = 1e-4,
+      optimizer = fit@optinfo$optimizer, convergence_code = fit@optinfo$conv$opt,
+      optimizer_control = fit@optinfo$control, function_evaluations = fit@optinfo$feval,
+      messages = unique(c(unlist(fit@optinfo$conv$lme4$messages), unlist(fit@optinfo$warnings)))),
+    standardization = list(method = standardize, definition = "descriptive b * SD(x) / SD(y), direct numeric main effects only; no model refit",
+    response_sd = sd(data_model[[dv]]), predictor_sd = lapply(data_model[model_vars], function(x) if (is.numeric(x)) sd(x) else NULL)),
+    contrast_spec = contrast_spec, contrast_method = contrast_method, contrast_adjustment = contrast_adjustment,
+    emmeans_grid = emmeans_grid, emmeans_messages = emmeans_messages)
+  nlss_resolve_request(list(formula = design$formula, reml = reml, type_requested = type,
+    type = anova_type_used, df_method = df_method_used, standardize = standardize,
+    emmeans = emmeans_term, contrasts = contrast_label, p_adjust = p_adjust, conf_level = conf_level,
+    optimizer = optimizer, maxfun = maxfun, diagnostics = diagnostics, max_shapiro_n = max_shapiro_n,
+    seed = seed, digits = digits), design)
+  availability_notes <- c(if (length(dropped)) paste("Non-estimable fixed effects:", paste(names(dropped), collapse = ", ")),
+    if (any(fixed_df$status != "available")) "Unavailable coefficient rows are retained explicitly.",
+    if (nrow(emmeans_df) && any(emmeans_df$status != "available")) "Some requested marginal means are unavailable (non-estimable).",
+    if (nrow(contrasts_df) && any(contrasts_df$status != "available")) "Some requested contrasts are unavailable (non-estimable); planned rows are retained.",
+    if (r2_df$status != "available") r2_df$reason, if (icc_df$status != "available") icc_df$reason,
+    if (df_method == "none") "Fixed-effect intervals use normal Wald critical values; denominator df and fixed-effect p-values are unavailable.")
+  scientific_warnings <- if (length(nlss_run_context$warnings)) unique(vapply(nlss_run_context$warnings, function(x) x$message, character(1))) else character()
+  emmeans_note <- paste(c(paste0("Response: ", resolve_variable_label(label_meta, dv), " [", dv, "]."),
+    paste0("Fit criterion: ", fit_df$criterion, ". REML criteria must not be used to compare different fixed-effect designs."),
+    availability_notes, emmeans_messages,
+    render_paths_for_log(scientific_warnings, workspace_root = nlss_run_context$root)), collapse = " ")
   analysis_flags <- list(
     formula = if (nzchar(formula_text)) formula_text else NULL,
     dv = if (!nzchar(formula_text)) dv else NULL,
@@ -1467,12 +1284,13 @@ main <- function() {
   anova_template_path <- if (!is.null(template_override)) {
     template_override
   } else {
-    resolve_get_template_path("mixed_models.tests", "mixed-models/tests-of-fixed-effects-template.md")
+    resolve_template_path("mixed_models.tests", "mixed-models/tests-of-fixed-effects-template.md")
   }
-  anova_meta <- resolve_get_template_meta(anova_template_path)
+  anova_template_path <- nlss_freeze_template(anova_template_path, "tests")
+  anova_meta <- get_template_meta(anova_template_path)
   anova_table <- build_mixed_anova_table_body(anova_df, digits, anova_meta$table)
   if (nzchar(anova_table$body)) {
-    anova_note_tokens <- build_mixed_models_anova_note_tokens(anova_type_used, df_method_used, anova_fallback_used)
+    anova_note_tokens <- build_mixed_models_anova_note_tokens(anova_type_used, df_method_used, anova_method)
     anova_narrative_rows <- build_mixed_anova_narrative_rows(anova_df, digits)
     anova_text <- ""
     if (length(anova_narrative_rows) > 0) {
@@ -1489,7 +1307,7 @@ main <- function() {
       ),
       narrative_rows = anova_narrative_rows
     )
-    resolve_append_nlss_report(
+    nlss_stage_report(
       nlss_report_path,
       "Mixed Models: Tests of Fixed Effects",
       anova_nlss_table,
@@ -1503,9 +1321,10 @@ main <- function() {
   coef_template_path <- if (!is.null(template_override)) {
     template_override
   } else {
-    resolve_get_template_path("mixed_models.default", "mixed-models/default-template.md")
+    resolve_template_path("mixed_models.default", "mixed-models/default-template.md")
   }
-  coef_template_meta <- resolve_get_template_meta(coef_template_path)
+  coef_template_path <- nlss_freeze_template(coef_template_path, "fixed")
+  coef_template_meta <- get_template_meta(coef_template_path)
   table_result <- build_fixed_effects_table_body(fixed_df, digits, coef_template_meta$table)
   nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
 
@@ -1520,7 +1339,7 @@ main <- function() {
     narrative_rows = narrative_rows
   )
 
-  resolve_append_nlss_report(
+  nlss_stage_report(
     nlss_report_path,
     "Mixed Models: Estimates of Fixed Effects",
     nlss_table,
@@ -1530,41 +1349,28 @@ main <- function() {
     template_context = template_context
   )
 
-  emmeans_df <- data.frame()
-  contrasts_df <- data.frame()
-  emmeans_rows <- data.frame()
 
-  if (nzchar(emmeans_term)) {
-    if (has_emmeans) {
-      specs <- as.formula(paste("~", emmeans_term))
-      emm <- tryCatch(emmeans::emmeans(fit, specs = specs), error = function(e) NULL)
-      if (!is.null(emm)) {
-        emm_summary <- summarize_emmeans(emm, conf_level)
-        emmeans_df <- build_emmeans_rows(emm_summary, emmeans_term)
-        if (contrasts_active) {
-          contrast_method <- tryCatch(build_contrast_method(contrast_spec, emm, emmeans_term), error = function(e) e)
-          if (inherits(contrast_method, "error")) {
-            emit_input_issue(
-              out_dir,
-              opts,
-              contrast_method$message,
-              details = list(contrasts = contrast_label, contrast_file = contrast_file)
-            )
-          }
-          cont <- tryCatch(do.call(emmeans::contrast, c(list(emm, method = contrast_method$method), contrast_method$args)), error = function(e) NULL)
-          if (!is.null(cont)) {
-            cont_summary <- summary(cont, infer = c(TRUE, TRUE), adjust = p_adjust, level = conf_level)
-            contrasts_df <- build_contrasts_rows(cont_summary, emmeans_term, p_adjust, contrast_label)
-          }
-        }
-      }
-    }
-  }
-
-  emmeans_df <- add_term_label_column(emmeans_df, label_meta, term_col = "term")
-  emmeans_df <- add_value_label_column(emmeans_df, label_meta, var_col = "term", value_col = "level")
-  contrasts_df <- add_term_label_column(contrasts_df, label_meta, term_col = "term")
-  contrasts_df <- add_value_label_column(contrasts_df, label_meta, var_col = "term", value_col = "level")
+  variance_rows <- lapply(seq_len(nrow(random_df)), function(i) {
+    row <- random_df[i, ]
+    c(row$group, row$term, format_num(row$variance, digits), format_num(row$stddev, digits), format_stat(row$corr, digits))
+  })
+  variance_table <- render_markdown_table(c("Group", "Term", "Variance", "SD", "Correlation"), variance_rows)
+  nlss_stage_report(nlss_report_path, "Mixed Models: Variance Components",
+    paste0("Table 1\n\n", variance_table),
+    paste0("Estimation: ", if (reml) "REML" else "ML", "; ", nobs(fit), " observations. ",
+      "Adjusted ICC = ", format_stat(icc_df$icc_adjusted, digits),
+      "; unadjusted ICC = ", format_stat(icc_df$icc_unadjusted, digits), ". ",
+      "R-squared and ICC use performance's model-based variance definitions, including random-slope contributions when present."),
+    analysis_flags = analysis_flags)
+  diagnostic_rows <- lapply(seq_len(nrow(diagnostics_df)), function(i) {
+    row <- diagnostics_df[i, ]
+    c(row$metric, row$value, format_stat(row$statistic, digits), format_p(row$p), row$note)
+  })
+  diagnostic_table <- render_markdown_table(c("Diagnostic", "Status", "Statistic", "p", "Note"), diagnostic_rows)
+  nlss_stage_report(nlss_report_path, "Mixed Models: Diagnostics",
+    paste0("Table 1\n\n", diagnostic_table),
+    paste("Singularity and optimizer convergence are always reported; residual checks are",
+      if (diagnostics) "enabled." else "disabled.", emmeans_note), analysis_flags = analysis_flags)
 
   if (nrow(emmeans_df) > 0 && nrow(contrasts_df) > 0) {
     emmeans_rows <- rbind(emmeans_df, contrasts_df)
@@ -1579,11 +1385,12 @@ main <- function() {
     emmeans_template_path <- if (!is.null(template_override)) {
       template_override
     } else {
-      resolve_get_template_path("mixed_models.emmeans", "mixed-models/emmeans-template.md")
+      resolve_template_path("mixed_models.emmeans", "mixed-models/emmeans-template.md")
     }
-    emmeans_meta <- resolve_get_template_meta(emmeans_template_path)
+    emmeans_template_path <- nlss_freeze_template(emmeans_template_path, "emmeans")
+    emmeans_meta <- get_template_meta(emmeans_template_path)
     emmeans_table <- build_emmeans_table_body(emmeans_rows, digits, emmeans_meta$table)
-    emmeans_note_tokens <- build_emmeans_note_tokens(conf_level, format_contrast_label(contrast_spec), p_adjust, contrast_file)
+    emmeans_note_tokens <- build_emmeans_note_tokens(conf_level, format_contrast_label(contrast_spec), if (is.null(contrast_adjustment)) "none" else contrast_adjustment$effective, contrast_file)
     emmeans_narrative_rows <- build_emmeans_narrative_rows(emmeans_rows, digits)
     emmeans_text <- ""
     if (length(emmeans_narrative_rows) > 0) {
@@ -1600,7 +1407,7 @@ main <- function() {
       ),
       narrative_rows = emmeans_narrative_rows
     )
-    resolve_append_nlss_report(
+    nlss_stage_report(
       nlss_report_path,
       "Mixed Models emmeans",
       emmeans_nlss_table,
@@ -1614,28 +1421,23 @@ main <- function() {
   cat("Wrote:\n")
   cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
 
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+  results <- list(fixed_effects_df = fixed_df, random_effects_df = random_df, fit_df = fit_df,
+    r2_df = r2_df, icc_df = icc_df, anova_df = anova_df, emmeans_df = emmeans_df,
+    contrasts_df = contrasts_df, diagnostics_df = diagnostics_df, contrast_adjustment = contrast_adjustment,
+    inference = design$inference, fit_status = design$fit_status)
+  nlss_set_result(results)
+  if (parse_bool(opts$log, log_default)) {
+    ctx <- get_run_context()
+    nlss_stage_log(
       out_dir,
       module = "mixed_models",
       prompt = ctx$prompt,
       commands = ctx$commands,
-      results = list(
-        fixed_effects_df = fixed_df,
-        random_effects_df = random_df,
-        fit_df = fit_df,
-        r2_df = r2_df,
-        icc_df = icc_df,
-        anova_df = anova_df,
-        emmeans_df = emmeans_df,
-        contrasts_df = contrasts_df,
-        diagnostics_df = diagnostics_df
-      ),
+      results = results,
       options = analysis_flags,
-      user_prompt = resolve_get_user_prompt(opts)
+      user_prompt = get_user_prompt(opts)
     )
   }
 }
 
-main()
+nlss_run_main("mixed_models", main)

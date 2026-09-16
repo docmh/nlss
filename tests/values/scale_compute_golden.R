@@ -294,7 +294,8 @@ run_case <- function(df_use, case_name, vars, group_var = NULL, reverse_items = 
     group_vec <- df_case[[group_var]]
     group_levels <- unique(group_vec)
     for (g in group_levels) {
-      idx <- if (is.na(g)) is.na(group_vec) else group_vec == g
+      # Exclude missing grouping values instead of creating phantom NA rows.
+      idx <- if (is.na(g)) is.na(group_vec) else !is.na(group_vec) & group_vec == g
       sub_df <- df_case[idx, , drop = FALSE]
       group_label <- ifelse(is.na(g), "NA", as.character(g))
       items_df <- sub_df[, vars, drop = FALSE]

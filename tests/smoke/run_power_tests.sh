@@ -130,12 +130,7 @@ SAV_PATH="${TMP_BASE}/power_data.sav"
 INTERACTIVE_INPUT="${TMP_BASE}/power_interactive.txt"
 TEMPLATE_PATH="${TMP_BASE}/power_template.md"
 
-CONFIG_BAK="$(mktemp)"
-cp "${CONFIG_PATH}" "${CONFIG_BAK}"
-
 cleanup() {
-  cp "${CONFIG_BAK}" "${CONFIG_PATH}"
-  rm -f "${CONFIG_BAK}"
   rm -f "${WORKSPACE_MANIFEST_PATH}"
 }
 trap cleanup EXIT
@@ -245,7 +240,12 @@ run_expect_log() {
     echo "[FAIL] ${label} (expected failure)" | tee -a "${LOG_FILE}"
     exit 1
   fi
-  check_log "${LOG_PATH}" "${start}" "${status}" "${analysis}" "${mode}" "${metric}" "1"
+  # The migrated boundary preserves successful compatibility projections on
+  # failure; diagnostic information is stderr/failed result.json, not a new
+  # legacy success-shaped JSONL entry.
+  local after
+  after="$(log_count "${LOG_PATH}")"
+  assert_log_unchanged "${start}" "${after}" "${label} protected legacy log"
   echo "[PASS] ${label}" | tee -a "${LOG_FILE}"
 }
 
@@ -359,34 +359,18 @@ printf "%s\n" \
   "TRUE" \
   "ttest" \
   "apriori" \
-  "d" \
-  "0.5" \
-  "0.05" \
-  "0.8" \
+  "auto" \
+  ".05" \
+  ".8" \
   "two.sided" \
   "two-sample" \
   "1" \
-  "0" \
-  "" \
-  "" \
-  "" \
-  "" \
-  "2" \
-  "1" \
-  "" \
-  "0.05" \
-  "0.08" \
   "FALSE" \
-  "" \
-  "" \
-  "" \
-  "" \
-  "" \
-  "" \
-  "" \
-  "2" \
+  ".5" \
+  "Predefined smoke planning effect" \
   "" \
   "interactive power test" \
+  "2" \
   "TRUE" \
   > "${INTERACTIVE_INPUT}"
 

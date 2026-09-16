@@ -8,7 +8,7 @@ license: Apache-2.0
 
 ## Overview
 
-Create a data dictionary-style overview with variable names, inferred measurement levels, missingness, and value levels. Outputs include an NLSS format-ready report and JSONL logging.
+Create a data dictionary-style overview with variable names, inferred measurement levels, missingness, and value levels. Outputs include an NLSS format-ready report and saved run results.
 
 ## Assistant Researcher Model
 
@@ -19,7 +19,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Optionally select variables; default is all columns.
 3. Run `scripts/R/data_explorer.R` with the correct flags.
-4. Use outputs (`report_canonical.md`, `analysis_log.jsonl`) to craft the response.
+4. Use outputs (`report_canonical.md`, `result.json`) to craft the response.
 
 ## Script: `scripts/R/data_explorer.R`
 
@@ -62,19 +62,36 @@ Rscript <path to scripts/R/data_explorer.R> --interactive
 - `--vars` defaults to `modules.data_explorer.vars_default` (typically all columns) if omitted.
 - `--max-levels` controls when level tables are truncated (default: `modules.data_explorer.max_levels`). Categorical variables with more levels are summarized with top `--top-n` levels and an "Other (remaining)" row.
 - `--top-n` controls how many levels to keep when truncating (default: `modules.data_explorer.top_n`).
+- Both level limits must be positive integers; `--digits` must be an integer from 0 through 15. Invalid values fail explicitly rather than being silently truncated.
 - `--digits` controls rounding (default: `defaults.digits`).
 - `--template` selects a template key or file path for NLSS format outputs (falls back to defaults).
-- `--log` toggles JSONL logging (default: `defaults.log`).
-- `--user-prompt` stores the original AI prompt in the JSONL log (optional).
+- `--log` controls optional standalone logging; project run evidence and the root protocol remain enabled (default: `defaults.log`).
+- `--user-prompt` stores the original AI prompt in the saved request, subject to configured prompt-privacy settings.
 
 ## Outputs
 
-Subskills append to `report_canonical.md` and do not create separate report files; standalone `report_<YYYYMMDD>_<metaskill>_<intent>.md` files are created only by metaskills.
+This migrated module appends to `report_canonical.md` and also publishes a
+project-local `.nlss/runs/<run-id>/` bundle with resolved `request.json`, full-precision
+`result.json` and deterministic `output.md`. See the [run contract](../run-contract.md)
+for replay and failure handling. `--log FALSE` disables only optional standalone logging, not
+the run bundle. Standalone semantic research reports remain agent-written.
 
-- Outputs are written to the dataset workspace at `<workspace-root>/<dataset-name>/` (workspace root = current directory, its parent, or a one-level child containing `nlss-workspace.yml`; fallback to `defaults.output_dir` in `scripts/config.yml`; not user-overridable).
+Outputs in a current project follow the [shared run contract](../run-contract.md):
+`.nlss/runs/<run-id>/` holds request/result/output and artifacts; the automatic
+`report_canonical.md` stays at the project root. No additional project JSONL log
+is produced. `--log` affects optional standalone logging, not this evidence.
 
 - `report_canonical.md`: NLSS format report containing analysis type, tables, and narrative text.
-- `analysis_log.jsonl`: Machine-readable results and options (appended per run when logging is enabled).
+- `result.json`: Machine-readable results and options, always retained in the saved run.
+- `result.json` retains `overview_df` and `levels_df`, including actual per-level
+  counts and total/valid percentages. The request records input/dictionary hashes,
+  variable classes, factor levels and that measurement levels are heuristic.
+- `levels_df.level_kind` distinguishes `observed`, `remainder` and `no_valid_data`
+  rows. A remainder row gets a distinct label if a real code/value label already
+  uses `Other (remaining)`; synthetic rows are not assigned a user's value label.
+  `levels_truncated` is false when top N retains every level.
+- Run-local tables always begin at 1 and 2; root protocol numbering continues
+  independently. Replaying a saved request uses its preserved input and template.
 
 ## NLSS format Template (YAML)
 

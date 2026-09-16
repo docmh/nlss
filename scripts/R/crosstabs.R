@@ -10,12 +10,8 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
 
 
 # Static analysis aliases for source_lib-defined functions.
@@ -58,6 +54,7 @@ print_usage <- function() {
   cat("  --fisher TRUE/FALSE       Run Fisher's exact test (default: FALSE)\n")
   cat("  --fisher-simulate TRUE/FALSE  Monte Carlo Fisher (default: FALSE)\n")
   cat("  --fisher-b N              Fisher Monte Carlo replications (default: 2000)\n")
+  cat("  --seed N                  Seed for simulated Fisher (default: modules.crosstabs.seed)\n")
   cat("  --fisher-conf-level N     Fisher confidence level (default: 0.95)\n")
   cat("  --expected TRUE/FALSE     Include expected counts (default: TRUE)\n")
   cat("  --residuals TRUE/FALSE    Include residuals (default: TRUE)\n")
@@ -72,314 +69,72 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    opts$csv <- prompt("CSV path")
+    sep_default <- get_config_value("defaults.csv.sep", ",")
+    header_default <- get_config_value("defaults.csv.header", TRUE)
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
+    opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
+    opts$rds <- prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
+    opts$rdata <- prompt("RData path")
+    opts$df <- prompt("Data frame object name")
   } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
+    opts$parquet <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
 
-  opts$row <- resolve_prompt("Row variable(s) (comma-separated)", "")
-  opts$col <- resolve_prompt("Column variable(s) (comma-separated)", "")
-  opts$group <- resolve_prompt("Grouping variable (blank for none)", "")
-  percent_default <- resolve_config_value("modules.crosstabs.percent", "all")
-  nlss_percent_default <- resolve_config_value("modules.crosstabs.nlss_percent", "row")
-  chisq_default <- resolve_config_value("modules.crosstabs.chisq", TRUE)
-  yates_default <- resolve_config_value("modules.crosstabs.yates", FALSE)
-  fisher_default <- resolve_config_value("modules.crosstabs.fisher", FALSE)
-  fisher_sim_default <- resolve_config_value("modules.crosstabs.fisher_simulate", FALSE)
-  fisher_b_default <- resolve_config_value("modules.crosstabs.fisher_b", 2000)
-  fisher_conf_default <- resolve_config_value("modules.crosstabs.fisher_conf_level", 0.95)
-  expected_default <- resolve_config_value("modules.crosstabs.expected", TRUE)
-  residuals_default <- resolve_config_value("modules.crosstabs.residuals", TRUE)
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  opts$percent <- resolve_prompt("Percentages to include (row/col/total/all)", percent_default)
-  opts$`nlss-percent` <- resolve_prompt("NLSS format percent (row/col/total/all/none)", nlss_percent_default)
-  opts$chisq <- resolve_prompt("Run chi² TRUE/FALSE", ifelse(isTRUE(chisq_default), "TRUE", "FALSE"))
-  opts$yates <- resolve_prompt("Use Yates correction for 2x2 TRUE/FALSE", ifelse(isTRUE(yates_default), "TRUE", "FALSE"))
-  opts$fisher <- resolve_prompt("Run Fisher's exact test TRUE/FALSE", ifelse(isTRUE(fisher_default), "TRUE", "FALSE"))
-  opts$`fisher-simulate` <- resolve_prompt(
+  opts$row <- prompt("Row variable(s) (comma-separated)", "")
+  opts$col <- prompt("Column variable(s) (comma-separated)", "")
+  opts$group <- prompt("Grouping variable (blank for none)", "")
+  percent_default <- get_config_value("modules.crosstabs.percent", "all")
+  nlss_percent_default <- get_config_value("modules.crosstabs.nlss_percent", "row")
+  chisq_default <- get_config_value("modules.crosstabs.chisq", TRUE)
+  yates_default <- get_config_value("modules.crosstabs.yates", FALSE)
+  fisher_default <- get_config_value("modules.crosstabs.fisher", FALSE)
+  fisher_sim_default <- get_config_value("modules.crosstabs.fisher_simulate", FALSE)
+  fisher_b_default <- get_config_value("modules.crosstabs.fisher_b", 2000)
+  fisher_conf_default <- get_config_value("modules.crosstabs.fisher_conf_level", 0.95)
+  expected_default <- get_config_value("modules.crosstabs.expected", TRUE)
+  residuals_default <- get_config_value("modules.crosstabs.residuals", TRUE)
+  digits_default <- get_config_value("defaults.digits", 2)
+  opts$percent <- prompt("Percentages to include (row/col/total/all)", percent_default)
+  opts$`nlss-percent` <- prompt("NLSS format percent (row/col/total/all/none)", nlss_percent_default)
+  opts$chisq <- prompt("Run chi² TRUE/FALSE", ifelse(isTRUE(chisq_default), "TRUE", "FALSE"))
+  opts$yates <- prompt("Use Yates correction for 2x2 TRUE/FALSE", ifelse(isTRUE(yates_default), "TRUE", "FALSE"))
+  opts$fisher <- prompt("Run Fisher's exact test TRUE/FALSE", ifelse(isTRUE(fisher_default), "TRUE", "FALSE"))
+  opts$`fisher-simulate` <- prompt(
     "Fisher simulate TRUE/FALSE",
     ifelse(isTRUE(fisher_sim_default), "TRUE", "FALSE")
   )
-  opts$`fisher-b` <- resolve_prompt("Fisher Monte Carlo replications", as.character(fisher_b_default))
-  opts$`fisher-conf-level` <- resolve_prompt("Fisher confidence level", as.character(fisher_conf_default))
-  opts$expected <- resolve_prompt("Include expected counts TRUE/FALSE", ifelse(isTRUE(expected_default), "TRUE", "FALSE"))
-  opts$residuals <- resolve_prompt("Include residuals TRUE/FALSE", ifelse(isTRUE(residuals_default), "TRUE", "FALSE"))
-  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  opts$`fisher-b` <- prompt("Fisher Monte Carlo replications", as.character(fisher_b_default))
+  opts$seed <- prompt("Simulation seed", as.character(get_config_value("modules.crosstabs.seed", 1L)))
+  opts$`fisher-conf-level` <- prompt("Fisher confidence level", as.character(fisher_conf_default))
+  opts$expected <- prompt("Include expected counts TRUE/FALSE", ifelse(isTRUE(expected_default), "TRUE", "FALSE"))
+  opts$residuals <- prompt("Include residuals TRUE/FALSE", ifelse(isTRUE(residuals_default), "TRUE", "FALSE"))
+  opts$digits <- prompt("Rounding digits", as.character(digits_default))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log", TRUE)
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts
 }
-
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_parse_list <- function(value, sep = ",") {
-  if (exists("parse_list", mode = "function")) {
-    return(get("parse_list", mode = "function")(value, sep = sep))
-  }
-  if (is.null(value) || is.logical(value)) return(character(0))
-  value <- as.character(value)
-  if (value == "") return(character(0))
-  trimws(strsplit(value, sep, fixed = TRUE)[[1]])
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-
-resolve_get_workspace_out_dir <- function(df) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df))
-  }
-  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
-}
-
-resolve_get_levels <- function(vec) {
-  if (exists("get_levels", mode = "function")) {
-    return(get("get_levels", mode = "function")(vec))
-  }
-  if (is.factor(vec)) {
-    return(as.character(levels(vec)))
-  }
-  values <- unique(vec[!is.na(vec)])
-  if (length(values) == 0) return(character(0))
-  if (is.numeric(values)) {
-    return(as.character(sort(values)))
-  }
-  as.character(sort(values))
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-resolve_round_numeric <- function(df, digits) {
-  if (exists("round_numeric", mode = "function")) {
-    return(get("round_numeric", mode = "function")(df, digits))
-  }
-  out <- df
-  numeric_cols <- sapply(out, is.numeric)
-  out[numeric_cols] <- lapply(out[numeric_cols], function(x) round(x, digits))
-  out
-}
-
-resolve_format_percent <- function(value, digits) {
-  if (exists("format_percent", mode = "function")) {
-    return(get("format_percent", mode = "function")(value, digits))
-  }
-  if (is.na(value)) return("")
-  format(round(value, digits), nsmall = digits, trim = TRUE)
-}
-
-resolve_get_assets_dir <- function() {
-  if (exists("get_assets_dir", mode = "function")) {
-    return(get("get_assets_dir", mode = "function")())
-  }
-  if (exists("bootstrap_dir", inherits = TRUE)) {
-    return(file.path(get("bootstrap_dir", inherits = TRUE), "..", "..", "assets"))
-  }
-  file.path(getwd(), "nlss", "assets")
-}
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  if (is.null(default_relative) || !nzchar(default_relative)) return(NULL)
-  file.path(resolve_get_assets_dir(), default_relative)
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
-  as.character(value)
-}
-
 
 parse_percent_flags <- function(value, default = "all") {
   val <- if (!is.null(value) && value != "") value else default
   val <- tolower(val)
   parts <- trimws(strsplit(val, ",", fixed = TRUE)[[1]])
-  if (length(parts) == 0 || all(parts == "")) parts <- default
+  if (!length(parts) || any(!parts %in% c("row", "col", "total", "all"))) {
+    stop("Percent must be row, col, total, all, or a comma-separated combination.")
+  }
   if ("all" %in% parts) {
     return(list(row = TRUE, col = TRUE, total = TRUE))
   }
@@ -394,7 +149,7 @@ normalize_nlss_percent <- function(value, default = "row") {
   val <- if (!is.null(value) && value != "") value else default
   val <- tolower(val)
   if (!(val %in% c("row", "col", "total", "all", "none"))) {
-    val <- default
+    stop("NLSS percent must be row, col, total, all, or none.")
   }
   val
 }
@@ -413,6 +168,12 @@ apply_cell_filters <- function(cells, percent_flags, include_expected, include_r
   out
 }
 
+fisher_value_status <- function(value) {
+  if (is.na(value)) return("not_available")
+  if (is.infinite(value)) return(if (value > 0) "positive_infinity" else "negative_infinity")
+  "finite"
+}
+
 build_table <- function(df, row_var, col_var, group_label, options) {
   row_vec <- df[[row_var]]
   col_vec <- df[[col_var]]
@@ -427,10 +188,15 @@ build_table <- function(df, row_var, col_var, group_label, options) {
   missing_n <- total_n - valid_n
   missing_pct <- ifelse(total_n > 0, missing_n / total_n * 100, NA_real_)
 
-  row_levels <- resolve_get_levels(row_vec)
-  col_levels <- resolve_get_levels(col_vec)
+  row_levels <- get_levels(row_vec)
+  col_levels <- get_levels(col_vec)
 
   if (valid_n == 0 || length(row_levels) == 0 || length(col_levels) == 0) {
+    if (options$chisq || options$fisher) {
+      stop("Association test not estimable for ", row_var, " by ", col_var,
+           if (nzchar(group_label)) paste0(" (group ", group_label, ")") else "",
+           ": no complete observations. For descriptive counts only, use --chisq FALSE --fisher FALSE.")
+    }
     cells <- data.frame(
       row_var = row_var,
       col_var = col_var,
@@ -467,11 +233,15 @@ build_table <- function(df, row_var, col_var, group_label, options) {
       fisher_odds_ratio = NA_real_,
       fisher_ci_low = NA_real_,
       fisher_ci_high = NA_real_,
+      fisher_odds_ratio_status = "not_available",
+      fisher_ci_low_status = "not_available",
+      fisher_ci_high_status = "not_available",
       phi = NA_real_,
       cramers_v = NA_real_,
       contingency_c = NA_real_,
       yates_applied = FALSE,
-      fisher_simulated = options$fisher_simulate,
+      fisher_simulated = FALSE,
+      fisher_conf_level = options$fisher_conf_level,
       chisq_method = "",
       fisher_method = "",
       stringsAsFactors = FALSE
@@ -507,7 +277,7 @@ build_table <- function(df, row_var, col_var, group_label, options) {
 
   row_prop <- row_sums / valid_n
   col_prop <- col_sums / valid_n
-  denom <- sqrt(expected * (1 - row_prop) * (1 - col_prop))
+  denom <- sqrt(expected * outer(1 - row_prop, 1 - col_prop))
   adj_resid <- (tab - expected) / denom
   adj_resid[denom == 0] <- NA_real_
 
@@ -533,6 +303,12 @@ build_table <- function(df, row_var, col_var, group_label, options) {
                      "pct_row", "pct_col", "pct_total", "expected", "std_resid", "adj_resid")]
 
   tab_test <- tab[row_sums > 0, col_sums > 0, drop = FALSE]
+  if ((options$chisq || options$fisher) && (nrow(tab_test) < 2L || ncol(tab_test) < 2L)) {
+    stop("Association test not estimable for ", row_var, " by ", col_var,
+         if (nzchar(group_label)) paste0(" (group ", group_label, ")") else "",
+         ": at least two observed row and column levels are required. ",
+         "For descriptive counts only, use --chisq FALSE --fisher FALSE.")
+  }
 
   chi_square <- NA_real_
   chi_df <- NA_real_
@@ -542,7 +318,10 @@ build_table <- function(df, row_var, col_var, group_label, options) {
 
   if (options$chisq && valid_n > 0 && nrow(tab_test) >= 2 && ncol(tab_test) >= 2) {
     correct_flag <- options$yates && nrow(tab_test) == 2 && ncol(tab_test) == 2
-    chisq_res <- suppressWarnings(chisq.test(tab_test, correct = correct_flag))
+    chisq_res <- stats::chisq.test(tab_test, correct = correct_flag)
+    if (any(!is.finite(c(chisq_res$statistic, chisq_res$parameter, chisq_res$p.value)))) {
+      stop("Requested chi-square test returned non-finite results for ", row_var, " by ", col_var, ".")
+    }
     chi_square <- unname(chisq_res$statistic)
     chi_df <- unname(chisq_res$parameter)
     chi_p <- chisq_res$p.value
@@ -574,18 +353,22 @@ build_table <- function(df, row_var, col_var, group_label, options) {
   fisher_ci_low <- NA_real_
   fisher_ci_high <- NA_real_
   fisher_method <- ""
+  fisher_simulated <- FALSE
 
   if (options$fisher && valid_n > 0 && nrow(tab_test) >= 2 && ncol(tab_test) >= 2) {
     fisher_res <- tryCatch(
-      fisher.test(tab_test,
+      stats::fisher.test(tab_test,
                   simulate.p.value = options$fisher_simulate,
                   B = options$fisher_b,
                   conf.level = options$fisher_conf_level),
-      error = function(e) NULL
+      error = function(e) stop("Requested Fisher test failed for ", row_var, " by ", col_var,
+                               ": ", conditionMessage(e), call. = FALSE)
     )
-    if (!is.null(fisher_res)) {
+    if (!is.finite(fisher_res$p.value)) stop("Requested Fisher test returned a non-finite p-value.")
+    {
       fisher_p <- fisher_res$p.value
       fisher_method <- fisher_res$method
+      fisher_simulated <- grepl("simulated p-value", fisher_method, fixed = TRUE)
       if (!is.null(fisher_res$estimate) && length(fisher_res$estimate) == 1) {
         fisher_or <- unname(fisher_res$estimate)
       }
@@ -616,11 +399,15 @@ build_table <- function(df, row_var, col_var, group_label, options) {
     fisher_odds_ratio = fisher_or,
     fisher_ci_low = fisher_ci_low,
     fisher_ci_high = fisher_ci_high,
+    fisher_odds_ratio_status = fisher_value_status(fisher_or),
+    fisher_ci_low_status = fisher_value_status(fisher_ci_low),
+    fisher_ci_high_status = fisher_value_status(fisher_ci_high),
     phi = phi,
     cramers_v = cramers_v,
     contingency_c = contingency_c,
     yates_applied = yates_applied,
-    fisher_simulated = options$fisher_simulate,
+    fisher_simulated = fisher_simulated,
+    fisher_conf_level = options$fisher_conf_level,
     chisq_method = chisq_method,
     fisher_method = fisher_method,
     stringsAsFactors = FALSE
@@ -674,9 +461,13 @@ attach_effect_sizes_to_cells <- function(cells_df, tests_df) {
   cells_df$group[is.na(cells_df$group)] <- "NA"
   tests_df$group[is.na(tests_df$group)] <- "NA"
 
-  cell_key <- paste(cells_df$row_var, cells_df$col_var, cells_df$group, sep = "|")
-  test_key <- paste(tests_df$row_var, tests_df$col_var, tests_df$group, sep = "|")
-  match_idx <- match(cell_key, test_key)
+  # Compare the tuple itself: variable or group names may contain separators.
+  cell_key <- cells_df[, c("row_var", "col_var", "group"), drop = FALSE]
+  match_idx <- vapply(seq_len(nrow(cells_df)), function(i) {
+    which(tests_df$row_var == cells_df$row_var[i] &
+          tests_df$col_var == cells_df$col_var[i] &
+          tests_df$group == cells_df$group[i])[1L]
+  }, integer(1))
 
   cells_df$phi <- ifelse(!is.na(match_idx), tests_df$phi[match_idx], NA_real_)
   cells_df$cramers_v <- ifelse(!is.na(match_idx), tests_df$cramers_v[match_idx], NA_real_)
@@ -700,7 +491,7 @@ get_percent_columns <- function(nlss_percent) {
 }
 
 format_nlss_table <- function(cells_df, digits, nlss_percent, layout = "sectioned", include_group = TRUE) {
-  display <- resolve_round_numeric(cells_df, digits)
+  display <- round_numeric(cells_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
   display$row_var_display <- if ("row_var_label" %in% names(display)) display$row_var_label else display$row_var
@@ -753,7 +544,7 @@ format_nlss_table <- function(cells_df, digits, nlss_percent, layout = "sectione
       )
       if (length(percent_cols) > 0) {
         for (col in percent_cols) {
-          row_vals <- c(row_vals, resolve_format_percent(row[[col]], digits))
+          row_vals <- c(row_vals, format_percent(row[[col]], digits))
         }
       }
       md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
@@ -798,7 +589,7 @@ format_nlss_table <- function(cells_df, digits, nlss_percent, layout = "sectione
       )
       if (length(percent_cols) > 0) {
         for (col in percent_cols) {
-          row_vals <- c(row_vals, resolve_format_percent(row[[col]], digits))
+          row_vals <- c(row_vals, format_percent(row[[col]], digits))
         }
       }
       md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
@@ -817,8 +608,8 @@ format_nlss_table <- function(cells_df, digits, nlss_percent, layout = "sectione
 }
 
 format_nlss_text <- function(tests_df, diagnostics_df, digits) {
-  tests <- resolve_round_numeric(tests_df, digits)
-  diagnostics <- resolve_round_numeric(diagnostics_df, digits)
+  tests <- tests_df
+  diagnostics <- diagnostics_df
 
   tests$group <- as.character(tests$group)
   diagnostics$group <- as.character(diagnostics$group)
@@ -900,7 +691,7 @@ format_nlss_text <- function(tests_df, diagnostics_df, digits) {
         if (!is.na(row$fisher_ci_low[1]) && !is.na(row$fisher_ci_high[1])) {
           fisher_part <- paste0(
             fisher_part,
-            ", 95% CI [",
+            ", ", format(100 * row$fisher_conf_level[1], trim = TRUE), "% CI [",
             format_num(row$fisher_ci_low[1], digits),
             ", ",
             format_num(row$fisher_ci_high[1], digits),
@@ -954,7 +745,7 @@ format_num_cell <- function(value, digits) {
 }
 
 build_crosstabs_table_body <- function(cells_df, digits, table_spec = NULL) {
-  display <- resolve_round_numeric(cells_df, digits)
+  display <- round_numeric(cells_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
   display$row_var_display <- if ("row_var_label" %in% names(display)) display$row_var_label else display$row_var
@@ -979,7 +770,7 @@ build_crosstabs_table_body <- function(cells_df, digits, table_spec = NULL) {
     list(key = "cramers_v", label = "Cramer's V", drop_if_empty = TRUE),
     list(key = "contingency_c", label = "C", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(
+  columns <- normalize_table_columns(
     if (!is.null(table_spec$columns)) table_spec$columns else NULL,
     default_columns
   )
@@ -992,22 +783,22 @@ build_crosstabs_table_body <- function(cells_df, digits, table_spec = NULL) {
       val <- ""
       if (key %in% c("row_var", "col_var", "group", "row_level", "col_level")) {
         if (key == "row_var") {
-          val <- resolve_as_cell_text(row$row_var_display[1])
+          val <- as_cell_text(row$row_var_display[1])
         } else if (key == "col_var") {
-          val <- resolve_as_cell_text(row$col_var_display[1])
+          val <- as_cell_text(row$col_var_display[1])
         } else if (key == "group") {
-          val <- resolve_as_cell_text(row$group_display[1])
+          val <- as_cell_text(row$group_display[1])
         } else if (key == "row_level") {
-          val <- resolve_as_cell_text(row$row_level_display[1])
+          val <- as_cell_text(row$row_level_display[1])
         } else if (key == "col_level") {
-          val <- resolve_as_cell_text(row$col_level_display[1])
+          val <- as_cell_text(row$col_level_display[1])
         } else {
-          val <- resolve_as_cell_text(row[[key]][1])
+          val <- as_cell_text(row[[key]][1])
         }
       } else if (key == "n") {
         val <- ifelse(is.na(row$n), "", as.character(row$n))
       } else if (key %in% c("pct_row", "pct_col", "pct_total")) {
-        val <- resolve_format_percent(row[[key]][1], digits)
+        val <- format_percent(row[[key]][1], digits)
       } else if (key %in% c("expected", "std_resid", "adj_resid")) {
         val <- format_num_cell(row[[key]][1], digits)
       } else if (key %in% names(row)) {
@@ -1015,21 +806,21 @@ build_crosstabs_table_body <- function(cells_df, digits, table_spec = NULL) {
         if (is.numeric(cell)) {
           val <- format_num_cell(cell, digits)
         } else {
-          val <- resolve_as_cell_text(cell)
+          val <- as_cell_text(cell)
         }
       }
       row_vals <- c(row_vals, val)
     }
     rows[[length(rows) + 1]] <- row_vals
   }
-  filtered <- resolve_drop_empty_columns(columns, rows)
+  filtered <- drop_empty_columns(columns, rows)
   columns <- filtered$columns
   rows <- filtered$rows
   headers <- vapply(columns, function(col) {
     if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
   }, character(1))
   list(
-    body = resolve_render_markdown_table(headers, rows),
+    body = render_markdown_table(headers, rows),
     columns = vapply(columns, function(col) col$key, character(1))
   )
 }
@@ -1051,8 +842,8 @@ build_crosstabs_note_tokens <- function(column_keys) {
 }
 
 build_crosstabs_narrative_rows <- function(tests_df, diagnostics_df, digits) {
-  tests <- resolve_round_numeric(tests_df, digits)
-  diagnostics <- resolve_round_numeric(diagnostics_df, digits)
+  tests <- tests_df
+  diagnostics <- diagnostics_df
   tests$group <- as.character(tests$group)
   diagnostics$group <- as.character(diagnostics$group)
   tests$group[is.na(tests$group)] <- "NA"
@@ -1142,7 +933,7 @@ build_crosstabs_narrative_rows <- function(tests_df, diagnostics_df, digits) {
         if (!is.na(row$fisher_ci_low[1]) && !is.na(row$fisher_ci_high[1])) {
           fisher_text <- paste0(
             fisher_text,
-            ", 95% CI [",
+            ", ", format(100 * row$fisher_conf_level[1], trim = TRUE), "% CI [",
             format_num(row$fisher_ci_low[1], digits),
             ", ",
             format_num(row$fisher_ci_high[1], digits),
@@ -1202,36 +993,40 @@ build_crosstabs_narrative_rows <- function(tests_df, diagnostics_df, digits) {
 
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
+  opts <- nlss_run_options(args, "crosstabs")
 
   if (!is.null(opts$help)) {
     print_usage()
     quit(status = 0)
   }
 
-  if (!is.null(opts$interactive)) {
+  if (parse_bool(opts$interactive, FALSE)) {
     opts <- modifyList(opts, interactive_options())
   }
 
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  percent_default <- resolve_config_value("modules.crosstabs.percent", "all")
-  nlss_percent_default <- resolve_config_value("modules.crosstabs.nlss_percent", "row")
-  chisq_default <- resolve_config_value("modules.crosstabs.chisq", TRUE)
-  yates_default <- resolve_config_value("modules.crosstabs.yates", FALSE)
-  fisher_default <- resolve_config_value("modules.crosstabs.fisher", FALSE)
-  fisher_sim_default <- resolve_config_value("modules.crosstabs.fisher_simulate", FALSE)
-  fisher_b_default <- resolve_config_value("modules.crosstabs.fisher_b", 2000)
-  fisher_conf_default <- resolve_config_value("modules.crosstabs.fisher_conf_level", 0.95)
-  expected_default <- resolve_config_value("modules.crosstabs.expected", TRUE)
-  residuals_default <- resolve_config_value("modules.crosstabs.residuals", TRUE)
+  digits_default <- get_config_value("defaults.digits", 2)
+  log_default <- get_config_value("defaults.log", TRUE)
+  percent_default <- get_config_value("modules.crosstabs.percent", "all")
+  nlss_percent_default <- get_config_value("modules.crosstabs.nlss_percent", "row")
+  chisq_default <- get_config_value("modules.crosstabs.chisq", TRUE)
+  yates_default <- get_config_value("modules.crosstabs.yates", FALSE)
+  fisher_default <- get_config_value("modules.crosstabs.fisher", FALSE)
+  fisher_sim_default <- get_config_value("modules.crosstabs.fisher_simulate", FALSE)
+  fisher_b_default <- get_config_value("modules.crosstabs.fisher_b", 2000)
+  fisher_conf_default <- get_config_value("modules.crosstabs.fisher_conf_level", 0.95)
+  expected_default <- get_config_value("modules.crosstabs.expected", TRUE)
+  residuals_default <- get_config_value("modules.crosstabs.residuals", TRUE)
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  df <- resolve_load_dataframe(opts)
-  out_dir <- resolve_get_workspace_out_dir(df)
+  df <- nlss_load_input(opts)
+  out_dir <- get_workspace_out_dir(df)
+  nlss_begin_run("crosstabs", df, opts, out_dir)
+  if (length(digits) != 1L || !is.finite(digits) || digits < 0 || digits > 15 || digits != floor(digits)) {
+    stop("Digits must be an integer from 0 to 15.")
+  }
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
 
-  rows <- if (!is.null(opts$rows)) resolve_parse_list(opts$rows) else resolve_parse_list(opts$row)
-  cols <- if (!is.null(opts$cols)) resolve_parse_list(opts$cols) else resolve_parse_list(opts$col)
+  rows <- if (!is.null(opts$rows)) parse_list(opts$rows) else parse_list(opts$row)
+  cols <- if (!is.null(opts$cols)) parse_list(opts$cols) else parse_list(opts$col)
 
   if (length(rows) == 0 || length(cols) == 0) {
     stop("Provide --row/--rows and --col/--cols.")
@@ -1247,44 +1042,73 @@ main <- function() {
   nlss_percent <- normalize_nlss_percent(opts$`nlss-percent`, default = nlss_percent_default)
 
   options <- list(
-    chisq = resolve_parse_bool(opts$chisq, default = chisq_default),
-    yates = resolve_parse_bool(opts$yates, default = yates_default),
-    fisher = resolve_parse_bool(opts$fisher, default = fisher_default),
-    fisher_simulate = resolve_parse_bool(opts$`fisher-simulate`, default = fisher_sim_default),
-    fisher_b = if (!is.null(opts$`fisher-b`)) as.integer(opts$`fisher-b`) else fisher_b_default,
+    chisq = parse_bool(opts$chisq, default = chisq_default),
+    yates = parse_bool(opts$yates, default = yates_default),
+    fisher = parse_bool(opts$fisher, default = fisher_default),
+    fisher_simulate = parse_bool(opts$`fisher-simulate`, default = fisher_sim_default),
+    fisher_b = if (!is.null(opts$`fisher-b`)) as.numeric(opts$`fisher-b`) else fisher_b_default,
     fisher_conf_level = if (!is.null(opts$`fisher-conf-level`)) as.numeric(opts$`fisher-conf-level`) else fisher_conf_default,
-    include_expected = resolve_parse_bool(opts$expected, default = expected_default),
-    include_residuals = resolve_parse_bool(opts$residuals, default = residuals_default)
+    include_expected = parse_bool(opts$expected, default = expected_default),
+    include_residuals = parse_bool(opts$residuals, default = residuals_default)
   )
+
+  if (length(options$fisher_b) != 1L || !is.finite(options$fisher_b) ||
+      options$fisher_b < 1 || options$fisher_b > .Machine$integer.max ||
+      options$fisher_b != floor(options$fisher_b)) {
+    stop("Fisher Monte Carlo replications must be a positive R integer.")
+  }
+  options$fisher_b <- as.integer(options$fisher_b)
+  if (length(options$fisher_conf_level) != 1L || !is.finite(options$fisher_conf_level) ||
+      options$fisher_conf_level <= 0 || options$fisher_conf_level >= 1) {
+    stop("Fisher confidence level must be strictly between 0 and 1.")
+  }
+  options$seed <- nlss_run_seed(opts$seed, stochastic = options$fisher && options$fisher_simulate)
+  if (!is.null(options$seed)) nlss_run_context$request$cli$seed <- options$seed
+  label_meta <- resolve_label_metadata(df)
+  groups <- if (is.null(group_var)) {
+    list(list(group = "", value = NULL, is_missing = FALSE, row_indices = seq_len(nrow(df))))
+  } else {
+    group_vec <- df[[group_var]]
+    missing_label <- nlss_missing_group_label(group_vec, label_meta, group_var)
+    lapply(unique(group_vec), function(g) {
+      is_missing <- is.na(g)
+      list(group = if (is_missing) missing_label else as.character(g),
+           value = if (is_missing) NULL else as.character(g), is_missing = is_missing,
+           row_indices = which(if (is_missing) is.na(group_vec) else !is.na(group_vec) & group_vec == g))
+    })
+  }
+  if (!length(groups)) stop("No observations available for grouped cross-tabulation.")
+  table_design <- list()
+  for (group in groups) {
+    sub_df <- df[group$row_indices, , drop = FALSE]
+    for (row_var in rows) for (col_var in cols) {
+      complete <- !is.na(sub_df[[row_var]]) & !is.na(sub_df[[col_var]])
+      table_design[[length(table_design) + 1L]] <- list(
+        group = group$group, group_missing = group$is_missing, row_var = row_var, col_var = col_var,
+        row_indices = group$row_indices[complete],
+        row_levels = get_levels(sub_df[[row_var]]), col_levels = get_levels(sub_df[[col_var]]))
+    }
+  }
+  resolved_options <- c(list(digits = digits, rows = rows, cols = cols, group = group_var,
+                            percent = percent_flags, nlss_percent = nlss_percent), options)
+  nlss_resolve_request(resolved_options, design = list(
+    missing = "pairwise_complete_within_group", group_missing = "separate_group",
+    rows = nrow(df), variable_types = lapply(df[vars_needed], class),
+    groups = groups, tables = table_design))
 
   cells_list <- list()
   tests_list <- list()
   diag_list <- list()
-
-  if (!is.null(group_var)) {
-    group_vec <- df[[group_var]]
-    group_levels <- unique(group_vec)
-    for (g in group_levels) {
-      idx <- if (is.na(g)) is.na(group_vec) else group_vec == g
-      sub_df <- df[idx, , drop = FALSE]
-      group_label <- ifelse(is.na(g), "NA", as.character(g))
-      for (row_var in rows) {
-        for (col_var in cols) {
-          result <- build_table(sub_df, row_var, col_var, group_label, options)
-          cells_list[[length(cells_list) + 1]] <- result$cells
-          tests_list[[length(tests_list) + 1]] <- result$tests
-          diag_list[[length(diag_list) + 1]] <- result$diagnostics
-        }
-      }
-    }
-  } else {
-    for (row_var in rows) {
-      for (col_var in cols) {
-        result <- build_table(df, row_var, col_var, "", options)
-        cells_list[[length(cells_list) + 1]] <- result$cells
-        tests_list[[length(tests_list) + 1]] <- result$tests
-        diag_list[[length(diag_list) + 1]] <- result$diagnostics
-      }
+  for (group in groups) {
+    sub_df <- df[group$row_indices, , drop = FALSE]
+    for (row_var in rows) for (col_var in cols) {
+      result <- build_table(sub_df, row_var, col_var, group$group, options)
+      result$cells$group_missing <- group$is_missing
+      result$tests$group_missing <- group$is_missing
+      result$diagnostics$group_missing <- group$is_missing
+      cells_list[[length(cells_list) + 1L]] <- result$cells
+      tests_list[[length(tests_list) + 1L]] <- result$tests
+      diag_list[[length(diag_list) + 1L]] <- result$diagnostics
     }
   }
 
@@ -1292,7 +1116,6 @@ main <- function() {
   tests_df <- do.call(rbind, tests_list)
   diagnostics_df <- do.call(rbind, diag_list)
   cells_df <- attach_effect_sizes_to_cells(cells_df, tests_df)
-  label_meta <- resolve_label_metadata(df)
   cells_df <- add_variable_label_column(cells_df, label_meta, var_col = "row_var")
   cells_df <- add_variable_label_column(cells_df, label_meta, var_col = "col_var")
   cells_df <- add_value_label_column(cells_df, label_meta, var_col = "row_var", value_col = "row_level")
@@ -1304,6 +1127,11 @@ main <- function() {
   diagnostics_df <- add_variable_label_column(diagnostics_df, label_meta, var_col = "row_var")
   diagnostics_df <- add_variable_label_column(diagnostics_df, label_meta, var_col = "col_var")
   diagnostics_df <- add_group_label_column(diagnostics_df, label_meta, group_var, group_col = "group")
+  if (!is.null(group_var)) {
+    cells_df$group_label[cells_df$group_missing] <- cells_df$group[cells_df$group_missing]
+    tests_df$group_label[tests_df$group_missing] <- tests_df$group[tests_df$group_missing]
+    diagnostics_df$group_label[diagnostics_df$group_missing] <- diagnostics_df$group[diagnostics_df$group_missing]
+  }
 
   percent_label <- if (!is.null(opts$percent) && opts$percent != "") opts$percent else percent_default
   use_group_template <- !is.null(group_var)
@@ -1311,10 +1139,11 @@ main <- function() {
   template_path <- if (!is.null(template_override)) {
     template_override
   } else if (use_group_template) {
-    resolve_get_template_path("crosstabs.grouped", "crosstabs/grouped-template.md")
+    resolve_template_path("crosstabs.grouped", "crosstabs/grouped-template.md")
   } else {
-    resolve_get_template_path("crosstabs.default", "crosstabs/default-template.md")
+    resolve_template_path("crosstabs.default", "crosstabs/default-template.md")
   }
+  template_path <- nlss_freeze_template(template_path, "crosstabs.table")
   analysis_flags <- list(
     rows = rows,
     cols = cols,
@@ -1326,23 +1155,32 @@ main <- function() {
     fisher = options$fisher,
     "fisher-simulate" = if (options$fisher) options$fisher_simulate else NULL,
     "fisher-b" = if (options$fisher && options$fisher_simulate) options$fisher_b else NULL,
+    seed = options$seed,
     "fisher-conf-level" = if (options$fisher) options$fisher_conf_level else NULL,
     "include-expected" = options$include_expected,
     "include-residuals" = options$include_residuals,
     digits = digits
   )
 
+  report_percent <- list(row = nlss_percent %in% c("row", "all"),
+                         col = nlss_percent %in% c("col", "all"),
+                         total = nlss_percent %in% c("total", "all"))
+  report_cells_df <- apply_cell_filters(cells_df, report_percent, options$include_expected, options$include_residuals)
+  cells_df <- apply_cell_filters(cells_df, percent_flags, options$include_expected, options$include_residuals)
+  results <- list(cells_df = cells_df, tests_df = tests_df, diagnostics_df = diagnostics_df,
+                  report_cells_df = report_cells_df)
+  nlss_set_result(results)
   nlss_report_path <- file.path(out_dir, "report_canonical.md")
   nlss_table <- format_nlss_table(
-    cells_df,
+    report_cells_df,
     digits,
     nlss_percent,
     layout = "long",
     include_group = use_group_template
   )
   nlss_text <- format_nlss_text(tests_df, diagnostics_df, digits)
-  template_meta <- resolve_get_template_meta(template_path)
-  table_result <- build_crosstabs_table_body(cells_df, digits, template_meta$table)
+  template_meta <- get_template_meta(template_path)
+  table_result <- build_crosstabs_table_body(report_cells_df, digits, template_meta$table)
   note_tokens <- build_crosstabs_note_tokens(table_result$columns)
   narrative_rows <- build_crosstabs_narrative_rows(tests_df, diagnostics_df, digits)
   template_context <- list(
@@ -1355,7 +1193,7 @@ main <- function() {
     ),
     narrative_rows = narrative_rows
   )
-  resolve_append_nlss_report(
+  nlss_stage_report(
     nlss_report_path,
     "Cross-tabulations",
     nlss_table,
@@ -1365,36 +1203,18 @@ main <- function() {
     template_context = template_context
   )
 
-  cat("Wrote:\n")
-  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
-
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+  if (parse_bool(opts$log, default = log_default)) {
+    ctx <- get_run_context()
+    nlss_stage_log(
       out_dir,
       module = "crosstabs",
       prompt = ctx$prompt,
       commands = ctx$commands,
-      results = list(cells_df = cells_df, tests_df = tests_df, diagnostics_df = diagnostics_df),
-      options = list(
-        digits = digits,
-        rows = rows,
-        cols = cols,
-        group = group_var,
-        percent = percent_flags,
-        nlss_percent = nlss_percent,
-        chisq = options$chisq,
-        yates = options$yates,
-        fisher = options$fisher,
-        fisher_simulate = options$fisher_simulate,
-        fisher_b = options$fisher_b,
-        fisher_conf_level = options$fisher_conf_level,
-        include_expected = options$include_expected,
-        include_residuals = options$include_residuals
-      ),
-      user_prompt = resolve_get_user_prompt(opts)
+      results = results,
+      options = resolved_options,
+      user_prompt = get_user_prompt(opts)
     )
   }
 }
 
-main()
+nlss_run_main("crosstabs", main)

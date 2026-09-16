@@ -67,6 +67,33 @@ TEMPLATE_MARKER=$(get_value "  template_marker")
 KEEP_DEFAULT=$(get_value "  keep_runs_default")
 SMOKE_SCRIPT=$(get_value "    smoke_unix")
 DELIBERATE_SCRIPT=$(get_value "    deliberate_unix")
+PHASE1_SCRIPT=$(get_value "    phase1_r")
+PHASE2_SCRIPT=$(get_value "    phase2_r")
+PHASE3_SCRIPT=$(get_value "    phase3_r")
+PHASE3_PERSISTENCE_SCRIPT=$(get_value "    phase3_persistence_r")
+PHASE3_REPORT_SCRIPT=$(get_value "    phase3_report_r")
+PHASE2_CATEGORICAL_SCRIPT=$(get_value "    phase2_categorical_r")
+PHASE2_PSYCHOMETRIC_SCRIPT=$(get_value "    phase2_psychometric_r")
+PHASE2_INFERENCE_SCRIPT=$(get_value "    phase2_inference_r")
+PHASE2_DESIGN_SCRIPT=$(get_value "    phase2_design_r")
+PHASE2_MIXED_MODEL_SCRIPT=$(get_value "    phase2_mixed_model_r")
+PHASE2_MIXED_DIAGNOSTIC_SCRIPT=$(get_value "    phase2_mixed_diagnostic_r")
+PHASE2_EFA_SCRIPT=$(get_value "    phase2_efa_r")
+PHASE2_SEM_SCRIPT=$(get_value "    phase2_sem_r")
+PHASE2_SEM_DIAGNOSTIC_SCRIPT=$(get_value "    phase2_sem_diagnostic_r")
+PHASE2_POWER_SCRIPT=$(get_value "    phase2_power_r")
+PHASE2_PLANNING_SCRIPT=$(get_value "    phase2_planning_r")
+PHASE2_ASSUMPTIONS_SCRIPT=$(get_value "    phase2_assumptions_r")
+PHASE2_PLOT_SCRIPT=$(get_value "    phase2_plot_r")
+PHASE2_TRANSFORM_SCRIPT=$(get_value "    phase2_transform_r")
+PHASE2_MISSINGS_SCRIPT=$(get_value "    phase2_missings_r")
+PHASE2_IMPUTE_SCRIPT=$(get_value "    phase2_impute_r")
+IMPUTATION_ARTIFACT_SCRIPT=$(get_value "    imputation_artifact_contract")
+UTILITY_CONTRACT_SCRIPT=$(get_value "    utility_contract")
+PHASE2_CALC_SCRIPT=$(get_value "    phase2_calc_r")
+PHASE2_HISTORY_SCRIPT=$(get_value "    phase2_history_r")
+PHASE2_LIFECYCLE_SCRIPT=$(get_value "    phase2_lifecycle_r")
+PHASE2_RESEARCH_SCRIPT=$(get_value "    phase2_research_r")
 
 if [[ -z "$OUTPUT_DIR" || -z "$DATA_DIR" || -z "$GOLDEN_DATASET" || -z "$TEMPLATE_DIR" ]]; then
   echo "Invalid tests.yml content." >&2
@@ -81,7 +108,7 @@ CLEAN_ONLY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    smoke|deliberate|all)
+    smoke|deliberate|phase1|phase2|phase3|all)
       SUITE="$1"
       shift 1
       ;;
@@ -106,7 +133,7 @@ while [[ $# -gt 0 ]]; do
       shift 1
       ;;
     --help|-h)
-      echo "Usage: $0 [smoke|deliberate|all] [--suite <name>] [--module <name>] [--root <path>] [--keep <n>] [--clean]" >&2
+      echo "Usage: $0 [smoke|deliberate|phase1|phase2|phase3|all] [--suite <name>] [--module <name>] [--root <path>] [--keep <n>] [--clean]" >&2
       echo "  --module <name> runs a single deliberate module script from tests/tests.yml." >&2
       exit 0
       ;;
@@ -229,6 +256,39 @@ if [[ -n "$MODULE" ]]; then
   run_module "$module_label" "$module_script"
 else
   case "$SUITE" in
+    phase3)
+      Rscript "$REPO_ROOT/$PHASE3_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE3_PERSISTENCE_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE3_REPORT_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      ;;
+    phase2)
+      Rscript "$REPO_ROOT/$PHASE2_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_CATEGORICAL_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_PSYCHOMETRIC_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_INFERENCE_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_DESIGN_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_MIXED_MODEL_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_MIXED_DIAGNOSTIC_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_EFA_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_SEM_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_SEM_DIAGNOSTIC_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_POWER_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_PLANNING_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_ASSUMPTIONS_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_PLOT_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_TRANSFORM_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_MISSINGS_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_IMPUTE_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$IMPUTATION_ARTIFACT_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$UTILITY_CONTRACT_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_CALC_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_HISTORY_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_LIFECYCLE_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_RESEARCH_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      ;;
+    phase1)
+      Rscript "$REPO_ROOT/$PHASE1_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      ;;
     smoke)
       run_suite "smoke" "$SMOKE_SCRIPT"
       ;;
@@ -236,6 +296,33 @@ else
       run_suite "deliberate" "$DELIBERATE_SCRIPT"
       ;;
     all)
+      Rscript "$REPO_ROOT/$PHASE3_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE3_PERSISTENCE_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE3_REPORT_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE1_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_CATEGORICAL_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_PSYCHOMETRIC_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_INFERENCE_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_DESIGN_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_MIXED_MODEL_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_MIXED_DIAGNOSTIC_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_EFA_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_SEM_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_SEM_DIAGNOSTIC_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_POWER_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_PLANNING_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_ASSUMPTIONS_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_PLOT_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_TRANSFORM_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_MISSINGS_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_IMPUTE_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$IMPUTATION_ARTIFACT_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$UTILITY_CONTRACT_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_CALC_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_HISTORY_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_LIFECYCLE_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
+      Rscript "$REPO_ROOT/$PHASE2_RESEARCH_SCRIPT" --root "$RUN_ROOT" --keep "$KEEP_RUNS" || FAILURES=$((FAILURES + 1))
       run_suite "smoke" "$SMOKE_SCRIPT"
       run_suite "deliberate" "$DELIBERATE_SCRIPT"
       ;;

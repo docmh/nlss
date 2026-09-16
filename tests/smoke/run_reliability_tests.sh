@@ -264,8 +264,8 @@ run_ok "reliability golden (icc twoway-random consistency)" check_reliability_go
 
 start_count=$(log_count "${LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${PARQUET_GOLDEN}" --analysis icc --vars pre_score,mid_score,post_score --icc-model twoway-mixed --icc-type agreement --icc-unit average >>"${LOG_FILE}" 2>&1
-check_reliability_log "${LOG_PATH}" "${start_count}" analysis=icc min_rows=1 icc_model=twoway-mixed icc_type=consistency icc_unit=average
-run_ok "reliability golden (icc twoway-mixed consistency average)" check_reliability_golden "${LOG_PATH}" "${start_count}" "icc_twoway_mixed_consistency_average"
+check_reliability_log "${LOG_PATH}" "${start_count}" analysis=icc min_rows=1 icc_model=twoway-mixed icc_type=agreement icc_unit=average
+run_ok "reliability golden (icc twoway-mixed agreement average)" check_reliability_golden "${LOG_PATH}" "${start_count}" "icc_twoway_mixed_agreement_average"
 
 start_count=$(log_count "${LOG_PATH}")
 Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${PARQUET_GOLDEN}" --analysis test_retest --vars pre_score,post_score --method spearman --conf-level 0.9 >>"${LOG_FILE}" 2>&1
@@ -352,9 +352,7 @@ KAPPA_CONST_DIR="${WORKSPACE_DIR}/${KAPPA_CONST_LABEL}"
 KAPPA_CONST_PARQUET="${KAPPA_CONST_DIR}/${KAPPA_CONST_LABEL}.parquet"
 KAPPA_CONST_LOG_PATH="${KAPPA_CONST_DIR}/analysis_log.jsonl"
 
-start_count=$(log_count "${KAPPA_CONST_LOG_PATH}")
-Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${KAPPA_CONST_PARQUET}" --analysis kappa --vars kappa_const1,kappa_const2 --kappa-weight none >>"${LOG_FILE}" 2>&1
-check_reliability_log "${KAPPA_CONST_LOG_PATH}" "${start_count}" analysis=kappa min_rows=1 kappa_weight=none
+run_expect_failure "constant kappa is not estimable" "${KAPPA_CONST_LOG_PATH}" "invalid_input" Rscript "${R_SCRIPT_DIR}/reliability.R" --parquet "${KAPPA_CONST_PARQUET}" --analysis kappa --vars kappa_const1,kappa_const2 --kappa-weight none
 
 COERCE_DATA="${TMP_BASE}/retest_coerce.csv"
 COERCE_SCRIPT="${TMP_BASE}/retest_coerce_prep.R"

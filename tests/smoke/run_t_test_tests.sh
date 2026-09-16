@@ -289,12 +289,31 @@ run_expect_invalid() {
     echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
     exit 1
   fi
-  if check_log "${log_path}" "${start_count}" "${status}" "${mode}" "${check_args[@]}"; then
+  if assert_latest_failed "${log_path}" && [ "$(log_count "${log_path}")" = "${start_count}" ]; then
     echo "[PASS] ${label} (status ${status})" | tee -a "${LOG_FILE}"
   else
     echo "[FAIL] ${label} (status ${status} not logged)" | tee -a "${LOG_FILE}"
     exit 1
   fi
+}
+
+assert_latest_failed() {
+  "${PYTHON_BIN}" - "$1" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+dataset = Path(sys.argv[1]).parent
+runs = list((dataset / "runs").glob("*/result.json"))
+assert runs, f"No failed bundle in {dataset}"
+path = max(runs, key=lambda p: p.stat().st_mtime_ns)
+result = json.loads(path.read_text())
+assert result["module"] == "t_test" and result["status"] == "failed", result
+assert not (path.parent / "output.md").exists()
+assert not (dataset / ".analysis-lock").exists()
+request = path.parent / "request.json"
+assert result["artifacts"]["request"]["sha256"] == hashlib.sha256(request.read_bytes()).hexdigest()
+PY
 }
 
 run_expect_fail() {
@@ -518,7 +537,7 @@ check_log "${MAIN_LOG_PATH}" "${start}" "-" "one_sample" "alternative=less" "con
 start=$(log_count "${MAIN_LOG_PATH}")
 run_ok "one-sample bootstrap" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}" --vars score2 --bootstrap TRUE --bootstrap-samples 1000 --seed 123
 check_log "${MAIN_LOG_PATH}" "${start}" "-" "one_sample" "bootstrap=true" "bootstrap_samples=1000"
-assert_contains "${MAIN_NLSS_PATH}" "Bootstrap CIs use 1000 resamples."
+assert_contains "${MAIN_NLSS_PATH}" "Percentile bootstrap CIs use 1000 resamples per statistic"
 
 start=$(log_count "${MAIN_LOG_PATH}")
 run_ok "independent welch" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}" --vars score --group group
@@ -541,35 +560,34 @@ run_ok "paired bootstrap" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}
 check_log "${MAIN_LOG_PATH}" "${start}" "-" "paired" "bootstrap=true" "bootstrap_samples=150"
 
 start=$(log_count "${MAIN_LOG_PATH}")
-run_ok "one-sample default vars" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}"
-check_log "${MAIN_LOG_PATH}" "${start}" "-" "one_sample"
+run_expect_fail "one-sample default vars reject non-estimable tiny column" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}"
+assert_latest_failed "${MAIN_LOG_PATH}"
 
 start=$(log_count "${MAIN_LOG_PATH}")
-run_ok "independent default vars" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}" --group group
-check_log "${MAIN_LOG_PATH}" "${start}" "-" "independent"
+run_expect_fail "independent default vars reject non-estimable tiny column" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}" --group group
+assert_latest_failed "${MAIN_LOG_PATH}"
 
 start=$(log_count "${MAIN_LOG_PATH}")
 run_ok "independent vars include group" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}" --vars score,group --group group
 check_log "${MAIN_LOG_PATH}" "${start}" "-" "independent"
 
 start=$(log_count "${SMALL_LOG_PATH}")
-run_ok "one-sample tiny n" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_SMALL}" --vars score
-check_log "${SMALL_LOG_PATH}" "${start}" "-" "one_sample"
-assert_contains "${SMALL_NLSS_PATH}" "could not be computed"
+run_expect_fail "one-sample tiny n" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_SMALL}" --vars score
+assert_latest_failed "${SMALL_LOG_PATH}"
 
 start=$(log_count "${CSV_SMALL_GROUPS_LOG_PATH}")
-run_ok "independent tiny group n" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${CSV_SMALL_GROUPS_PATH}" --vars score --group group
-check_log "${CSV_SMALL_GROUPS_LOG_PATH}" "${start}" "-" "independent"
-assert_contains "${CSV_SMALL_GROUPS_NLSS_PATH}" "could not be computed"
+run_expect_fail "independent tiny group n" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${CSV_SMALL_GROUPS_PATH}" --vars score --group group
+assert_latest_failed "${CSV_SMALL_GROUPS_LOG_PATH}"
 
 start=$(log_count "${CSV_PAIRED_TINY_LOG_PATH}")
-run_ok "paired tiny n" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${CSV_PAIRED_TINY_PATH}" --x pre --y post
-check_log "${CSV_PAIRED_TINY_LOG_PATH}" "${start}" "-" "paired"
-assert_contains "${CSV_PAIRED_TINY_NLSS_PATH}" "could not be computed"
+run_expect_fail "paired tiny n" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${CSV_PAIRED_TINY_PATH}" --x pre --y post
+assert_latest_failed "${CSV_PAIRED_TINY_LOG_PATH}"
 
 start=$(log_count "${CSV_SEMI_LOG_PATH}")
 run_ok "csv semicolon separator" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${CSV_SEMI_PATH}" --sep ";" --header TRUE --vars score
 check_log "${CSV_SEMI_LOG_PATH}" "${start}" "-" "one_sample"
+
+run_ok "one-sample default vars on estimable data" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${CSV_SEMI_PATH}" --sep ";" --header TRUE
 
 start=$(log_count "${CSV_NOHEADER_LOG_PATH}")
 run_ok "csv no header" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${CSV_NOHEADER_PATH}" --sep ";" --header FALSE --vars V1
@@ -620,7 +638,8 @@ set_config_value templates.t_test.default "${TEMPLATE_ORIG}"
 
 start=$(log_count "${MAIN_LOG_PATH}")
 run_ok "group levels expected negative" Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}" --vars score --group group3 --expect-two-groups TRUE
-check_log "${MAIN_LOG_PATH}" "${start}" "expected_invalid_input" "independent" "expect_two_groups=true"
+assert_latest_failed "${MAIN_LOG_PATH}"
+assert_log_unchanged "${start}" "$(log_count "${MAIN_LOG_PATH}")" "expected invalid does not publish legacy output"
 
 run_expect_invalid "independent with 3 levels" "invalid_input" "${MAIN_LOG_PATH}" "independent" -- \
   Rscript "${R_SCRIPT_DIR}/t_test.R" --csv "${DATA_MAIN}" --vars score --group group3

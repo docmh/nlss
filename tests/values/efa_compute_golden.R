@@ -42,227 +42,59 @@ poly_df <- read.csv(text = poly_text, stringsAsFactors = FALSE)
 tetra_text <- "b1,b2,b3\n0,1,0\n1,1,0\n0,0,1\n1,0,1\n0,1,1\n1,0,0\n0,0,0\n1,1,1\n0,1,0\n1,0,1\n"
 tetra_df <- read.csv(text = tetra_text, stringsAsFactors = FALSE)
 
-calc_cor_matrix <- function(df, vars, cor_type, missing_method) {
-  data <- df[, vars, drop = FALSE]
-  if (cor_type %in% c("pearson", "spearman")) {
-    if (missing_method == "complete") {
-      data <- data[complete.cases(data), , drop = FALSE]
-      if (nrow(data) < 2) stop("Not enough rows for correlation matrix.")
-      cor_mat <- suppressWarnings(cor(data, use = "complete.obs", method = cor_type))
-      n_obs <- nrow(data)
-    } else {
-      if (nrow(data) < 2) stop("Not enough rows for correlation matrix.")
-      cor_mat <- suppressWarnings(cor(data, use = "pairwise.complete.obs", method = cor_type))
-      n_obs <- nrow(data)
-    }
-    return(list(cor_mat = cor_mat, n_obs = n_obs))
+# Independent reference calculations: no NLSS code is sourced. Extract package
+# results directly rather than reproducing adapter formulas for communalities.
+run_case <- function(df, vars, group_var, method, rotation, n_factors_rule, n_factors_fixed,
+                     eigen_threshold, cor_type, missing_method, loading_cutoff, sort_loadings) {
+  set.seed(1)
+  groups <- if (nzchar(group_var)) unique(df[[group_var]]) else ""
+  summaries <- loadings <- eigen_rows <- list()
+  for (g in groups) {
+    rows <- if (!nzchar(group_var)) seq_len(nrow(df)) else
+      if (is.na(g)) which(is.na(df[[group_var]])) else which(!is.na(df[[group_var]]) & df[[group_var]] == g)
+    x <- df[rows, vars, drop = FALSE]
+    x <- x[if (missing_method == "complete") complete.cases(x) else rowSums(!is.na(x)) > 0, , drop = FALSE]
+    r <- switch(cor_type,
+      pearson = cor(x, use = "pairwise.complete.obs"),
+      spearman = cor(x, use = "pairwise.complete.obs", method = "spearman"),
+      polychoric = psych::polychoric(x)$rho,
+      tetrachoric = psych::tetrachoric(x)$rho)
+    eig <- eigen(r, symmetric = TRUE, only.values = TRUE)$values
+    k <- if (n_factors_rule == "fixed") n_factors_fixed else max(1, sum(eig > eigen_threshold))
+    fit <- if (method == "pca") psych::principal(r, nfactors = k, rotate = rotation, scores = FALSE, n.obs = nrow(x)) else
+      psych::fa(r, nfactors = k, rotate = rotation, fm = method, n.obs = nrow(x))
+    L <- unclass(fit$loadings)[vars, , drop = FALSE]
+    primary <- max.col(abs(L), ties.method = "first")
+    h2 <- fit$communality[vars]
+    label <- if (is.na(g)) "NA" else as.character(g)
+    ld <- data.frame(item = vars, factor = paste0("F", primary),
+      loading = L[cbind(seq_along(vars), primary)], h2 = unname(h2),
+      u2 = unname(fit$uniquenesses[vars]), complexity = unname(fit$complexity[vars]),
+      group = label)
+    if (sort_loadings) ld <- ld[order(ld$factor, -abs(ld$loading), ld$item), ]
+    kmo <- tryCatch(psych::KMO(r)$MSA, error = function(e) NA_real_)
+    bart <- tryCatch(psych::cortest.bartlett(r, n = nrow(x)), error = function(e) list())
+    summaries[[length(summaries) + 1L]] <- data.frame(group = label, n_obs = nrow(x), n_items = length(vars),
+      n_factors = k, method = method, rotation = rotation, cor = cor_type, missing = missing_method,
+      eigen_threshold = eigen_threshold, kmo = kmo,
+      bartlett_chi2 = if (is.null(bart$chisq)) NA_real_ else bart$chisq,
+      bartlett_df = if (is.null(bart$df)) NA_real_ else bart$df,
+      bartlett_p = if (is.null(bart$p.value)) NA_real_ else bart$p.value,
+      variance_explained = sum(h2) / length(vars))
+    loadings[[length(loadings) + 1L]] <- ld
+    eigen_rows[[length(eigen_rows) + 1L]] <- data.frame(group = label, component = seq_along(eig),
+      eigenvalue = eig, proportion = eig / length(vars), cumulative = cumsum(eig / length(vars)))
   }
-
-  if (missing_method == "complete") {
-    data <- data[complete.cases(data), , drop = FALSE]
-  }
-  if (nrow(data) < 2) stop("Not enough rows for correlation matrix.")
-
-  if (cor_type == "polychoric") {
-    res <- psych::polychoric(data)
-    return(list(cor_mat = res$rho, n_obs = nrow(data)))
-  }
-  if (cor_type == "tetrachoric") {
-    res <- psych::tetrachoric(data)
-    return(list(cor_mat = res$rho, n_obs = nrow(data)))
-  }
-  stop("Unsupported correlation type.")
-}
-
-determine_n_factors <- function(eigenvalues, rule, fixed_n, threshold, max_n) {
-  if (length(eigenvalues) == 0) return(NA_real_)
-  if (rule == "fixed" && !is.na(fixed_n)) {
-    n_val <- as.numeric(fixed_n)
-  } else {
-    n_val <- sum(eigenvalues > threshold)
-  }
-  if (is.na(n_val) || n_val < 1) n_val <- 1
-  if (!is.null(max_n) && n_val > max_n) n_val <- max_n
-  n_val
-}
-
-build_loadings_df <- function(loadings, h2, u2, complexity, group_label, loading_cutoff, sort_loadings) {
-  item_names <- rownames(loadings)
-  if (is.null(item_names) || length(item_names) == 0) {
-    item_names <- paste0("Item", seq_len(nrow(loadings)))
-  }
-  factor_names <- colnames(loadings)
-  abs_loadings <- abs(loadings)
-  primary_idx <- apply(abs_loadings, 1, function(x) {
-    if (all(is.na(x))) return(NA_integer_)
-    which.max(x)
-  })
-  primary_factor <- vapply(primary_idx, function(i) ifelse(is.na(i), NA_character_, factor_names[i]), character(1))
-  primary_loading <- vapply(seq_len(nrow(loadings)), function(i) {
-    idx <- primary_idx[i]
-    if (is.na(idx)) return(NA_real_)
-    loadings[i, idx]
-  }, numeric(1))
-
-  df <- data.frame(
-    item = item_names,
-    factor = primary_factor,
-    loading = primary_loading,
-    h2 = h2,
-    u2 = u2,
-    complexity = complexity,
-    group = group_label,
-    stringsAsFactors = FALSE
-  )
-
-  if (sort_loadings) {
-    order_idx <- order(df$factor, -abs(df$loading), df$item, na.last = TRUE)
-    df <- df[order_idx, , drop = FALSE]
-  }
-
-  df
-}
-
-build_eigen_df <- function(eigenvalues, n_items, group_label) {
-  if (length(eigenvalues) == 0) return(data.frame())
-  proportion <- eigenvalues / n_items
-  cumulative <- cumsum(proportion)
-  data.frame(
-    group = group_label,
-    component = seq_along(eigenvalues),
-    eigenvalue = eigenvalues,
-    proportion = proportion,
-    cumulative = cumulative,
-    stringsAsFactors = FALSE
-  )
-}
-
-build_summary_row <- function(group_label, n_obs, n_items, n_factors, method, rotation, cor_type, missing_method, kmo_val, bartlett, variance_explained, eigen_threshold) {
-  data.frame(
-    group = group_label,
-    n_obs = n_obs,
-    n_items = n_items,
-    n_factors = n_factors,
-    method = method,
-    rotation = rotation,
-    cor = cor_type,
-    missing = missing_method,
-    eigen_threshold = eigen_threshold,
-    kmo = kmo_val,
-    bartlett_chi2 = ifelse(is.null(bartlett$chisq), NA_real_, bartlett$chisq),
-    bartlett_df = ifelse(is.null(bartlett$df), NA_real_, bartlett$df),
-    bartlett_p = ifelse(is.null(bartlett$p.value), NA_real_, bartlett$p.value),
-    variance_explained = variance_explained,
-    stringsAsFactors = FALSE
-  )
-}
-
-run_case <- function(df, vars, group_var, method, rotation, n_factors_rule, n_factors_fixed, eigen_threshold, cor_type, missing_method, loading_cutoff, sort_loadings) {
-  loadings_list <- list()
-  eigen_list <- list()
-  summary_list <- list()
-
-  group_values <- if (!is.null(group_var) && nzchar(group_var)) unique(df[[group_var]]) else NA
-
-  for (group_value in group_values) {
-    if (!is.null(group_var) && nzchar(group_var)) {
-      df_group <- df[df[[group_var]] == group_value, , drop = FALSE]
-      group_label <- ifelse(is.na(group_value), "NA", as.character(group_value))
-    } else {
-      df_group <- df
-      group_label <- ""
-    }
-
-    cor_res <- calc_cor_matrix(df_group, vars, cor_type, missing_method)
-    cor_mat <- cor_res$cor_mat
-    n_obs <- cor_res$n_obs
-
-    if (!is.matrix(cor_mat) || nrow(cor_mat) < 2) {
-      stop("Correlation matrix could not be computed.")
-    }
-    if (any(!is.finite(cor_mat))) {
-      stop("Correlation matrix contains non-finite values.")
-    }
-
-    eigenvalues <- suppressWarnings(eigen(cor_mat, symmetric = TRUE, only.values = TRUE)$values)
-    n_items <- length(vars)
-    n_factors <- determine_n_factors(eigenvalues, n_factors_rule, n_factors_fixed, eigen_threshold, n_items)
-
-    efa_res <- if (method == "pca") {
-      psych::principal(r = cor_mat, nfactors = n_factors, rotate = rotation, scores = FALSE)
-    } else {
-      psych::fa(r = cor_mat, nfactors = n_factors, rotate = rotation, fm = method, n.obs = n_obs)
-    }
-
-    loadings <- as.matrix(efa_res$loadings)
-    if (nrow(loadings) == 0) {
-      stop("Loadings could not be computed.")
-    }
-
-    if (!is.null(rownames(loadings))) {
-      row_order <- match(vars, rownames(loadings))
-      if (all(!is.na(row_order))) {
-        loadings <- loadings[row_order, , drop = FALSE]
-      }
-    }
-
-    factor_names <- paste0("F", seq_len(ncol(loadings)))
-    colnames(loadings) <- factor_names
-
-    h2 <- rowSums(loadings^2, na.rm = TRUE)
-    u2 <- 1 - h2
-    complexity <- if (!is.null(efa_res$complexity)) {
-      as.numeric(efa_res$complexity)
-    } else {
-      rep(NA_real_, length(h2))
-    }
-
-    loadings_df <- build_loadings_df(loadings, h2, u2, complexity, group_label, loading_cutoff, sort_loadings)
-    eigen_df <- build_eigen_df(eigenvalues, n_items, group_label)
-
-    kmo_val <- NA_real_
-    bartlett <- list()
-    kmo_res <- tryCatch(psych::KMO(cor_mat), error = function(e) NULL)
-    if (!is.null(kmo_res) && !is.null(kmo_res$MSA)) {
-      kmo_val <- as.numeric(kmo_res$MSA)
-    }
-    bartlett_res <- tryCatch(psych::cortest.bartlett(cor_mat, n = n_obs), error = function(e) NULL)
-    if (!is.null(bartlett_res)) {
-      bartlett <- bartlett_res
-    }
-
-    variance_explained <- sum(eigenvalues[seq_len(n_factors)]) / n_items
-
-    summary_row <- build_summary_row(
-      group_label = group_label,
-      n_obs = n_obs,
-      n_items = n_items,
-      n_factors = n_factors,
-      method = method,
-      rotation = rotation,
-      cor_type = cor_type,
-      missing_method = missing_method,
-      kmo_val = kmo_val,
-      bartlett = bartlett,
-      variance_explained = variance_explained,
-      eigen_threshold = eigen_threshold
-    )
-
-    loadings_list[[length(loadings_list) + 1]] <- loadings_df
-    eigen_list[[length(eigen_list) + 1]] <- eigen_df
-    summary_list[[length(summary_list) + 1]] <- summary_row
-  }
-
-  list(
-    loadings_df = do.call(rbind, loadings_list),
-    eigen_df = do.call(rbind, eigen_list),
-    summary_df = do.call(rbind, summary_list)
-  )
+  list(summary_df = do.call(rbind, summaries), loadings_df = do.call(rbind, loadings),
+    eigen_df = do.call(rbind, eigen_rows))
 }
 
 base_vars <- c("f1_1", "f1_2", "f1_3_rev", "f1_4", "f2_1", "f2_2", "f2_3", "f2_4_rev")
 
 cases <- list(
+  list(case_id = "efa_uls_oblimin", dataset = "golden", vars = base_vars, group = "",
+    method = "uls", rotation = "oblimin", n_factors = 2, eigen_threshold = 1,
+    cor = "pearson", missing = "complete", loading_cutoff = .3, sort_loadings = TRUE),
   list(
     case_id = "efa_default_pca_eigen",
     dataset = "golden",

@@ -74,11 +74,8 @@ compute_table <- function(df_sub, row_var, col_var, group_label, opts) {
   std_resid <- (tab - expected) / sqrt(expected)
   std_resid[expected == 0] <- NA_real_
 
-  row_prop <- row_sums / valid_n
-  col_prop <- col_sums / valid_n
-  denom <- sqrt(expected * (1 - row_prop) * (1 - col_prop))
-  adj_resid <- (tab - expected) / denom
-  adj_resid[denom == 0] <- NA_real_
+  # Authoritative independent adjusted residuals, not a copied module formula.
+  adj_resid <- suppressWarnings(stats::chisq.test(tab, correct = FALSE))$stdres
 
   row_pct <- sweep(tab, 1, row_sums, FUN = "/") * 100
   col_pct <- sweep(tab, 2, col_sums, FUN = "/") * 100
@@ -250,7 +247,7 @@ cases <- list(
     row_var = "cat_var",
     col_var = "cat_var2",
     group_label = "control",
-    data = df[df$group2 == "control", , drop = FALSE],
+    data = df[!is.na(df$group2) & df$group2 == "control", , drop = FALSE],
     options = list(
       chisq = TRUE,
       yates = FALSE,

@@ -324,6 +324,22 @@ add_value_label_column <- function(df, labels, var_col, value_col, out_col = NUL
   df
 }
 
+nlss_missing_group_label <- function(values, labels = NULL, group_var = NULL) {
+  # Retain the familiar label unless it would collide with a real code/label.
+  # Group identity and row selection remain separate from this display key.
+  values <- unique(as.character(values[!is.na(values)]))
+  used <- unique(c(values, vapply(values, function(value) {
+    resolve_value_label(labels, group_var, value)
+  }, character(1))))
+  candidate <- "NA"
+  index <- 1L
+  while (candidate %in% used) {
+    candidate <- if (index == 1L) "NA (missing)" else paste0("NA (missing ", index, ")")
+    index <- index + 1L
+  }
+  candidate
+}
+
 add_group_label_column <- function(df, labels, group_var, group_col = "group", out_col = NULL) {
   if (is.null(df) || !is.data.frame(df)) return(df)
   if (is.null(group_var) || !nzchar(group_var)) return(df)

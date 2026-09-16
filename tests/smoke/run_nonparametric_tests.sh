@@ -112,6 +112,14 @@ if [ -z "${RUNS_BASE_CFG}" ]; then
   RUNS_BASE_CFG="outputs/test-runs"
 fi
 
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --root) export NLSS_TEST_ROOT="$2"; shift 2 ;;
+    --keep) export NLSS_KEEP_RUNS="$2"; shift 2 ;;
+    *) echo "Unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+
 RUN_ID="$(date +%Y%m%d%H%M%S)"
 RUNS_BASE="$(to_abs_path "${RUNS_BASE_CFG}")"
 if [ -n "${NLSS_TEST_ROOT:-}" ]; then
@@ -135,6 +143,7 @@ SAV_PATH="${TMP_BASE}/nonparametric_sav_input.sav"
 CSV_SEMI_PATH="${TMP_BASE}/nonparametric_semicolon.csv"
 CSV_NOHEADER_PATH="${TMP_BASE}/nonparametric_noheader.csv"
 CSV_NO_NUMERIC_PATH="${TMP_BASE}/nonparametric_no_numeric.csv"
+CSV_ESTIMABLE_PATH="${TMP_BASE}/nonparametric_estimable.csv"
 PARQUET_PATH="${TMP_BASE}/nonparametric_parquet_input.parquet"
 TEMPLATE_TMP="${TMP_BASE}/nonparametric_template_override.md"
 
@@ -260,36 +269,45 @@ run_expect_invalid() {
   local status="$1"; shift
   local log_path="$1"; shift
   local mode="$1"; shift
-  local check_args=()
-  while [ "$#" -gt 0 ]; do
-    if [ "$1" = "--" ]; then
-      shift
-      break
-    fi
-    check_args+=("$1")
-    shift
-  done
-  if [ "$#" -eq 0 ]; then
-    echo "[FAIL] ${label} (missing command)" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
-  echo "[RUN-EXPECT-INVALID] ${label}" | tee -a "${LOG_FILE}"
-  local start_count
-  start_count="$(log_count "${log_path}")"
-  set +e
-  "$@" >>"${LOG_FILE}" 2>&1
-  local exit_status=$?
-  set -e
-  if [ "${exit_status}" -eq 0 ]; then
-    echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
-  if check_log "${log_path}" "${start_count}" "${status}" "${mode}" "${check_args[@]}"; then
-    echo "[PASS] ${label} (status ${status})" | tee -a "${LOG_FILE}"
-  else
-    echo "[FAIL] ${label} (status ${status} not logged)" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
+  while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do shift; done
+  [ "$#" -gt 0 ] || return 1
+  shift
+  local dataset_dir before
+  dataset_dir="$(dirname "$log_path")"
+  before="$("$PYTHON_BIN" - "$dataset_dir" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+def digest(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
+print(json.dumps({"requests": [str(p) for p in root.glob("runs/*/request.json")],
+                  "report": digest(root/"report_canonical.md"),
+                  "log": digest(root/"analysis_log.jsonl")}))
+PY
+)"
+  echo "[RUN-EXPECT-INVALID] $label" | tee -a "$LOG_FILE"
+  local exit_status=0
+  "$@" >>"$LOG_FILE" 2>&1 || exit_status=$?
+  [ "$exit_status" -ne 0 ] || { echo "[FAIL] $label (unexpected success)" | tee -a "$LOG_FILE"; return 1; }
+  "$PYTHON_BIN" - "$dataset_dir" "$before" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+root, before = Path(sys.argv[1]), json.loads(sys.argv[2])
+def digest(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
+requests = [p for p in root.glob("runs/*/request.json") if str(p) not in before["requests"]]
+assert len(requests) == 1, "Expected exactly one new terminal run"
+request = requests[0]
+assert not request.parent.name.startswith(".pending-")
+result = json.loads((request.parent/"result.json").read_text())
+assert result["status"] == "failed" and result["module"] == "nonparametric"
+assert result["error"] and not (request.parent/"output.md").exists()
+assert result["artifacts"]["request"]["sha256"] == digest(request)
+assert not (root/".analysis-lock").exists()
+assert digest(root/"report_canonical.md") == before["report"]
+assert digest(root/"analysis_log.jsonl") == before["log"]
+PY
+  echo "[PASS] $label (failed bundle; prior report/log unchanged)" | tee -a "$LOG_FILE"
 }
 
 run_expect_fail() {
@@ -449,12 +467,15 @@ run_ok "wilcoxon paired multi" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "
 check_log "${MAIN_LOG_PATH}" "${start}" "-" "wilcoxon_paired" test=wilcoxon x=pre,score y=post,score2 alternative=less exact=false continuity=true effect_size=r digits=2
 
 start=$(log_count "${MAIN_LOG_PATH}")
-run_ok "mann_whitney auto default vars" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_MAIN}" --group group
-check_log "${MAIN_LOG_PATH}" "${start}" "-" "mann_whitney" test=mann_whitney group=group vars=score alternative=two.sided effect_size=r conf_level=0.95
+run_expect_invalid "mann_whitney default vars includes unestimable tiny outcome" "invalid_input" "${MAIN_LOG_PATH}" "-" -- \
+  Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_MAIN}" --group group
+run_ok "prepare estimable default-vars fixture" Rscript -e "d <- read.csv(commandArgs(TRUE)[1]); write.csv(d[,c('group','score','score2')],commandArgs(TRUE)[2],row.names=FALSE)" "${DATA_MAIN}" "${CSV_ESTIMABLE_PATH}"
+run_ok "mann_whitney auto default vars" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${CSV_ESTIMABLE_PATH}" --group group
+check_log "${WORKSPACE_DIR}/nonparametric_estimable/analysis_log.jsonl" "0" "-" "mann_whitney" test=mann_whitney group=group vars=score,score2 alternative=two.sided effect_size=r conf_level=0.95
 
 start=$(log_count "${MAIN_LOG_PATH}")
 run_ok "kruskal posthoc bonferroni" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_MAIN}" --vars score,score2 --group group3 --posthoc pairwise --p-adjust bonferroni --effect-size r
-check_log "${MAIN_LOG_PATH}" "${start}" "-" "kruskal" test=kruskal group=group3 vars=score,score2 posthoc=pairwise p_adjust=bonferroni effect_size=epsilon_sq
+check_log "${MAIN_LOG_PATH}" "${start}" "-" "kruskal" test=kruskal group=group3 vars=score,score2 posthoc=pairwise p_adjust=bonferroni effect_size=eta_H_sq
 assert_contains "${NLSS_MAIN_REPORT_PATH}" "Nonparametric Post Hoc"
 
 start=$(log_count "${GOLDEN_LOG_PATH}")
@@ -496,7 +517,7 @@ TEMPLATE_MARKER="NONPARAMETRIC_TEMPLATE_OVERRIDE"
 printf "\n\n%s\n" "${TEMPLATE_MARKER}" >>"${TEMPLATE_TMP}"
 start=$(log_count "${MAIN_LOG_PATH}")
 run_ok "template override posthoc" Rscript "${R_SCRIPT_DIR}/nonparametric.R" --csv "${DATA_MAIN}" --vars score --group group3 --test kruskal --posthoc pairwise --template "${TEMPLATE_TMP}"
-check_log "${MAIN_LOG_PATH}" "${start}" "-" "kruskal" test=kruskal posthoc=pairwise effect_size=epsilon_sq
+check_log "${MAIN_LOG_PATH}" "${start}" "-" "kruskal" test=kruskal posthoc=pairwise effect_size=eta_H_sq
 assert_contains_count "${NLSS_MAIN_REPORT_PATH}" "${TEMPLATE_MARKER}" 2
 
 start=$(log_count "${LOG_PATH_SEMI}")

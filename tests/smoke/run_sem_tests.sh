@@ -159,15 +159,11 @@ SCRATCHPAD_PATH="${DATASET_DIR}/scratchpad.md"
 LOG_PATH="${DATASET_DIR}/analysis_log.jsonl"
 PARQUET_GOLDEN="${DATASET_DIR}/${DATASET_LABEL}.parquet"
 
-CONFIG_BAK="$(mktemp)"
-cp "${CONFIG_PATH}" "${CONFIG_BAK}"
-
-cleanup() {
-  cp "${CONFIG_BAK}" "${CONFIG_PATH}"
-  rm -f "${CONFIG_BAK}"
-  rm -f "${WORKSPACE_MANIFEST_PATH}"
-}
-trap cleanup EXIT
+# Test changes never rewrite the installed canonical configuration.
+CONFIG_PRIVATE="${RUN_ROOT}/sem-private-config.yml"
+cp "${CONFIG_PATH}" "${CONFIG_PRIVATE}"
+CONFIG_PATH="${CONFIG_PRIVATE}"
+export NLSS_CONFIG_PATH="${CONFIG_PRIVATE}"
 
 : > "${LOG_FILE}"
 
@@ -512,6 +508,8 @@ run_expect_invalid() {
   echo "[RUN-EXPECT-INVALID] ${label}" | tee -a "${LOG_FILE}"
   local start_count
   start_count="$(log_count "${LOG_PATH}")"
+  local before_runs
+  before_runs="$("${PYTHON_BIN}" -c 'import pathlib,sys; print(len(list(pathlib.Path(sys.argv[1]).glob("*/result.json"))))' "${DATASET_DIR}/runs")"
   set +e
   "$@" >>"${LOG_FILE}" 2>&1
   local exit_status=$?
@@ -520,12 +518,19 @@ run_expect_invalid() {
     echo "[FAIL] ${label} (unexpected success)" | tee -a "${LOG_FILE}"
     exit 1
   fi
-  if check_log "${start_count}" "${status}" "-" "standard" "-" "-" "-" "-" "-" "-"; then
-    echo "[PASS] ${label} (status ${status})" | tee -a "${LOG_FILE}"
-  else
-    echo "[FAIL] ${label} (status ${status} not logged)" | tee -a "${LOG_FILE}"
-    exit 1
-  fi
+  assert_log_unchanged "${start_count}" "$(log_count "${LOG_PATH}")" "${label} preserves JSONL"
+  "${PYTHON_BIN}" - "${DATASET_DIR}/runs" "${status}" "${before_runs}" <<'PY'
+import json, pathlib, sys
+runs = list(pathlib.Path(sys.argv[1]).glob("*/result.json"))
+assert len(runs) == int(sys.argv[3]) + 1, "Expected one new failure bundle"
+latest = max(runs, key=lambda path: path.stat().st_mtime_ns)
+result = json.loads(latest.read_text())
+request = json.loads(latest.with_name("request.json").read_text())
+assert result["status"] == "failed", result
+assert request["validation_issue"]["status"] == sys.argv[2], request
+assert not latest.with_name("output.md").exists(), "Failed run has normal output"
+PY
+  echo "[PASS] ${label} (failed bundle; legacy outputs preserved)" | tee -a "${LOG_FILE}"
 }
 
 assert_contains() {
@@ -578,9 +583,9 @@ ORDERED_TINY="f1_1,f1_2,f1_3_rev"
 INVARIANCE_MODEL="F1 =~ f1_1 + f1_2 + f1_3_rev + f1_4"
 FIT_INDICES_GOLDEN="chisq,df,cfi,tli,rmsea,srmr"
 MODEL_FILE="${TMP_BASE}/custom_model.txt"
-RDS_PATH="${TMP_BASE}/golden_dataset.rds"
-RDATA_PATH="${TMP_BASE}/golden_dataset.RData"
-SAV_PATH="${TMP_BASE}/golden_dataset.sav"
+RDS_PATH="${TMP_BASE}/sem_rds.rds"
+RDATA_PATH="${TMP_BASE}/sem_rdata.RData"
+SAV_PATH="${TMP_BASE}/sem_sav.sav"
 INTERACTIVE_INPUT="${TMP_BASE}/interactive_input.txt"
 HELP_PATH="${TMP_BASE}/sem_help.txt"
 
@@ -591,7 +596,7 @@ indirect := a*b
 total := c + indirect
 EOF
 
-run_ok "prepare rds/rdata" Rscript -e "df <- read.csv(\"${DATA_GOLDEN}\", stringsAsFactors = FALSE); saveRDS(df, \"${RDS_PATH}\"); golden_dataset <- df; save(golden_dataset, file = \"${RDATA_PATH}\")"
+run_ok "prepare rds/rdata" Rscript -e "df <- read.csv(\"${DATA_GOLDEN}\", stringsAsFactors = FALSE); saveRDS(df, \"${RDS_PATH}\"); sem_rdata <- df; save(sem_rdata, file = \"${RDATA_PATH}\")"
 
 if [ "${HAS_HAVEN}" -eq 1 ]; then
   run_ok "prepare sav" Rscript -e "library(haven); df <- read.csv(\"${DATA_GOLDEN}\", stringsAsFactors = FALSE); write_sav(df, \"${SAV_PATH}\")"
@@ -652,6 +657,8 @@ run_ok "sem modindices golden (cfa top1)" check_sem_modindices_golden "${LOG_PAT
 start=$(log_count "${LOG_PATH}")
 run_ok "cfa grouped golden (params)" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis cfa --factors "${FACTORS_TWO}" --group group2 --estimator ML --missing listwise --se standard --ci standard --conf-level 0.95 --std std.all --fit "${FIT_INDICES_GOLDEN}"
 run_ok "sem params golden (cfa grouped control)" check_sem_params_golden "${LOG_PATH}" "${start}" "cfa_group_control_loading_f1_1"
+run_ok "sem params golden (cfa control free loading)" check_sem_params_golden "${LOG_PATH}" "${start}" "cfa_group_control_loading_f1_2"
+run_ok "sem params golden (cfa treatment free loading)" check_sem_params_golden "${LOG_PATH}" "${start}" "cfa_group_treatment_loading_f1_2"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "mediation golden (fit/params/r2)" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis mediation --x x1 --m mediator --y outcome_reg --estimator ML --missing listwise --se standard --ci standard --conf-level 0.95 --std std.all --fit "${FIT_INDICES_GOLDEN}" --r2 TRUE
@@ -668,20 +675,25 @@ start=$(log_count "${LOG_PATH}")
 run_ok "path csv input" Rscript "${R_SCRIPT_DIR}/sem.R" --csv "${DATA_GOLDEN}" --analysis path --dv outcome_reg --ivs x1,x2
 check_log "${start}" "ok" "path" "standard" "3" "chisq,df,cfi" "-" "false" "false" "false"
 
+PRIMARY_LOG_PATH="${LOG_PATH}"
+LOG_PATH="${WORKSPACE_DIR}/sem_rds/analysis_log.jsonl"
 start=$(log_count "${LOG_PATH}")
 run_ok "path rds input" Rscript "${R_SCRIPT_DIR}/sem.R" --rds "${RDS_PATH}" --analysis path --dv outcome_reg --ivs x1,x2
 check_log "${start}" "ok" "path" "standard" "3" "chisq,df,cfi" "-" "false" "false" "false"
 
+LOG_PATH="${WORKSPACE_DIR}/sem_rdata/analysis_log.jsonl"
 start=$(log_count "${LOG_PATH}")
-run_ok "path rdata input" Rscript "${R_SCRIPT_DIR}/sem.R" --rdata "${RDATA_PATH}" --df golden_dataset --analysis path --dv outcome_reg --ivs x1,x2
+run_ok "path rdata input" Rscript "${R_SCRIPT_DIR}/sem.R" --rdata "${RDATA_PATH}" --df sem_rdata --analysis path --dv outcome_reg --ivs x1,x2
 check_log "${start}" "ok" "path" "standard" "3" "chisq,df,cfi" "-" "false" "false" "false"
 
 if [ "${HAS_HAVEN}" -eq 1 ]; then
+  LOG_PATH="${WORKSPACE_DIR}/sem_sav/analysis_log.jsonl"
   start=$(log_count "${LOG_PATH}")
   run_ok "path sav input" Rscript "${R_SCRIPT_DIR}/sem.R" --sav "${SAV_PATH}" --analysis path --dv outcome_reg --ivs x1,x2
   check_log "${start}" "ok" "path" "standard" "3" "chisq,df,cfi" "-" "false" "false" "false"
 fi
 
+LOG_PATH="${PRIMARY_LOG_PATH}"
 start=$(log_count "${LOG_PATH}")
 run_ok "interactive path" env NLSS_PROMPT_FILE="${INTERACTIVE_INPUT}" Rscript "${R_SCRIPT_DIR}/sem.R" --interactive
 check_log "${start}" "ok" "path" "standard" "3" "chisq,df,cfi" "-" "false" "false" "false"
@@ -767,6 +779,11 @@ check_log_value "${start}" "user_prompt" "sem test prompt"
 start=$(log_count "${LOG_PATH}")
 run_ok "mediation bootstrap" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis mediation --x x1 --m mediator --y outcome_reg --estimator ML --bootstrap TRUE --bootstrap-samples 200 --se bootstrap --ci bootstrap
 check_log "${start}" "ok" "mediation" "standard" "5" "chisq,df,cfi" "-" "false" "true" "false"
+
+start=$(log_count "${LOG_PATH}")
+run_ok "mediation normal bootstrap with explicit seed" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis mediation --x x1 --m mediator --y outcome_reg --estimator ML --se bootstrap --bootstrap-samples 40 --ci standard --seed 42
+check_log "${start}" "ok" "mediation" "standard" "5" "chisq,df,cfi" "-" "false" "true" "false"
+check_log_value "${start}" "options.seed" "42"
 
 start=$(log_count "${LOG_PATH}")
 run_ok "mediation serial" Rscript "${R_SCRIPT_DIR}/sem.R" --parquet "${PARQUET_GOLDEN}" --analysis mediation --x x1 --m mediator,x2 --y outcome_reg --serial TRUE --covariates age

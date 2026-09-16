@@ -10,12 +10,8 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
 
 
 # Static analysis aliases for source_lib-defined functions.
@@ -41,6 +37,7 @@ print_usage <- function() {
   cat("  --sav PATH             SPSS .sav input file\n")
   cat("  --sep VALUE            CSV separator (default: ,)\n")
   cat("  --header TRUE/FALSE    CSV header (default: TRUE)\n")
+  print_import_usage()
   cat("  --rds PATH             RDS input file (data frame)\n")
   cat("  --rdata PATH           RData input file\n")
   cat("  --parquet PATH         Parquet input file\n")
@@ -59,309 +56,42 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    opts$csv <- prompt("CSV path")
+    sep_default <- get_config_value("defaults.csv.sep", ",")
+    header_default <- get_config_value("defaults.csv.header", TRUE)
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
+    opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
+    opts$rds <- prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
+    opts$rdata <- prompt("RData path")
+    opts$df <- prompt("Data frame object name")
   } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
+    opts$parquet <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
 
-  opts$vars <- resolve_prompt("Variables (comma-separated, blank for all)", "")
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  max_levels_default <- resolve_config_value("modules.data_explorer.max_levels", 20)
-  top_n_default <- resolve_config_value("modules.data_explorer.top_n", 10)
-  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
-  opts$`max-levels` <- resolve_prompt("Max levels before truncating", as.character(max_levels_default))
-  opts$`top-n` <- resolve_prompt("Top N levels when truncating", as.character(top_n_default))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  opts$vars <- prompt("Variables (comma-separated, blank for all)", "")
+  digits_default <- get_config_value("defaults.digits", 2)
+  max_levels_default <- get_config_value("modules.data_explorer.max_levels", 20)
+  top_n_default <- get_config_value("modules.data_explorer.top_n", 10)
+  opts$digits <- prompt("Rounding digits", as.character(digits_default))
+  opts$`max-levels` <- prompt("Max levels before truncating", as.character(max_levels_default))
+  opts$`top-n` <- prompt("Top N levels when truncating", as.character(top_n_default))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log", TRUE)
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts
 }
-
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-
-resolve_get_workspace_out_dir <- function(df) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df))
-  }
-  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
-}
-
-resolve_select_variables <- function(df, vars, group_var = NULL, default = "numeric", include_numeric = FALSE) {
-  if (exists("select_variables", mode = "function")) {
-    return(get("select_variables", mode = "function")(
-      df,
-      vars,
-      group_var = group_var,
-      default = default,
-      include_numeric = include_numeric
-    ))
-  }
-  available <- names(df)
-  if (is.null(vars) || vars == "") {
-    if (default == "all") {
-      selected <- available
-    } else if (default == "non-numeric") {
-      if (include_numeric) {
-        selected <- available
-      } else {
-        selected <- available[!sapply(df, is.numeric)]
-        if (length(selected) == 0) selected <- available
-      }
-    } else {
-      selected <- available[sapply(df, is.numeric)]
-    }
-    if (!is.null(group_var)) selected <- setdiff(selected, group_var)
-    return(selected)
-  }
-  requested <- trimws(strsplit(vars, ",", fixed = TRUE)[[1]])
-  missing <- setdiff(requested, available)
-  if (length(missing) > 0) {
-    stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
-  }
-  if (!is.null(group_var)) requested <- setdiff(requested, group_var)
-  requested
-}
-
-resolve_get_levels <- function(vec) {
-  if (exists("get_levels", mode = "function")) {
-    return(get("get_levels", mode = "function")(vec))
-  }
-  if (is.factor(vec)) {
-    return(as.character(levels(vec)))
-  }
-  values <- unique(vec[!is.na(vec)])
-  if (length(values) == 0) return(character(0))
-  if (is.numeric(values)) {
-    return(as.character(sort(values)))
-  }
-  as.character(sort(values))
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-resolve_round_numeric <- function(df, digits) {
-  if (exists("round_numeric", mode = "function")) {
-    return(get("round_numeric", mode = "function")(df, digits))
-  }
-  out <- df
-  numeric_cols <- sapply(out, is.numeric)
-  out[numeric_cols] <- lapply(out[numeric_cols], function(x) round(x, digits))
-  out
-}
-
-resolve_format_percent <- function(value, digits) {
-  if (exists("format_percent", mode = "function")) {
-    return(get("format_percent", mode = "function")(value, digits))
-  }
-  if (is.na(value)) return("")
-  format(round(value, digits), nsmall = digits, trim = TRUE)
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  NULL
-}
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (is.null(value) || length(value) == 0 || is.na(value)) return("")
-  as.character(value)
-}
-
-resolve_get_next_table_number <- function(path) {
-  if (exists("get_next_table_number", mode = "function")) {
-    return(get("get_next_table_number", mode = "function")(path))
-  }
-  1
-}
-
 
 is_integer_like <- function(x) {
   if (!is.numeric(x)) return(FALSE)
@@ -424,7 +154,7 @@ get_numeric_summary <- function(vec) {
 }
 
 
-build_levels_table <- function(vec, variable, max_levels, top_n) {
+build_levels_table <- function(vec, variable, max_levels, top_n, labels = NULL) {
   total_n <- length(vec)
   missing_n <- sum(is.na(vec))
   valid_n <- total_n - missing_n
@@ -435,6 +165,7 @@ build_levels_table <- function(vec, variable, max_levels, top_n) {
     df <- data.frame(
       variable = variable,
       level = "(no valid data)",
+      level_kind = "no_valid_data",
       n = 0,
       pct_total = 0,
       pct_valid = NA_real_,
@@ -459,7 +190,7 @@ build_levels_table <- function(vec, variable, max_levels, top_n) {
     return(list(levels_df = NULL, levels_truncated = FALSE, levels_note = note))
   }
 
-  level_values <- resolve_get_levels(vec)
+  level_values <- get_levels(vec)
   counts <- table(factor(values, levels = level_values), useNA = "no")
 
   levels_truncated <- FALSE
@@ -472,20 +203,31 @@ build_levels_table <- function(vec, variable, max_levels, top_n) {
     df <- data.frame(
       variable = variable,
       level = names(top_counts),
+      level_kind = "observed",
       n = as.integer(top_counts),
-      pct_total = ifelse(total_n > 0, as.numeric(top_counts) / total_n * 100, NA_real_),
-      pct_valid = ifelse(valid_n > 0, as.numeric(top_counts) / valid_n * 100, NA_real_),
+      pct_total = as.numeric(top_counts) / total_n * 100,
+      pct_valid = as.numeric(top_counts) / valid_n * 100,
       total_n = total_n,
       missing_n = missing_n,
       missing_pct = ifelse(total_n > 0, missing_n / total_n * 100, NA_real_),
       stringsAsFactors = FALSE
     )
-    if (other_count > 0) {
+    if (length(other_levels) > 0L) {
+      used_labels <- c(level_values, vapply(level_values, function(value) {
+        resolve_value_label(labels, variable, value)
+      }, character(1)))
+      other_label <- "Other (remaining)"
+      index <- 2L
+      while (other_label %in% used_labels) {
+        other_label <- paste0("Other (remaining ", index, ")")
+        index <- index + 1L
+      }
       df <- rbind(
         df,
         data.frame(
           variable = variable,
-          level = "Other (remaining)",
+          level = other_label,
+          level_kind = "remainder",
           n = as.integer(other_count),
           pct_total = ifelse(total_n > 0, as.numeric(other_count) / total_n * 100, NA_real_),
           pct_valid = ifelse(valid_n > 0, as.numeric(other_count) / valid_n * 100, NA_real_),
@@ -496,14 +238,15 @@ build_levels_table <- function(vec, variable, max_levels, top_n) {
         )
       )
     }
-    levels_truncated <- TRUE
+    levels_truncated <- length(other_levels) > 0L
   } else {
     df <- data.frame(
       variable = variable,
       level = names(counts),
+      level_kind = "observed",
       n = as.integer(counts),
-      pct_total = ifelse(total_n > 0, as.numeric(counts) / total_n * 100, NA_real_),
-      pct_valid = ifelse(valid_n > 0, as.numeric(counts) / valid_n * 100, NA_real_),
+      pct_total = as.numeric(counts) / total_n * 100,
+      pct_valid = as.numeric(counts) / valid_n * 100,
       total_n = total_n,
       missing_n = missing_n,
       missing_pct = ifelse(total_n > 0, missing_n / total_n * 100, NA_real_),
@@ -537,7 +280,7 @@ format_logical_cell <- function(value) {
 }
 
 build_overview_table_body <- function(df, digits, table_spec = NULL) {
-  display <- resolve_round_numeric(df, digits)
+  display <- round_numeric(df, digits)
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   default_columns <- list(
     list(key = "variable", label = "Variable"),
@@ -551,7 +294,7 @@ build_overview_table_body <- function(df, digits, table_spec = NULL) {
     list(key = "min", label = "Min"),
     list(key = "max", label = "Max")
   )
-  columns <- resolve_normalize_table_columns(
+  columns <- normalize_table_columns(
     if (!is.null(table_spec$columns)) table_spec$columns else NULL,
     default_columns
   )
@@ -566,42 +309,42 @@ build_overview_table_body <- function(df, digits, table_spec = NULL) {
         cell <- row[[key]][1]
         if (key %in% c("variable", "class", "storage", "measurement_level", "measurement_note", "example_values", "levels_note")) {
           if (key == "variable") {
-            val <- resolve_as_cell_text(row$variable_display[1])
+            val <- as_cell_text(row$variable_display[1])
           } else {
-            val <- resolve_as_cell_text(cell)
+            val <- as_cell_text(cell)
           }
         } else if (key %in% c("total_n", "valid_n", "missing_n", "unique_n")) {
           val <- ifelse(is.na(cell), "", as.character(cell))
         } else if (key == "missing_pct") {
-          val <- resolve_format_percent(cell, digits)
+          val <- format_percent(cell, digits)
         } else if (key %in% c("mean", "sd", "min", "max", "median", "q1", "q3")) {
           val <- format_table_num(cell, digits)
         } else if (key %in% c("levels_included", "levels_truncated")) {
           if (is.logical(cell)) {
             val <- format_logical_cell(cell)
           } else {
-            val <- resolve_as_cell_text(cell)
+            val <- as_cell_text(cell)
           }
         } else if (is.numeric(cell)) {
           val <- format_table_num(cell, digits)
         } else if (is.logical(cell)) {
           val <- format_logical_cell(cell)
         } else {
-          val <- resolve_as_cell_text(cell)
+          val <- as_cell_text(cell)
         }
       }
       row_vals <- c(row_vals, val)
     }
     rows[[length(rows) + 1]] <- row_vals
   }
-  filtered <- resolve_drop_empty_columns(columns, rows)
+  filtered <- drop_empty_columns(columns, rows)
   columns <- filtered$columns
   rows <- filtered$rows
   headers <- vapply(columns, function(col) {
     if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
   }, character(1))
   list(
-    body = resolve_render_markdown_table(headers, rows),
+    body = render_markdown_table(headers, rows),
     columns = vapply(columns, function(col) col$key, character(1))
   )
 }
@@ -613,7 +356,7 @@ build_levels_table_body <- function(df, digits, table_spec = NULL) {
       columns = character(0)
     ))
   }
-  display <- resolve_round_numeric(df, digits)
+  display <- round_numeric(df, digits)
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   display$level_display <- if ("level_label" %in% names(display)) display$level_label else display$level
   default_columns <- list(
@@ -623,7 +366,7 @@ build_levels_table_body <- function(df, digits, table_spec = NULL) {
     list(key = "pct_total", label = "%"),
     list(key = "pct_valid", label = "Valid %")
   )
-  columns <- resolve_normalize_table_columns(
+  columns <- normalize_table_columns(
     if (!is.null(table_spec$columns)) table_spec$columns else NULL,
     default_columns
   )
@@ -644,14 +387,14 @@ build_levels_table_body <- function(df, digits, table_spec = NULL) {
         val <- ""
         if (key %in% c("variable", "level")) {
           if (key == "variable") {
-            val <- resolve_as_cell_text(row$variable_display[1])
+            val <- as_cell_text(row$variable_display[1])
           } else {
-            val <- resolve_as_cell_text(row$level_display[1])
+            val <- as_cell_text(row$level_display[1])
           }
         } else if (key %in% c("n", "total_n", "missing_n")) {
           val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
         } else if (key %in% c("pct_total", "pct_valid", "missing_pct")) {
-          val <- resolve_format_percent(row[[key]][1], digits)
+          val <- format_percent(row[[key]][1], digits)
         } else if (key %in% names(row)) {
           cell <- row[[key]][1]
           if (is.numeric(cell)) {
@@ -659,7 +402,7 @@ build_levels_table_body <- function(df, digits, table_spec = NULL) {
           } else if (is.logical(cell)) {
             val <- format_logical_cell(cell)
           } else {
-            val <- resolve_as_cell_text(cell)
+            val <- as_cell_text(cell)
           }
         }
         row_vals <- c(row_vals, val)
@@ -672,13 +415,13 @@ build_levels_table_body <- function(df, digits, table_spec = NULL) {
         key <- col$key
         val <- ""
         if (key == "variable") {
-          val <- resolve_as_cell_text(var_label)
+          val <- as_cell_text(var_label)
         } else if (key == "level") {
           val <- "Missing"
         } else if (key == "n") {
           val <- as.character(missing_n)
         } else if (key == "pct_total") {
-          val <- resolve_format_percent(missing_pct, digits)
+          val <- format_percent(missing_pct, digits)
         } else if (key == "pct_valid") {
           val <- ""
         } else if (key == "total_n") {
@@ -686,21 +429,21 @@ build_levels_table_body <- function(df, digits, table_spec = NULL) {
         } else if (key == "missing_n") {
           val <- ifelse(is.na(missing_n), "", as.character(missing_n))
         } else if (key == "missing_pct") {
-          val <- resolve_format_percent(missing_pct, digits)
+          val <- format_percent(missing_pct, digits)
         }
         row_vals <- c(row_vals, val)
       }
       rows[[length(rows) + 1]] <- row_vals
     }
   }
-  filtered <- resolve_drop_empty_columns(columns, rows)
+  filtered <- drop_empty_columns(columns, rows)
   columns <- filtered$columns
   rows <- filtered$rows
   headers <- vapply(columns, function(col) {
     if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
   }, character(1))
   list(
-    body = resolve_render_markdown_table(headers, rows),
+    body = render_markdown_table(headers, rows),
     columns = vapply(columns, function(col) col$key, character(1))
   )
 }
@@ -739,7 +482,7 @@ build_levels_note_tokens <- function(levels_df, overview_df, column_keys, top_n)
     truncation_note <- paste0(
       "Levels truncated to top ",
       top_n,
-      "; remaining levels combined as Other (remaining)."
+      "; remaining levels combined in a separate remainder row."
     )
   }
   note_parts <- c(pct_total_note, pct_valid_note, missing_note, truncation_note)
@@ -765,7 +508,7 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
   rows <- list()
   for (i in seq_len(nrow(overview_display))) {
     row <- overview_display[i, , drop = FALSE]
-    label <- resolve_as_cell_text(row$variable_display)
+    label <- as_cell_text(row$variable_display)
     total_n <- row$total_n
     valid_n <- row$valid_n
     missing_n <- row$missing_n
@@ -775,7 +518,7 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
     total_n_str <- ifelse(is.na(total_n), "NA", as.character(total_n))
     valid_n_str <- ifelse(is.na(valid_n), "NA", as.character(valid_n))
     missing_n_str <- ifelse(is.na(missing_n), "NA", as.character(missing_n))
-    missing_pct_str <- ifelse(is.na(missing_pct), "NA", resolve_format_percent(missing_pct, digits))
+    missing_pct_str <- ifelse(is.na(missing_pct), "NA", format_percent(missing_pct, digits))
     unique_n_str <- ifelse(is.na(unique_n), "NA", as.character(unique_n))
 
     mean_str <- ifelse(is.na(row$mean), "NA", format_num(row$mean, digits))
@@ -800,7 +543,7 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
               "%s (n = %s, valid %% = %s)",
               lv$level_display[1],
               ifelse(is.na(lv$n), "NA", as.character(lv$n)),
-              ifelse(is.na(lv$pct_valid), "NA", resolve_format_percent(lv$pct_valid, digits))
+              ifelse(is.na(lv$pct_valid), "NA", format_percent(lv$pct_valid, digits))
             )
           )
         }
@@ -814,8 +557,8 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
       line <- sprintf(
         "%s (%s, scale: %s): n = %s, missing = %s (%s%%), unique values = %s.",
         label,
-        resolve_as_cell_text(row$class),
-        resolve_as_cell_text(row$measurement_level),
+        as_cell_text(row$class),
+        as_cell_text(row$measurement_level),
         valid_n_str,
         missing_n_str,
         missing_pct_str,
@@ -834,24 +577,24 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
       if (nzchar(levels_text)) {
         line <- paste0(line, " Levels: ", levels_text, ".")
         if (isTRUE(row$levels_truncated[1])) {
-          line <- paste0(line, " Remaining levels combined as Other.")
+          line <- paste0(line, " Remaining levels combined in a separate remainder category.")
         }
       }
     }
 
     rows[[length(rows) + 1]] <- list(
       label = label,
-      variable = resolve_as_cell_text(row$variable_display),
-      class = resolve_as_cell_text(row$class),
-      storage = resolve_as_cell_text(row$storage),
-      measurement_level = resolve_as_cell_text(row$measurement_level),
-      measurement_note = resolve_as_cell_text(row$measurement_note),
+      variable = as_cell_text(row$variable_display),
+      class = as_cell_text(row$class),
+      storage = as_cell_text(row$storage),
+      measurement_level = as_cell_text(row$measurement_level),
+      measurement_note = as_cell_text(row$measurement_note),
       total_n = total_n_str,
       valid_n = valid_n_str,
       missing_n = missing_n_str,
       missing_pct = missing_pct_str,
       unique_n = unique_n_str,
-      example_values = resolve_as_cell_text(row$example_values),
+      example_values = as_cell_text(row$example_values),
       mean = mean_str,
       sd = sd_str,
       min = min_str,
@@ -869,7 +612,7 @@ build_explorer_narrative_rows <- function(overview_df, levels_df, digits) {
 }
 
 format_nlss_overview_table <- function(df, digits) {
-  display <- resolve_round_numeric(df, digits)
+  display <- round_numeric(df, digits)
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   headers <- c("Variable", "Class", "Scale", "n", "Missing %", "Unique", "M", "SD", "Min", "Max")
   md <- paste0("Table 1\nVariable overview\n\n| ", paste(headers, collapse = " | "), " |\n")
@@ -882,7 +625,7 @@ format_nlss_overview_table <- function(df, digits) {
       row$class,
       row$measurement_level,
       ifelse(is.na(row$valid_n), "", as.character(row$valid_n)),
-      resolve_format_percent(row$missing_pct, digits),
+      format_percent(row$missing_pct, digits),
       ifelse(is.na(row$unique_n), "", as.character(row$unique_n)),
       ifelse(is.na(row$mean), "", format_num(row$mean, digits)),
       ifelse(is.na(row$sd), "", format_num(row$sd, digits)),
@@ -901,7 +644,7 @@ format_nlss_levels_table <- function(df, digits) {
     return("Table 2\nValue levels\n\n(No level tables produced; see variable overview for unique counts.)\n")
   }
 
-  display <- resolve_round_numeric(df, digits)
+  display <- round_numeric(df, digits)
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
   display$level_display <- if ("level_label" %in% names(display)) display$level_label else display$level
   headers <- c("Variable", "Level", "n", "%", "Valid %")
@@ -919,8 +662,8 @@ format_nlss_levels_table <- function(df, digits) {
         var_label,
         row$level_display,
         ifelse(is.na(row$n), "", as.character(row$n)),
-        resolve_format_percent(row$pct_total, digits),
-        resolve_format_percent(row$pct_valid, digits)
+        format_percent(row$pct_total, digits),
+        format_percent(row$pct_valid, digits)
       )
       md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
     }
@@ -932,7 +675,7 @@ format_nlss_levels_table <- function(df, digits) {
         var_label,
         "Missing",
         as.character(missing_n),
-        resolve_format_percent(missing_pct, digits),
+        format_percent(missing_pct, digits),
         ""
       )
       md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
@@ -973,7 +716,7 @@ format_nlss_text <- function(overview_df, levels_df, digits) {
       row$measurement_level,
       ifelse(is.na(valid_n), "NA", as.character(valid_n)),
       ifelse(is.na(missing_n), "NA", as.character(missing_n)),
-      ifelse(is.na(missing_pct), "NA", resolve_format_percent(missing_pct, digits)),
+      ifelse(is.na(missing_pct), "NA", format_percent(missing_pct, digits)),
       ifelse(is.na(unique_n), "NA", as.character(unique_n))
     )
 
@@ -999,13 +742,13 @@ format_nlss_text <- function(overview_df, levels_df, digits) {
               "%s (n = %s, valid %% = %s)",
               lv$level_display,
               ifelse(is.na(lv$n), "NA", as.character(lv$n)),
-              ifelse(is.na(lv$pct_valid), "NA", resolve_format_percent(lv$pct_valid, digits))
+              ifelse(is.na(lv$pct_valid), "NA", format_percent(lv$pct_valid, digits))
             )
           )
         }
         line <- paste0(line, " Levels: ", paste(level_parts, collapse = "; "), ".")
         if (isTRUE(row$levels_truncated)) {
-          line <- paste0(line, " Remaining levels combined as Other.")
+          line <- paste0(line, " Remaining levels combined in a separate remainder category.")
         }
       }
     }
@@ -1017,32 +760,45 @@ format_nlss_text <- function(overview_df, levels_df, digits) {
 
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
+  opts <- nlss_run_options(args, "data_explorer")
 
   if (!is.null(opts$help)) {
     print_usage()
     quit(status = 0)
   }
 
-  if (!is.null(opts$interactive)) {
+  if (parse_bool(opts$interactive, default = FALSE)) {
     opts <- modifyList(opts, interactive_options())
   }
 
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  vars_default <- resolve_config_value("modules.data_explorer.vars_default", "all")
-  max_levels_default <- resolve_config_value("modules.data_explorer.max_levels", 20)
-  top_n_default <- resolve_config_value("modules.data_explorer.top_n", 10)
+  digits_default <- get_config_value("defaults.digits", 2)
+  log_default <- get_config_value("defaults.log", TRUE)
+  vars_default <- get_config_value("modules.data_explorer.vars_default", "all")
+  max_levels_default <- get_config_value("modules.data_explorer.max_levels", 20)
+  top_n_default <- get_config_value("modules.data_explorer.top_n", 10)
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  max_levels <- if (!is.null(opts$`max-levels`)) as.integer(opts$`max-levels`) else max_levels_default
-  top_n <- if (!is.null(opts$`top-n`)) as.integer(opts$`top-n`) else top_n_default
-  df <- resolve_load_dataframe(opts)
-  out_dir <- resolve_get_workspace_out_dir(df)
-  vars <- resolve_select_variables(df, opts$vars, default = vars_default)
+  max_levels <- if (!is.null(opts$`max-levels`)) as.numeric(opts$`max-levels`) else max_levels_default
+  top_n <- if (!is.null(opts$`top-n`)) as.numeric(opts$`top-n`) else top_n_default
+  df <- nlss_load_input(opts)
+  out_dir <- get_workspace_out_dir(df)
+  nlss_begin_run("data_explorer", df, opts, out_dir)
+  if (!is.finite(digits) || digits < 0 || digits > 15 || digits != floor(digits)) stop("Digits must be an integer from 0 to 15.")
+  for (value in list(max_levels, top_n)) {
+    if (length(value) != 1L || !is.finite(value) || value < 1 || value > .Machine$integer.max || value != floor(value)) {
+      stop("Max levels and top N must be positive R integers.")
+    }
+  }
+  vars <- select_variables(df, opts$vars, default = vars_default)
   if (length(vars) == 0) stop("No variables available for exploration.")
+  nlss_resolve_request(list(vars = vars, digits = digits, max_levels = max_levels, top_n = top_n),
+    design = list(missing = "variablewise", rows = nrow(df),
+      variable_types = lapply(df[vars], class),
+      factor_levels = lapply(df[vars][vapply(df[vars], is.factor, logical(1))], levels),
+      measurement_levels = "heuristic_not_a_researcher_declared_scale"))
 
   overview_rows <- list()
   levels_rows <- list()
+  label_meta <- resolve_label_metadata(df)
 
   for (var in vars) {
     vec <- df[[var]]
@@ -1057,7 +813,7 @@ main <- function() {
     example_values <- format_example_values(unique_vals, digits)
     numeric_summary <- get_numeric_summary(vec)
 
-    levels_info <- build_levels_table(vec, var, max_levels, top_n)
+    levels_info <- build_levels_table(vec, var, max_levels, top_n, labels = label_meta)
     levels_included <- !is.null(levels_info$levels_df)
     levels_truncated <- isTRUE(levels_info$levels_truncated)
     levels_note <- levels_info$levels_note
@@ -1099,6 +855,7 @@ main <- function() {
     levels_df <- data.frame(
       variable = character(0),
       level = character(0),
+      level_kind = character(0),
       n = integer(0),
       pct_total = numeric(0),
       pct_valid = numeric(0),
@@ -1108,10 +865,11 @@ main <- function() {
       stringsAsFactors = FALSE
     )
   }
-  label_meta <- resolve_label_metadata(df)
   overview_df <- add_variable_label_column(overview_df, label_meta, var_col = "variable")
   levels_df <- add_variable_label_column(levels_df, label_meta, var_col = "variable")
   levels_df <- add_value_label_column(levels_df, label_meta, var_col = "variable", value_col = "level")
+  synthetic <- levels_df$level_kind != "observed"
+  levels_df$level_label[synthetic] <- levels_df$level[synthetic]
 
   nlss_report_path <- file.path(out_dir, "report_canonical.md")
   nlss_tables <- paste(
@@ -1124,9 +882,10 @@ main <- function() {
   template_path <- if (!is.null(template_override)) {
     template_override
   } else {
-    resolve_get_template_path("data_explorer.default", "data-explorer/default-template.md")
+    resolve_template_path("data_explorer.default", "data-explorer/default-template.md")
   }
-  template_meta <- resolve_get_template_meta(template_path)
+  template_path <- nlss_freeze_template(template_path, "data_explorer.default")
+  template_meta <- get_template_meta(template_path)
   overview_spec <- if (!is.null(template_meta) && !is.null(template_meta[["table"]])) template_meta[["table"]] else NULL
   if (is.null(overview_spec) &&
       !is.null(template_meta) &&
@@ -1146,7 +905,7 @@ main <- function() {
   overview_note_tokens <- build_overview_note_tokens()
   levels_note_tokens <- build_levels_note_tokens(levels_df, overview_df, levels_table$columns, top_n)
   narrative_rows <- build_explorer_narrative_rows(overview_df, levels_df, digits)
-  table_start <- as.integer(resolve_get_next_table_number(nlss_report_path))
+  table_start <- as.integer(get_next_table_number(nlss_report_path))
   template_context <- list(
     tokens = c(
       list(
@@ -1166,7 +925,7 @@ main <- function() {
     `top-n` = top_n,
     digits = digits
   )
-  resolve_append_nlss_report(
+  nlss_stage_report(
     nlss_report_path,
     "Data exploration",
     nlss_tables,
@@ -1176,21 +935,20 @@ main <- function() {
     template_context = template_context
   )
 
-  cat("Wrote:\n")
-  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
+  nlss_set_result(list(overview_df = overview_df, levels_df = levels_df))
 
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+  if (parse_bool(opts$log, default = log_default)) {
+    ctx <- get_run_context()
+    nlss_stage_log(
       out_dir,
       module = "data_explorer",
       prompt = ctx$prompt,
       commands = ctx$commands,
       results = list(overview_df = overview_df, levels_df = levels_df),
       options = list(digits = digits, vars = vars, max_levels = max_levels, top_n = top_n),
-      user_prompt = resolve_get_user_prompt(opts)
+      user_prompt = get_user_prompt(opts)
     )
   }
 }
 
-main()
+nlss_run_main("data_explorer", main)

@@ -10,21 +10,9 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
 
-
-# Static analysis aliases for source_lib-defined functions.
-render_output_path <- get("render_output_path", mode = "function")
-add_group_label_column <- get("add_group_label_column", mode = "function")
-add_value_label_column <- get("add_value_label_column", mode = "function")
-add_variable_label_column <- get("add_variable_label_column", mode = "function")
-resolve_label_metadata <- get("resolve_label_metadata", mode = "function")
-source_lib <- get("source_lib", mode = "function")
 
 print_usage <- function() {
   cat("Frequencies (base R)\n")
@@ -60,304 +48,44 @@ print_usage <- function() {
 
 interactive_options <- function() {
   cat("Interactive input selected.\n")
-  input_type <- resolve_prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
+  input_type <- prompt("Input type (csv/sav/rds/rdata/parquet)", "csv")
   input_type <- tolower(input_type)
   opts <- list()
 
   if (input_type == "csv") {
-    opts$csv <- resolve_prompt("CSV path")
-    sep_default <- resolve_config_value("defaults.csv.sep", ",")
-    header_default <- resolve_config_value("defaults.csv.header", TRUE)
-    opts$sep <- resolve_prompt("Separator", sep_default)
-    opts$header <- resolve_prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
+    opts$csv <- prompt("CSV path")
+    sep_default <- get_config_value("defaults.csv.sep", ",")
+    header_default <- get_config_value("defaults.csv.header", TRUE)
+    opts$sep <- prompt("Separator", sep_default)
+    opts$header <- prompt("Header TRUE/FALSE", ifelse(isTRUE(header_default), "TRUE", "FALSE"))
   } else if (input_type == "sav") {
-    opts$sav <- resolve_prompt("SAV path")
+    opts$sav <- prompt("SAV path")
   } else if (input_type == "rds") {
-    opts$rds <- resolve_prompt("RDS path")
+    opts$rds <- prompt("RDS path")
   } else if (input_type == "rdata") {
-    opts$rdata <- resolve_prompt("RData path")
-    opts$df <- resolve_prompt("Data frame object name")
+    opts$rdata <- prompt("RData path")
+    opts$df <- prompt("Data frame object name")
   } else if (input_type == "parquet") {
-    opts$parquet <- resolve_prompt("Parquet path")
+    opts$parquet <- prompt("Parquet path")
   } else {
     stop("Unsupported input type.")
   }
 
-  opts$vars <- resolve_prompt("Variables (comma-separated, blank for all non-numeric)", "")
-  opts$group <- resolve_prompt("Grouping variable (blank for none)", "")
-  include_numeric_default <- resolve_config_value("modules.frequencies.include_numeric", FALSE)
-  opts$`include-numeric` <- resolve_prompt(
+  opts$vars <- prompt("Variables (comma-separated, blank for all non-numeric)", "")
+  opts$group <- prompt("Grouping variable (blank for none)", "")
+  include_numeric_default <- get_config_value("modules.frequencies.include_numeric", FALSE)
+  opts$`include-numeric` <- prompt(
     "Include numeric columns when vars omitted TRUE/FALSE",
     ifelse(isTRUE(include_numeric_default), "TRUE", "FALSE")
   )
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  opts$digits <- resolve_prompt("Rounding digits", as.character(digits_default))
-  opts$template <- resolve_prompt("Template (path or key; blank for default)", "")
-  opts$`user-prompt` <- resolve_prompt("User prompt (optional)", "")
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  opts$log <- resolve_prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
+  digits_default <- get_config_value("defaults.digits", 2)
+  opts$digits <- prompt("Rounding digits", as.character(digits_default))
+  opts$template <- prompt("Template (path or key; blank for default)", "")
+  opts$`user-prompt` <- prompt("User prompt (optional)", "")
+  log_default <- get_config_value("defaults.log", TRUE)
+  opts$log <- prompt("Write JSONL log TRUE/FALSE", ifelse(isTRUE(log_default), "TRUE", "FALSE"))
   opts
 }
-
-resolve_prompt <- function(label, default = NULL) {
-  if (exists("prompt", mode = "function")) {
-    return(get("prompt", mode = "function")(label, default = default))
-  }
-  if (is.null(default)) {
-    answer <- readline(paste0(label, ": "))
-  } else {
-    answer <- readline(paste0(label, " [", default, "]: "))
-    if (answer == "") answer <- default
-  }
-  answer
-}
-
-resolve_default_out <- function() {
-  if (exists("get_default_out", mode = "function")) {
-    return(get("get_default_out", mode = "function")())
-  }
-  "./outputs/tmp"
-}
-
-resolve_config_value <- function(path, default = NULL) {
-  if (exists("get_config_value", mode = "function")) {
-    return(get("get_config_value", mode = "function")(path, default = default))
-  }
-  default
-}
-
-resolve_parse_args <- function(args) {
-  if (exists("parse_args", mode = "function")) {
-    return(get("parse_args", mode = "function")(args))
-  }
-  opts <- list()
-  i <- 1
-  while (i <= length(args)) {
-    arg <- args[i]
-    if (grepl("^--", arg)) {
-      key <- sub("^--", "", arg)
-      if (grepl("=", key)) {
-        parts <- strsplit(key, "=", fixed = TRUE)[[1]]
-        opts[[parts[1]]] <- parts[2]
-      } else if (i < length(args) && !grepl("^--", args[i + 1])) {
-        opts[[key]] <- args[i + 1]
-        i <- i + 1
-      } else {
-        opts[[key]] <- TRUE
-      }
-    }
-    i <- i + 1
-  }
-  opts
-}
-
-resolve_parse_bool <- function(value, default = FALSE) {
-  if (exists("parse_bool", mode = "function")) {
-    return(get("parse_bool", mode = "function")(value, default = default))
-  }
-  if (is.null(value)) return(default)
-  if (is.logical(value)) return(value)
-  val <- tolower(as.character(value))
-  val %in% c("true", "t", "1", "yes", "y")
-}
-
-resolve_ensure_out_dir <- function(path) {
-  if (exists("ensure_out_dir", mode = "function")) {
-    return(get("ensure_out_dir", mode = "function")(path))
-  }
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
-  path
-}
-
-resolve_load_dataframe <- function(opts) {
-  if (exists("load_dataframe", mode = "function")) {
-    return(get("load_dataframe", mode = "function")(opts))
-  }
-  stop("Missing load_dataframe. Ensure lib/io.R is sourced.")
-}
-
-
-resolve_get_workspace_out_dir <- function(df) {
-  if (exists("get_workspace_out_dir", mode = "function")) {
-    return(get("get_workspace_out_dir", mode = "function")(df))
-  }
-  stop("Missing get_workspace_out_dir. Ensure lib/io.R is sourced.")
-}
-
-resolve_select_variables <- function(df, vars, group_var = NULL, default = "numeric", include_numeric = FALSE) {
-  if (exists("select_variables", mode = "function")) {
-    return(get("select_variables", mode = "function")(
-      df,
-      vars,
-      group_var = group_var,
-      default = default,
-      include_numeric = include_numeric
-    ))
-  }
-  available <- names(df)
-  if (is.null(vars) || vars == "") {
-    if (default == "all") {
-      selected <- available
-    } else if (default == "non-numeric") {
-      if (include_numeric) {
-        selected <- available
-      } else {
-        selected <- available[!sapply(df, is.numeric)]
-        if (length(selected) == 0) selected <- available
-      }
-    } else {
-      selected <- available[sapply(df, is.numeric)]
-    }
-    if (!is.null(group_var)) selected <- setdiff(selected, group_var)
-    return(selected)
-  }
-  requested <- trimws(strsplit(vars, ",", fixed = TRUE)[[1]])
-  missing <- setdiff(requested, available)
-  if (length(missing) > 0) {
-    stop(paste("Unknown variables:", paste(missing, collapse = ", ")))
-  }
-  if (!is.null(group_var)) requested <- setdiff(requested, group_var)
-  requested
-}
-
-resolve_get_levels <- function(vec) {
-  if (exists("get_levels", mode = "function")) {
-    return(get("get_levels", mode = "function")(vec))
-  }
-  if (is.factor(vec)) {
-    return(as.character(levels(vec)))
-  }
-  values <- unique(vec[!is.na(vec)])
-  if (length(values) == 0) return(character(0))
-  if (is.numeric(values)) {
-    return(as.character(sort(values)))
-  }
-  as.character(sort(values))
-}
-
-resolve_append_nlss_report <- function(path, analysis_label, nlss_table, nlss_text, analysis_flags = NULL, template_path = NULL, template_context = NULL) {
-  if (exists("append_nlss_report", mode = "function")) {
-    return(get("append_nlss_report", mode = "function")(
-      path,
-      analysis_label,
-      nlss_table,
-      nlss_text,
-      analysis_flags = analysis_flags,
-      template_path = template_path,
-      template_context = template_context
-    ))
-  }
-  stop("Missing report formatter. Ensure lib/formatting.R is sourced.")
-}
-
-resolve_get_run_context <- function() {
-  if (exists("get_run_context", mode = "function")) {
-    return(get("get_run_context", mode = "function")())
-  }
-  trailing <- commandArgs(trailingOnly = TRUE)
-  commands <- c("Rscript", trailing)
-  commands <- commands[nzchar(commands)]
-  prompt <- paste(commands, collapse = " ")
-  list(prompt = prompt, commands = commands)
-}
-
-resolve_append_analysis_log <- function(out_dir, module, prompt, commands, results, options = list(), user_prompt = NULL) {
-  if (exists("append_analysis_log", mode = "function")) {
-    return(get("append_analysis_log", mode = "function")(
-      out_dir,
-      module,
-      prompt,
-      commands,
-      results,
-      options = options,
-      user_prompt = user_prompt
-    ))
-  }
-  cat("Note: append_analysis_log not available; skipping analysis_log.jsonl output.\n")
-  invisible(FALSE)
-}
-
-resolve_get_user_prompt <- function(opts) {
-  if (exists("get_user_prompt", mode = "function")) {
-    return(get("get_user_prompt", mode = "function")(opts))
-  }
-  NULL
-}
-
-resolve_round_numeric <- function(df, digits) {
-  if (exists("round_numeric", mode = "function")) {
-    return(get("round_numeric", mode = "function")(df, digits))
-  }
-  out <- df
-  numeric_cols <- sapply(out, is.numeric)
-  out[numeric_cols] <- lapply(out[numeric_cols], function(x) round(x, digits))
-  out
-}
-
-resolve_format_percent <- function(value, digits) {
-  if (exists("format_percent", mode = "function")) {
-    return(get("format_percent", mode = "function")(value, digits))
-  }
-  if (is.na(value)) return("")
-  format(round(value, digits), nsmall = digits, trim = TRUE)
-}
-
-resolve_get_template_meta <- function(path) {
-  if (exists("get_template_meta", mode = "function")) {
-    return(get("get_template_meta", mode = "function")(path))
-  }
-  list()
-}
-resolve_template_override <- local({
-  override_impl <- NULL
-  if (exists("resolve_template_override", mode = "function")) {
-    override_impl <- get("resolve_template_override", mode = "function")
-  }
-  function(template_ref, module = NULL) {
-    if (!is.null(override_impl)) {
-      return(override_impl(template_ref, module = module))
-    }
-    NULL
-  }
-})
-
-
-resolve_get_template_path <- function(key, default_relative = NULL) {
-  if (exists("resolve_template_path", mode = "function")) {
-    return(get("resolve_template_path", mode = "function")(key, default_relative))
-  }
-  NULL
-}
-
-resolve_normalize_table_columns <- function(columns, default_specs) {
-  if (exists("normalize_table_columns", mode = "function")) {
-    return(get("normalize_table_columns", mode = "function")(columns, default_specs))
-  }
-  default_specs
-}
-
-resolve_drop_empty_columns <- function(columns, rows) {
-  if (exists("drop_empty_columns", mode = "function")) {
-    return(get("drop_empty_columns", mode = "function")(columns, rows))
-  }
-  list(columns = columns, rows = rows)
-}
-
-resolve_render_markdown_table <- function(headers, rows) {
-  if (exists("render_markdown_table", mode = "function")) {
-    return(get("render_markdown_table", mode = "function")(headers, rows))
-  }
-  ""
-}
-
-resolve_as_cell_text <- function(value) {
-  if (exists("as_cell_text", mode = "function")) {
-    return(get("as_cell_text", mode = "function")(value))
-  }
-  if (length(value) == 0 || is.null(value) || is.na(value)) return("")
-  as.character(value)
-}
-
 
 build_freq_rows <- function(vec, variable, group_label) {
   total_n <- length(vec)
@@ -365,7 +93,7 @@ build_freq_rows <- function(vec, variable, group_label) {
   valid_n <- total_n - missing_n
   missing_pct <- ifelse(total_n > 0, missing_n / total_n * 100, NA_real_)
 
-  levels <- resolve_get_levels(vec)
+  levels <- get_levels(vec)
   if (valid_n == 0 || length(levels) == 0) {
     return(data.frame(
       variable = variable,
@@ -406,27 +134,37 @@ build_freq_rows <- function(vec, variable, group_label) {
   )
 }
 
-build_summary <- function(df, vars, group_var = NULL) {
+frequency_groups <- function(df, group_var, labels) {
+  if (is.null(group_var)) {
+    return(list(list(group = "", value = NULL, is_missing = FALSE,
+      row_indices = seq_len(nrow(df)))))
+  }
+  group_vec <- df[[group_var]]
+  values <- unique(group_vec)
+  missing_label <- nlss_missing_group_label(group_vec, labels, group_var)
+  lapply(seq_along(values), function(i) {
+    value <- values[i]
+    missing <- is.na(value)
+    rows <- if (missing) which(is.na(group_vec)) else which(!is.na(group_vec) & group_vec == value)
+    list(group = if (missing) missing_label else as.character(value),
+      value = if (missing) NULL else as.character(value), is_missing = missing,
+      row_indices = rows)
+  })
+}
+
+build_summary <- function(df, vars, groups) {
   rows <- list()
-  if (!is.null(group_var) && group_var != "") {
-    group_vec <- df[[group_var]]
-    group_levels <- unique(group_vec)
-    for (g in group_levels) {
-      idx <- if (is.na(g)) is.na(group_vec) else group_vec == g
-      sub_df <- df[idx, , drop = FALSE]
-      group_label <- ifelse(is.na(g), "NA", as.character(g))
-      for (var in vars) {
-        rows[[length(rows) + 1]] <- build_freq_rows(sub_df[[var]], var, group_label)
-      }
-    }
-  } else {
+  for (group in groups) {
+    sub_df <- df[group$row_indices, , drop = FALSE]
     for (var in vars) {
-      rows[[length(rows) + 1]] <- build_freq_rows(df[[var]], var, "")
+      row <- build_freq_rows(sub_df[[var]], var, group$group)
+      row$group_missing <- group$is_missing
+      rows[[length(rows) + 1L]] <- row
     }
   }
 
   summary_df <- do.call(rbind, rows)
-  numeric_cols <- setdiff(names(summary_df), c("variable", "group", "level"))
+  numeric_cols <- setdiff(names(summary_df), c("variable", "group", "level", "group_missing"))
   for (col in numeric_cols) {
     summary_df[[col]] <- as.numeric(summary_df[[col]])
   }
@@ -435,7 +173,7 @@ build_summary <- function(df, vars, group_var = NULL) {
 
 
 format_nlss_table <- function(df, digits) {
-  display <- resolve_round_numeric(df, digits)
+  display <- round_numeric(df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
@@ -463,8 +201,8 @@ format_nlss_table <- function(df, digits) {
         if (use_group) grp_label,
         row$level_display,
         ifelse(is.na(row$n), "", as.character(row$n)),
-        resolve_format_percent(row$pct_total, digits),
-        resolve_format_percent(row$pct_valid, digits)
+        format_percent(row$pct_total, digits),
+        format_percent(row$pct_valid, digits)
       )
       md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
     }
@@ -476,7 +214,7 @@ format_nlss_table <- function(df, digits) {
         if (use_group) grp_label,
         "Missing",
         as.character(missing_n),
-        resolve_format_percent(missing_pct, digits),
+        format_percent(missing_pct, digits),
         ""
       )
       md <- paste0(md, "| ", paste(row_vals, collapse = " | "), " |\n")
@@ -488,7 +226,7 @@ format_nlss_table <- function(df, digits) {
 }
 
 format_nlss_text <- function(df, digits) {
-  display <- resolve_round_numeric(df, digits)
+  display <- round_numeric(df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
@@ -524,7 +262,7 @@ format_nlss_text <- function(df, digits) {
         label,
         as.character(total_n),
         ifelse(is.na(missing_n), "NA", as.character(missing_n)),
-        ifelse(is.na(missing_pct), "NA", resolve_format_percent(missing_pct, digits))
+        ifelse(is.na(missing_pct), "NA", format_percent(missing_pct, digits))
       )
       lines <- c(lines, line)
       next
@@ -539,7 +277,7 @@ format_nlss_text <- function(df, digits) {
           "%s (n = %s, valid %% = %s)",
           row$level_display,
           ifelse(is.na(row$n), "NA", as.character(row$n)),
-          ifelse(is.na(row$pct_valid), "NA", resolve_format_percent(row$pct_valid, digits))
+          ifelse(is.na(row$pct_valid), "NA", format_percent(row$pct_valid, digits))
         )
       )
     }
@@ -550,7 +288,7 @@ format_nlss_text <- function(df, digits) {
       as.character(total_n),
       paste(level_parts, collapse = "; "),
       ifelse(is.na(missing_n), "NA", as.character(missing_n)),
-      ifelse(is.na(missing_pct), "NA", resolve_format_percent(missing_pct, digits))
+      ifelse(is.na(missing_pct), "NA", format_percent(missing_pct, digits))
     )
     lines <- c(lines, line)
   }
@@ -563,7 +301,7 @@ format_num <- function(value, digits) {
 }
 
 build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) {
-  display <- resolve_round_numeric(summary_df, digits)
+  display <- round_numeric(summary_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
@@ -580,7 +318,7 @@ build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) 
     list(key = "pct_total", label = "%"),
     list(key = "pct_valid", label = "Valid %", drop_if_empty = TRUE)
   )
-  columns <- resolve_normalize_table_columns(
+  columns <- normalize_table_columns(
     if (!is.null(table_spec$columns)) table_spec$columns else NULL,
     default_columns
   )
@@ -605,22 +343,22 @@ build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) 
         val <- ""
         if (key %in% c("variable", "group", "level")) {
           if (key == "variable") {
-            val <- resolve_as_cell_text(row$variable_display[1])
+            val <- as_cell_text(row$variable_display[1])
           } else if (key == "group") {
-            val <- resolve_as_cell_text(row$group_display[1])
+            val <- as_cell_text(row$group_display[1])
           } else {
-            val <- resolve_as_cell_text(row$level_display[1])
+            val <- as_cell_text(row$level_display[1])
           }
         } else if (key %in% c("n", "total_n", "missing_n")) {
           val <- ifelse(is.na(row[[key]][1]), "", as.character(row[[key]][1]))
         } else if (key %in% c("pct_total", "pct_valid", "missing_pct")) {
-          val <- resolve_format_percent(row[[key]][1], digits)
+          val <- format_percent(row[[key]][1], digits)
         } else if (key %in% names(row)) {
           cell <- row[[key]][1]
           if (is.numeric(cell)) {
             val <- format_num(cell, digits)
           } else {
-            val <- resolve_as_cell_text(cell)
+            val <- as_cell_text(cell)
           }
         }
         row_vals <- c(row_vals, val)
@@ -634,15 +372,15 @@ build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) 
         key <- col$key
         val <- ""
         if (key == "variable") {
-          val <- resolve_as_cell_text(var_label)
+          val <- as_cell_text(var_label)
         } else if (key == "group") {
-          val <- resolve_as_cell_text(grp_label)
+          val <- as_cell_text(grp_label)
         } else if (key == "level") {
           val <- "Missing"
         } else if (key == "n") {
           val <- as.character(missing_n)
         } else if (key == "pct_total") {
-          val <- resolve_format_percent(missing_pct, digits)
+          val <- format_percent(missing_pct, digits)
         } else if (key == "pct_valid") {
           val <- ""
         } else if (key == "total_n") {
@@ -650,7 +388,7 @@ build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) 
         } else if (key == "missing_n") {
           val <- ifelse(is.na(missing_n), "", as.character(missing_n))
         } else if (key == "missing_pct") {
-          val <- resolve_format_percent(missing_pct, digits)
+          val <- format_percent(missing_pct, digits)
         }
         row_vals <- c(row_vals, val)
       }
@@ -658,14 +396,14 @@ build_frequencies_table_body <- function(summary_df, digits, table_spec = NULL) 
     }
   }
 
-  filtered <- resolve_drop_empty_columns(columns, rows)
+  filtered <- drop_empty_columns(columns, rows)
   columns <- filtered$columns
   rows <- filtered$rows
   headers <- vapply(columns, function(col) {
     if (!is.null(col$label) && nzchar(col$label)) col$label else col$key
   }, character(1))
   list(
-    body = resolve_render_markdown_table(headers, rows),
+    body = render_markdown_table(headers, rows),
     columns = vapply(columns, function(col) col$key, character(1))
   )
 }
@@ -690,7 +428,7 @@ build_frequencies_note_tokens <- function(column_keys) {
 }
 
 build_frequencies_narrative_rows <- function(summary_df, digits) {
-  display <- resolve_round_numeric(summary_df, digits)
+  display <- round_numeric(summary_df, digits)
   display$group <- as.character(display$group)
   display$group[is.na(display$group)] <- "NA"
   display$variable_display <- if ("variable_label" %in% names(display)) display$variable_label else display$variable
@@ -714,7 +452,7 @@ build_frequencies_narrative_rows <- function(summary_df, digits) {
 
     total_n_str <- ifelse(is.na(total_n), "NA", as.character(total_n))
     missing_n_str <- ifelse(is.na(missing_n), "NA", as.character(missing_n))
-    missing_pct_str <- ifelse(is.na(missing_pct), "NA", resolve_format_percent(missing_pct, digits))
+    missing_pct_str <- ifelse(is.na(missing_pct), "NA", format_percent(missing_pct, digits))
     valid_n_str <- ifelse(is.na(valid_n), "NA", as.character(valid_n))
     missing_text <- paste0("Missing = ", missing_n_str, " (", missing_pct_str, "%)")
 
@@ -740,7 +478,7 @@ build_frequencies_narrative_rows <- function(summary_df, digits) {
             "%s (n = %s, valid %% = %s)",
             row$level_display[1],
             ifelse(is.na(row$n), "NA", as.character(row$n)),
-            ifelse(is.na(row$pct_valid), "NA", resolve_format_percent(row$pct_valid, digits))
+            ifelse(is.na(row$pct_valid), "NA", format_percent(row$pct_valid, digits))
           )
         )
       }
@@ -772,31 +510,35 @@ build_frequencies_narrative_rows <- function(summary_df, digits) {
 
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
+  opts <- nlss_run_options(args, "frequencies")
 
   if (!is.null(opts$help)) {
     print_usage()
     quit(status = 0)
   }
 
-  if (!is.null(opts$interactive)) {
+  if (parse_bool(opts$interactive, default = FALSE)) {
     opts <- modifyList(opts, interactive_options())
   }
 
-  digits_default <- resolve_config_value("defaults.digits", 2)
-  log_default <- resolve_config_value("defaults.log", TRUE)
-  vars_default <- resolve_config_value("modules.frequencies.vars_default", "non-numeric")
-  include_numeric_default <- resolve_config_value("modules.frequencies.include_numeric", FALSE)
+  digits_default <- get_config_value("defaults.digits", 2)
+  log_default <- get_config_value("defaults.log", TRUE)
+  vars_default <- get_config_value("modules.frequencies.vars_default", "non-numeric")
+  include_numeric_default <- get_config_value("modules.frequencies.include_numeric", FALSE)
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  df <- resolve_load_dataframe(opts)
-  out_dir <- resolve_get_workspace_out_dir(df)
+  df <- nlss_load_input(opts)
+  out_dir <- get_workspace_out_dir(df)
+  nlss_begin_run("frequencies", df, opts, out_dir)
+  if (!is.finite(digits) || digits < 0 || digits > 15 || digits != floor(digits)) {
+    stop("Digits must be an integer from 0 to 15.")
+  }
   group_var <- if (!is.null(opts$group) && opts$group != "") opts$group else NULL
   if (!is.null(group_var) && !(group_var %in% names(df))) {
     stop("Grouping variable not found in data frame.")
   }
 
-  include_numeric <- resolve_parse_bool(opts$`include-numeric`, default = include_numeric_default)
-  vars <- resolve_select_variables(
+  include_numeric <- parse_bool(opts$`include-numeric`, default = include_numeric_default)
+  vars <- select_variables(
     df,
     opts$vars,
     group_var,
@@ -805,11 +547,24 @@ main <- function() {
   )
   if (length(vars) == 0) stop("No variables available for frequency analysis.")
 
-  summary_df <- build_summary(df, vars, group_var)
   label_meta <- resolve_label_metadata(df)
+  groups <- frequency_groups(df, group_var, label_meta)
+  if (!length(groups)) stop("No observed groups available for frequency analysis.")
+  nlss_resolve_request(list(digits = digits, vars = vars, group = group_var,
+    include_numeric = include_numeric), design = list(
+      missing = "variablewise; missing grouping values form a separate group",
+      rows = nrow(df), groups = groups,
+      variable_types = lapply(df[unique(c(vars, group_var))], class),
+      variable_levels = lapply(df[unique(c(vars, group_var))], get_levels),
+      missing_counts = lapply(df[unique(c(vars, group_var))], function(x) sum(is.na(x)))))
+
+  summary_df <- build_summary(df, vars, groups)
   summary_df <- add_variable_label_column(summary_df, label_meta, var_col = "variable")
   summary_df <- add_value_label_column(summary_df, label_meta, var_col = "variable", value_col = "level")
   summary_df <- add_group_label_column(summary_df, label_meta, group_var, group_col = "group")
+  if (!is.null(group_var)) {
+    summary_df$group_label[summary_df$group_missing] <- summary_df$group[summary_df$group_missing]
+  }
   nlss_report_path <- file.path(out_dir, "report_canonical.md")
   nlss_table <- format_nlss_table(summary_df, digits)
   nlss_text <- format_nlss_text(summary_df, digits)
@@ -818,11 +573,12 @@ main <- function() {
   template_path <- if (!is.null(template_override)) {
     template_override
   } else if (use_group_template) {
-    resolve_get_template_path("frequencies.grouped", "frequencies/grouped-template.md")
+    resolve_template_path("frequencies.grouped", "frequencies/grouped-template.md")
   } else {
-    resolve_get_template_path("frequencies.default", "frequencies/default-template.md")
+    resolve_template_path("frequencies.default", "frequencies/default-template.md")
   }
-  template_meta <- resolve_get_template_meta(template_path)
+  template_path <- nlss_freeze_template(template_path, "frequencies.main")
+  template_meta <- get_template_meta(template_path)
   table_result <- build_frequencies_table_body(summary_df, digits, template_meta$table)
   note_tokens <- build_frequencies_note_tokens(table_result$columns)
   narrative_rows <- build_frequencies_narrative_rows(summary_df, digits)
@@ -842,7 +598,7 @@ main <- function() {
     "include-numeric" = include_numeric,
     digits = digits
   )
-  resolve_append_nlss_report(
+  nlss_stage_report(
     nlss_report_path,
     "Frequencies",
     nlss_table,
@@ -852,21 +608,20 @@ main <- function() {
     template_context = template_context
   )
 
-  cat("Wrote:\n")
-  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
+  nlss_set_result(list(summary_df = summary_df))
 
-  if (resolve_parse_bool(opts$log, default = log_default)) {
-    ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+  if (parse_bool(opts$log, default = log_default)) {
+    ctx <- get_run_context()
+    nlss_stage_log(
       out_dir,
       module = "frequencies",
       prompt = ctx$prompt,
       commands = ctx$commands,
       results = list(summary_df = summary_df),
       options = list(digits = digits, vars = vars, group = group_var, include_numeric = include_numeric),
-      user_prompt = resolve_get_user_prompt(opts)
+      user_prompt = get_user_prompt(opts)
     )
   }
 }
 
-main()
+nlss_run_main("frequencies", main)

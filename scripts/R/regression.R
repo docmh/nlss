@@ -10,12 +10,8 @@ bootstrap_dir <- {
     getwd()
   }
 }
-source(file.path(bootstrap_dir, "lib", "paths.R"))
-source_lib("cli.R")
-source_lib("config.R")
-source_lib("io.R")
-source_lib("data_utils.R")
-source_lib("formatting.R")
+source(file.path(bootstrap_dir, "lib", "bootstrap.R"))
+nlss_bootstrap()
 
 
 # Static analysis aliases for source_lib-defined functions.
@@ -41,6 +37,7 @@ print_usage <- function() {
   cat("  --sav PATH             SPSS .sav input file\n")
   cat("  --sep VALUE            CSV separator (default: ,)\n")
   cat("  --header TRUE/FALSE    CSV header (default: TRUE)\n")
+  print_import_usage()
   cat("  --rds PATH             RDS input file (data frame)\n")
   cat("  --rdata PATH           RData input file\n")
   cat("  --parquet PATH         Parquet input file\n")
@@ -922,7 +919,7 @@ emit_input_issue <- function(out_dir, opts, message, details = list(), status = 
   log_default <- resolve_config_value("defaults.log", TRUE)
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+    nlss_stage_log(
       out_dir,
       module = "regression",
       prompt = ctx$prompt,
@@ -949,7 +946,7 @@ emit_input_issue <- function(out_dir, opts, message, details = list(), status = 
 
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
-  opts <- resolve_parse_args(args)
+  opts <- nlss_run_options(args, "regression")
 
   if (!is.null(opts$help)) {
     print_usage()
@@ -972,8 +969,9 @@ main <- function() {
   bootstrap_samples_default <- resolve_config_value("modules.regression.bootstrap_samples", 1000)
 
   digits <- if (!is.null(opts$digits)) as.numeric(opts$digits) else digits_default
-  df <- resolve_load_dataframe(opts)
+  df <- nlss_load_input(opts)
   out_dir <- resolve_get_workspace_out_dir(df)
+  nlss_begin_run("regression", df, opts, out_dir)
 
   if (is.null(opts$dv) || !nzchar(opts$dv)) {
     emit_input_issue(out_dir, opts, "Regression requires --dv.", details = list(dv = opts$dv))
@@ -1043,10 +1041,17 @@ main <- function() {
   conf_level <- if (!is.null(opts$`conf-level`)) as.numeric(opts$`conf-level`) else conf_default
   bootstrap <- resolve_parse_bool(opts$bootstrap, default = bootstrap_default)
   bootstrap_samples <- if (!is.null(opts$`bootstrap-samples`)) as.numeric(opts$`bootstrap-samples`) else bootstrap_samples_default
-  seed <- if (!is.null(opts$seed) && nzchar(opts$seed)) opts$seed else NULL
-  if (!is.null(seed) && nzchar(seed)) {
-    set.seed(as.numeric(seed))
-  }
+  if (!is.finite(digits) || digits < 0 || digits > 15 || digits != floor(digits)) emit_input_issue(out_dir, opts, "Digits must be an integer from 0 to 15.")
+  if (!is.finite(conf_level) || conf_level <= 0 || conf_level >= 1) emit_input_issue(out_dir, opts, "Confidence level must lie strictly between 0 and 1.")
+  if (!is.finite(bootstrap_samples) || bootstrap_samples < 1 || bootstrap_samples != floor(bootstrap_samples)) emit_input_issue(out_dir, opts, "Bootstrap samples must be a positive integer; use --bootstrap FALSE to disable resampling.")
+  seed <- nlss_run_seed(opts$seed, stochastic = bootstrap)
+  if (!is.null(seed)) nlss_run_context$request$cli$seed <- seed
+  resolved_options <- list(dv = dv, ivs = ivs, blocks = blocks, interactions = interactions,
+    group = group_var, family = family, link = link, center = center,
+    standardize = standardize, conf_level = conf_level, bootstrap = bootstrap,
+    bootstrap_samples = bootstrap_samples, seed = seed, digits = digits)
+  nlss_resolve_request(resolved_options, design = list(missing = "listwise_over_all_model_variables",
+    rows = nrow(df), cumulative_blocks = cumulative_blocks, groups = list()))
 
   group_values <- list(list(label = "", data = df))
   if (!is.null(group_var)) {
@@ -1106,6 +1111,12 @@ main <- function() {
     if (family == "binomial" && !is.numeric(data_model[[dv]]) && !is.factor(data_model[[dv]])) {
       data_model[[dv]] <- as.factor(data_model[[dv]])
     }
+
+    nlss_run_context$request$design$groups <- c(nlss_run_context$request$design$groups,
+      list(list(group = group_label, available_n = nrow(data_group), included_n = nrow(data_model),
+        included_rows_within_group = which(idx),
+        variable_types = lapply(data_model[vars_needed], class),
+        factor_levels = lapply(data_model[vars_needed][vapply(data_model[vars_needed], is.factor, logical(1))], levels))))
 
     models <- list()
     summaries <- list()
@@ -1357,6 +1368,7 @@ main <- function() {
   } else {
     resolve_get_template_path("regression.default", "regression/default-template.md")
   }
+  template_path <- nlss_freeze_template(template_path, "regression.default")
   template_meta <- resolve_get_template_meta(template_path)
   table_result <- build_regression_table_body(coef_df, digits, template_meta$table)
   nlss_table <- paste0("Table 1\n\n", table_result$body, "\n", note_tokens$note_default)
@@ -1373,7 +1385,7 @@ main <- function() {
   )
 
   nlss_report_path <- file.path(out_dir, "report_canonical.md")
-  resolve_append_nlss_report(
+  nlss_stage_report(
     nlss_report_path,
     "Regression",
     nlss_table,
@@ -1391,6 +1403,7 @@ main <- function() {
     } else {
       resolve_get_template_path("regression.model_tests", "regression/model-tests-template.md")
     }
+    model_tests_template_path <- nlss_freeze_template(model_tests_template_path, "regression.model_tests")
     model_tests_meta <- resolve_get_template_meta(model_tests_template_path)
     model_tests_table <- build_regression_model_tests_table_body(model_tests_df, digits, model_tests_meta$table)
     model_tests_nlss_table <- paste0("Table 1\n\n", model_tests_table$body, "\n", model_tests_note_tokens$note_default)
@@ -1400,7 +1413,7 @@ main <- function() {
         model_tests_note_tokens
       )
     )
-    resolve_append_nlss_report(
+    nlss_stage_report(
       nlss_report_path,
       model_tests_label,
       model_tests_nlss_table,
@@ -1411,12 +1424,12 @@ main <- function() {
     )
   }
 
-  cat("Wrote:\n")
-  cat("- ", render_output_path(nlss_report_path, out_dir), "\n", sep = "")
+  nlss_set_result(list(coefficients_df = coef_df, summary_df = summary_df,
+    comparisons_df = comparison_df, diagnostics_df = diagnostics_df, model_tests_df = model_tests_df))
 
   if (resolve_parse_bool(opts$log, default = log_default)) {
     ctx <- resolve_get_run_context()
-    resolve_append_analysis_log(
+    nlss_stage_log(
       out_dir,
       module = "regression",
       prompt = ctx$prompt,
@@ -1441,6 +1454,7 @@ main <- function() {
         conf_level = conf_level,
         bootstrap = bootstrap,
         bootstrap_samples = if (bootstrap) bootstrap_samples else NULL,
+        seed = seed,
         digits = digits
       ),
       user_prompt = resolve_get_user_prompt(opts)
@@ -1448,4 +1462,4 @@ main <- function() {
   }
 }
 
-main()
+nlss_run_main("regression", main)
