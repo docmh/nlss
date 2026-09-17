@@ -103,7 +103,7 @@ Options accept both `--name value` and `--name=value`. Unknown or duplicate opti
 | `sem` | `analysis bootstrap bootstrap-samples ci conf-level covariates digits dv estimator factors fit group group-equal invariance ivs m missing model model-file modindices ordered paths r2 residuals se seed serial std x y` |
 | `t_test` | `alternative bootstrap bootstrap-samples conf-level digits expect-two-groups group mu seed var-equal vars x y` |
 
-The new MI runner also supports the shared `help`, `template`, `log` and `user-prompt` options; its source references are validated by the entrypoint and shared Phase 2 contract. Saved-request replay uses the separate `replay_run.R --request` entrypoint. Use the MI runner's `--help` for accepted combinations, rather than assuming that ordinary regression's `blocks`, `group` or `bootstrap` options are MI-aware.
+The new MI runner also supports the shared `help`, `template`, `log` and `user-prompt` options; its source references are validated by the entrypoint and shared Phase 2 contract. Saved-request replay uses the separate `replay-run --request` operation through `run_nlss.R`. Use the MI runner's `--help` for accepted combinations, rather than assuming that ordinary regression's `blocks`, `group` or `bootstrap` options are MI-aware.
 
 ## Package and fallback inventory
 

@@ -1,6 +1,6 @@
 ---
 name: describe-sample
-description: Agent-run sample description that inspects data, infers demographics, runs descriptive-stats/frequencies (plus optional crosstabs/missings), and writes an NLSS format-ready report.
+description: Agent-run sample description using data inspection, descriptive-stats/frequencies and optional crosstabs/missings, with contextual interpretation and an authored report when requested.
 license: Apache-2.0
 ---
 

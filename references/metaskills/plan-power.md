@@ -1,6 +1,6 @@
 ---
 name: plan-power
-description: Agent-run study planning that clarifies design and effect-size justification, runs auditable Power calculations with or without pilot data, and writes a context-sensitive research report.
+description: Agent-run study planning that clarifies design and effect-size justification, runs auditable power calculations with or without pilot data, and explains the results, with an authored report when requested.
 license: Apache-2.0
 ---
 
@@ -52,7 +52,7 @@ Current projects use their existing marker and common output route. No separate
 planning dataset, project-local protocol or JSONL journal is needed.
 
 ```bash
-Rscript <scripts>/power.R --project <project> --planning TRUE --analysis ttest --mode apriori \
+Rscript "<skill>/scripts/R/run_nlss.R" power --project <project> --planning TRUE --analysis ttest --mode apriori \
   --t-type two-sample --effect-metric d --effect-size 0.4 \
   --alpha 0.05 --power 0.8 --ratio 1 \
   --effect-basis "Researcher-approved minimum relevant effect" \

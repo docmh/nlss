@@ -1,5 +1,5 @@
 ---
-name: sem-lavaan
+name: sem
 description: SEM/CFA/path/mediation/invariance via lavaan with model builders, multi-group support, robust or bootstrapped SEs/CIs, fit indices, standardized estimates, and NLSS format outputs.
 license: Apache-2.0
 ---
@@ -19,29 +19,32 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Provide a lavaan model (`--model` / `--model-file`) or use a builder (`--factors`, `--dv`/`--ivs`, or `--x`/`--m`/`--y`).
 3. Choose estimator, missing handling, SE/CI, and fit indices.
-4. Run `scripts/R/sem.R` with the correct flags.
+4. Run the `sem` operation through `run_nlss.R` with the correct flags.
 5. Review the run's requested/effective inference, fit status, cases and warnings.
 6. Use its numerical evidence to write a context-sensitive response. Deterministic
    statistical output is not a final research report or a mandatory narrative template.
 
-## Script: `scripts/R/sem.R`
+## Execution: `sem`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/sem.R> --csv <path to CSV> --analysis sem --model "y ~ x1 + x2"
+Rscript "<skill>/scripts/R/run_nlss.R" sem --csv <path to CSV> --analysis sem --model "y ~ x1 + x2"
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/sem.R> --parquet <path to parquet> --analysis cfa --factors "F1=item1,item2;F2=item3,item4"
+Rscript "<skill>/scripts/R/run_nlss.R" sem --parquet <path to parquet> --analysis cfa --factors "F1=item1,item2;F2=item3,item4"
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/sem.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" sem --interactive
 ```
 
 ## Options

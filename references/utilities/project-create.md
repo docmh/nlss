@@ -37,12 +37,12 @@ NLSS does not authorize initialization. Incomplete/unsupported infrastructure
 requires clarification, not deletion.
 
 ```bash
-Rscript scripts/R/project_create.R --project /path/to/study --source survey.sav
-Rscript scripts/R/descriptive_stats.R --project /path/to/study \
+Rscript "<skill>/scripts/R/run_nlss.R" project-create --project /path/to/study --source survey.sav
+Rscript "<skill>/scripts/R/run_nlss.R" descriptive-stats --project /path/to/study \
   --dataset survey --vars pre_score,post_score
-Rscript scripts/R/data_transform.R --project /path/to/study \
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --project /path/to/study \
   --dataset survey --calc 'change=post_score-pre_score'
-Rscript scripts/R/project_inspect.R --project /path/to/study
+Rscript "<skill>/scripts/R/run_nlss.R" project-inspect --project /path/to/study
 ```
 
 Only `--project` and, for a new project, `--source` are required. `--name` defaults
@@ -194,7 +194,7 @@ operation fails safely instead of truncating the current file.
 ## Replay
 
 ```bash
-Rscript scripts/R/replay_run.R \
+Rscript "<skill>/scripts/R/run_nlss.R" replay-run \
   --request /path/to/study/.nlss/runs/<run-id>/request.json
 ```
 

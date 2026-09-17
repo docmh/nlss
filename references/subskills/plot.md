@@ -21,7 +21,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, SAV, RDS, RData data frame, Parquet, or interactive).
 2. Choose a plot type and variables.
-3. Run `scripts/R/plot.R` with the correct flags.
+3. Run the `plot` operation through `run_nlss.R` with the correct flags.
 4. Use outputs (`report_canonical.md`, figure images in `plots/`, and `result.json`) to craft the response.
 
 Variable labels label axes; value labels describe categories without replacing
@@ -30,24 +30,27 @@ axis: choose its role through the plot type and variable options. For an existin
 figure, inspect its request, case selection and numerical layers before drawing
 conclusions. A request to explain a saved figure does not itself authorize a rerun.
 
-## Script: `scripts/R/plot.R`
+## Execution: `plot`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/plot.R> --csv <path to CSV file> --type scatter --x age --y score --group condition
+Rscript "<skill>/scripts/R/run_nlss.R" plot --csv <path to CSV file> --type scatter --x age --y score --group condition
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/plot.R> --parquet <path to parquet file> --type bar --vars gender --stat percent
+Rscript "<skill>/scripts/R/run_nlss.R" plot --parquet <path to parquet file> --type bar --vars gender --stat percent
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/plot.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" plot --interactive
 ```
 
 ## Options

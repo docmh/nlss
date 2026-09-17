@@ -69,7 +69,7 @@ run IDs. The existing API evidence and report-saving mechanisms remain unchanged
 ## Command and options
 
 ```bash
-Rscript <path to scripts/R/research_academia.R> --query "stress and coping" --sources openalex,crossref
+Rscript "<skill>/scripts/R/run_nlss.R" research-academia --query "stress and coping" --sources openalex,crossref
 ```
 
 - `--query <text>`: Required topic or query; `--topic` remains an alias.

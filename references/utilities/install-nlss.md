@@ -1,6 +1,7 @@
 ---
 name: install-nlss
 description: Preview and explicitly approve standalone NLSS skill installation, update or removal without changing R packages or research projects.
+license: Apache-2.0
 ---
 
 # Install NLSS (standalone utility)

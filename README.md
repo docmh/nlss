@@ -60,7 +60,7 @@ release and the appropriate plugin or standalone skill. Install once for your
 chosen agent and reuse that installation across research projects. Start a new
 session when prompted.
 
-**Current Release: [2.0.0](https://github.com/docmh/nlss/releases/tag/v2.0.0).**
+**Current Release: [2.0.1](https://github.com/docmh/nlss/releases/tag/v2.0.1).**
 Follow the installation guide to select the matching plugin or standalone-skill
 package. [All Releases](https://github.com/docmh/nlss/releases)
 

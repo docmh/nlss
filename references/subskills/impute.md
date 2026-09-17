@@ -20,41 +20,44 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, SAV, RDS, RData data frame, Parquet, or interactive).
 2. Choose variables and an imputation engine (`simple`, `mice`, `knn`, or `auto`).
-3. Run `scripts/R/impute.R` with the correct flags.
+3. Run the `impute` operation through `run_nlss.R` with the correct flags.
 4. Use outputs (workspace parquet, `report_canonical.md`, `result.json`) in your response.
 
-## Script: `scripts/R/impute.R`
+## Execution: `impute`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript` in base R. Optional engines require R packages `mice` or `VIM` when selected. Parquet I/O requires the `arrow` package.
 
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/impute.R> --csv <path to CSV file> --vars age,gender
+Rscript "<skill>/scripts/R/run_nlss.R" impute --csv <path to CSV file> --vars age,gender
 ```
 
 ### RDS Input (Data Frame)
 
 ```bash
-Rscript <path to scripts/R/impute.R> --rds <path to RDS file> --vars age,gender
+Rscript "<skill>/scripts/R/run_nlss.R" impute --rds <path to RDS file> --vars age,gender
 ```
 
 ### RData Input (Data Frame by Name)
 
 ```bash
-Rscript <path to scripts/R/impute.R> --rdata <path to RData file> --df <data frame name> --vars age,gender
+Rscript "<skill>/scripts/R/run_nlss.R" impute --rdata <path to RData file> --df <data frame name> --vars age,gender
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/impute.R> --parquet <path to parquet file> --vars age,gender
+Rscript "<skill>/scripts/R/run_nlss.R" impute --parquet <path to parquet file> --vars age,gender
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/impute.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" impute --interactive
 ```
 
 ### Options

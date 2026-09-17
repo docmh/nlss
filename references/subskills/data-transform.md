@@ -23,10 +23,13 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
    - `--standardize` for z-scores into new variables.
    - `--recode` for value mapping.
    - `--rename` and `--drop` for column management.
-3. Run `scripts/R/data_transform.R` with appropriate flags.
+3. Run the `data-transform` operation through `run_nlss.R` with appropriate flags.
 4. Use the visible working data, root `report_canonical.md` and saved run `result.json` in your response.
 
-## Script: `scripts/R/data_transform.R`
+## Execution: `data-transform`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript`. Calculations use base R; the common workspace/import/run
 dependencies include `arrow`, `yaml`, `jsonlite` and `digest`, plus `haven` for SAV.
@@ -34,61 +37,61 @@ dependencies include `arrow`, `yaml`, `jsonlite` and `digest`, plus `haven` for 
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --calc "bmi=weight/(height^2)|ratio=var1/var2"
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --csv <path to CSV file> --calc "bmi=weight/(height^2)|ratio=var1/var2"
 ```
 
 ### Standard Transforms and Standardization
 
 ```bash
-Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --transform "income=log|stress=sqrt" --standardize age,score
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --csv <path to CSV file> --transform "income=log|stress=sqrt" --standardize age,score
 ```
 
 ### Percentile Bins (E.G., Quartiles)
 
 ```bash
-Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --percentile-bins "score=4|income=5"
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --csv <path to CSV file> --percentile-bins "score=4|income=5"
 ```
 
 ### Custom Bins
 
 ```bash
-Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --bins "age=0,18,30,45,65|score=0,50,75,100"
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --csv <path to CSV file> --bins "age=0,18,30,45,65|score=0,50,75,100"
 ```
 
 ### Recode Values
 
 ```bash
-Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --recode "gender=1:0,2:1|status=low:0,high:1"
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --csv <path to CSV file> --recode "gender=1:0,2:1|status=low:0,high:1"
 ```
 
 ### Rename and Drop Columns
 
 ```bash
-Rscript <path to scripts/R/data_transform.R> --csv <path to CSV file> --rename old:new,old2:new2 --drop temp1,temp2 --confirm-drop
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --csv <path to CSV file> --rename old:new,old2:new2 --drop temp1,temp2 --confirm-drop
 ```
 
 ### RDS Input (Data Frame)
 
 ```bash
-Rscript <path to scripts/R/data_transform.R> --rds <path to RDS file> --calc "delta=post-pre"
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --rds <path to RDS file> --calc "delta=post-pre"
 ```
 
 ### RData Input (Data Frame by Name)
 
 ```bash
-Rscript <path to scripts/R/data_transform.R> --rdata <path to RData file> --df <data frame name> --standardize score
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --rdata <path to RData file> --df <data frame name> --standardize score
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/data_transform.R> --parquet <path to parquet file> --standardize score
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --parquet <path to parquet file> --standardize score
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/data_transform.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" data-transform --interactive
 ```
 
 ## Options

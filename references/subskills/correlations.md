@@ -19,71 +19,74 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose variables: full matrix via `--vars` (or default numeric columns), or cross-correlation via `--x` and `--y`.
 3. Choose correlation method (Pearson/Spearman/Kendall), missing-data handling, and any control variables.
-4. Run `scripts/R/correlations.R` with the correct flags.
+4. Run the `correlations` operation through `run_nlss.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `result.json`) to craft the response.
 
-## Script: `scripts/R/correlations.R`
+## Execution: `correlations`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript`. Statistical estimation uses base R; shared import, configuration and audit dependencies still apply (`arrow`, `yaml`, `jsonlite`, `digest`; `haven` for SAV).
 
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/correlations.R> --csv <path to CSV file> --vars age,score,stress
+Rscript "<skill>/scripts/R/run_nlss.R" correlations --csv <path to CSV file> --vars age,score,stress
 ```
 
 ### Cross-Correlation Between Sets
 
 ```bash
-Rscript <path to scripts/R/correlations.R> --csv <path to CSV file> --x age,stress --y wellbeing,performance
+Rscript "<skill>/scripts/R/run_nlss.R" correlations --csv <path to CSV file> --x age,stress --y wellbeing,performance
 ```
 
 ### Grouped Correlations
 
 ```bash
-Rscript <path to scripts/R/correlations.R> --csv <path to CSV file> --vars age,score --group condition
+Rscript "<skill>/scripts/R/run_nlss.R" correlations --csv <path to CSV file> --vars age,score --group condition
 ```
 
 ### Fisher R-to-Z vs Theoretical Value
 
 ```bash
-Rscript <path to scripts/R/correlations.R> --csv <path to CSV file> --vars age,score --r0 0.3
+Rscript "<skill>/scripts/R/run_nlss.R" correlations --csv <path to CSV file> --vars age,score --r0 0.3
 ```
 
 ### Fisher R-to-Z Between Groups
 
 ```bash
-Rscript <path to scripts/R/correlations.R> --csv <path to CSV file> --vars age,score --group condition --compare-groups TRUE
+Rscript "<skill>/scripts/R/run_nlss.R" correlations --csv <path to CSV file> --vars age,score --group condition --compare-groups TRUE
 ```
 
 ### Partial Correlations (Controls)
 
 ```bash
-Rscript <path to scripts/R/correlations.R> --csv <path to CSV file> --vars age,score --controls gender,education
+Rscript "<skill>/scripts/R/run_nlss.R" correlations --csv <path to CSV file> --vars age,score --controls gender,education
 ```
 
 ### RDS Input (Data Frame)
 
 ```bash
-Rscript <path to scripts/R/correlations.R> --rds <path to RDS file> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" correlations --rds <path to RDS file> --vars age,score
 ```
 
 ### RData Input (Data Frame by Name)
 
 ```bash
-Rscript <path to scripts/R/correlations.R> --rdata <path to RData file> --df <data frame name> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" correlations --rdata <path to RData file> --df <data frame name> --vars age,score
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/correlations.R> --parquet <path to parquet file> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" correlations --parquet <path to parquet file> --vars age,score
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/correlations.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" correlations --interactive
 ```
 
 ### Options

@@ -19,10 +19,13 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, SAV, RDS, RData data frame, Parquet, or interactive).
 2. Choose item variables and an optional grouping variable.
 3. (Optional) reverse-score items using `--reverse` plus `--reverse-min`/`--reverse-max`.
-4. Run `scripts/R/scale.R` with the correct flags.
+4. Run the `scale` operation through `run_nlss.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `result.json`) to craft the response.
 
-## Script: `scripts/R/scale.R`
+## Execution: `scale`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript`. Statistical calculations use base R and `stats`; workspace
 imports and audit output also require the shared NLSS dependencies (`arrow`,
@@ -32,43 +35,43 @@ not an instruction to replace numeric item codes with factor integers.
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/scale.R> --csv <path to CSV file> --vars item1,item2,item3
+Rscript "<skill>/scripts/R/run_nlss.R" scale --csv <path to CSV file> --vars item1,item2,item3
 ```
 
 ### Grouped Scale Analysis
 
 ```bash
-Rscript <path to scripts/R/scale.R> --csv <path to CSV file> --vars item1,item2,item3 --group condition
+Rscript "<skill>/scripts/R/run_nlss.R" scale --csv <path to CSV file> --vars item1,item2,item3 --group condition
 ```
 
 ### Reverse Scoring
 
 ```bash
-Rscript <path to scripts/R/scale.R> --csv <path to CSV file> --vars item1,item2,item3 --reverse item2,item3 --reverse-min 1 --reverse-max 5
+Rscript "<skill>/scripts/R/run_nlss.R" scale --csv <path to CSV file> --vars item1,item2,item3 --reverse item2,item3 --reverse-min 1 --reverse-max 5
 ```
 
 ### RDS Input (Data Frame)
 
 ```bash
-Rscript <path to scripts/R/scale.R> --rds <path to RDS file> --vars item1,item2,item3
+Rscript "<skill>/scripts/R/run_nlss.R" scale --rds <path to RDS file> --vars item1,item2,item3
 ```
 
 ### RData Input (Data Frame by Name)
 
 ```bash
-Rscript <path to scripts/R/scale.R> --rdata <path to RData file> --df <data frame name> --vars item1,item2,item3
+Rscript "<skill>/scripts/R/run_nlss.R" scale --rdata <path to RData file> --df <data frame name> --vars item1,item2,item3
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/scale.R> --parquet <path to parquet file> --vars item1,item2,item3
+Rscript "<skill>/scripts/R/run_nlss.R" scale --parquet <path to parquet file> --vars item1,item2,item3
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/scale.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" scale --interactive
 ```
 
 ### Options

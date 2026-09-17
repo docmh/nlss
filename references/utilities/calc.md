@@ -21,13 +21,13 @@ validate the assumptions or substantive interpretation of a chosen formula.
 
 ## Inputs and Script
 
-Pass expressions and optional named constants to `scripts/R/calc.R`:
+Pass expressions and optional named constants to `calc` through the shared launcher:
 
 ```bash
-Rscript scripts/R/calc.R --expr "0.05/3"
-Rscript scripts/R/calc.R --set "r=0.3|k=3" \
+Rscript "<skill>/scripts/R/run_nlss.R" calc --expr "0.05/3"
+Rscript "<skill>/scripts/R/run_nlss.R" calc --set "r=0.3|k=3" \
   --expr "d=2*r/sqrt(1-r^2)|r2=r^2|alpha=0.05/k" --digits 6
-Rscript scripts/R/calc.R --expr "qnorm(0.025)|qnorm(0.975)" --format json
+Rscript "<skill>/scripts/R/run_nlss.R" calc --expr "qnorm(0.025)|qnorm(0.975)" --format json
 ```
 
 `|` separates expressions or assignments; it is not an escaped string delimiter.
@@ -82,7 +82,7 @@ environment, including vector calculations, arbitrary functions, packages,
 randomness and side effects:
 
 ```bash
-Rscript scripts/R/calc.R --expr "pnorm(c(-1,0,1))" --unsafe TRUE --format json
+Rscript "<skill>/scripts/R/run_nlss.R" calc --expr "pnorm(c(-1,0,1))" --unsafe TRUE --format json
 ```
 
 Unrestricted evaluation is always marked as not deterministically reproduced

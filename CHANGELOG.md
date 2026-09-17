@@ -7,6 +7,18 @@ are retained as originally published. This is a curated history, not a commit lo
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-09-17
+
+### Fixed
+
+- Aligned all operation reference examples and execution guidance with the
+  shared `run_nlss.R` launcher, including project utilities, dependency recovery
+  and replay. Quoted launcher paths support installations containing spaces;
+  operation arguments and statistical behavior are unchanged. Standalone
+  installation/maintenance continues to use `install_nlss.R` directly.
+- Made reference YAML metadata consistent with operation names, the Apache-2.0
+  license and the existing scope of optional authored reports and log utilities.
+
 ## [2.0.0] - 2026-09-16
 
 Changes relative to the previous published release, **1.0.2z**.
@@ -148,6 +160,7 @@ Historical published baseline for the changes above. Its original release notes
 and source archive remain available on GitHub; no detailed retroactive history
 has been invented here. The earlier `1.0.2` tag identifies the same commit.
 
-[Unreleased]: https://github.com/docmh/nlss/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/docmh/nlss/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/docmh/nlss/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/docmh/nlss/compare/1.0.2z...v2.0.0
 [1.0.2z]: https://github.com/docmh/nlss/releases/tag/1.0.2z

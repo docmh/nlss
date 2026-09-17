@@ -15,54 +15,57 @@ Fit linear mixed-effects models (LMM) for clustered or longitudinal data using `
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Specify the model using `--formula` or `--dv` + `--fixed` + `--random`.
 3. Optionally request estimated marginal means (`--emmeans`) and contrasts (`--contrasts`, `--contrast-file` for custom JSON).
-4. Run `scripts/R/mixed_models.R` with the correct flags.
+4. Run the `mixed-models` operation through `run_nlss.R` with the correct flags.
 5. Review the recorded estimation method, retained cases, singularity/convergence and unavailable estimates before interpretation. Use the immutable run's values and diagnostics as evidence for a semantic research report, not as a mandatory report outline.
 
 This adapter follows the [import contract](../import-contract.md) and
 [run/replay contract](../run-contract.md). Imported labels do not determine variable roles.
 
-## Script: `scripts/R/mixed_models.R`
+## Execution: `mixed-models`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 ### Formula-Based Model (CSV)
 
 ```bash
-Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time + (1|id)"
+Rscript "<skill>/scripts/R/run_nlss.R" mixed-models --csv <path to CSV file> --formula "score ~ time + (1|id)"
 ```
 
 ### Build From Dv + Fixed + Random
 
 ```bash
-Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --dv score --fixed time,group --random "1|id,time|id"
+Rscript "<skill>/scripts/R/run_nlss.R" mixed-models --csv <path to CSV file> --dv score --fixed time,group --random "1|id,time|id"
 ```
 
 ### Marginal Means + Contrasts
 
 ```bash
-Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time*group + (1|id)" --emmeans time*group --contrasts pairwise
+Rscript "<skill>/scripts/R/run_nlss.R" mixed-models --csv <path to CSV file> --formula "score ~ time*group + (1|id)" --emmeans time*group --contrasts pairwise
 ```
 
 ### Planned Contrasts (Custom JSON)
 
 ```bash
-Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time*group3 + (1|id)" --emmeans group3 --contrasts custom --contrast-file contrasts.json
+Rscript "<skill>/scripts/R/run_nlss.R" mixed-models --csv <path to CSV file> --formula "score ~ time*group3 + (1|id)" --emmeans group3 --contrasts custom --contrast-file contrasts.json
 ```
 
 ### Built-in Contrast Method
 
 ```bash
-Rscript <path to scripts/R/mixed_models.R> --csv <path to CSV file> --formula "score ~ time*group3 + (1|id)" --emmeans group3 --contrasts trt.vs.ctrl
+Rscript "<skill>/scripts/R/run_nlss.R" mixed-models --csv <path to CSV file> --formula "score ~ time*group3 + (1|id)" --emmeans group3 --contrasts trt.vs.ctrl
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/mixed_models.R> --parquet <path to parquet file> --formula "score ~ time + (1|id)"
+Rscript "<skill>/scripts/R/run_nlss.R" mixed-models --parquet <path to parquet file> --formula "score ~ time + (1|id)"
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/mixed_models.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" mixed-models --interactive
 ```
 
 ## Options

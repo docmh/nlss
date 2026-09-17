@@ -18,41 +18,44 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, SAV, RDS, RData data frame, Parquet, or interactive). Follow the [import contract](../import-contract.md) for variable/value labels and user-defined missing values.
 2. Choose row and column variables, with optional grouping variable.
-3. Run `scripts/R/crosstabs.R` with the correct flags.
+3. Run the `crosstabs` operation through `run_nlss.R` with the correct flags.
 4. Use outputs (`report_canonical.md`, `result.json`).
 
-## Script: `scripts/R/crosstabs.R`
+## Execution: `crosstabs`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript`. Statistical tests use `stats`; the common workspace, JSON and configuration dependencies still apply, including `arrow` for the verified Parquet input.
 
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/crosstabs.R> --csv <path to CSV file> --row gender --col condition
+Rscript "<skill>/scripts/R/run_nlss.R" crosstabs --csv <path to CSV file> --row gender --col condition
 ```
 
 ### RDS Input (Data Frame)
 
 ```bash
-Rscript <path to scripts/R/crosstabs.R> --rds <path to RDS file> --row gender --col condition
+Rscript "<skill>/scripts/R/run_nlss.R" crosstabs --rds <path to RDS file> --row gender --col condition
 ```
 
 ### RData Input (Data Frame by Name)
 
 ```bash
-Rscript <path to scripts/R/crosstabs.R> --rdata <path to RData file> --df <data frame name> --row gender --col condition
+Rscript "<skill>/scripts/R/run_nlss.R" crosstabs --rdata <path to RData file> --df <data frame name> --row gender --col condition
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/crosstabs.R> --parquet <path to parquet file> --row gender --col condition
+Rscript "<skill>/scripts/R/run_nlss.R" crosstabs --parquet <path to parquet file> --row gender --col condition
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/crosstabs.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" crosstabs --interactive
 ```
 
 ### Options

@@ -156,7 +156,7 @@ or conversational answers:
 
 ### Execution
 
-- Run `.R` scripts directly with `Rscript` on all platforms; ensure `Rscript` is on PATH in the active shell.
+- Ensure `Rscript` is on PATH in the active shell on all platforms.
 - For installed operations, use `Rscript "<skill>/scripts/R/run_nlss.R" <operation>
   <unchanged options>` so installation paths with spaces work. The launcher
   adapts process-local entrypoint arguments, not statistical logic or cwd.
@@ -197,7 +197,7 @@ or conversational answers:
 - List CLI flags and defaults, referencing the corresponding `config.yml` keys (and note that CLI flags override config defaults).
 - Explain outputs and provide NLSS format narrative guidance.
 - Explain how to use templates if applicable and ensure those templates are used for generating `report_canonical.md`.
-- Mention how to run via `Rscript` directly and where outputs are written.
+- Document execution via `Rscript "<skill>/scripts/R/run_nlss.R" <operation>` and where outputs are written. Use the shared launcher in reference examples; keep module filenames only as implementation references.
 
 ### Example Scopes
 

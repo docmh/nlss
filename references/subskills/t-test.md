@@ -18,10 +18,13 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose the t-test type and specify variables (one-sample/independent) or paired measures (paired).
-3. Run `scripts/R/t_test.R` with the correct flags.
+3. Run the `t-test` operation through `run_nlss.R` with the correct flags.
 4. Use outputs (`report_canonical.md`, `result.json`) for NLSS format reporting.
 
-## Script: `scripts/R/t_test.R`
+## Execution: `t-test`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript`. Statistical estimates use base R `stats`; the shared workspace,
 import and run infrastructure also requires its documented packages (including
@@ -30,43 +33,43 @@ import and run infrastructure also requires its documented packages (including
 ### One-Sample T-Test (CSV)
 
 ```bash
-Rscript <path to scripts/R/t_test.R> --csv <path to CSV file> --vars age,score --mu 0
+Rscript "<skill>/scripts/R/run_nlss.R" t-test --csv <path to CSV file> --vars age,score --mu 0
 ```
 
 ### Independent-Samples T-Test (CSV, Two Groups)
 
 ```bash
-Rscript <path to scripts/R/t_test.R> --csv <path to CSV file> --vars stress --group condition
+Rscript "<skill>/scripts/R/run_nlss.R" t-test --csv <path to CSV file> --vars stress --group condition
 ```
 
 ### Paired-Samples T-Test (CSV, Repeated Measures)
 
 ```bash
-Rscript <path to scripts/R/t_test.R> --csv <path to CSV file> --x pre_score --y post_score
+Rscript "<skill>/scripts/R/run_nlss.R" t-test --csv <path to CSV file> --x pre_score --y post_score
 ```
 
 ### RDS Input (Data Frame)
 
 ```bash
-Rscript <path to scripts/R/t_test.R> --rds <path to RDS file> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" t-test --rds <path to RDS file> --vars age,score
 ```
 
 ### RData Input (Data Frame by Name)
 
 ```bash
-Rscript <path to scripts/R/t_test.R> --rdata <path to RData file> --df <data frame name> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" t-test --rdata <path to RData file> --df <data frame name> --vars age,score
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/t_test.R> --parquet <path to parquet file> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" t-test --parquet <path to parquet file> --vars age,score
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/t_test.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" t-test --interactive
 ```
 
 ### Options

@@ -19,53 +19,56 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Specify the dependent variable and predictors (either `--ivs` or hierarchical `--blocks`).
 3. Optionally add `--interactions`, `--center`, and bootstrap options.
-4. Run `scripts/R/regression.R` with the correct flags.
+4. Run the `regression` operation through `run_nlss.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `result.json`) for NLSS format reporting.
 
-## Script: `scripts/R/regression.R`
+## Execution: `regression`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript` and base R only.
 
 ### Linear Regression (CSV)
 
 ```bash
-Rscript <path to scripts/R/regression.R> --csv <path to CSV file> --dv outcome --ivs x1,x2,x3
+Rscript "<skill>/scripts/R/run_nlss.R" regression --csv <path to CSV file> --dv outcome --ivs x1,x2,x3
 ```
 
 ### Hierarchical Regression (Blocks)
 
 ```bash
-Rscript <path to scripts/R/regression.R> --csv <path to CSV file> --dv outcome --blocks "age,gender;stress,trait"
+Rscript "<skill>/scripts/R/run_nlss.R" regression --csv <path to CSV file> --dv outcome --blocks "age,gender;stress,trait"
 ```
 
 ### Moderation via Interaction Terms
 
 ```bash
-Rscript <path to scripts/R/regression.R> --csv <path to CSV file> --dv outcome --ivs x1,moderator --interactions x1:moderator --center mean
+Rscript "<skill>/scripts/R/run_nlss.R" regression --csv <path to CSV file> --dv outcome --ivs x1,moderator --interactions x1:moderator --center mean
 ```
 
 ### Grouped Regressions
 
 ```bash
-Rscript <path to scripts/R/regression.R> --csv <path to CSV file> --dv outcome --ivs x1,x2 --group site
+Rscript "<skill>/scripts/R/run_nlss.R" regression --csv <path to CSV file> --dv outcome --ivs x1,x2 --group site
 ```
 
 ### Logistic Regression (Binomial)
 
 ```bash
-Rscript <path to scripts/R/regression.R> --csv <path to CSV file> --dv binary_outcome --ivs x1,x2 --family binomial
+Rscript "<skill>/scripts/R/run_nlss.R" regression --csv <path to CSV file> --dv binary_outcome --ivs x1,x2 --family binomial
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/regression.R> --parquet <path to parquet file> --dv outcome --ivs x1,x2
+Rscript "<skill>/scripts/R/run_nlss.R" regression --parquet <path to parquet file> --dv outcome --ivs x1,x2
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/regression.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" regression --interactive
 ```
 
 ## Options

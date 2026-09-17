@@ -7,12 +7,12 @@ authors:
     given-names: Mike
     orcid: https://orcid.org/0000-0003-1177-4282
 type: software
-version: "2.0.0"
-date-released: 2026-09-16
+version: "2.0.1"
+date-released: 2026-09-17
 identifiers:
   - type: doi
     value: 10.5281/zenodo.18173833
-    description: "Concept DOI for the software across archived versions, not a version-specific DOI for 2.0.0."
-url: https://github.com/docmh/nlss/releases/tag/v2.0.0
+    description: "Concept DOI for the software across archived versions, not a version-specific DOI."
+url: https://github.com/docmh/nlss/releases/tag/v2.0.1
 license: Apache-2.0
 repository-code: https://github.com/docmh/nlss

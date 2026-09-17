@@ -298,7 +298,7 @@ Never treat a success-shaped JSON file inside a pending directory as published.
 ## Replay
 
 ```bash
-Rscript scripts/R/replay_run.R \
+Rscript "<skill>/scripts/R/run_nlss.R" replay-run \
   --request /path/to/project/.nlss/runs/<run-id>/request.json
 ```
 

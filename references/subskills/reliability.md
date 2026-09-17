@@ -23,35 +23,38 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose `--analysis` (icc/kappa/test_retest).
 3. Choose `--format` (wide/long) and supply the required variables.
-4. Run `scripts/R/reliability.R` with the correct flags.
+4. Run the `reliability` operation through `run_nlss.R` with the correct flags.
 5. Review the saved request, results, warnings and deterministic output; synthesize the findings in context rather than treating the output template as a final research report.
 
-## Script: `scripts/R/reliability.R`
+## Execution: `reliability`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript` and base R only.
 
 ### ICC (Wide Format)
 
 ```bash
-Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis icc --vars r1,r2,r3
+Rscript "<skill>/scripts/R/run_nlss.R" reliability --csv <path to CSV file> --analysis icc --vars r1,r2,r3
 ```
 
 ### ICC (Long Format)
 
 ```bash
-Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis icc --format long --id id --rater rater --score score
+Rscript "<skill>/scripts/R/run_nlss.R" reliability --csv <path to CSV file> --analysis icc --format long --id id --rater rater --score score
 ```
 
 ### Kappa (Categorical)
 
 ```bash
-Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis kappa --vars rater1,rater2
+Rscript "<skill>/scripts/R/run_nlss.R" reliability --csv <path to CSV file> --analysis kappa --vars rater1,rater2
 ```
 
 ### Test-Retest
 
 ```bash
-Rscript <path to scripts/R/reliability.R> --csv <path to CSV file> --analysis test_retest --vars t1,t2 --method spearman
+Rscript "<skill>/scripts/R/run_nlss.R" reliability --csv <path to CSV file> --analysis test_retest --vars t1,t2 --method spearman
 ```
 
 ### Options

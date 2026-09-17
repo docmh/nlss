@@ -6,7 +6,7 @@ metadata:
   nlss.compatibility: "R 4.5.2, IDE (e.g., VS Code, Cursor), agentskills.io compatible coding agent (e.g., Codex IDE, Claude Code IDE)"
   nlss.copyright: "Copyright (c) 2025-2026 Mike Hammes"
   nlss.trademark: "NLSS™ is a trademark of Mike Hammes"
-  nlss.version: "2.0.0"
+  nlss.version: "2.0.1"
 ---
 
 # NLSS - Natural Language Statistics Suite
@@ -103,8 +103,9 @@ shared launcher: `Rscript "<skill>/scripts/R/run_nlss.R" <operation> <options>`.
 Use the operation name from its reference (hyphens or underscores); pass all its
 existing flags unchanged. This also applies to project utilities, dependency
 recovery and replay. It handles installation paths with spaces without changing
-the research cwd. Direct-script examples in individual references describe the
-same operation/options; use this common launch form when executing them.
+the research cwd. References use this launch form; `<skill>` denotes the
+installed NLSS skill directory. Module filenames mentioned as implementation
+references are not alternative execution instructions.
 Only standalone installation/maintenance uses `install_nlss.R` directly.
 
 Resolve `scripts/`, `references/` and `assets/` relative to this installed skill

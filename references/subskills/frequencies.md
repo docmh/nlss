@@ -18,41 +18,44 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, SAV, RDS, RData data frame, Parquet, or interactive); review [the import contract](../import-contract.md) for labels and user-defined missings.
 2. Choose variables for frequency tables and an optional grouping variable.
-3. Run `scripts/R/frequencies.R` with the correct flags.
+3. Run the `frequencies` operation through `run_nlss.R` with the correct flags.
 4. Review the saved run, canonical Markdown, and its recorded status to craft a context-sensitive response. The statistical output is evidence, not a prescribed final-report narrative.
 
-## Script: `scripts/R/frequencies.R`
+## Execution: `frequencies`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript`. Frequency calculations use base R; the shared runtime requires the installed NLSS import/configuration/report dependencies, including `arrow` for workspace Parquet and `haven` for SAV import.
 
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/frequencies.R> --csv <path to CSV file> --vars gender,condition --group condition
+Rscript "<skill>/scripts/R/run_nlss.R" frequencies --csv <path to CSV file> --vars gender,condition --group condition
 ```
 
 ### RDS Input (Data Frame)
 
 ```bash
-Rscript <path to scripts/R/frequencies.R> --rds <path to RDS file> --vars gender,condition
+Rscript "<skill>/scripts/R/run_nlss.R" frequencies --rds <path to RDS file> --vars gender,condition
 ```
 
 ### RData Input (Data Frame by Name)
 
 ```bash
-Rscript <path to scripts/R/frequencies.R> --rdata <path to RData file> --df <data frame name> --vars gender,condition
+Rscript "<skill>/scripts/R/run_nlss.R" frequencies --rdata <path to RData file> --df <data frame name> --vars gender,condition
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/frequencies.R> --parquet <path to parquet file> --vars gender,condition
+Rscript "<skill>/scripts/R/run_nlss.R" frequencies --parquet <path to parquet file> --vars gender,condition
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/frequencies.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" frequencies --interactive
 ```
 
 ### Options
@@ -80,7 +83,7 @@ is produced. `--log` affects optional standalone logging, not this evidence.
 - `result.json`: Machine-readable results and options, always retained in the saved run.
 - `.nlss/runs/<run-id>/request.json`: Resolved variables, grouping, display digits and numeric-selection policy; immutable dataset/dictionary references; variable classes and levels, missing counts, and each group's original row indices. Each group records its original `value`, `is_missing`, and unique presentation key `group`.
 - `.nlss/runs/<run-id>/result.json`: Completion or failure state, warnings and full-precision `results.summary_df`, independent of legacy logging settings. The additive Boolean `group_missing` distinguishes true missing grouping values from literal category text.
-- `.nlss/runs/<run-id>/output.md` and `templates/`: Deterministic statistical output and the exact template used. `replay_run.R --request <saved request.json>` verifies and repeats a completed run from its immutable input, configuration and template.
+- `.nlss/runs/<run-id>/output.md` and `templates/`: Deterministic statistical output and the exact template used. `Rscript "<skill>/scripts/R/run_nlss.R" replay-run --request "<saved request.json>"` verifies and repeats a completed run from its immutable input, configuration and template.
 
 Missing groups display as `NA` only if that does not collide with an actual group code or label. Otherwise the label is `NA (missing)`, with a numeric suffix if necessary. A literal `NA` group remains a separate, ordinary category. This corrects the older grouping path that could insert artificial missing rows into every non-missing group and merge missing groups with literal `NA` in reports. Counts and percentages now use exactly the recorded source rows.
 

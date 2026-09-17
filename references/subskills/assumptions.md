@@ -18,63 +18,66 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose the analysis family (`ttest`, `anova`, `regression`, `mixed_models`, or `sem`) and specify variables.
-3. Run `scripts/R/assumptions.R` with the correct flags.
+3. Run the `assumptions` operation through `run_nlss.R` with the correct flags.
 4. Use outputs (`report_canonical.md`, `result.json`) for reporting or downstream modules.
 
-## Script: `scripts/R/assumptions.R`
+## Execution: `assumptions`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 ### T-Test Assumptions (Independent Samples)
 
 ```bash
-Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis ttest --vars score --group condition
+Rscript "<skill>/scripts/R/run_nlss.R" assumptions --csv <path to CSV file> --analysis ttest --vars score --group condition
 ```
 
 ### T-Test Assumptions (Paired)
 
 ```bash
-Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis ttest --x pre_score --y post_score
+Rscript "<skill>/scripts/R/run_nlss.R" assumptions --csv <path to CSV file> --analysis ttest --x pre_score --y post_score
 ```
 
 ### ANOVA Assumptions (Between-Subjects)
 
 ```bash
-Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis anova --dv score --between group,gender
+Rscript "<skill>/scripts/R/run_nlss.R" assumptions --csv <path to CSV file> --analysis anova --dv score --between group,gender
 ```
 
 ### ANOVA Assumptions (Within or Mixed; Wide Format)
 
 ```bash
-Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis anova --within pre,mid,post --between group
+Rscript "<skill>/scripts/R/run_nlss.R" assumptions --csv <path to CSV file> --analysis anova --within pre,mid,post --between group
 ```
 
 ### Regression Assumptions (Multiple Regression)
 
 ```bash
-Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis regression --dv outcome --ivs age,stress,trait
+Rscript "<skill>/scripts/R/run_nlss.R" assumptions --csv <path to CSV file> --analysis regression --dv outcome --ivs age,stress,trait
 ```
 
 ### Regression Assumptions (Hierarchical Blocks)
 
 ```bash
-Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis regression --dv outcome --blocks "age,gender;stress,trait"
+Rscript "<skill>/scripts/R/run_nlss.R" assumptions --csv <path to CSV file> --analysis regression --dv outcome --blocks "age,gender;stress,trait"
 ```
 
 ### Mixed Models Assumptions
 
 ```bash
-Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis mixed_models --formula "score ~ time + (1|id)"
+Rscript "<skill>/scripts/R/run_nlss.R" assumptions --csv <path to CSV file> --analysis mixed_models --formula "score ~ time + (1|id)"
 ```
 
 ### SEM Assumptions (CFA Builder)
 
 ```bash
-Rscript <path to scripts/R/assumptions.R> --csv <path to CSV file> --analysis sem --factors "F1=item1,item2;F2=item3,item4"
+Rscript "<skill>/scripts/R/run_nlss.R" assumptions --csv <path to CSV file> --analysis sem --factors "F1=item1,item2;F2=item3,item4"
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/assumptions.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" assumptions --interactive
 ```
 
 ## Options

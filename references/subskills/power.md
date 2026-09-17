@@ -19,7 +19,7 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Choose parameter-only planning or dataset-backed execution. No dataset is needed when the design and effect are specified; pilot estimation requires an explicit dataset and variable roles.
 2. Choose `--analysis` (ttest/anova/correlation/regression/sem) and `--mode` (apriori/posthoc/sensitivity).
 3. Provide effect size (or set `--estimate-effect TRUE` with the needed variables), alpha, and power targets.
-4. Run `scripts/R/power.R` with the appropriate flags.
+4. Run the `power` operation through `run_nlss.R` with the appropriate flags.
 5. Review the immutable run bundle, warnings and canonical output; write the final research interpretation semantically, using [plan-power](../metaskills/plan-power.md).
 
 ## Input modes and provenance
@@ -43,25 +43,28 @@ unmarked standalone planning retains its configured planning destination and
 collision checks. See [the run contract](../run-contract.md) for schema-2
 parameter input, schema-1 dataset input, replay and locking.
 
-## Script: `scripts/R/power.R`
+## Execution: `power`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 ### Examples
 
 ```bash
 # t-test (a priori)
-Rscript <path to scripts/R/power.R> --planning TRUE --analysis ttest --mode apriori --t-type two-sample --effect-size 0.5 --power 0.8 --effect-basis "Researcher-approved planning assumption"
+Rscript "<skill>/scripts/R/run_nlss.R" power --planning TRUE --analysis ttest --mode apriori --t-type two-sample --effect-size 0.5 --power 0.8 --effect-basis "Researcher-approved planning assumption"
 
 # ANOVA (sensitivity)
-Rscript <path to scripts/R/power.R> --parquet <path> --analysis anova --mode sensitivity --groups 3 --n-per-group 30 --power 0.8
+Rscript "<skill>/scripts/R/run_nlss.R" power --parquet <path> --analysis anova --mode sensitivity --groups 3 --n-per-group 30 --power 0.8
 
 # Correlation (post hoc)
-Rscript <path to scripts/R/power.R> --parquet <path> --analysis correlation --mode posthoc --effect-size 0.3 --n 120
+Rscript "<skill>/scripts/R/run_nlss.R" power --parquet <path> --analysis correlation --mode posthoc --effect-size 0.3 --n 120
 
 # Regression (a priori)
-Rscript <path to scripts/R/power.R> --parquet <path> --analysis regression --mode apriori --effect-metric f2 --effect-size 0.15 --u 3
+Rscript "<skill>/scripts/R/run_nlss.R" power --parquet <path> --analysis regression --mode apriori --effect-metric f2 --effect-size 0.15 --u 3
 
 # SEM (RMSEA; a priori)
-Rscript <path to scripts/R/power.R> --planning TRUE --analysis sem --mode apriori --sem-df 120 --rmsea0 0.05 --rmsea1 0.08 --power 0.8
+Rscript "<skill>/scripts/R/run_nlss.R" power --planning TRUE --analysis sem --mode apriori --sem-df 120 --rmsea0 0.05 --rmsea1 0.08 --power 0.8
 ```
 
 ### Options

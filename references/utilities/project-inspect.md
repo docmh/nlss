@@ -13,8 +13,8 @@ reading a user-supplied study document. It never creates or converts a project.
 ## Command and options
 
 ```bash
-Rscript scripts/R/project_inspect.R --project /path/to/study
-Rscript scripts/R/project_inspect.R --project /path/to/study --verify TRUE --format json
+Rscript "<skill>/scripts/R/run_nlss.R" project-inspect --project /path/to/study
+Rscript "<skill>/scripts/R/run_nlss.R" project-inspect --project /path/to/study --verify TRUE --format json
 ```
 
 - `--project DIR|MARKER`: explicit selection. Missing/invalid selection fails

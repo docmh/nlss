@@ -33,15 +33,18 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, SAV, or workspace).
 2. Provide the metaskill name (`--meta`), optional phase (`--phase`), and optional intent/notes.
 3. For explicit finalization, write the substantive UTF-8 report `report_<YYYYMMDD>_<metaskill>_<intent>.md` at the current project root (outside `.nlss/`); standalone input mode retains its dataset output directory. A missing, empty, or invalid-UTF-8 report fails before dataset import. Local and UTC current-date filenames are accepted, with the local date preferred. This utility-specific convention is not required for ordinary report delivery.
-4. Run `scripts/R/metaskill_runner.R`.
+4. Run the `metaskill-runner` operation through `run_nlss.R`.
 5. Use outputs (root `report_canonical.md` and `.nlss/utility-runs/`) to confirm the activation/finalization log entry.
 
-## Script: `scripts/R/metaskill_runner.R`
+## Execution: `metaskill-runner`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 ### Current project
 
 ```bash
-Rscript <path to scripts/R/metaskill_runner.R> --project /path/to/study --dataset sample --meta sample-description
+Rscript "<skill>/scripts/R/run_nlss.R" metaskill-runner --project /path/to/study --dataset sample --meta sample-description
 ```
 
 The same invocation works from outside the project or within another project.
@@ -50,19 +53,19 @@ Omit both selectors when running inside the intended project with its active dat
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/metaskill_runner.R> --csv <path to CSV file> --meta sample-description
+Rscript "<skill>/scripts/R/run_nlss.R" metaskill-runner --csv <path to CSV file> --meta sample-description
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/metaskill_runner.R> --parquet <path to parquet file> --meta sample-description --intent "describe the sample"
+Rscript "<skill>/scripts/R/run_nlss.R" metaskill-runner --parquet <path to parquet file> --meta sample-description --intent "describe the sample"
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/metaskill_runner.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" metaskill-runner --interactive
 ```
 
 ### Options

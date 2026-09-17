@@ -19,7 +19,7 @@ purpose. Check how the imputations were generated and their diagnostics. The
 artifact must contain every model variable and preserve its input snapshot.
 
 ```bash
-Rscript scripts/R/mi_regression.R \
+Rscript "<skill>/scripts/R/run_nlss.R" mi-regression \
   --mids /path/to/project/survey/imputations/mice-<sha256>/mids.rds \
   --formula 'outcome ~ age + condition' --family gaussian --conf-level 0.95
 ```

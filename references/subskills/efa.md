@@ -19,27 +19,30 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, SAV, RDS, RData data frame, Parquet, or interactive).
 2. Choose item variables and optional grouping variable.
 3. Choose extraction method, rotation, factor retention rule, and correlation type.
-4. Run `scripts/R/efa.R` with the correct flags.
+4. Run the `efa` operation through `run_nlss.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `result.json`) to craft the response.
 
-## Script: `scripts/R/efa.R`
+## Execution: `efa`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/efa.R> --csv <path to CSV file> --vars item1,item2,item3
+Rscript "<skill>/scripts/R/run_nlss.R" efa --csv <path to CSV file> --vars item1,item2,item3
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/efa.R> --parquet <path to parquet file> --vars item1,item2,item3
+Rscript "<skill>/scripts/R/run_nlss.R" efa --parquet <path to parquet file> --vars item1,item2,item3
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/efa.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" efa --interactive
 ```
 
 ## Options

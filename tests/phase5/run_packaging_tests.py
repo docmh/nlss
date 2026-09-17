@@ -32,6 +32,37 @@ def tree(path):
             for p in sorted(path.rglob("*")) if p.is_file()}
 
 
+def documented_launches(root):
+    """Resolve documented commands, not implementation-only filename references."""
+    commands = re.compile(
+        r'\bRscript[ \t]+(?P<entry>"[^"\n]*\.R"|\'[^\'\n]*\.R\'|'
+        r'<path to [^>\n]+\.R>|[^\s`]+\.R)(?P<args>[^\n`]*)')
+    operations, problems = set(), []
+    for path in [root / "SKILL.md", root / "AGENTS.md", root / "README.md",
+                 *sorted((root / "references").rglob("*.md"))]:
+        for match in commands.finditer(path.read_text(encoding="utf-8")):
+            entry = match["entry"]
+            target = entry.strip('"\'').rsplit("/", 1)[-1]
+            location = f"{path.relative_to(root)}:{match.start()}"
+            if target not in ("run_nlss.R", "install_nlss.R") or entry[0] not in "\"'":
+                problems.append(f"{location}: use a quoted launcher path: {entry}")
+                continue
+            if target == "install_nlss.R":
+                continue  # Standalone installation is intentionally direct.
+            args = match["args"].split()
+            operation = args[0] if args else ""
+            if operation in ("<operation>", "--help"):
+                continue
+            module = operation.replace("-", "_")
+            if (not re.fullmatch(r"[a-z][a-z_]*", module)
+                    or module in ("run_nlss", "install_nlss")
+                    or not (root / "scripts/R" / f"{module}.R").is_file()):
+                problems.append(f"{location}: unknown launcher operation: {operation}")
+            else:
+                operations.add(operation)
+    return operations, problems
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=os.environ.get("NLSS_TEST_ROOT"))
@@ -120,6 +151,57 @@ def main():
                 if not (path.parent / unquote(ref)).exists():
                     missing_links.append((str(path.relative_to(skill)), ref))
         check(f"local runtime Markdown links resolve: {missing_links}", not missing_links)
+        documented, problems = documented_launches(skill)
+        check(f"documented commands use quoted launcher and resolve operations: {problems}",
+              bool(documented) and not problems)
+        # Prove the guard detects the reported regression and a mistyped operation.
+        probe = skill / "references/launcher-regression-probe.md"
+        try:
+            for bad in ('Rscript <path to scripts/R/sem.R> --help',
+                        'Rscript "<skill>/scripts/R/sem.R" --help',
+                        'Rscript <skill>/scripts/R/run_nlss.R sem --help',
+                        'Rscript "<skill>/scripts/R/run_nlss.R" unknown --help'):
+                probe.write_text(bad + "\n", encoding="utf-8")
+                check(f"documentation guard rejects {bad}", bool(documented_launches(skill)[1]))
+        finally:
+            probe.unlink(missing_ok=True)
+        # Use the existing R YAML dependency, not an additional Python parser.
+        headers = json.loads(run(["Rscript", "--vanilla", "-e", r'''
+root <- commandArgs(TRUE)[1]
+paths <- list.files(file.path(root, "references"), pattern = "[.]md$", recursive = TRUE)
+headers <- lapply(paths, function(path) {
+  lines <- readLines(file.path(root, "references", path), warn = FALSE, encoding = "UTF-8")
+  if (!length(lines) || lines[1] != "---") return(list(path = path, header = NULL))
+  end <- which(lines[-1] == "---")[1] + 1L
+  tryCatch({
+    if (is.na(end) || end <= 2L) stop("Missing or empty YAML header")
+    list(path = path, header = yaml::yaml.load(paste(lines[seq.int(2L, end - 1L)], collapse = "\n")))
+  }, error = function(e) list(path = path, error = conditionMessage(e)))
+})
+cat(jsonlite::toJSON(headers, auto_unbox = TRUE, null = "null"))
+''', skill]))
+        metadata_problems, names = [], []
+        skill_text = (skill / "SKILL.md").read_text(encoding="utf-8")
+        for record in headers:
+            path = Path(record["path"])
+            header = record.get("header")
+            routed = path.parts[0] in ("subskills", "metaskills", "utilities")
+            if not routed and header is None and "error" not in record:
+                continue  # General contracts/guides need no operation metadata.
+            description = header.get("description") if isinstance(header, dict) else None
+            valid = (isinstance(header, dict) and header.get("name") == path.stem
+                     and bool(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", path.stem))
+                     and isinstance(description, str) and 0 < len(description.strip()) <= 1024
+                     and header.get("license") == "Apache-2.0")
+            if routed:
+                valid = valid and f"references/{path.as_posix()}" in skill_text
+            if routed and path.parts[0] != "metaskills":
+                valid = valid and (skill / "scripts/R" / (path.stem.replace("-", "_") + ".R")).is_file()
+            if not valid:
+                metadata_problems.append(record)
+            names.append(header.get("name") if isinstance(header, dict) else None)
+        check(f"{len(names)} reference headers parse and match routing/license: {metadata_problems}",
+              bool(names) and not metadata_problems and len(names) == len(set(names)))
         # No host R packages available: installer and help still run using base R.
         empty_library = work / "empty-library"
         empty_library.mkdir()
@@ -233,9 +315,12 @@ def main():
 
         run(["Rscript", "--vanilla", launcher, "--help"], env=isolated)
         # No fitting matrix: each existing entrypoint still owns its own help/CLI.
+        help_operations = set(documented)
         for entry in sorted((runtime / "scripts/R").glob("*.R")):
             if entry.stem not in ("run_nlss", "install_nlss"):
-                run(["Rscript", "--vanilla", launcher, entry.stem, "--help"], env=isolated)
+                help_operations.add(entry.stem.replace("_", "-"))
+        for operation in sorted(help_operations):
+            run(["Rscript", "--vanilla", launcher, operation, "--help"], env=isolated)
         for invalid in ("../regression", "unknown", "run_nlss", "install_nlss"):
             run(["Rscript", "--vanilla", launcher, invalid, "--help"], 1, isolated)
         missing = json.loads(run(["Rscript", "--vanilla", launcher, "project-create",

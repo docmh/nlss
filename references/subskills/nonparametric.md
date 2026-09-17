@@ -18,53 +18,56 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, SAV, RDS, RData data frame, Parquet, or interactive).
 2. Choose a test (`--test auto` or an explicit type) and specify variables/grouping.
-3. Run `scripts/R/nonparametric.R` with the correct flags.
+3. Run the `nonparametric` operation through `run_nlss.R` with the correct flags.
 4. Review the saved request, actual methods, case selection, interval coverage and warnings before interpreting the results. Use deterministic per-run output as evidence for a semantically written final report, not as a report-writing limit.
 
-## Script: `scripts/R/nonparametric.R`
+## Execution: `nonparametric`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript`. Statistical methods use base R; input, configuration and audit dependencies follow the shared [import](../import-contract.md) and [run](../run-contract.md) contracts.
 
 ### One-Sample Wilcoxon (CSV)
 
 ```bash
-Rscript <path to scripts/R/nonparametric.R> --csv data.csv --vars score --mu 0
+Rscript "<skill>/scripts/R/run_nlss.R" nonparametric --csv data.csv --vars score --mu 0
 ```
 
 ### Mann-Whitney U (CSV, Two Groups)
 
 ```bash
-Rscript <path to scripts/R/nonparametric.R> --csv data.csv --vars score --group condition --test mann_whitney
+Rscript "<skill>/scripts/R/run_nlss.R" nonparametric --csv data.csv --vars score --group condition --test mann_whitney
 ```
 
 ### Kruskal-Wallis (CSV, 3+ Groups) With Post-Hoc
 
 ```bash
-Rscript <path to scripts/R/nonparametric.R> --csv data.csv --vars score --group condition --test kruskal --posthoc pairwise --p-adjust holm
+Rscript "<skill>/scripts/R/run_nlss.R" nonparametric --csv data.csv --vars score --group condition --test kruskal --posthoc pairwise --p-adjust holm
 ```
 
 ### Wilcoxon Paired (CSV, Repeated Measures)
 
 ```bash
-Rscript <path to scripts/R/nonparametric.R> --csv data.csv --x pre_score --y post_score --test wilcoxon
+Rscript "<skill>/scripts/R/run_nlss.R" nonparametric --csv data.csv --x pre_score --y post_score --test wilcoxon
 ```
 
 ### Friedman (Wide Format)
 
 ```bash
-Rscript <path to scripts/R/nonparametric.R> --csv data.csv --within pre,mid,post --subject-id id --test friedman
+Rscript "<skill>/scripts/R/run_nlss.R" nonparametric --csv data.csv --within pre,mid,post --subject-id id --test friedman
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/nonparametric.R> --parquet data.parquet --vars score --group condition
+Rscript "<skill>/scripts/R/run_nlss.R" nonparametric --parquet data.parquet --vars score --group condition
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/nonparametric.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" nonparametric --interactive
 ```
 
 ## Options

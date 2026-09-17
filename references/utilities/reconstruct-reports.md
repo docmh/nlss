@@ -1,6 +1,6 @@
 ---
 name: reconstruct-reports
-description: Rebuild report_canonical_reconstructed.md and metaskill reports from analysis_log.jsonl report_block entries (gzip+base64).
+description: Decode stored canonical and semantic report bytes from an existing analysis_log.jsonl into protected reconstruction copies, without rerunning analyses or regenerating interpretation.
 license: Apache-2.0
 ---
 
@@ -34,12 +34,15 @@ Example prompts:
 
 - Path to an `analysis_log.jsonl` file (any filename accepted), or set `NLSS_RECONSTRUCT_LOG`.
 
-## Script: `scripts/R/reconstruct_reports.R`
+## Execution: `reconstruct-reports`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 ### Rscript
 
 ```bash
-Rscript <path to scripts/R/reconstruct_reports.R> <path to analysis_log.jsonl>
+Rscript "<skill>/scripts/R/run_nlss.R" reconstruct-reports <path to analysis_log.jsonl>
 ```
 
 ## Options
@@ -81,8 +84,8 @@ Rscript <path to scripts/R/reconstruct_reports.R> <path to analysis_log.jsonl>
 ## Examples
 
 ```bash
-Rscript scripts/R/reconstruct_reports.R outputs/workspace/example/analysis_log.jsonl
-Rscript scripts/R/reconstruct_reports.R --out-dir outputs/rebuild outputs/workspace/example/analysis_log.jsonl
+Rscript "<skill>/scripts/R/run_nlss.R" reconstruct-reports outputs/workspace/example/analysis_log.jsonl
+Rscript "<skill>/scripts/R/run_nlss.R" reconstruct-reports --out-dir outputs/rebuild outputs/workspace/example/analysis_log.jsonl
 ```
 
 ## Non-Goals

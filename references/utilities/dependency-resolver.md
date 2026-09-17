@@ -1,6 +1,7 @@
 ---
 name: dependency-resolver
 description: Check dependencies for an NLSS operation and install only a reviewed, user-approved package set into a user R library.
+license: Apache-2.0
 ---
 
 # Dependency resolver
@@ -16,7 +17,7 @@ CSV project work still needs Arrow for working data and preserved inputs.
 
 ## Inputs, script and options
 
-Run `Rscript <NLSS>/scripts/R/dependency_resolver.R`. Use the same R installation
+Run `Rscript "<skill>/scripts/R/run_nlss.R" dependency-resolver`. Use the same R installation
 as the intended analysis. The utility accepts:
 
 - `--operation NAME`: entrypoint name, e.g. `sem`, `mixed-models`, `project-create`.
@@ -94,8 +95,8 @@ created for this setup condition. Utility statuses:
 ## Examples
 
 ```sh
-Rscript <NLSS>/scripts/R/dependency_resolver.R --operation mixed-models -- --df-method kr
-Rscript <NLSS>/scripts/R/dependency_resolver.R --operation mixed-models --action plan --repo https://cloud.r-project.org -- --df-method kr
+Rscript "<skill>/scripts/R/run_nlss.R" dependency-resolver --operation mixed-models -- --df-method kr
+Rscript "<skill>/scripts/R/run_nlss.R" dependency-resolver --operation mixed-models --action plan --repo https://cloud.r-project.org -- --df-method kr
 ```
 
 After permission, repeat the second command with `--action install` and

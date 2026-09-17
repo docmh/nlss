@@ -18,41 +18,44 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Optionally select variables; default is all columns.
-3. Run `scripts/R/data_explorer.R` with the correct flags.
+3. Run the `data-explorer` operation through `run_nlss.R` with the correct flags.
 4. Use outputs (`report_canonical.md`, `result.json`) to craft the response.
 
-## Script: `scripts/R/data_explorer.R`
+## Execution: `data-explorer`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript` and base R only.
 
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/data_explorer.R> --csv <path to CSV file> --vars age,gender
+Rscript "<skill>/scripts/R/run_nlss.R" data-explorer --csv <path to CSV file> --vars age,gender
 ```
 
 ### RDS Input (Data Frame)
 
 ```bash
-Rscript <path to scripts/R/data_explorer.R> --rds <path to RDS file> --vars age,gender
+Rscript "<skill>/scripts/R/run_nlss.R" data-explorer --rds <path to RDS file> --vars age,gender
 ```
 
 ### RData Input (Data Frame by Name)
 
 ```bash
-Rscript <path to scripts/R/data_explorer.R> --rdata <path to RData file> --df <data frame name> --vars age,gender
+Rscript "<skill>/scripts/R/run_nlss.R" data-explorer --rdata <path to RData file> --df <data frame name> --vars age,gender
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/data_explorer.R> --parquet <path to parquet file> --vars age,gender
+Rscript "<skill>/scripts/R/run_nlss.R" data-explorer --parquet <path to parquet file> --vars age,gender
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/data_explorer.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" data-explorer --interactive
 ```
 
 ### Options

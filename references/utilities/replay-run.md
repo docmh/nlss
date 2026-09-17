@@ -8,7 +8,7 @@ license: Apache-2.0
 
 ## Overview and intent
 
-Use `scripts/R/replay_run.R` when the researcher requests an exact repeat of a
+Use `replay-run` through the shared `run_nlss.R` launcher when the researcher requests an exact repeat of a
 completed migrated analysis. Explaining an explicitly selected historical result
 does not itself require replay. See [run contract](../run-contract.md) for scope,
 verification gates and failure handling.
@@ -16,7 +16,7 @@ verification gates and failure handling.
 ## Inputs, options and execution
 
 ```bash
-Rscript scripts/R/replay_run.R --request /path/to/project/.nlss/runs/<run-id>/request.json
+Rscript "<skill>/scripts/R/run_nlss.R" replay-run --request /path/to/project/.nlss/runs/<run-id>/request.json
 ```
 
 `--request` is required; `--help` lists usage. No network access, arbitrary R code,

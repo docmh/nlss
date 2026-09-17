@@ -1,6 +1,6 @@
 ---
 name: prepare-data
-description: Agent-run data preparation that audits variables, handles missingness (missings/impute), recodes/transforms/renames, optionally builds scales, documents changes, and produces NLSS format-ready reports.
+description: Agent-run data preparation that audits variables, handles missingness (missings/impute), recodes/transforms/renames, optionally builds scales and documents changes, with an authored report when requested.
 license: Apache-2.0
 ---
 

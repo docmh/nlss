@@ -20,10 +20,13 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 2. Choose variables for missingness analysis.
 3. Confirm that handling, not only inspection, is intended: this module can change
    working data. For inspection only, use `data-explorer` or descriptive summaries.
-4. Run `scripts/R/missings.R` with the agreed variables/method and interpret the
+4. Run the `missings` operation through `run_nlss.R` with the agreed variables/method and interpret the
    recorded decisions, retained cases and remaining missingness in context.
 
-## Script: `scripts/R/missings.R`
+## Execution: `missings`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Calculations use base R. Shared IO/run infrastructure also requires `arrow`,
 `yaml`, `digest` and `jsonlite`; SAV import requires `haven`. All shared import
@@ -32,31 +35,31 @@ options and source-byte checks apply; see [import contract](../import-contract.m
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/missings.R> --csv <path to CSV file> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" missings --csv <path to CSV file> --vars age,score
 ```
 
 ### RDS Input (Data Frame)
 
 ```bash
-Rscript <path to scripts/R/missings.R> --rds <path to RDS file> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" missings --rds <path to RDS file> --vars age,score
 ```
 
 ### RData Input (Data Frame by Name)
 
 ```bash
-Rscript <path to scripts/R/missings.R> --rdata <path to RData file> --df <data frame name> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" missings --rdata <path to RData file> --df <data frame name> --vars age,score
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/missings.R> --parquet <path to parquet file> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" missings --parquet <path to parquet file> --vars age,score
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/missings.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" missings --interactive
 ```
 
 ### Options

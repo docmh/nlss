@@ -21,59 +21,62 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose a design (between/within/mixed) and specify variables.
 3. Optionally request planned contrasts (`--emmeans`, `--contrasts`, `--contrast-file`).
-4. Run `scripts/R/anova.R` with the correct flags.
+4. Run the `anova` operation through `run_nlss.R` with the correct flags.
 5. Use outputs (`report_canonical.md`, `result.json`) for NLSS format reporting and diagnostics.
 
-## Script: `scripts/R/anova.R`
+## Execution: `anova`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript`. Between-subjects Type I uses `stats::anova`; Type II/III requires `car`. A missing package or non-estimable model is an explicit failure, never a fallback to a different requested hypothesis.
 
 ### Between-Subjects ANOVA (CSV)
 
 ```bash
-Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --dv outcome --between group
+Rscript "<skill>/scripts/R/run_nlss.R" anova --csv <path to CSV file> --dv outcome --between group
 ```
 
 ### Factorial Between-Subjects ANOVA + Covariates
 
 ```bash
-Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --dv outcome --between group,gender --covariates age
+Rscript "<skill>/scripts/R/run_nlss.R" anova --csv <path to CSV file> --dv outcome --between group,gender --covariates age
 ```
 
 ### Within-Subjects ANOVA (Wide Format)
 
 ```bash
-Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --within pre,mid,post --subject-id id
+Rscript "<skill>/scripts/R/run_nlss.R" anova --csv <path to CSV file> --within pre,mid,post --subject-id id
 ```
 
 ### Mixed ANOVA (Within + Between)
 
 ```bash
-Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --within pre,mid,post --between group --subject-id id
+Rscript "<skill>/scripts/R/run_nlss.R" anova --csv <path to CSV file> --within pre,mid,post --between group --subject-id id
 ```
 
 ### Planned Contrasts (Custom JSON)
 
 ```bash
-Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --dv outcome --between group3 --emmeans group3 --contrasts custom --contrast-file contrasts.json
+Rscript "<skill>/scripts/R/run_nlss.R" anova --csv <path to CSV file> --dv outcome --between group3 --emmeans group3 --contrasts custom --contrast-file contrasts.json
 ```
 
 ### Planned Contrasts (Built-in Method)
 
 ```bash
-Rscript <path to scripts/R/anova.R> --csv <path to CSV file> --dv outcome --between group3 --emmeans group3 --contrasts trt.vs.ctrl
+Rscript "<skill>/scripts/R/run_nlss.R" anova --csv <path to CSV file> --dv outcome --between group3 --emmeans group3 --contrasts trt.vs.ctrl
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/anova.R> --parquet <path to parquet file> --dv outcome --between group
+Rscript "<skill>/scripts/R/run_nlss.R" anova --parquet <path to parquet file> --dv outcome --between group
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/anova.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" anova --interactive
 ```
 
 ## Options

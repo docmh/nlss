@@ -18,41 +18,44 @@ NLSS assumes a senior researcher (user) and assistant researcher (agent) workflo
 
 1. Identify the input type (CSV, RDS, RData data frame, Parquet, or interactive).
 2. Choose numeric variables and optional grouping variable.
-3. Run `scripts/R/descriptive_stats.R` with the correct flags.
+3. Run the `descriptive-stats` operation through `run_nlss.R` with the correct flags.
 4. Use outputs (`report_canonical.md`, `result.json`) to craft the response.
 
-## Script: `scripts/R/descriptive_stats.R`
+## Execution: `descriptive-stats`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 Run with `Rscript` and base R only.
 
 ### CSV Input
 
 ```bash
-Rscript <path to scripts/R/descriptive_stats.R> --csv <path to CSV file> --vars age,score --group condition
+Rscript "<skill>/scripts/R/run_nlss.R" descriptive-stats --csv <path to CSV file> --vars age,score --group condition
 ```
 
 ### RDS Input (Data Frame)
 
 ```bash
-Rscript <path to scripts/R/descriptive_stats.R> --rds <path to RDS file> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" descriptive-stats --rds <path to RDS file> --vars age,score
 ```
 
 ### RData Input (Data Frame by Name)
 
 ```bash
-Rscript <path to scripts/R/descriptive_stats.R> --rdata <path to RData file> --df <data frame name> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" descriptive-stats --rdata <path to RData file> --df <data frame name> --vars age,score
 ```
 
 ### Parquet Input
 
 ```bash
-Rscript <path to scripts/R/descriptive_stats.R> --parquet <path to parquet file> --vars age,score
+Rscript "<skill>/scripts/R/run_nlss.R" descriptive-stats --parquet <path to parquet file> --vars age,score
 ```
 
 ### Interactive Prompts
 
 ```bash
-Rscript <path to scripts/R/descriptive_stats.R> --interactive
+Rscript "<skill>/scripts/R/run_nlss.R" descriptive-stats --interactive
 ```
 
 ### Options

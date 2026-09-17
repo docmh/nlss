@@ -1,6 +1,6 @@
 ---
 name: check-integrity
-description: Recover and summarize XOR-based NLSS checksums from analysis_log.jsonl entries to spot mismatches or tampering.
+description: Inspect recovered MD5/XOR checksums in existing analysis_log.jsonl entries for inconsistencies without modifying evidence; not signature verification or statistical replay.
 license: Apache-2.0
 ---
 
@@ -32,12 +32,15 @@ Example prompts:
 
 - Path to an `analysis_log.jsonl` file (or set `NLSS_INTEGRITY_LOG` in the environment).
 
-## Script: `scripts/R/check_integrity.R`
+## Execution: `check-integrity`
+
+Use the [shared launcher](../../SKILL.md#rscript-execution-required); `<skill>`
+is the installed NLSS skill directory.
 
 ### Rscript
 
 ```bash
-Rscript <path to scripts/R/check_integrity.R> <path to analysis_log.jsonl>
+Rscript "<skill>/scripts/R/run_nlss.R" check-integrity <path to analysis_log.jsonl>
 ```
 
 ## Options
@@ -73,7 +76,7 @@ Rscript <path to scripts/R/check_integrity.R> <path to analysis_log.jsonl>
 ## Examples
 
 ```bash
-Rscript scripts/R/check_integrity.R outputs/test-runs/20251228181418/workspace/golden_dataset/analysis_log.jsonl
+Rscript "<skill>/scripts/R/run_nlss.R" check-integrity outputs/test-runs/20251228181418/workspace/golden_dataset/analysis_log.jsonl
 ```
 
 ## Non-Goals

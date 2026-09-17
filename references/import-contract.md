@@ -26,7 +26,7 @@ type metadata, preserving fractional seconds, units and timezone information.
 ## CSV interpretation
 
 ```bash
-Rscript scripts/R/descriptive_stats.R --csv survey.csv --sep ';' \
+Rscript "<skill>/scripts/R/run_nlss.R" descriptive-stats --csv survey.csv --sep ';' \
   --csv-decimal ',' --csv-encoding UTF-8 \
   --csv-col-types 'id=character,score=numeric' --csv-na-values 'NA,99' \
   --vars score

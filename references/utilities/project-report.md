@@ -40,7 +40,7 @@ records. No statistical module has to opt into report storage.
 ## Agent-side command
 
 ```bash
-Rscript scripts/R/project_report.R --project /path/to/study \
+Rscript "<skill>/scripts/R/run_nlss.R" project-report --project /path/to/study \
   --report Manuscript.md --runs RUN_ID1,RUN_ID2
 ```
 
@@ -68,11 +68,11 @@ Opening the visible report requires no command or verification step. Optional
 history access uses the same report path, including in a later session:
 
 ```bash
-Rscript scripts/R/project_report.R --action inspect --project /path/to/study --report Manuscript.md
-Rscript scripts/R/project_report.R --action inspect --project /path/to/study \
+Rscript "<skill>/scripts/R/run_nlss.R" project-report --action inspect --project /path/to/study --report Manuscript.md
+Rscript "<skill>/scripts/R/run_nlss.R" project-report --action inspect --project /path/to/study \
   --report Manuscript.md --revision rev-HASH
 # Only when a full evidence check is requested:
-Rscript scripts/R/project_report.R --action inspect --project /path/to/study \
+Rscript "<skill>/scripts/R/run_nlss.R" project-report --action inspect --project /path/to/study \
   --report Manuscript.md --revision rev-HASH --verify TRUE
 ```
 

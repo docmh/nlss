@@ -5,7 +5,7 @@ for example: “Use NLSS to describe the sample in survey.sav.” The agent hand
 project setup/import and asks before installing missing R packages. You need R
 (`Rscript` on the agent's PATH), not Python or Node just to run NLSS.
 
-**[NLSS 2.0.0](https://github.com/docmh/nlss/releases/tag/v2.0.0)** provides the
+**[NLSS 2.0.1](https://github.com/docmh/nlss/releases/tag/v2.0.1)** provides the
 plugin and standalone-skill packages described here. The local
 runtime acceptance was completed on 16 September 2026 with explicit approval
 of the support limitations below. Linux package/maintenance tests
@@ -186,8 +186,8 @@ Rscript "<installed-skill>/scripts/R/run_nlss.R" replay-run --request "<selected
 
 Operation names accept hyphens or underscores, without `.R`. All following
 options go unchanged to the existing operation parser; `<operation> --help`
-shows that operation's own help. Convert direct-script examples in references
-to this invocation prefix, retaining their options. The launcher handles spaces
+shows that operation's own help. Reference examples use this same launch form;
+their `<skill>` placeholder denotes the installed skill directory. The launcher handles spaces
 in the installation path, keeps the caller's working directory, and retains the
 selected operation in dependency diagnostics and saved evidence. It adds no
 statistical or project behavior. `install_nlss.R` remains a direct standalone
