@@ -1,0 +1,8 @@
+# Generated local analysis/test output and Python caches.
+/outputs/
+__pycache__/
+*.py[cod]
+
+# Sibling projects belong to their own repositories, never to this repository.
+/lambda_star/
+/homepage/
